@@ -18,24 +18,24 @@ Optional for local migrations:
 
 Install dependencies:
 ```bash
-npm install
+pnpm install
 ```
 
 Run the app locally:
 ```bash
-npm run dev
+pnpm run dev
 ```
 
 Build the app:
 ```bash
-npm run build
+pnpm run build
 ```
 
 ## Database migrations
 
 If you want to run migrations locally, set `DATABASE_URL` or `SUPABASE_DB_CONNECTION_STRING` and then:
 ```bash
-npm run migrate
+pnpm run migrate
 ```
 
 This is required before uploading payslips, because the `payslip_requests` table must include the `payslip_url` column.

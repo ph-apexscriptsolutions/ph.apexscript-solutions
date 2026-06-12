@@ -14,14 +14,14 @@ How to run (safe, local):
 
 ```
 export DATABASE_URL="postgres://postgres:YOUR_PASSWORD@db.host.supabase.co:5432/postgres"
-npm run migrate
+pnpm run migrate
 ```
 
 - Windows (PowerShell):
 
 ```
 $env:DATABASE_URL = "postgres://postgres:YOUR_PASSWORD@db.host.supabase.co:5432/postgres"
-npm run migrate
+pnpm run migrate
 ```
 
 What it does
