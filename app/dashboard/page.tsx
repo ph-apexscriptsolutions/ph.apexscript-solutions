@@ -154,6 +154,16 @@ export default function DashboardPage() {
   const [loadingWorkerId, setLoadingWorkerId] = useState<string | null>(null)
   const [isProcessingRequest, setIsProcessingRequest] = useState(false)
 
+  const [announcements, setAnnouncements] = useState<any[]>([])
+  const [isAnnouncementModalOpen, setIsAnnouncementModalOpen] = useState(false)
+  const [announcementMessage, setAnnouncementMessage] = useState("")
+  const [isPublishingAnnouncement, setIsPublishingAnnouncement] = useState(false)
+  const [showAnnouncementPreview, setShowAnnouncementPreview] = useState(false)
+  const [isEditingAnnouncement, setIsEditingAnnouncement] = useState(false)
+  const [editingAnnouncementId, setEditingAnnouncementId] = useState<number | null>(null)
+  const [announcementSchemaHint, setAnnouncementSchemaHint] = useState<string | null>(null)
+  const [announcementErrorMessage, setAnnouncementErrorMessage] = useState<string | null>(null)
+
   const [isAddWorkerModalOpen, setIsAddWorkerModalOpen] = useState(false)
   const [newWorkerForm, setNewWorkerForm] = useState({ fullName: "", jobTitle: "", department: "", email: "", password: "", role: "worker", location: "United States" })
   const [isAddingWorker, setIsAddingWorker] = useState(false)
@@ -252,6 +262,23 @@ export default function DashboardPage() {
       setView("detail")
     }
   }, [profile, activeWorker])
+
+  useEffect(() => {
+    if (!profile) return
+
+    const announcementsChannel = supabase.channel('announcements', { config: { broadcast: { self: true } } })
+      .on('broadcast', { event: 'new_announcement' }, (payload: any) => {
+        console.debug('Announcement broadcast received:', payload)
+        fetchAnnouncements()
+      })
+      .subscribe()
+
+    fetchAnnouncements()
+
+    return () => {
+      supabase.removeChannel(announcementsChannel)
+    }
+  }, [profile?.id])
 
   // Real-time subscriptions for automatic updates
   useEffect(() => {
@@ -934,6 +961,160 @@ export default function DashboardPage() {
     }
   }
 
+  const fetchAnnouncements = async () => {
+    try {
+      const res = await fetch('/api/announcements')
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to fetch announcements')
+      setAnnouncements(data.announcements || [])
+    } catch (err: any) {
+      console.error('Fetch announcements error:', err)
+      setAnnouncements([])
+    }
+  }
+
+  const getAnnouncementErrorMessage = (error: any, defaultMessage: string) => {
+    const message = typeof error?.message === 'string' ? error.message : String(error || '')
+    let result = defaultMessage
+    if (/could not find.*active|active.*column|active column|column "active" does not exist|schema cache/i.test(message)) {
+      result = 'Announcement publishing failed because the announcements table schema is missing the active column. Please run the latest database migration or add the active boolean column manually.'
+    } else if (/could not find.*message|message.*column.*could not find|column "message" does not exist/i.test(message)) {
+      result = 'Announcement publishing failed because the announcements table schema is missing the message column. Please run the latest database migration or add the message text column manually.'
+    } else if (/could not find.*content|content.*column.*could not find|column "content" does not exist|null value in column "content".*violates not-null constraint/i.test(message)) {
+      result = 'Announcement publishing failed because the announcements table schema is missing the content column. Please run the latest database migration or add the content text column manually.'
+    } else if (/could not find.*created_at|created_at.*column.*could not find|column "created_at" does not exist/i.test(message)) {
+      result = 'Announcement publishing failed because the announcements table schema is missing the created_at column. Please run the latest database migration or add the created_at timestamp column manually.'
+    } else if (/could not find.*title|title.*column.*could not find|column "title" does not exist|null value in column "title".*violates not-null constraint/i.test(message)) {
+      result = 'Announcement publishing failed because the announcements table schema requires title to be nullable or absent. Update the announcements schema to allow title to be null or add a default title value.'
+    } else if (/null value in column "admin_id".*violates not-null constraint/i.test(message) || /column "admin_id" does not exist/i.test(message)) {
+      result = 'Announcement publishing failed because the announcements table schema requires admin_id to be nullable or absent. Update the announcements schema to allow admin_id to be null or remove the NOT NULL constraint.'
+    }
+
+    if (announcementSchemaHint) {
+      result += `\n\nSchema repair suggestion:\n${announcementSchemaHint}`
+    }
+
+    return result
+  }
+
+  const publishAnnouncement = async () => {
+    if (!announcementMessage.trim()) {
+      alert('Please enter an announcement message.')
+      return
+    }
+
+    setAnnouncementErrorMessage(null)
+    setIsPublishingAnnouncement(true)
+    try {
+      const res = await fetch('/api/announcements', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: announcementMessage.trim() }),
+      })
+      const data = await res.json()
+      setAnnouncementSchemaHint(data.schemaHint || null)
+      if (!res.ok) {
+        const message = getAnnouncementErrorMessage({ message: data.error }, `Failed to publish announcement: ${data.error || 'Unknown error'}`)
+        setAnnouncementErrorMessage(message)
+        throw new Error(message)
+      }
+      setAnnouncementMessage('')
+      setAnnouncementErrorMessage(null)
+      setIsAnnouncementModalOpen(false)
+      setToastMessage('✅ Announcement published')
+      setShowToast(true)
+      setTimeout(() => { setShowToast(false); setToastMessage(null) }, 3000)
+      await fetchAnnouncements()
+    } catch (err: any) {
+      console.error('Publish announcement error:', err)
+      if (!announcementErrorMessage) {
+        setAnnouncementErrorMessage(err.message || 'Failed to publish announcement')
+      }
+    } finally {
+      setIsPublishingAnnouncement(false)
+    }
+  }
+
+  const deleteAnnouncement = async (id: number) => {
+    if (!confirm('Delete this announcement?')) return
+    setAnnouncementErrorMessage(null)
+    try {
+      const res = await fetch('/api/announcements', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      })
+      const data = await res.json()
+      setAnnouncementSchemaHint(data.schemaHint || null)
+      if (!res.ok) {
+        const message = getAnnouncementErrorMessage({ message: data.error }, `Failed to delete announcement: ${data.error || 'Unknown error'}`)
+        setAnnouncementErrorMessage(message)
+        throw new Error(message)
+      }
+      setAnnouncementErrorMessage(null)
+      setToastMessage('✅ Announcement deleted')
+      setShowToast(true)
+      setTimeout(() => { setShowToast(false); setToastMessage(null) }, 3000)
+      await fetchAnnouncements()
+    } catch (err: any) {
+      console.error('Delete announcement error:', err)
+      if (!announcementErrorMessage) {
+        const message = getAnnouncementErrorMessage(err, `Failed to delete announcement: ${err?.message || 'Unknown error'}`)
+        setAnnouncementErrorMessage(message)
+      }
+    }
+  }
+
+  const startEditingAnnouncement = (announcement: any) => {
+    setEditingAnnouncementId(announcement.id)
+    setAnnouncementMessage(announcement.message)
+    setIsEditingAnnouncement(true)
+    setShowAnnouncementPreview(false)
+    setIsAnnouncementModalOpen(true)
+  }
+
+  const updateAnnouncement = async () => {
+    if (!announcementMessage.trim()) {
+      alert('Please enter an announcement message.')
+      return
+    }
+
+    setAnnouncementErrorMessage(null)
+    setIsPublishingAnnouncement(true)
+    try {
+      const res = await fetch('/api/announcements', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: editingAnnouncementId, message: announcementMessage.trim() }),
+      })
+      const data = await res.json()
+      setAnnouncementSchemaHint(data.schemaHint || null)
+      if (!res.ok) {
+        const message = getAnnouncementErrorMessage({ message: data.error }, `Failed to update announcement: ${data.error || 'Unknown error'}`)
+        setAnnouncementErrorMessage(message)
+        throw new Error(message)
+      }
+      setAnnouncementMessage('')
+      setAnnouncementErrorMessage(null)
+      setIsAnnouncementModalOpen(false)
+      setIsEditingAnnouncement(false)
+      setEditingAnnouncementId(null)
+      setShowAnnouncementPreview(false)
+      setToastMessage('✅ Announcement updated')
+      setShowToast(true)
+      setTimeout(() => { setShowToast(false); setToastMessage(null) }, 3000)
+      await fetchAnnouncements()
+    } catch (err: any) {
+      console.error('Update announcement error:', err)
+      if (!announcementErrorMessage) {
+        const message = getAnnouncementErrorMessage(err, `Failed to update announcement: ${err?.message || 'Unknown error'}`)
+        setAnnouncementErrorMessage(message)
+      }
+    } finally {
+      setIsPublishingAnnouncement(false)
+    }
+  }
+
   const fetchPayslipRequests = async () => {
     try {
       const res = await fetch('/api/payslip-requests')
@@ -1249,7 +1430,66 @@ export default function DashboardPage() {
         <button onClick={handleLogout} className="inline-flex items-center gap-2 rounded-md bg-gradient-to-r from-red-600 to-rose-500 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-red-500/20 hover:from-red-700 hover:to-rose-600 transition"><LogOut className="h-4 w-4" /> Log Out</button>
       </header>
 
+
       <main className="mx-auto max-w-6xl p-6 space-y-6">
+        {announcements.length > 0 ? (
+          <>
+            {announcementSchemaHint && (
+              <div className="rounded-3xl border border-red-200 bg-red-50 p-5 text-red-900 shadow-sm">
+                <div className="flex flex-col gap-2">
+                  <div className="text-sm font-semibold">Database migration recommended</div>
+                  <div className="text-xs text-red-700">Your announcements table is missing the expected column. Run the SQL below to fix it.</div>
+                  <pre className="overflow-x-auto rounded-2xl border border-red-100 bg-white p-3 text-xs text-zinc-900"><code>{announcementSchemaHint}</code></pre>
+                </div>
+              </div>
+            )}
+
+            <div className="rounded-3xl border border-amber-200 bg-amber-50 p-5 text-amber-950 shadow-sm">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold uppercase tracking-[0.18em] text-amber-700">Announcement</p>
+                  <p className="mt-1 text-sm text-amber-900">Important message from your admin team.</p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <div className="text-xs text-amber-600">Realtime updates</div>
+                  {isAdmin && announcements[0]?.id && (
+                    <div className="flex gap-2">
+                      <button onClick={() => startEditingAnnouncement(announcements[0])} className="rounded-md border border-amber-200 bg-white px-3 py-1 text-xs font-semibold text-amber-700 hover:bg-amber-100 transition">
+                        Edit
+                      </button>
+                      <button onClick={() => deleteAnnouncement(announcements[0].id)} className="rounded-md border border-amber-200 bg-white px-3 py-1 text-xs font-semibold text-amber-700 hover:bg-amber-100 transition">
+                        Delete
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="mt-4">
+                <div className="rounded-2xl border border-amber-100 bg-white p-4 shadow-sm">
+                  <div className="text-sm text-zinc-900 leading-relaxed whitespace-pre-wrap">{announcements[0]?.message}</div>
+                  {announcements[0]?.created_at ? (
+                    <div className="mt-3 text-xs text-amber-500">
+                      {new Date(announcements[0].created_at).toLocaleString()}
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="rounded-3xl border border-zinc-200 bg-zinc-50 p-8 text-center">
+            <div className="text-zinc-400 mb-3">
+              <svg className="h-12 w-12 mx-auto opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <p className="text-sm font-medium text-zinc-600">No New Announcements</p>
+            <p className="text-xs text-zinc-500 mt-1">Check back later for updates from your admin team.</p>
+          </div>
+        )}
+
         {isAdmin && view === "list" ? (
           <div>
             <div className="flex items-center justify-between mb-6">
@@ -1261,6 +1501,11 @@ export default function DashboardPage() {
                 <button onClick={() => setIsAddWorkerModalOpen(true)} className="inline-flex items-center gap-2 rounded-md bg-gradient-to-r from-slate-900 via-zinc-900 to-stone-900 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 hover:from-slate-700 hover:via-zinc-800 hover:to-stone-800 transition">
                   <UserPlus className="h-4 w-4" /> Add New Worker
                 </button>
+                {isAdmin && (
+                  <button onClick={() => { setAnnouncementSchemaHint(null); setIsAnnouncementModalOpen(true) }} className="inline-flex items-center gap-2 rounded-md bg-amber-500 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-amber-500/20 hover:bg-amber-600 transition">
+                    Announcement
+                  </button>
+                )}
                 {isAdmin && (
                   <button onClick={() => { setIsPayslipAdminModalOpen(true); fetchPayslipRequests() }} className="inline-flex items-center gap-2 rounded-md border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 transition">
                     Payslip Requests
@@ -1395,10 +1640,14 @@ export default function DashboardPage() {
                             {activeWorker.role}
                           </span>
                         )}
-                        {isAdmin && (
-                          <button onClick={openEditWorkerModal} className="ml-auto inline-flex items-center gap-1 rounded-md border border-zinc-200 bg-white px-3 py-1 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 transition">
-                            <Pencil className="h-3.5 w-3.5" /> Edit
-                          </button>
+                        {activeWorker && (
+                          <div className="ml-auto flex items-center gap-2">
+                            {isAdmin && (
+                              <button onClick={openEditWorkerModal} className="inline-flex items-center gap-1 rounded-md border border-zinc-200 bg-white px-3 py-1 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 transition">
+                                <Pencil className="h-3.5 w-3.5" /> Edit
+                              </button>
+                            )}
+                          </div>
                         )}
                       </div>
                       <div className="mt-4 space-y-2 text-sm text-zinc-700">
@@ -1784,6 +2033,8 @@ export default function DashboardPage() {
             )}
           </div>
         )}
+
+
       </main>
 
       <footer className="border-t border-zinc-200 bg-white py-4">
@@ -2099,6 +2350,90 @@ export default function DashboardPage() {
                   ))}
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isAnnouncementModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl p-6 relative max-h-[90vh] overflow-y-auto">
+            <button onClick={() => { 
+              setIsAnnouncementModalOpen(false)
+              setAnnouncementMessage('')
+              setIsEditingAnnouncement(false)
+              setEditingAnnouncementId(null)
+              setShowAnnouncementPreview(false)
+              setAnnouncementErrorMessage(null)
+            }} className="absolute right-4 top-4 text-zinc-400 hover:text-zinc-900"><X className="h-5 w-5" /></button>
+            <h3 className="text-lg font-semibold text-zinc-900 mb-4">{isEditingAnnouncement ? 'Edit Announcement' : 'Publish Announcement'}</h3>
+            
+            <div className="grid grid-cols-2 gap-6">
+              {/* Input Section */}
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-zinc-700 mb-2">Message</label>
+                  <textarea
+                    value={announcementMessage}
+                    onChange={(e) => setAnnouncementMessage(e.target.value)}
+                    rows={8}
+                    className="w-full rounded-md border border-zinc-300 px-3 py-3 text-sm text-zinc-800 outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+                    placeholder="Write an announcement for all workers..."
+                  />
+                </div>
+                <div className="text-xs text-zinc-500">
+                  {announcementMessage.length} characters
+                </div>
+                {announcementErrorMessage && (
+                  <div className="rounded-2xl border border-red-200 bg-red-50 p-3 text-sm text-red-900">
+                    {announcementErrorMessage}
+                  </div>
+                )}
+                <button 
+                  type="button" 
+                  onClick={() => setShowAnnouncementPreview(!showAnnouncementPreview)}
+                  className="text-sm text-amber-600 hover:text-amber-700 font-medium"
+                >
+                  {showAnnouncementPreview ? '← Back to editing' : 'Preview →'}
+                </button>
+              </div>
+
+              {/* Preview Section */}
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-zinc-700 mb-2">Preview</label>
+                  <div className="rounded-2xl border border-amber-100 bg-amber-50 p-4 min-h-[200px] space-y-3">
+                    {announcementMessage.trim() ? (
+                      <>
+                        <div className="text-xs font-semibold uppercase tracking-[0.1em] text-amber-700">Announcement</div>
+                        <div className="rounded-lg bg-white p-3 border border-amber-100">
+                          <p className="text-sm text-zinc-900 leading-relaxed">{announcementMessage}</p>
+                        </div>
+                        <div className="text-xs text-amber-600">
+                          {new Date().toLocaleString()}
+                        </div>
+                      </>
+                    ) : (
+                      <div className="text-sm text-amber-700 text-center py-8">
+                        Start typing to see preview here
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 mt-6">
+              <button type="button" onClick={() => { 
+                setIsAnnouncementModalOpen(false)
+                setAnnouncementMessage('')
+                setIsEditingAnnouncement(false)
+                setEditingAnnouncementId(null)
+                setShowAnnouncementPreview(false)
+              }} className="rounded-md border border-zinc-200 bg-white px-5 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 transition">Cancel</button>
+              <button type="button" onClick={isEditingAnnouncement ? updateAnnouncement : publishAnnouncement} disabled={isPublishingAnnouncement} className="inline-flex items-center justify-center rounded-md bg-amber-500 px-5 py-2 text-sm font-semibold text-white hover:bg-amber-600 transition disabled:opacity-50">
+                {isPublishingAnnouncement ? (isEditingAnnouncement ? 'Updating...' : 'Publishing...') : (isEditingAnnouncement ? 'Update' : 'Publish')}
+              </button>
             </div>
           </div>
         </div>

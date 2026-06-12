@@ -1,20 +1,13 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-
-const supabaseUrl = process.env.SUPABASE_URL
-const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+import { getSupabaseServerClient } from '@/utils/supabase/server'
 
 export async function GET(request: Request) {
   try {
-    if (!supabaseUrl || !supabaseServiceRoleKey) {
-      return NextResponse.json({ error: 'Missing Supabase server configuration.' }, { status: 500 })
-    }
+    const supabase = getSupabaseServerClient(true)
 
     const url = new URL(request.url)
     const workerId = url.searchParams.get('workerId')
     const status = url.searchParams.get('status')
-
-    const supabase = createClient(supabaseUrl, supabaseServiceRoleKey)
 
     let query: any = supabase.from('payslip_requests').select('*').eq('admin_deleted', false).order('requested_at', { ascending: false })
     if (workerId) {

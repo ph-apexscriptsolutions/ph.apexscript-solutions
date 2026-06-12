@@ -1,14 +1,9 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-
-const supabaseUrl = process.env.SUPABASE_URL
-const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+import { getSupabaseServerClient } from '@/utils/supabase/server'
 
 export async function GET(request: Request) {
   try {
-    if (!supabaseUrl || !supabaseServiceRoleKey) {
-      return NextResponse.json({ error: 'Missing Supabase server configuration.' }, { status: 500 })
-    }
+    const supabase = getSupabaseServerClient(true)
 
     const url = new URL(request.url)
     const workerId = url.searchParams.get('workerId')
@@ -16,8 +11,6 @@ export async function GET(request: Request) {
     if (!workerId) {
       return NextResponse.json({ error: 'Missing workerId' }, { status: 400 })
     }
-
-    const supabase = createClient(supabaseUrl, supabaseServiceRoleKey)
 
     const { data, error } = await supabase
       .from('production_assignments')
@@ -40,10 +33,6 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    if (!supabaseUrl || !supabaseServiceRoleKey) {
-      return NextResponse.json({ error: 'Missing Supabase server configuration.' }, { status: 500 })
-    }
-
     const body = await request.json()
     const { workerId, filename, dueTime, description } = body
 
@@ -53,7 +42,7 @@ export async function POST(request: Request) {
 
     const formattedDueTime = dueTime || null
 
-    const supabase = createClient(supabaseUrl, supabaseServiceRoleKey)
+    const supabase = getSupabaseServerClient(true)
 
     const { data, error } = await supabase
       .from('production_assignments')
