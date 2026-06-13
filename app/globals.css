@@ -123,8 +123,12 @@
   }
   body {
     @apply bg-background text-foreground;
+    background-color: #ffffff !important;
+    color: #1a1a1a !important;
   }
   html {
     @apply font-sans;
+    background-color: #ffffff !important;
+    color-scheme: light !important;
   }
 }

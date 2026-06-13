@@ -3,6 +3,8 @@ import { useEffect, useState, FormEvent } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/utils/supabase/client"
 import { FileText, HardDrive, LogOut, Calendar, X, Pencil, Save, User, ArrowLeft, Upload, UserPlus, CreditCard, Trash2, Check } from "lucide-react"
+import AdminChat from '@/components/admin-chat'
+import WorkerRealtimeChat from '@/components/worker-realtime-chat'
 import { FlagIcon } from "@/components/flag-icon"
 
 const Card = ({ children, className }: { children: React.ReactNode; className?: string }) => <div className={`rounded-xl border border-zinc-200 bg-white shadow-md ${className}`}>{children}</div>
@@ -1432,6 +1434,14 @@ export default function DashboardPage() {
 
 
       <main className="mx-auto max-w-6xl p-6 space-y-6">
+        {isAdmin && (
+          <div className="mb-6">
+            <AdminChat workerProfiles={workersList} />
+          </div>
+        )}
+        {!isAdmin && profile?.id && (
+          <WorkerRealtimeChat workerId={profile.id} initialName={profile.full_name || undefined} />
+        )}
         {announcements.length > 0 ? (
           <>
             {announcementSchemaHint && (
