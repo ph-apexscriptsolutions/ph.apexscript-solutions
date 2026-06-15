@@ -8,7 +8,19 @@ type Msg = { sender: string; senderType: 'worker' | 'admin'; content: string; ts
 type WorkerProfile = { id: string; full_name?: string; role?: string; status?: 'online' | 'away' | 'offline' }
 type StatusType = 'online' | 'away' | 'offline'
 
-export default function AdminChat({ workerProfiles }: { workerProfiles: WorkerProfile[] }) {
+function getWorkerStatusDotClass(status?: StatusType) {
+  if (status === 'online') return 'bg-green-500'
+  if (status === 'away') return 'bg-yellow-500'
+  return 'bg-zinc-400'
+}
+
+export default function AdminChat({
+  workerProfiles,
+  onWorkerStatusChange,
+}: {
+  workerProfiles: WorkerProfile[]
+  onWorkerStatusChange?: (workerId: string, status: StatusType) => void
+}) {
   const [adminName, setAdminName] = useState('Admin')
   const [activeWorker, setActiveWorker] = useState<string | null>(null)
   const [messagesMap, setMessagesMap] = useState<Record<string, Msg[]>>({})
@@ -21,6 +33,10 @@ export default function AdminChat({ workerProfiles }: { workerProfiles: WorkerPr
   const subsRef = useRef<Record<string, any>>({})
   const endRef = useRef<HTMLDivElement | null>(null)
   const statusButtonRef = useRef<HTMLButtonElement | null>(null)
+
+  useEffect(() => {
+    setWorkersList(workerProfiles)
+  }, [workerProfiles])
 
   useEffect(() => {
     return () => {
@@ -100,12 +116,16 @@ export default function AdminChat({ workerProfiles }: { workerProfiles: WorkerPr
       setMessagesMap((m) => ({ ...m, [workerId]: [] }))
     })
 
-    channel.subscribe().then(() => {
-      subsRef.current[workerId] = channel
-    }).catch((err: any) => console.warn('Admin chat subscribe error', err))
+    channel.subscribe((status) => {
+      if (status === 'SUBSCRIBED') {
+        subsRef.current[workerId] = channel
+      } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+        console.warn('Admin chat subscribe error', status)
+      }
+    })
   }
 
-  const selectedWorker = workerProfiles.find((w) => w.id === activeWorker)
+  const selectedWorker = workersList.find((w) => w.id === activeWorker)
 
   const openWorker = (workerId: string) => {
     setActiveWorker(workerId)
@@ -118,8 +138,9 @@ export default function AdminChat({ workerProfiles }: { workerProfiles: WorkerPr
   const sendMessage = async (workerId: string, text: string) => {
     const trimmed = text.trim()
     if (!trimmed) return
-    const payload = { sender: adminName || 'Admin', senderType: 'admin', content: trimmed, message: trimmed, text: trimmed }
-    setMessagesMap((m) => ({ ...m, [workerId]: [...(m[workerId] || []), { ...payload, ts: Date.now() }] }))
+    const msg: Msg = { sender: adminName || 'Admin', senderType: 'admin', content: trimmed, ts: Date.now() }
+    setMessagesMap((m) => ({ ...m, [workerId]: [...(m[workerId] || []), msg] }))
+    const payload = { ...msg, message: trimmed, text: trimmed }
     try {
       await supabase.channel(`chat:worker:${workerId}`).send({ type: 'broadcast', event: 'message', payload })
     } catch (err) {
@@ -147,6 +168,7 @@ export default function AdminChat({ workerProfiles }: { workerProfiles: WorkerPr
         setWorkersList((prev) =>
           prev.map((w) => (w.id === workerId ? { ...w, status: newStatus } : w))
         )
+        onWorkerStatusChange?.(workerId, newStatus)
       } else {
         console.error('Failed to update worker status:', error)
       }
@@ -176,13 +198,13 @@ export default function AdminChat({ workerProfiles }: { workerProfiles: WorkerPr
         </div>
 
         <div className="space-y-1 max-h-[340px] overflow-y-auto">
-          {workerProfiles.length === 0 ? (
+          {workersList.length === 0 ? (
             <div className="text-xs text-zinc-500">No workers available to chat.</div>
           ) : (
-            workerProfiles.map((worker) => (
+            workersList.map((worker) => (
               <button key={worker.id} onClick={() => openWorker(worker.id)} className="flex w-full items-center justify-between rounded px-2 py-1 text-left text-xs leading-tight hover:bg-zinc-50">
                 <div className="flex items-center gap-1.5">
-                  <div className={`h-2.5 w-2.5 rounded-full ${onlineMap[worker.id]?.status === 'online' ? 'bg-green-500' : 'bg-zinc-300'}`} />
+                  <div className={`h-2.5 w-2.5 rounded-full ${getWorkerStatusDotClass(worker.status)}`} />
                   <div className="truncate">{worker.full_name || worker.id}</div>
                 </div>
                 <div className="flex items-center gap-1">

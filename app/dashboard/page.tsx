@@ -100,6 +100,12 @@ const formatRoleLabel = (role: string) => {
     .replace(/\b\w/g, (match) => match.toUpperCase())
 }
 
+const getWorkerStatusDotClass = (status?: string) => {
+  if (status === 'online') return 'bg-green-500'
+  if (status === 'away') return 'bg-yellow-500'
+  return 'bg-zinc-400'
+}
+
 const COUNTRY_FLAGS: { [key: string]: string } = {
   'Australia': '🇦🇺',
   'Canada': '🇨🇦',
@@ -831,6 +837,36 @@ export default function DashboardPage() {
     }
   }
 
+  const updateWorkerStatus = async (workerId: string, newStatus: string) => {
+    if (!newStatus) return
+    try {
+      const { error } = await supabase
+        .from('worker_profiles')
+        .update({ status: newStatus })
+        .eq('id', workerId)
+
+      if (error) {
+        console.error('Failed to update worker status:', error)
+        alert('Failed to update worker status. Make sure the status migration has been run.')
+        return
+      }
+
+      setAllWorkers((prev) => prev.map((w) => (w.id === workerId ? { ...w, status: newStatus } : w)))
+      if (activeWorker?.id === workerId) {
+        setActiveWorker((prev: any) => (prev ? { ...prev, status: newStatus } : prev))
+      }
+    } catch (err) {
+      console.error('Error updating worker status', err)
+    }
+  }
+
+  const syncWorkerStatusChange = (workerId: string, status: 'online' | 'away' | 'offline') => {
+    setAllWorkers((prev) => prev.map((w) => (w.id === workerId ? { ...w, status } : w)))
+    if (activeWorker?.id === workerId) {
+      setActiveWorker((prev: any) => (prev ? { ...prev, status } : prev))
+    }
+  }
+
   const handleAddWorker = async (e: FormEvent) => {
     e.preventDefault()
     setIsAddingWorker(true)
@@ -1436,7 +1472,7 @@ export default function DashboardPage() {
       <main className="mx-auto max-w-6xl p-6 space-y-6">
         {isAdmin && (
           <div className="mb-6">
-            <AdminChat workerProfiles={workersList} />
+            <AdminChat workerProfiles={workersList} onWorkerStatusChange={syncWorkerStatusChange} />
           </div>
         )}
         {!isAdmin && profile?.id && (
@@ -1600,8 +1636,9 @@ export default function DashboardPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                   {workersList.length > 0 ? workersList.map((w: any) => (
                     <div key={w.id} role="button" tabIndex={0} onClick={() => handleViewWorker(w)} onKeyDown={(e) => { if (e.key === 'Enter') handleViewWorker(w) }} className="group relative flex items-center gap-4 p-4 bg-white rounded-xl border border-zinc-200 shadow-sm hover:shadow-md transition-all text-left cursor-pointer">
-                      <div className="flex h-12 w-12 shrink-0 overflow-hidden rounded-full bg-zinc-200 text-zinc-500">
+                      <div className="relative flex h-12 w-12 shrink-0 overflow-hidden rounded-full bg-zinc-200 text-zinc-500">
                         <div className="flex h-full w-full items-center justify-center"><User className="h-6 w-6" /></div>
+                        <span className={`absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white ${getWorkerStatusDotClass(w.status)}`} />
                       </div>
                       <div className="overflow-hidden">
                         <p className="font-semibold text-zinc-900 truncate">{w.full_name}</p>
@@ -1680,6 +1717,22 @@ export default function DashboardPage() {
                           <span className="font-medium">✉️</span>
                           <span>{activeWorker?.email || "N/A"}</span>
                         </div>
+                        {isAdmin && activeWorker && (
+                          <div className="flex items-center gap-2">
+                            <span className={`h-2.5 w-2.5 rounded-full ${getWorkerStatusDotClass(activeWorker.status)}`} />
+                            <select
+                              value={activeWorker.status || ''}
+                              onChange={(e) => updateWorkerStatus(activeWorker.id, e.target.value)}
+                              className="rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm text-zinc-700 outline-none"
+                              aria-label="Worker status"
+                            >
+                              <option value="">Choose</option>
+                              <option value="online">Online</option>
+                              <option value="away">Away</option>
+                              <option value="offline">Offline</option>
+                            </select>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>

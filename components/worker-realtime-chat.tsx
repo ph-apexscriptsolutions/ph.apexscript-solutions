@@ -100,8 +100,9 @@ export default function WorkerRealtimeChat({ workerId, initialName }: { workerId
   const sendMessage = async () => {
     const trimmed = text.trim()
     if (!trimmed) return
-    const payload = { sender: name || 'Worker', senderType: 'worker', content: trimmed, message: trimmed, text: trimmed }
-    setMessages((p) => [...p, { ...payload, ts: Date.now() }])
+    const msg: Msg = { sender: name || 'Worker', senderType: 'worker', content: trimmed, ts: Date.now() }
+    setMessages((p) => [...p, msg])
+    const payload = { ...msg, message: trimmed, text: trimmed }
     setText('')
     try {
       const channelName = `chat:worker:${workerId}`
