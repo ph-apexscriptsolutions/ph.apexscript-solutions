@@ -52,8 +52,8 @@ export async function POST(request: Request) {
         })
 
         await transporter.sendMail({
-          from: process.env.EMAIL_USER,
-          to: 'romsaubrey.cabello01@gmail.com',
+          from: `"[WORKER] ApexScript Solutions" <${process.env.EMAIL_USER}>`,
+          to: process.env.EMAIL_USER,
           subject: `New File Upload from ${workerName}`,
           text: `Worker Name: ${workerName}\nFile Name: ${fileName}\n\nPlease find the attached file.`,
           attachments: [

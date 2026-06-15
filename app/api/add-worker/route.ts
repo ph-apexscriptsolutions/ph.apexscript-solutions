@@ -16,9 +16,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing required worker fields.' }, { status: 400 })
     }
 
-    const validRoles = ['worker', 'admin', 'moderator']
+    const validRoles = ['worker', 'admin', 'moderator', 'project_manager', 'human_resource', 'project_manager_human_resource']
     if (!validRoles.includes(role)) {
-      return NextResponse.json({ error: 'Invalid role. Must be worker, admin, or moderator.' }, { status: 400 })
+      return NextResponse.json({ error: 'Invalid role. Must be worker, admin, moderator, project_manager, human_resource, or project_manager_human_resource.' }, { status: 400 })
     }
 
     const validLocations = ['Australia','Canada','India','Philippines','United Kingdom','United States']
@@ -46,6 +46,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Failed to retrieve created user ID.' }, { status: 500 })
     }
 
+    // Generate employee ID: TR-XXXX (4 random digits)
+    const employeeId = `TR-${Math.floor(1000 + Math.random() * 9000)}`
+
     const { error: profileError } = await supabase.from('worker_profiles').insert({
       id: userId,
       full_name: fullName,
@@ -55,6 +58,7 @@ export async function POST(request: Request) {
       role,
       location,
       total_files: 0,
+      employee_id: employeeId,
     })
 
     if (profileError) {

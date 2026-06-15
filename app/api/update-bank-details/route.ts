@@ -33,6 +33,7 @@ export async function POST(request: NextRequest) {
         account_number: bankDetails.accountNumber,
         account_type: bankDetails.accountType,
         routing_number: bankDetails.routingNumber,
+        employee_id: bankDetails.employeeId,
       })
       .eq('id', workerId)
       .select()

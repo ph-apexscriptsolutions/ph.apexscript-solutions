@@ -90,6 +90,9 @@ const formatDate = (date?: string | Date) => {
 const ROLE_BADGE_STYLES: Record<string, string> = {
   admin: 'bg-cyan-100 text-cyan-800',
   moderator: 'bg-amber-100 text-amber-800',
+  project_manager: 'bg-purple-100 text-purple-800',
+  human_resource: 'bg-orange-100 text-orange-800',
+  project_manager_human_resource: 'bg-teal-100 text-teal-800',
   worker: 'bg-zinc-100 text-zinc-700',
   default: 'bg-zinc-100 text-zinc-700',
 }
@@ -141,7 +144,7 @@ export default function DashboardPage() {
   const [isAddingManualRecord, setIsAddingManualRecord] = useState(false)
 
   const [isBankModalOpen, setIsBankModalOpen] = useState(false)
-  const [bankForm, setBankForm] = useState({ bankName: "", accountNumber: "", accountType: "", routingNumber: "" })
+  const [bankForm, setBankForm] = useState({ bankName: "", accountNumber: "", accountType: "", routingNumber: "", employeeId: "" })
   const [isUpdatingBank, setIsUpdatingBank] = useState(false)
 
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
@@ -158,6 +161,10 @@ export default function DashboardPage() {
   const [payslipRequests, setPayslipRequests] = useState<any[]>([])
   const [realtimeStatus, setRealtimeStatus] = useState<'connected' | 'connecting' | 'disconnected'>('connecting')
   const [isPayslipAdminModalOpen, setIsPayslipAdminModalOpen] = useState(false)
+  const [isRoleEditModalOpen, setIsRoleEditModalOpen] = useState(false)
+  const [editingRoleWorker, setEditingRoleWorker] = useState<any | null>(null)
+  const [newRole, setNewRole] = useState('')
+  const [isUpdatingRole, setIsUpdatingRole] = useState(false)
   const [adminPayslipRequests, setAdminPayslipRequests] = useState<any[]>([])
   const [loadingWorkerId, setLoadingWorkerId] = useState<string | null>(null)
   const [isProcessingRequest, setIsProcessingRequest] = useState(false)
@@ -244,6 +251,7 @@ export default function DashboardPage() {
       accountNumber: activeWorker.account_number || "",
       accountType: activeWorker.account_type || "",
       routingNumber: activeWorker.routing_number || "",
+      employeeId: activeWorker.employee_id || "",
     })
 
     // Force refresh worker data to pick up any newly added columns
@@ -905,6 +913,40 @@ export default function DashboardPage() {
     }
   }
 
+  const handleUpdateRole = async () => {
+    if (!editingRoleWorker || !newRole) return
+    setIsUpdatingRole(true)
+
+    try {
+      const response = await fetch('/api/update-worker-role', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          workerId: editingRoleWorker.id,
+          newRole: newRole,
+        }),
+      })
+
+      const result = await response.json()
+      if (!response.ok) {
+        throw new Error(result.error || 'Unable to update worker role.')
+      }
+
+      alert('✅ Worker role updated successfully!')
+      setIsRoleEditModalOpen(false)
+      setEditingRoleWorker(null)
+      setNewRole('')
+
+      const { data: workers } = await supabase.from('worker_profiles').select('*').order('full_name')
+      if (workers) setAllWorkers(workers)
+    } catch (err: any) {
+      console.error('Failed to update worker role:', err)
+      alert(`Failed to update worker role: ${err.message}`)
+    } finally {
+      setIsUpdatingRole(false)
+    }
+  }
+
   // loading check moved below so all hooks run consistently
 
   const isAdmin = profile?.role === "admin"
@@ -932,7 +974,8 @@ export default function DashboardPage() {
   // Group workers by role for the Team Members view
   const admins = allWorkers.filter((w: any) => w.role === 'admin')
   const moderators = allWorkers.filter((w: any) => w.role === 'moderator')
-  const workersList = allWorkers.filter((w: any) => w.role !== 'admin' && w.role !== 'moderator')
+  const hrProjectManagers = allWorkers.filter((w: any) => ['project_manager', 'human_resource', 'project_manager_human_resource'].includes(w.role))
+  const workersList = allWorkers.filter((w: any) => !['admin', 'moderator', 'project_manager', 'human_resource', 'project_manager_human_resource'].includes(w.role))
 
   const computeTotalEarnings = () => {
     const kbValue = parseFloat(filteredTotalKB.replace(/[^\d.]/g, '')) || 0
@@ -1587,12 +1630,61 @@ export default function DashboardPage() {
                         )}
                       </div>
                       {isAdmin && w.id !== user?.id && (
-                        <button type="button" onClick={(e) => { e.stopPropagation(); handleDeleteWorker(w.id, w.full_name) }} className="absolute right-3 top-3 inline-flex h-8 w-8 items-center justify-center rounded-full bg-red-600 text-white shadow-sm shadow-red-500/20 hover:bg-red-700 transition" aria-label="Delete worker">
-                          <X className="h-4 w-4" />
-                        </button>
+                        <div className="absolute right-3 top-3 flex gap-1">
+                          <button type="button" onClick={(e) => { e.stopPropagation(); setEditingRoleWorker(w); setNewRole(w.role || 'worker'); setIsRoleEditModalOpen(true) }} className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-white shadow-sm shadow-blue-500/20 hover:bg-blue-700 transition" aria-label="Edit role">
+                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                            </svg>
+                          </button>
+                          <button type="button" onClick={(e) => { e.stopPropagation(); handleDeleteWorker(w.id, w.full_name) }} className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-red-600 text-white shadow-sm shadow-red-500/20 hover:bg-red-700 transition" aria-label="Delete worker">
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
                       )}
                     </div>
                   )) : <div className="text-zinc-500">No admins found.</div>}
+                </div>
+              </section>
+
+              <section>
+                <h3 className="text-sm font-semibold text-zinc-600 mb-2">Project Manager & Human Resource</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {hrProjectManagers.length > 0 ? hrProjectManagers.map((w: any) => (
+                    <div key={w.id} role="button" tabIndex={0} onClick={() => handleViewWorker(w)} onKeyDown={(e) => { if (e.key === 'Enter') handleViewWorker(w) }} className="group relative flex items-center gap-4 p-4 bg-white rounded-xl border border-zinc-200 shadow-sm hover:shadow-md transition-all text-left cursor-pointer">
+                      <div className="relative flex h-12 w-12 shrink-0 overflow-hidden rounded-full bg-zinc-200 text-zinc-500">
+                        <div className="flex h-full w-full items-center justify-center"><User className="h-6 w-6" /></div>
+                      </div>
+                      <div className="overflow-hidden">
+                        <p className="font-semibold text-zinc-900 truncate">{w.full_name}</p>
+                        <p className="text-zinc-500 text-sm mt-1 truncate flex items-center gap-1">
+                          <span>{w.job_title || "Transcriber"} · {w.department || "General"}</span>
+                          {w.location ? (
+                            <span className="inline-flex items-center gap-1">
+                              · {w.location}
+                              <FlagIcon country={w.location} size={14} />
+                            </span>
+                          ) : null}
+                        </p>
+                        {w.role && (
+                          <span className={`inline-flex rounded-full px-3 py-1 text-xs font-medium mt-2 ${ROLE_BADGE_STYLES[w.role] || 'bg-zinc-100 text-zinc-700'}`}>
+                            {formatRoleLabel(w.role)}
+                          </span>
+                        )}
+                      </div>
+                      {isAdmin && w.id !== user?.id && (
+                        <div className="absolute right-3 top-3 flex gap-1">
+                          <button type="button" onClick={(e) => { e.stopPropagation(); setEditingRoleWorker(w); setNewRole(w.role || 'worker'); setIsRoleEditModalOpen(true) }} className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-white shadow-sm shadow-blue-500/20 hover:bg-blue-700 transition" aria-label="Edit role">
+                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                            </svg>
+                          </button>
+                          <button type="button" onClick={(e) => { e.stopPropagation(); handleDeleteWorker(w.id, w.full_name) }} className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-red-600 text-white shadow-sm shadow-red-500/20 hover:bg-red-700 transition" aria-label="Delete worker">
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )) : <div className="text-zinc-500">No Project Managers & HR found.</div>}
                 </div>
               </section>
 
@@ -1622,9 +1714,16 @@ export default function DashboardPage() {
                         )}
                       </div>
                       {isAdmin && w.id !== user?.id && (
-                        <button type="button" onClick={(e) => { e.stopPropagation(); handleDeleteWorker(w.id, w.full_name) }} className="absolute right-3 top-3 inline-flex h-8 w-8 items-center justify-center rounded-full bg-red-600 text-white shadow-sm shadow-red-500/20 hover:bg-red-700 transition" aria-label="Delete worker">
-                          <X className="h-4 w-4" />
-                        </button>
+                        <div className="absolute right-3 top-3 flex gap-1">
+                          <button type="button" onClick={(e) => { e.stopPropagation(); setEditingRoleWorker(w); setNewRole(w.role || 'worker'); setIsRoleEditModalOpen(true) }} className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-white shadow-sm shadow-blue-500/20 hover:bg-blue-700 transition" aria-label="Edit role">
+                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                            </svg>
+                          </button>
+                          <button type="button" onClick={(e) => { e.stopPropagation(); handleDeleteWorker(w.id, w.full_name) }} className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-red-600 text-white shadow-sm shadow-red-500/20 hover:bg-red-700 transition" aria-label="Delete worker">
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
                       )}
                     </div>
                   )) : <div className="text-zinc-500">No moderators found.</div>}
@@ -1658,9 +1757,16 @@ export default function DashboardPage() {
                         )}
                       </div>
                       {isAdmin && w.id !== user?.id && (
-                        <button type="button" onClick={(e) => { e.stopPropagation(); handleDeleteWorker(w.id, w.full_name) }} className="absolute right-3 top-3 inline-flex h-8 w-8 items-center justify-center rounded-full bg-red-600 text-white shadow-sm shadow-red-500/20 hover:bg-red-700 transition" aria-label="Delete worker">
-                          <X className="h-4 w-4" />
-                        </button>
+                        <div className="absolute right-3 top-3 flex gap-1">
+                          <button type="button" onClick={(e) => { e.stopPropagation(); setEditingRoleWorker(w); setNewRole(w.role || 'worker'); setIsRoleEditModalOpen(true) }} className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-white shadow-sm shadow-blue-500/20 hover:bg-blue-700 transition" aria-label="Edit role">
+                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                            </svg>
+                          </button>
+                          <button type="button" onClick={(e) => { e.stopPropagation(); handleDeleteWorker(w.id, w.full_name) }} className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-red-600 text-white shadow-sm shadow-red-500/20 hover:bg-red-700 transition" aria-label="Delete worker">
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
                       )}
                     </div>
                   )) : <div className="text-zinc-500">No workers found.</div>}
@@ -1769,6 +1875,10 @@ export default function DashboardPage() {
                     <div className="flex items-center justify-between gap-2">
                       <span className="font-medium text-zinc-600">Routing Number</span>
                       <span>{activeWorker?.routing_number || "Not provided"}</span>
+                    </div>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-medium text-zinc-600">Employee ID</span>
+                      <span>{activeWorker?.employee_id || "Not provided"}</span>
                     </div>
                   </div>
                 </CardContent>
@@ -2137,6 +2247,9 @@ export default function DashboardPage() {
                 <select value={newWorkerForm.role} onChange={(e) => setNewWorkerForm({...newWorkerForm, role: e.target.value})} className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-700 outline-none" required>
                   <option value="worker">Worker</option>
                   <option value="admin">Admin</option>
+                  <option value="project_manager">Project Manager</option>
+                  <option value="human_resource">Human Resource</option>
+                  <option value="project_manager_human_resource">Project Manager/Human Resource</option>
                   <option value="moderator">Moderator</option>
                 </select>
               </div>
@@ -2214,6 +2327,19 @@ export default function DashboardPage() {
                   <label className="block text-sm font-medium text-zinc-700 mb-1">Routing Number</label>
                   <input type="text" value={bankForm.routingNumber} onChange={(e) => setBankForm({ ...bankForm, routingNumber: e.target.value })} className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm" required />
                 </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 mb-1">Employee ID</label>
+                <input
+                  type="text"
+                  value={bankForm.employeeId}
+                  onChange={(e) => setBankForm({ ...bankForm, employeeId: e.target.value })}
+                  className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+                  disabled={!isAdmin}
+                  readOnly={!isAdmin}
+                  placeholder={isAdmin ? "TR-XXXX" : "Contact admin to change"}
+                />
+                {!isAdmin && <p className="text-xs text-zinc-500 mt-1">Contact admin to change employee ID</p>}
               </div>
               <div className="flex gap-3 mt-6">
                 <button type="button" onClick={() => setIsBankModalOpen(false)} className="flex-1 rounded-md border border-zinc-200 bg-white px-5 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 transition">Cancel</button>
@@ -2576,6 +2702,47 @@ export default function DashboardPage() {
               <button onClick={saveEdit} disabled={isSaving} className="flex-1 inline-flex items-center justify-center gap-2 rounded-md bg-gradient-to-r from-slate-900 to-zinc-900 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 hover:from-slate-700 hover:to-zinc-800 disabled:opacity-50">
                 {isSaving ? "Saving..." : <span className="flex items-center gap-2"><Save className="h-4 w-4" /> Save</span>}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isRoleEditModalOpen && editingRoleWorker && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 relative">
+            <button onClick={() => setIsRoleEditModalOpen(false)} className="absolute right-4 top-4 text-zinc-400 hover:text-zinc-900"><X className="h-5 w-5" /></button>
+            <h3 className="text-lg font-semibold text-zinc-900 mb-4">Edit Worker Role</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 mb-1">Worker</label>
+                <div className="text-sm text-zinc-600">{editingRoleWorker.full_name || editingRoleWorker.id}</div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 mb-1">Current Role</label>
+                <div className="text-sm text-zinc-600">{editingRoleWorker.role || 'Worker'}</div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 mb-1">New Role</label>
+                <select
+                  value={newRole}
+                  onChange={(e) => setNewRole(e.target.value)}
+                  className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-700 outline-none"
+                  required
+                >
+                  <option value="worker">Worker</option>
+                  <option value="admin">Admin</option>
+                  <option value="project_manager">Project Manager</option>
+                  <option value="human_resource">Human Resource</option>
+                  <option value="project_manager_human_resource">Project Manager/Human Resource</option>
+                  <option value="moderator">Moderator</option>
+                </select>
+              </div>
+              <div className="flex gap-3 mt-6">
+                <button onClick={() => setIsRoleEditModalOpen(false)} className="flex-1 px-4 py-2 text-sm font-medium text-zinc-700 bg-zinc-100 rounded-md hover:bg-zinc-200">Cancel</button>
+                <button onClick={handleUpdateRole} disabled={isUpdatingRole} className="flex-1 inline-flex items-center justify-center gap-2 rounded-md bg-gradient-to-r from-slate-900 to-zinc-900 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 hover:from-slate-700 hover:to-zinc-800 disabled:opacity-50">
+                  {isUpdatingRole ? "Updating..." : <span className="flex items-center gap-2"><Save className="h-4 w-4" /> Update Role</span>}
+                </button>
+              </div>
             </div>
           </div>
         </div>

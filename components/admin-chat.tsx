@@ -4,9 +4,10 @@ import React, { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/utils/supabase/client'
 import { MessageSquare, Trash, Users, MoreVertical, Circle } from 'lucide-react'
 
-type Msg = { sender: string; senderType: 'worker' | 'admin'; content: string; ts: number }
+type Msg = { sender: string; senderType: 'worker' | 'admin'; content: string; ts: number; messageId?: string }
 type WorkerProfile = { id: string; full_name?: string; role?: string; status?: 'online' | 'away' | 'offline' }
 type StatusType = 'online' | 'away' | 'offline'
+type AdminRole = 'Admin' | 'Project Manager' | 'Human Resource' | 'Project Manager/Human Resource' | 'Moderator'
 
 function getWorkerStatusDotClass(status?: StatusType) {
   if (status === 'online') return 'bg-green-500'
@@ -22,6 +23,7 @@ export default function AdminChat({
   onWorkerStatusChange?: (workerId: string, status: StatusType) => void
 }) {
   const [adminName, setAdminName] = useState('Admin')
+  const [adminRole, setAdminRole] = useState<AdminRole>('Admin')
   const [activeWorker, setActiveWorker] = useState<string | null>(null)
   const [messagesMap, setMessagesMap] = useState<Record<string, Msg[]>>({})
   const [unreadMap, setUnreadMap] = useState<Record<string, number>>({})
@@ -33,9 +35,52 @@ export default function AdminChat({
   const subsRef = useRef<Record<string, any>>({})
   const endRef = useRef<HTMLDivElement | null>(null)
   const statusButtonRef = useRef<HTMLButtonElement | null>(null)
+  const processedMessageIdsRef = useRef<Set<string>>(new Set())
 
   useEffect(() => {
-    setWorkersList(workerProfiles)
+    // Sort workers by role hierarchy: Admin > Project Manager & Human Resource > Moderator > Workers
+    const roleOrder: { [key: string]: number } = {
+      'admin': 1,
+      'project_manager': 2,
+      'human_resource': 2,
+      'project_manager_human_resource': 2,
+      'moderator': 3,
+      'worker': 4,
+      'Admin': 1,
+      'Project Manager': 2,
+      'Human Resource': 2,
+      'Project Manager/Human Resource': 2,
+      'Moderator': 3,
+      'Worker': 4,
+    }
+    
+    const sortedWorkers = [...workerProfiles].sort((a, b) => {
+      const roleA = roleOrder[a.role || 'worker'] || 4
+      const roleB = roleOrder[b.role || 'worker'] || 4
+      if (roleA !== roleB) return roleA - roleB
+      return (a.full_name || a.id).localeCompare(b.full_name || b.id)
+    })
+    
+    setWorkersList(sortedWorkers)
+    // Subscribe to all workers when worker profiles change
+    workerProfiles.forEach((worker) => {
+      if (!subsRef.current[worker.id]) {
+        subscribeWorker(worker.id)
+      }
+    })
+  }, [workerProfiles])
+
+  // Cleanup subscriptions when workers are removed
+  useEffect(() => {
+    const currentWorkerIds = new Set(workerProfiles.map(w => w.id))
+    Object.keys(subsRef.current).forEach(workerId => {
+      if (!currentWorkerIds.has(workerId)) {
+        try {
+          supabase.removeChannel(subsRef.current[workerId])
+        } catch (e) {}
+        delete subsRef.current[workerId]
+      }
+    })
   }, [workerProfiles])
 
   useEffect(() => {
@@ -101,13 +146,25 @@ export default function AdminChat({
 
     channel.on('broadcast', { event: 'message' }, (payload: any) => {
       const eventPayload = normalizePayload(payload)
+      const messageId = eventPayload.messageId || `${Date.now()}-${Math.random()}`
+      
+      // Prevent duplicate messages
+      if (processedMessageIdsRef.current.has(messageId)) return
+      processedMessageIdsRef.current.add(messageId)
+      
       const msg: Msg = {
         sender: eventPayload.sender || 'worker',
         senderType: eventPayload.senderType || 'worker',
         content: eventPayload.content ?? eventPayload.message ?? eventPayload.text ?? '',
         ts: Date.now(),
+        messageId,
       }
-      setMessagesMap((m) => ({ ...m, [workerId]: [...(m[workerId] || []), msg] }))
+      setMessagesMap((m) => {
+        const existingMessages = m[workerId] || []
+        // Check if message with same ID already exists
+        if (existingMessages.some(m => m.messageId === messageId)) return m
+        return { ...m, [workerId]: [...existingMessages, msg] }
+      })
       if (activeWorker !== workerId) setUnreadMap((u) => ({ ...u, [workerId]: (u[workerId] || 0) + 1 }))
       setTimeout(() => endRef.current?.scrollIntoView({ behavior: 'smooth' }), 50)
     })
@@ -138,9 +195,10 @@ export default function AdminChat({
   const sendMessage = async (workerId: string, text: string) => {
     const trimmed = text.trim()
     if (!trimmed) return
-    const msg: Msg = { sender: adminName || 'Admin', senderType: 'admin', content: trimmed, ts: Date.now() }
+    const messageId = `${Date.now()}-${Math.random()}`
+    const msg: Msg = { sender: `${adminRole} - ${adminName || 'Admin'}`, senderType: 'admin', content: trimmed, ts: Date.now(), messageId }
     setMessagesMap((m) => ({ ...m, [workerId]: [...(m[workerId] || []), msg] }))
-    const payload = { ...msg, message: trimmed, text: trimmed }
+    const payload = { ...msg, message: trimmed, text: trimmed, messageId }
     try {
       await supabase.channel(`chat:worker:${workerId}`).send({ type: 'broadcast', event: 'message', payload })
     } catch (err) {
@@ -201,17 +259,91 @@ export default function AdminChat({
           {workersList.length === 0 ? (
             <div className="text-xs text-zinc-500">No workers available to chat.</div>
           ) : (
-            workersList.map((worker) => (
-              <button key={worker.id} onClick={() => openWorker(worker.id)} className="flex w-full items-center justify-between rounded px-2 py-1 text-left text-xs leading-tight hover:bg-zinc-50">
-                <div className="flex items-center gap-1.5">
-                  <div className={`h-2.5 w-2.5 rounded-full ${getWorkerStatusDotClass(worker.status)}`} />
-                  <div className="truncate">{worker.full_name || worker.id}</div>
+            <>
+              {/* Admins */}
+              {workersList.filter(w => w.role === 'admin' || w.role === 'Admin').length > 0 && (
+                <div className="mb-2">
+                  <div className="text-[10px] font-semibold text-zinc-600 mb-1 px-2">Admins</div>
+                  {workersList.filter(w => w.role === 'admin' || w.role === 'Admin').map((worker) => (
+                    <button key={worker.id} onClick={() => openWorker(worker.id)} className="flex w-full items-center justify-between rounded px-2 py-1 text-left text-xs leading-tight hover:bg-zinc-50">
+                      <div className="flex items-center gap-1.5">
+                        <div className={`h-2.5 w-2.5 rounded-full ${getWorkerStatusDotClass(worker.status)}`} />
+                        <div className="flex flex-col">
+                          <div className="truncate">{worker.full_name || worker.id}</div>
+                          <div className="text-[10px] text-zinc-500">Admin</div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        {unreadMap[worker.id] ? <span className="inline-flex h-4 min-w-[18px] items-center justify-center rounded-full bg-red-600 px-1 text-[11px] font-semibold text-white">{unreadMap[worker.id]}</span> : null}
+                      </div>
+                    </button>
+                  ))}
                 </div>
-                <div className="flex items-center gap-1">
-                  {unreadMap[worker.id] ? <span className="inline-flex h-4 min-w-[18px] items-center justify-center rounded-full bg-red-600 px-1 text-[11px] font-semibold text-white">{unreadMap[worker.id]}</span> : null}
+              )}
+
+              {/* Project Manager & Human Resource */}
+              {workersList.filter(w => ['project_manager', 'human_resource', 'project_manager_human_resource', 'Project Manager', 'Human Resource', 'Project Manager/Human Resource'].includes(w.role || '')).length > 0 && (
+                <div className="mb-2">
+                  <div className="text-[10px] font-semibold text-zinc-600 mb-1 px-2">Project Manager & Human Resource</div>
+                  {workersList.filter(w => ['project_manager', 'human_resource', 'project_manager_human_resource', 'Project Manager', 'Human Resource', 'Project Manager/Human Resource'].includes(w.role || '')).map((worker) => (
+                    <button key={worker.id} onClick={() => openWorker(worker.id)} className="flex w-full items-center justify-between rounded px-2 py-1 text-left text-xs leading-tight hover:bg-zinc-50">
+                      <div className="flex items-center gap-1.5">
+                        <div className={`h-2.5 w-2.5 rounded-full ${getWorkerStatusDotClass(worker.status)}`} />
+                        <div className="flex flex-col">
+                          <div className="truncate">{worker.full_name || worker.id}</div>
+                          <div className="text-[10px] text-zinc-500">{worker.role}</div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        {unreadMap[worker.id] ? <span className="inline-flex h-4 min-w-[18px] items-center justify-center rounded-full bg-red-600 px-1 text-[11px] font-semibold text-white">{unreadMap[worker.id]}</span> : null}
+                      </div>
+                    </button>
+                  ))}
                 </div>
-              </button>
-            ))
+              )}
+
+              {/* Moderators */}
+              {workersList.filter(w => w.role === 'moderator' || w.role === 'Moderator').length > 0 && (
+                <div className="mb-2">
+                  <div className="text-[10px] font-semibold text-zinc-600 mb-1 px-2">Moderators</div>
+                  {workersList.filter(w => w.role === 'moderator' || w.role === 'Moderator').map((worker) => (
+                    <button key={worker.id} onClick={() => openWorker(worker.id)} className="flex w-full items-center justify-between rounded px-2 py-1 text-left text-xs leading-tight hover:bg-zinc-50">
+                      <div className="flex items-center gap-1.5">
+                        <div className={`h-2.5 w-2.5 rounded-full ${getWorkerStatusDotClass(worker.status)}`} />
+                        <div className="flex flex-col">
+                          <div className="truncate">{worker.full_name || worker.id}</div>
+                          <div className="text-[10px] text-zinc-500">Moderator</div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        {unreadMap[worker.id] ? <span className="inline-flex h-4 min-w-[18px] items-center justify-center rounded-full bg-red-600 px-1 text-[11px] font-semibold text-white">{unreadMap[worker.id]}</span> : null}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Workers */}
+              {workersList.filter(w => w.role === 'worker' || w.role === 'Worker' || !w.role).length > 0 && (
+                <div className="mb-2">
+                  <div className="text-[10px] font-semibold text-zinc-600 mb-1 px-2">Workers</div>
+                  {workersList.filter(w => w.role === 'worker' || w.role === 'Worker' || !w.role).map((worker) => (
+                    <button key={worker.id} onClick={() => openWorker(worker.id)} className="flex w-full items-center justify-between rounded px-2 py-1 text-left text-xs leading-tight hover:bg-zinc-50">
+                      <div className="flex items-center gap-1.5">
+                        <div className={`h-2.5 w-2.5 rounded-full ${getWorkerStatusDotClass(worker.status)}`} />
+                        <div className="flex flex-col">
+                          <div className="truncate">{worker.full_name || worker.id}</div>
+                          <div className="text-[10px] text-zinc-500">Worker</div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        {unreadMap[worker.id] ? <span className="inline-flex h-4 min-w-[18px] items-center justify-center rounded-full bg-red-600 px-1 text-[11px] font-semibold text-white">{unreadMap[worker.id]}</span> : null}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -230,7 +362,18 @@ export default function AdminChat({
             </div>
           </div>
           <div className="flex items-center gap-1 relative">
-            <input value={adminName} onChange={(e) => setAdminName(e.target.value)} className="rounded border px-2 py-1 text-xs" />
+            <input value={adminName} onChange={(e) => setAdminName(e.target.value)} className="rounded border px-2 py-1 text-xs" placeholder="Name" />
+            <select
+              value={adminRole}
+              onChange={(e) => setAdminRole(e.target.value as AdminRole)}
+              className="rounded border px-2 py-1 text-xs bg-white"
+            >
+              <option value="Admin">Admin</option>
+              <option value="Project Manager">Project Manager</option>
+              <option value="Human Resource">Human Resource</option>
+              <option value="Project Manager/Human Resource">Project Manager/Human Resource</option>
+              <option value="Moderator">Moderator</option>
+            </select>
             {activeWorker && (
               <>
                 <button 
@@ -264,7 +407,6 @@ export default function AdminChat({
                   <div className={`rounded-lg px-2 py-1 text-xs ${m.senderType === 'admin' ? 'bg-cyan-600 text-white' : 'bg-zinc-100 text-zinc-900'}`}>
                     <div className="font-semibold text-[10px] mb-0.5">{m.sender}</div>
                     <div className="leading-snug">{m.content}</div>
-                    <div className="text-[9px] text-zinc-400 mt-1 text-right">{new Date(m.ts).toLocaleTimeString()}</div>
                   </div>
                 </div>
               ))}

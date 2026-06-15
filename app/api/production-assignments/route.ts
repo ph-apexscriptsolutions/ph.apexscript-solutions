@@ -1,5 +1,17 @@
 import { NextResponse } from 'next/server'
 import { getSupabaseServerClient } from '@/utils/supabase/server'
+import nodemailer from 'nodemailer'
+
+// Initialize Nodemailer transporter with Gmail
+const transporter = process.env.EMAIL_USER && process.env.EMAIL_PASS 
+  ? nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+    })
+  : null
 
 export async function GET(request: Request) {
   try {
@@ -46,9 +58,9 @@ export async function POST(request: Request) {
 
     const { data, error } = await supabase
       .from('production_assignments')
-      .insert([{ 
-        worker_id: workerId, 
-        filename, 
+      .insert([{
+        worker_id: workerId,
+        filename,
         status: 'pending',
         due_time: formattedDueTime,
         description: description || null,
@@ -58,6 +70,58 @@ export async function POST(request: Request) {
     if (error) {
       console.error('Assignment create error:', error)
       return NextResponse.json({ error: error.message || 'Failed to create assignment' }, { status: 500 })
+    }
+
+    // Fetch worker's email to send notification
+    const { data: workerData, error: workerError } = await supabase
+      .from('worker_profiles')
+      .select('email, full_name')
+      .eq('id', workerId)
+      .single()
+
+    console.log('Email notification check:', {
+      hasWorkerError: !!workerError,
+      hasWorkerEmail: !!workerData?.email,
+      hasTransporter: !!transporter,
+      hasEmailUser: !!process.env.EMAIL_USER,
+      hasEmailPass: !!process.env.EMAIL_PASS,
+      workerEmail: workerData?.email
+    })
+
+    if (!workerError && workerData?.email && transporter) {
+      try {
+        console.log('Attempting to send email to:', workerData.email)
+        console.log('Using from email:', process.env.EMAIL_USER)
+        const result = await transporter.sendMail({
+          from: `"[WORKER] ApexScript Solutions" <${process.env.EMAIL_USER}>`,
+          to: `"${workerData.full_name || 'Worker'}" <${workerData.email}>`,
+          subject: '[ALERT] New Assignment Available',
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+              <h2 style="color: #333;">New Assignment Available</h2>
+              <p style="color: #666; line-height: 1.6;">Hello ${workerData.full_name || 'Worker'},</p>
+              <p style="color: #666; line-height: 1.6;">You have an assignment in your dashboard.</p>
+              <p style="color: #666; line-height: 1.6;"><strong>Assignment:</strong> ${filename}</p>
+              ${description ? `<p style="color: #666; line-height: 1.6;"><strong>Description:</strong> ${description}</p>` : ''}
+              <p style="color: #666; line-height: 1.6;">Please check your dashboard for more details.</p>
+              <p style="color: #999; font-size: 12px; margin-top: 30px;">This is an automated message. Please do not reply.</p>
+            </div>
+          `,
+        })
+        console.log('Email sent successfully. Result:', result)
+      } catch (emailError) {
+        console.error('Failed to send assignment notification email. Error details:', emailError)
+        console.error('Error name:', (emailError as any).name)
+        console.error('Error message:', (emailError as any).message)
+        console.error('Error stack:', (emailError as any).stack)
+        // Don't fail the request if email sending fails
+      }
+    } else {
+      console.log('Email notification skipped:', {
+        workerError,
+        hasEmail: !!workerData?.email,
+        hasTransporter: !!transporter
+      })
     }
 
     // Broadcast a lightweight notification to realtime clients subscribed to this worker's channel
