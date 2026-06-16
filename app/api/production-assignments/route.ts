@@ -100,11 +100,10 @@ export async function POST(request: Request) {
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
               <h2 style="color: #333;">New Assignment Available</h2>
               <p style="color: #666; line-height: 1.6;">Hello ${workerData.full_name || 'Worker'},</p>
-              <p style="color: #666; line-height: 1.6;">You have an assignment in your dashboard.</p>
-              <p style="color: #666; line-height: 1.6;"><strong>Assignment:</strong> ${filename}</p>
-              ${description ? `<p style="color: #666; line-height: 1.6;"><strong>Description:</strong> ${description}</p>` : ''}
+              <p style="color: #666; line-height: 1.6;">You have a new assignment available in your dashboard.</p>
               <p style="color: #666; line-height: 1.6;">Please check your dashboard for more details.</p>
-              <p style="color: #999; font-size: 12px; margin-top: 30px;">This is an automated message. Please do not reply.</p>
+              <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 30px 0;">
+              <p style="color: #999; font-size: 12px; margin: 0;">This is an automated message. Please do not reply.</p>
             </div>
           `,
         })
