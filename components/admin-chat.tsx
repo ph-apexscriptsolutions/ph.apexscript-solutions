@@ -2,25 +2,16 @@
 
 import React, { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/utils/supabase/client'
-import { MessageSquare, Trash, Users, MoreVertical, Circle } from 'lucide-react'
+import { MessageSquare, Trash, Users, MoreVertical } from 'lucide-react'
 
 type Msg = { sender: string; senderType: 'worker' | 'admin'; content: string; ts: number; messageId?: string }
-type WorkerProfile = { id: string; full_name?: string; role?: string; status?: 'online' | 'away' | 'offline' }
-type StatusType = 'online' | 'away' | 'offline'
+type WorkerProfile = { id: string; full_name?: string; role?: string }
 type AdminRole = 'Admin' | 'Project Manager' | 'Human Resource' | 'Project Manager/Human Resource' | 'Moderator'
-
-function getWorkerStatusDotClass(status?: StatusType) {
-  if (status === 'online') return 'bg-green-500'
-  if (status === 'away') return 'bg-yellow-500'
-  return 'bg-zinc-400'
-}
 
 export default function AdminChat({
   workerProfiles,
-  onWorkerStatusChange,
 }: {
   workerProfiles: WorkerProfile[]
-  onWorkerStatusChange?: (workerId: string, status: StatusType) => void
 }) {
   const [adminName, setAdminName] = useState('Admin')
   const [adminRole, setAdminRole] = useState<AdminRole>('Admin')
@@ -29,12 +20,9 @@ export default function AdminChat({
   const [unreadMap, setUnreadMap] = useState<Record<string, number>>({})
   const [onlineMap, setOnlineMap] = useState<Record<string, { status: 'online' | 'offline'; name?: string; ts: number }>>({})
   const [collapsed, setCollapsed] = useState(false)
-  const [showStatusPopup, setShowStatusPopup] = useState(false)
-  const [statusPopupPosition, setStatusPopupPosition] = useState({ x: 0, y: 0 })
   const [workersList, setWorkersList] = useState<WorkerProfile[]>(workerProfiles)
   const subsRef = useRef<Record<string, any>>({})
   const endRef = useRef<HTMLDivElement | null>(null)
-  const statusButtonRef = useRef<HTMLButtonElement | null>(null)
   const processedMessageIdsRef = useRef<Set<string>>(new Set())
 
   useEffect(() => {
@@ -215,35 +203,6 @@ export default function AdminChat({
     }
   }
 
-  const updateWorkerStatus = async (workerId: string, newStatus: StatusType) => {
-    try {
-      const { error } = await supabase
-        .from('worker_profiles')
-        .update({ status: newStatus })
-        .eq('id', workerId)
-      
-      if (!error) {
-        setWorkersList((prev) =>
-          prev.map((w) => (w.id === workerId ? { ...w, status: newStatus } : w))
-        )
-        onWorkerStatusChange?.(workerId, newStatus)
-      } else {
-        console.error('Failed to update worker status:', error)
-      }
-    } catch (err) {
-      console.error('Error updating worker status', err)
-    }
-    setShowStatusPopup(false)
-  }
-
-  const handleStatusButtonClick = (e: React.MouseEvent<HTMLButtonElement>) => {
-    const rect = statusButtonRef.current?.getBoundingClientRect()
-    if (rect) {
-      setStatusPopupPosition({ x: rect.right - 120, y: rect.bottom + 8 })
-    }
-    setShowStatusPopup(!showStatusPopup)
-  }
-
   return (
     <div className="flex gap-2">
       <div className={`rounded border p-2 bg-white shadow-sm ${collapsed ? 'w-56' : 'w-64'}`}>
@@ -267,7 +226,6 @@ export default function AdminChat({
                   {workersList.filter(w => w.role === 'admin' || w.role === 'Admin').map((worker) => (
                     <button key={worker.id} onClick={() => openWorker(worker.id)} className="flex w-full items-center justify-between rounded px-2 py-1 text-left text-xs leading-tight hover:bg-zinc-50">
                       <div className="flex items-center gap-1.5">
-                        <div className={`h-2.5 w-2.5 rounded-full ${getWorkerStatusDotClass(worker.status)}`} />
                         <div className="flex flex-col">
                           <div className="truncate">{worker.full_name || worker.id}</div>
                           <div className="text-[10px] text-zinc-500">Admin</div>
@@ -288,7 +246,6 @@ export default function AdminChat({
                   {workersList.filter(w => ['project_manager', 'human_resource', 'project_manager_human_resource', 'Project Manager', 'Human Resource', 'Project Manager/Human Resource'].includes(w.role || '')).map((worker) => (
                     <button key={worker.id} onClick={() => openWorker(worker.id)} className="flex w-full items-center justify-between rounded px-2 py-1 text-left text-xs leading-tight hover:bg-zinc-50">
                       <div className="flex items-center gap-1.5">
-                        <div className={`h-2.5 w-2.5 rounded-full ${getWorkerStatusDotClass(worker.status)}`} />
                         <div className="flex flex-col">
                           <div className="truncate">{worker.full_name || worker.id}</div>
                           <div className="text-[10px] text-zinc-500">{worker.role}</div>
@@ -309,7 +266,6 @@ export default function AdminChat({
                   {workersList.filter(w => w.role === 'moderator' || w.role === 'Moderator').map((worker) => (
                     <button key={worker.id} onClick={() => openWorker(worker.id)} className="flex w-full items-center justify-between rounded px-2 py-1 text-left text-xs leading-tight hover:bg-zinc-50">
                       <div className="flex items-center gap-1.5">
-                        <div className={`h-2.5 w-2.5 rounded-full ${getWorkerStatusDotClass(worker.status)}`} />
                         <div className="flex flex-col">
                           <div className="truncate">{worker.full_name || worker.id}</div>
                           <div className="text-[10px] text-zinc-500">Moderator</div>
@@ -330,7 +286,6 @@ export default function AdminChat({
                   {workersList.filter(w => w.role === 'worker' || w.role === 'Worker' || !w.role).map((worker) => (
                     <button key={worker.id} onClick={() => openWorker(worker.id)} className="flex w-full items-center justify-between rounded px-2 py-1 text-left text-xs leading-tight hover:bg-zinc-50">
                       <div className="flex items-center gap-1.5">
-                        <div className={`h-2.5 w-2.5 rounded-full ${getWorkerStatusDotClass(worker.status)}`} />
                         <div className="flex flex-col">
                           <div className="truncate">{worker.full_name || worker.id}</div>
                           <div className="text-[10px] text-zinc-500">Worker</div>
@@ -361,7 +316,7 @@ export default function AdminChat({
               )}
             </div>
           </div>
-          <div className="flex items-center gap-1 relative">
+          <div className="flex items-center gap-1">
             <input value={adminName} onChange={(e) => setAdminName(e.target.value)} className="rounded border px-2 py-1 text-xs" placeholder="Name" />
             <select
               value={adminRole}
@@ -374,26 +329,6 @@ export default function AdminChat({
               <option value="Project Manager/Human Resource">Project Manager/Human Resource</option>
               <option value="Moderator">Moderator</option>
             </select>
-            {activeWorker && (
-              <>
-                <button 
-                  ref={statusButtonRef}
-                  onClick={handleStatusButtonClick} 
-                  className="rounded bg-slate-600 px-2 py-1 text-[10px] text-white inline-flex items-center gap-1 hover:bg-slate-700"
-                  title="Change worker status"
-                >
-                  <Circle className="h-3 w-3 fill-current" /> Status
-                </button>
-                {showStatusPopup && (
-                  <StatusPopup 
-                    selectedWorker={selectedWorker} 
-                    onStatusChange={updateWorkerStatus}
-                    onClose={() => setShowStatusPopup(false)}
-                    position={statusPopupPosition}
-                  />
-                )}
-              </>
-            )}
             {activeWorker && <button onClick={() => clearChat(activeWorker)} className="rounded bg-red-600 px-2 py-1 text-[10px] text-white inline-flex items-center gap-1 hover:bg-red-700"><Trash className="h-3.5 w-3.5" /> Clear</button>}
           </div>
         </div>
@@ -429,57 +364,6 @@ function AdminComposer({ workerId, sendMessage }: { workerId: string; sendMessag
     <div className="mt-2 flex items-center gap-2">
       <input value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { sendMessage(workerId, text); setText('') } }} className="flex-1 rounded border px-2 py-1.5 text-xs" placeholder="Type a message..." />
       <button onClick={() => { sendMessage(workerId, text); setText('') }} className="rounded bg-cyan-600 px-3 py-1.5 text-xs text-white">Send</button>
-    </div>
-  )
-}
-
-interface StatusPopupProps {
-  selectedWorker: WorkerProfile | undefined
-  onStatusChange: (workerId: string, status: StatusType) => void
-  onClose: () => void
-  position: { x: number; y: number }
-}
-
-function StatusPopup({ selectedWorker, onStatusChange, onClose, position }: StatusPopupProps) {
-  const statusOptions: { label: string; value: StatusType; color: string }[] = [
-    { label: 'Online', value: 'online', color: 'bg-green-500' },
-    { label: 'Away', value: 'away', color: 'bg-yellow-500' },
-    { label: 'Offline', value: 'offline', color: 'bg-zinc-400' },
-  ]
-
-  if (!selectedWorker) return null
-
-  return (
-    <div className="fixed inset-0 z-50" onClick={onClose}>
-      <div
-        className="fixed bg-white border rounded-lg shadow-lg w-48 z-50"
-        style={{ left: `${position.x}px`, top: `${position.y}px` }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="p-2 border-b bg-slate-50">
-          <div className="text-xs font-semibold text-zinc-700">
-            {selectedWorker.full_name || selectedWorker.id}
-          </div>
-          <div className="text-[10px] text-zinc-500">Change status</div>
-        </div>
-        <div className="p-2 space-y-1">
-          {statusOptions.map((option) => (
-            <button
-              key={option.value}
-              onClick={() => {
-                onStatusChange(selectedWorker.id, option.value)
-              }}
-              className={`w-full flex items-center gap-2 px-3 py-2 rounded text-xs text-left hover:bg-zinc-100 transition-colors ${
-                selectedWorker.status === option.value ? 'bg-zinc-100 font-semibold' : ''
-              }`}
-            >
-              <Circle className={`h-2.5 w-2.5 fill-current ${option.color} text-${option.color.split('-')[1]}-500`} />
-              <span>{option.label}</span>
-              {selectedWorker.status === option.value && <span className="ml-auto text-xs">✓</span>}
-            </button>
-          ))}
-        </div>
-      </div>
     </div>
   )
 }
