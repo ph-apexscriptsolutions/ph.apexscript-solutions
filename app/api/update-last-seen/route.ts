@@ -4,6 +4,7 @@ import { getSupabaseServerClient } from '@/utils/supabase/server'
 export async function POST(request: Request) {
   try {
     const { workerId } = await request.json()
+    
     if (!workerId) {
       return NextResponse.json({ error: 'Missing workerId' }, { status: 400 })
     }

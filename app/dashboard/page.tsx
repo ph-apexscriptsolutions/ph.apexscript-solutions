@@ -917,6 +917,33 @@ export default function DashboardPage() {
 
   const isAdmin = profile?.role === "admin"
 
+  // Real-time subscription for worker_profiles changes (for admins to see online status updates)
+  useEffect(() => {
+    if (!isAdmin) return
+
+    const channel = supabase
+      .channel('worker-profiles-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'worker_profiles'
+        },
+        (payload) => {
+          // Update the worker in the list when any field changes
+          setAllWorkers(prev => prev.map(w => 
+            w.id === payload.new.id ? { ...w, ...payload.new } : w
+          ))
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [isAdmin])
+
   // Update last_seen timestamp periodically for workers
   useEffect(() => {
     if (!profile?.id || isAdmin) return
@@ -1610,26 +1637,6 @@ export default function DashboardPage() {
                         <p className="font-semibold text-zinc-900 truncate">{w.full_name}</p>
                         <p className="text-zinc-500 text-sm mt-1 truncate flex items-center gap-1">
                           <span>{w.job_title || "Transcriber"} · {w.department || "General"}</span>
-                          {w.last_seen && (() => {
-                            const lastSeen = new Date(w.last_seen)
-                            const now = new Date()
-                            const diffMinutes = (now.getTime() - lastSeen.getTime()) / (1000 * 60)
-                            if (diffMinutes < 1) {
-                              return <span className="text-green-600 text-xs font-medium">· Online</span>
-                            } else {
-                              const minutesAgo = Math.floor(diffMinutes)
-                              if (minutesAgo < 60) {
-                                return <span className="text-zinc-400 text-xs">· {minutesAgo}m ago</span>
-                              } else {
-                                const hoursAgo = Math.floor(minutesAgo / 60)
-                                if (hoursAgo < 24) {
-                                  return <span className="text-zinc-400 text-xs">· {hoursAgo}h ago</span>
-                                } else {
-                                  return <span className="text-zinc-400 text-xs">· {Math.floor(hoursAgo / 24)}d ago</span>
-                                }
-                              }
-                            }
-                          })()}
                           {w.location ? (
                             <span className="inline-flex items-center gap-1">
                               · {w.location}
@@ -1637,11 +1644,33 @@ export default function DashboardPage() {
                             </span>
                           ) : null}
                         </p>
-                        {w.role && (
-                          <span className={`inline-flex rounded-full px-3 py-1 text-xs font-medium mt-2 ${ROLE_BADGE_STYLES[w.role] || 'bg-zinc-100 text-zinc-700'}`}>
-                            {formatRoleLabel(w.role)}
-                          </span>
-                        )}
+                        <div className="flex items-center gap-2 mt-2">
+                          {w.role && (
+                            <span className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${ROLE_BADGE_STYLES[w.role] || 'bg-zinc-100 text-zinc-700'}`}>
+                              {formatRoleLabel(w.role)}
+                            </span>
+                          )}
+                          {w.last_seen && (() => {
+                            const lastSeen = new Date(w.last_seen)
+                            const now = new Date()
+                            const diffMinutes = (now.getTime() - lastSeen.getTime()) / (1000 * 60)
+                            if (diffMinutes < 1) {
+                              return <span className="text-green-600 text-xs font-medium">Online</span>
+                            } else {
+                              const minutesAgo = Math.floor(diffMinutes)
+                              if (minutesAgo < 60) {
+                                return <span className="text-zinc-400 text-xs">{minutesAgo}m ago</span>
+                              } else {
+                                const hoursAgo = Math.floor(minutesAgo / 60)
+                                if (hoursAgo < 24) {
+                                  return <span className="text-zinc-400 text-xs">{hoursAgo}h ago</span>
+                                } else {
+                                  return <span className="text-zinc-400 text-xs">{Math.floor(hoursAgo / 24)}d ago</span>
+                                }
+                              }
+                            }
+                          })()}
+                        </div>
                       </div>
                       {isAdmin && w.id !== user?.id && (
                         <div className="absolute right-3 top-3 flex gap-1">
@@ -1681,26 +1710,6 @@ export default function DashboardPage() {
                         <p className="font-semibold text-zinc-900 truncate">{w.full_name}</p>
                         <p className="text-zinc-500 text-sm mt-1 truncate flex items-center gap-1">
                           <span>{w.job_title || "Transcriber"} · {w.department || "General"}</span>
-                          {w.last_seen && (() => {
-                            const lastSeen = new Date(w.last_seen)
-                            const now = new Date()
-                            const diffMinutes = (now.getTime() - lastSeen.getTime()) / (1000 * 60)
-                            if (diffMinutes < 1) {
-                              return <span className="text-green-600 text-xs font-medium">· Online</span>
-                            } else {
-                              const minutesAgo = Math.floor(diffMinutes)
-                              if (minutesAgo < 60) {
-                                return <span className="text-zinc-400 text-xs">· {minutesAgo}m ago</span>
-                              } else {
-                                const hoursAgo = Math.floor(minutesAgo / 60)
-                                if (hoursAgo < 24) {
-                                  return <span className="text-zinc-400 text-xs">· {hoursAgo}h ago</span>
-                                } else {
-                                  return <span className="text-zinc-400 text-xs">· {Math.floor(hoursAgo / 24)}d ago</span>
-                                }
-                              }
-                            }
-                          })()}
                           {w.location ? (
                             <span className="inline-flex items-center gap-1">
                               · {w.location}
@@ -1708,11 +1717,33 @@ export default function DashboardPage() {
                             </span>
                           ) : null}
                         </p>
-                        {w.role && (
-                          <span className={`inline-flex rounded-full px-3 py-1 text-xs font-medium mt-2 ${ROLE_BADGE_STYLES[w.role] || 'bg-zinc-100 text-zinc-700'}`}>
-                            {formatRoleLabel(w.role)}
-                          </span>
-                        )}
+                        <div className="flex items-center gap-2 mt-2">
+                          {w.role && (
+                            <span className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${ROLE_BADGE_STYLES[w.role] || 'bg-zinc-100 text-zinc-700'}`}>
+                              {formatRoleLabel(w.role)}
+                            </span>
+                          )}
+                          {w.last_seen && (() => {
+                            const lastSeen = new Date(w.last_seen)
+                            const now = new Date()
+                            const diffMinutes = (now.getTime() - lastSeen.getTime()) / (1000 * 60)
+                            if (diffMinutes < 1) {
+                              return <span className="text-green-600 text-xs font-medium">Online</span>
+                            } else {
+                              const minutesAgo = Math.floor(diffMinutes)
+                              if (minutesAgo < 60) {
+                                return <span className="text-zinc-400 text-xs">{minutesAgo}m ago</span>
+                              } else {
+                                const hoursAgo = Math.floor(minutesAgo / 60)
+                                if (hoursAgo < 24) {
+                                  return <span className="text-zinc-400 text-xs">{hoursAgo}h ago</span>
+                                } else {
+                                  return <span className="text-zinc-400 text-xs">{Math.floor(hoursAgo / 24)}d ago</span>
+                                }
+                              }
+                            }
+                          })()}
+                        </div>
                       </div>
                       {isAdmin && w.id !== user?.id && (
                         <div className="absolute right-3 top-3 flex gap-1">
@@ -1752,26 +1783,6 @@ export default function DashboardPage() {
                         <p className="font-semibold text-zinc-900 truncate">{w.full_name}</p>
                         <p className="text-zinc-500 text-sm mt-1 truncate flex items-center gap-1">
                           <span>{w.job_title || "Transcriber"} · {w.department || "General"}</span>
-                          {w.last_seen && (() => {
-                            const lastSeen = new Date(w.last_seen)
-                            const now = new Date()
-                            const diffMinutes = (now.getTime() - lastSeen.getTime()) / (1000 * 60)
-                            if (diffMinutes < 1) {
-                              return <span className="text-green-600 text-xs font-medium">· Online</span>
-                            } else {
-                              const minutesAgo = Math.floor(diffMinutes)
-                              if (minutesAgo < 60) {
-                                return <span className="text-zinc-400 text-xs">· {minutesAgo}m ago</span>
-                              } else {
-                                const hoursAgo = Math.floor(minutesAgo / 60)
-                                if (hoursAgo < 24) {
-                                  return <span className="text-zinc-400 text-xs">· {hoursAgo}h ago</span>
-                                } else {
-                                  return <span className="text-zinc-400 text-xs">· {Math.floor(hoursAgo / 24)}d ago</span>
-                                }
-                              }
-                            }
-                          })()}
                           {w.location ? (
                             <span className="inline-flex items-center gap-1">
                               · {w.location}
@@ -1779,11 +1790,33 @@ export default function DashboardPage() {
                             </span>
                           ) : null}
                         </p>
-                        {w.role && (
-                          <span className={`inline-flex rounded-full px-3 py-1 text-xs font-medium mt-2 ${ROLE_BADGE_STYLES[w.role] || 'bg-zinc-100 text-zinc-700'}`}>
-                            {formatRoleLabel(w.role)}
-                          </span>
-                        )}
+                        <div className="flex items-center gap-2 mt-2">
+                          {w.role && (
+                            <span className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${ROLE_BADGE_STYLES[w.role] || 'bg-zinc-100 text-zinc-700'}`}>
+                              {formatRoleLabel(w.role)}
+                            </span>
+                          )}
+                          {w.last_seen && (() => {
+                            const lastSeen = new Date(w.last_seen)
+                            const now = new Date()
+                            const diffMinutes = (now.getTime() - lastSeen.getTime()) / (1000 * 60)
+                            if (diffMinutes < 1) {
+                              return <span className="text-green-600 text-xs font-medium">Online</span>
+                            } else {
+                              const minutesAgo = Math.floor(diffMinutes)
+                              if (minutesAgo < 60) {
+                                return <span className="text-zinc-400 text-xs">{minutesAgo}m ago</span>
+                              } else {
+                                const hoursAgo = Math.floor(minutesAgo / 60)
+                                if (hoursAgo < 24) {
+                                  return <span className="text-zinc-400 text-xs">{hoursAgo}h ago</span>
+                                } else {
+                                  return <span className="text-zinc-400 text-xs">{Math.floor(hoursAgo / 24)}d ago</span>
+                                }
+                              }
+                            }
+                          })()}
+                        </div>
                       </div>
                       {isAdmin && w.id !== user?.id && (
                         <div className="absolute right-3 top-3 flex gap-1">
@@ -1823,26 +1856,6 @@ export default function DashboardPage() {
                         <p className="font-semibold text-zinc-900 truncate">{w.full_name}</p>
                         <p className="text-zinc-500 text-sm mt-1 truncate flex items-center gap-1">
                           <span>{w.job_title || "Transcriber"} · {w.department || "General"}</span>
-                          {w.last_seen && (() => {
-                            const lastSeen = new Date(w.last_seen)
-                            const now = new Date()
-                            const diffMinutes = (now.getTime() - lastSeen.getTime()) / (1000 * 60)
-                            if (diffMinutes < 1) {
-                              return <span className="text-green-600 text-xs font-medium">· Online</span>
-                            } else {
-                              const minutesAgo = Math.floor(diffMinutes)
-                              if (minutesAgo < 60) {
-                                return <span className="text-zinc-400 text-xs">· {minutesAgo}m ago</span>
-                              } else {
-                                const hoursAgo = Math.floor(minutesAgo / 60)
-                                if (hoursAgo < 24) {
-                                  return <span className="text-zinc-400 text-xs">· {hoursAgo}h ago</span>
-                                } else {
-                                  return <span className="text-zinc-400 text-xs">· {Math.floor(hoursAgo / 24)}d ago</span>
-                                }
-                              }
-                            }
-                          })()}
                           {w.location ? (
                             <span className="inline-flex items-center gap-1">
                               · {w.location}
@@ -1850,11 +1863,33 @@ export default function DashboardPage() {
                             </span>
                           ) : null}
                         </p>
-                        {w.role && (
-                          <span className={`inline-flex rounded-full px-3 py-1 text-xs font-medium mt-2 ${ROLE_BADGE_STYLES[w.role] || 'bg-zinc-100 text-zinc-700'}`}>
-                            {formatRoleLabel(w.role)}
-                          </span>
-                        )}
+                        <div className="flex items-center gap-2 mt-2">
+                          {w.role && (
+                            <span className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${ROLE_BADGE_STYLES[w.role] || 'bg-zinc-100 text-zinc-700'}`}>
+                              {formatRoleLabel(w.role)}
+                            </span>
+                          )}
+                          {w.last_seen && (() => {
+                            const lastSeen = new Date(w.last_seen)
+                            const now = new Date()
+                            const diffMinutes = (now.getTime() - lastSeen.getTime()) / (1000 * 60)
+                            if (diffMinutes < 1) {
+                              return <span className="text-green-600 text-xs font-medium">Online</span>
+                            } else {
+                              const minutesAgo = Math.floor(diffMinutes)
+                              if (minutesAgo < 60) {
+                                return <span className="text-zinc-400 text-xs">{minutesAgo}m ago</span>
+                              } else {
+                                const hoursAgo = Math.floor(minutesAgo / 60)
+                                if (hoursAgo < 24) {
+                                  return <span className="text-zinc-400 text-xs">{hoursAgo}h ago</span>
+                                } else {
+                                  return <span className="text-zinc-400 text-xs">{Math.floor(hoursAgo / 24)}d ago</span>
+                                }
+                              }
+                            }
+                          })()}
+                        </div>
                       </div>
                       {isAdmin && w.id !== user?.id && (
                         <div className="absolute right-3 top-3 flex gap-1">
