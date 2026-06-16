@@ -214,7 +214,7 @@ export default function DashboardPage() {
       const { data: myProfile } = await supabase.from("worker_profiles").select("*").eq("id", user.id).single()
       if (myProfile) setProfile(myProfile)
       if (myProfile?.role === "admin") {
-        const { data: workers } = await supabase.from("worker_profiles").select("*").order("full_name")
+        const { data: workers } = await supabase.from("worker_profiles").select("*, last_seen").order("full_name")
         if (workers) setAllWorkers(workers)
       }
       setLoading(false)
@@ -250,7 +250,7 @@ export default function DashboardPage() {
 
     // Force refresh worker data to pick up any newly added columns
     const refreshWorker = async () => {
-      const { data: refreshed } = await supabase.from("worker_profiles").select("*").eq("id", activeWorker.id).single()
+      const { data: refreshed } = await supabase.from("worker_profiles").select("*, last_seen").eq("id", activeWorker.id).single()
       if (refreshed) {
         setActiveWorker(refreshed)
       }
@@ -289,6 +289,8 @@ export default function DashboardPage() {
       supabase.removeChannel(announcementsChannel)
     }
   }, [profile?.id])
+
+
 
   // Real-time subscriptions for automatic updates
   useEffect(() => {
@@ -914,6 +916,29 @@ export default function DashboardPage() {
   // loading check moved below so all hooks run consistently
 
   const isAdmin = profile?.role === "admin"
+
+  // Update last_seen timestamp periodically for workers
+  useEffect(() => {
+    if (!profile?.id || isAdmin) return
+
+    const updateLastSeen = async () => {
+      try {
+        await fetch('/api/update-last-seen', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ workerId: profile.id }),
+        })
+      } catch (e) {
+        console.error('Failed to update last_seen:', e)
+      }
+    }
+
+    updateLastSeen()
+    const interval = setInterval(updateLastSeen, 60000) // Update every minute
+
+    return () => clearInterval(interval)
+  }, [profile?.id, isAdmin])
+
   const effectiveHeaderTemplate = normalizeGridTemplate(assignmentHeaderTemplate, isAdmin ? 3 : 2)
   const effectiveRowTemplate = normalizeGridTemplate(assignmentRowTemplate, isAdmin ? 3 : 2)
   useEffect(() => {
@@ -1466,10 +1491,6 @@ export default function DashboardPage() {
               <div className="text-lg font-semibold text-zinc-900">ApexScript Solutions</div>
               <div className="text-xs text-zinc-400">{isAdmin ? 'Admin Dashboard' : 'Worker Dashboard'}</div>
             </div>
-            <div className="ml-3 flex items-center gap-2">
-              <span className={`h-2 w-2 rounded-full ${realtimeStatus === 'connected' ? 'bg-green-500' : realtimeStatus === 'connecting' ? 'bg-yellow-500' : 'bg-red-500'}`} />
-              <span className="text-xs text-zinc-500">{realtimeStatus === 'connected' ? 'Realtime Connected' : realtimeStatus === 'connecting' ? 'Realtime Connecting' : 'Realtime Disconnected'}</span>
-            </div>
           </div>
         </div>
         <button onClick={handleLogout} className="inline-flex items-center gap-2 rounded-md bg-gradient-to-r from-red-600 to-rose-500 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-red-500/20 hover:from-red-700 hover:to-rose-600 transition"><LogOut className="h-4 w-4" /> Log Out</button>
@@ -1573,13 +1594,42 @@ export default function DashboardPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                   {admins.length > 0 ? admins.map((w: any) => (
                     <div key={w.id} role="button" tabIndex={0} onClick={() => handleViewWorker(w)} onKeyDown={(e) => { if (e.key === 'Enter') handleViewWorker(w) }} className="group relative flex items-center gap-4 p-4 bg-white rounded-xl border border-zinc-200 shadow-sm hover:shadow-md transition-all text-left cursor-pointer">
-                      <div className="flex h-12 w-12 shrink-0 overflow-hidden rounded-full bg-zinc-200 text-zinc-500">
+                      <div className="relative flex h-12 w-12 shrink-0 overflow-hidden rounded-full bg-zinc-200 text-zinc-500">
                         <div className="flex h-full w-full items-center justify-center"><User className="h-6 w-6" /></div>
+                        {w.last_seen && (() => {
+                          const lastSeen = new Date(w.last_seen)
+                          const now = new Date()
+                          const diffMinutes = (now.getTime() - lastSeen.getTime()) / (1000 * 60)
+                          if (diffMinutes < 1) {
+                            return <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white bg-green-500" />
+                          }
+                          return null
+                        })()}
                       </div>
                       <div className="overflow-hidden">
                         <p className="font-semibold text-zinc-900 truncate">{w.full_name}</p>
                         <p className="text-zinc-500 text-sm mt-1 truncate flex items-center gap-1">
                           <span>{w.job_title || "Transcriber"} · {w.department || "General"}</span>
+                          {w.last_seen && (() => {
+                            const lastSeen = new Date(w.last_seen)
+                            const now = new Date()
+                            const diffMinutes = (now.getTime() - lastSeen.getTime()) / (1000 * 60)
+                            if (diffMinutes < 1) {
+                              return <span className="text-green-600 text-xs font-medium">· Online</span>
+                            } else {
+                              const minutesAgo = Math.floor(diffMinutes)
+                              if (minutesAgo < 60) {
+                                return <span className="text-zinc-400 text-xs">· {minutesAgo}m ago</span>
+                              } else {
+                                const hoursAgo = Math.floor(minutesAgo / 60)
+                                if (hoursAgo < 24) {
+                                  return <span className="text-zinc-400 text-xs">· {hoursAgo}h ago</span>
+                                } else {
+                                  return <span className="text-zinc-400 text-xs">· {Math.floor(hoursAgo / 24)}d ago</span>
+                                }
+                              }
+                            }
+                          })()}
                           {w.location ? (
                             <span className="inline-flex items-center gap-1">
                               · {w.location}
@@ -1617,11 +1667,40 @@ export default function DashboardPage() {
                     <div key={w.id} role="button" tabIndex={0} onClick={() => handleViewWorker(w)} onKeyDown={(e) => { if (e.key === 'Enter') handleViewWorker(w) }} className="group relative flex items-center gap-4 p-4 bg-white rounded-xl border border-zinc-200 shadow-sm hover:shadow-md transition-all text-left cursor-pointer">
                       <div className="relative flex h-12 w-12 shrink-0 overflow-hidden rounded-full bg-zinc-200 text-zinc-500">
                         <div className="flex h-full w-full items-center justify-center"><User className="h-6 w-6" /></div>
+                        {w.last_seen && (() => {
+                          const lastSeen = new Date(w.last_seen)
+                          const now = new Date()
+                          const diffMinutes = (now.getTime() - lastSeen.getTime()) / (1000 * 60)
+                          if (diffMinutes < 1) {
+                            return <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white bg-green-500" />
+                          }
+                          return null
+                        })()}
                       </div>
                       <div className="overflow-hidden">
                         <p className="font-semibold text-zinc-900 truncate">{w.full_name}</p>
                         <p className="text-zinc-500 text-sm mt-1 truncate flex items-center gap-1">
                           <span>{w.job_title || "Transcriber"} · {w.department || "General"}</span>
+                          {w.last_seen && (() => {
+                            const lastSeen = new Date(w.last_seen)
+                            const now = new Date()
+                            const diffMinutes = (now.getTime() - lastSeen.getTime()) / (1000 * 60)
+                            if (diffMinutes < 1) {
+                              return <span className="text-green-600 text-xs font-medium">· Online</span>
+                            } else {
+                              const minutesAgo = Math.floor(diffMinutes)
+                              if (minutesAgo < 60) {
+                                return <span className="text-zinc-400 text-xs">· {minutesAgo}m ago</span>
+                              } else {
+                                const hoursAgo = Math.floor(minutesAgo / 60)
+                                if (hoursAgo < 24) {
+                                  return <span className="text-zinc-400 text-xs">· {hoursAgo}h ago</span>
+                                } else {
+                                  return <span className="text-zinc-400 text-xs">· {Math.floor(hoursAgo / 24)}d ago</span>
+                                }
+                              }
+                            }
+                          })()}
                           {w.location ? (
                             <span className="inline-flex items-center gap-1">
                               · {w.location}
@@ -1657,13 +1736,42 @@ export default function DashboardPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                   {moderators.length > 0 ? moderators.map((w: any) => (
                     <div key={w.id} role="button" tabIndex={0} onClick={() => handleViewWorker(w)} onKeyDown={(e) => { if (e.key === 'Enter') handleViewWorker(w) }} className="group relative flex items-center gap-4 p-4 bg-white rounded-xl border border-zinc-200 shadow-sm hover:shadow-md transition-all text-left cursor-pointer">
-                      <div className="flex h-12 w-12 shrink-0 overflow-hidden rounded-full bg-zinc-200 text-zinc-500">
+                      <div className="relative flex h-12 w-12 shrink-0 overflow-hidden rounded-full bg-zinc-200 text-zinc-500">
                         <div className="flex h-full w-full items-center justify-center"><User className="h-6 w-6" /></div>
+                        {w.last_seen && (() => {
+                          const lastSeen = new Date(w.last_seen)
+                          const now = new Date()
+                          const diffMinutes = (now.getTime() - lastSeen.getTime()) / (1000 * 60)
+                          if (diffMinutes < 1) {
+                            return <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white bg-green-500" />
+                          }
+                          return null
+                        })()}
                       </div>
                       <div className="overflow-hidden">
                         <p className="font-semibold text-zinc-900 truncate">{w.full_name}</p>
                         <p className="text-zinc-500 text-sm mt-1 truncate flex items-center gap-1">
                           <span>{w.job_title || "Transcriber"} · {w.department || "General"}</span>
+                          {w.last_seen && (() => {
+                            const lastSeen = new Date(w.last_seen)
+                            const now = new Date()
+                            const diffMinutes = (now.getTime() - lastSeen.getTime()) / (1000 * 60)
+                            if (diffMinutes < 1) {
+                              return <span className="text-green-600 text-xs font-medium">· Online</span>
+                            } else {
+                              const minutesAgo = Math.floor(diffMinutes)
+                              if (minutesAgo < 60) {
+                                return <span className="text-zinc-400 text-xs">· {minutesAgo}m ago</span>
+                              } else {
+                                const hoursAgo = Math.floor(minutesAgo / 60)
+                                if (hoursAgo < 24) {
+                                  return <span className="text-zinc-400 text-xs">· {hoursAgo}h ago</span>
+                                } else {
+                                  return <span className="text-zinc-400 text-xs">· {Math.floor(hoursAgo / 24)}d ago</span>
+                                }
+                              }
+                            }
+                          })()}
                           {w.location ? (
                             <span className="inline-flex items-center gap-1">
                               · {w.location}
@@ -1701,11 +1809,40 @@ export default function DashboardPage() {
                     <div key={w.id} role="button" tabIndex={0} onClick={() => handleViewWorker(w)} onKeyDown={(e) => { if (e.key === 'Enter') handleViewWorker(w) }} className="group relative flex items-center gap-4 p-4 bg-white rounded-xl border border-zinc-200 shadow-sm hover:shadow-md transition-all text-left cursor-pointer">
                       <div className="relative flex h-12 w-12 shrink-0 overflow-hidden rounded-full bg-zinc-200 text-zinc-500">
                         <div className="flex h-full w-full items-center justify-center"><User className="h-6 w-6" /></div>
+                        {w.last_seen && (() => {
+                          const lastSeen = new Date(w.last_seen)
+                          const now = new Date()
+                          const diffMinutes = (now.getTime() - lastSeen.getTime()) / (1000 * 60)
+                          if (diffMinutes < 1) {
+                            return <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white bg-green-500" />
+                          }
+                          return null
+                        })()}
                       </div>
                       <div className="overflow-hidden">
                         <p className="font-semibold text-zinc-900 truncate">{w.full_name}</p>
                         <p className="text-zinc-500 text-sm mt-1 truncate flex items-center gap-1">
                           <span>{w.job_title || "Transcriber"} · {w.department || "General"}</span>
+                          {w.last_seen && (() => {
+                            const lastSeen = new Date(w.last_seen)
+                            const now = new Date()
+                            const diffMinutes = (now.getTime() - lastSeen.getTime()) / (1000 * 60)
+                            if (diffMinutes < 1) {
+                              return <span className="text-green-600 text-xs font-medium">· Online</span>
+                            } else {
+                              const minutesAgo = Math.floor(diffMinutes)
+                              if (minutesAgo < 60) {
+                                return <span className="text-zinc-400 text-xs">· {minutesAgo}m ago</span>
+                              } else {
+                                const hoursAgo = Math.floor(minutesAgo / 60)
+                                if (hoursAgo < 24) {
+                                  return <span className="text-zinc-400 text-xs">· {hoursAgo}h ago</span>
+                                } else {
+                                  return <span className="text-zinc-400 text-xs">· {Math.floor(hoursAgo / 24)}d ago</span>
+                                }
+                              }
+                            }
+                          })()}
                           {w.location ? (
                             <span className="inline-flex items-center gap-1">
                               · {w.location}
