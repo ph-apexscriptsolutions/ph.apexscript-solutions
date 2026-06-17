@@ -194,6 +194,10 @@ export default function DashboardPage() {
   const [assignmentHeaderTemplate, setAssignmentHeaderTemplate] = useState('3fr 1fr 1fr')
   const [assignmentRowTemplate, setAssignmentRowTemplate] = useState('3fr 1fr 1fr')
   const [isSavingLayout, setIsSavingLayout] = useState(false)
+  const [isReportIssueModalOpen, setIsReportIssueModalOpen] = useState(false)
+  const [reportIssueAssignment, setReportIssueAssignment] = useState<any | null>(null)
+  const [issueDescription, setIssueDescription] = useState("")
+  const [isSubmittingIssue, setIsSubmittingIssue] = useState(false)
 
   const normalizeGridTemplate = (template: string, expectedColumns: number) => {
     const parts = template.trim().split(/\s+/).filter(Boolean)
@@ -1478,6 +1482,43 @@ export default function DashboardPage() {
     }
   }
 
+  const handleSubmitIssue = async () => {
+    if (!reportIssueAssignment || !issueDescription.trim()) return
+
+    setIsSubmittingIssue(true)
+    try {
+      const res = await fetch('/api/report-assignment-issue', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          assignmentId: reportIssueAssignment.id,
+          assignmentFilename: reportIssueAssignment.filename,
+          issueDescription: issueDescription.trim(),
+          workerId: profile?.id,
+          workerName: profile?.full_name,
+        }),
+      })
+
+      if (!res.ok) {
+        const error = await res.text()
+        throw new Error(error || 'Failed to submit issue')
+      }
+
+      setToastMessage('✅ Issue reported successfully')
+      setShowToast(true)
+      setTimeout(() => { setShowToast(false); setToastMessage(null) }, 3000)
+      setIsReportIssueModalOpen(false)
+      setIssueDescription('')
+      setReportIssueAssignment(null)
+      setSelectedAssignment(null)
+    } catch (err: any) {
+      console.error('Failed to submit issue:', err)
+      alert(`Failed to submit issue: ${err.message}`)
+    } finally {
+      setIsSubmittingIssue(false)
+    }
+  }
+
   const cancelAssignment = async (assignmentId: number) => {
     if (!confirm('Are you sure you want to cancel this assignment?')) return
     try {
@@ -2289,7 +2330,10 @@ export default function DashboardPage() {
                       <div className="mt-1 text-sm text-zinc-700">{formatDate(selectedAssignment.created_at)}</div>
                     </div>
                   </div>
-                  <div className="border-t border-zinc-200 p-5 text-right">
+                  <div className="border-t border-zinc-200 p-5 flex gap-3 justify-end">
+                    <button type="button" onClick={() => { setIsReportIssueModalOpen(true); setReportIssueAssignment(selectedAssignment) }} className="inline-flex items-center justify-center rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 transition">
+                      Report Issue
+                    </button>
                     <button type="button" onClick={() => setSelectedAssignment(null)} className="inline-flex items-center justify-center rounded-md bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700 transition">
                       Close
                     </button>
@@ -2860,6 +2904,38 @@ export default function DashboardPage() {
                 <button onClick={() => setIsRoleEditModalOpen(false)} className="flex-1 px-4 py-2 text-sm font-medium text-zinc-700 bg-zinc-100 rounded-md hover:bg-zinc-200">Cancel</button>
                 <button onClick={handleUpdateRole} disabled={isUpdatingRole} className="flex-1 inline-flex items-center justify-center gap-2 rounded-md bg-gradient-to-r from-slate-900 to-zinc-900 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 hover:from-slate-700 hover:to-zinc-800 disabled:opacity-50">
                   {isUpdatingRole ? "Updating..." : <span className="flex items-center gap-2"><Save className="h-4 w-4" /> Update Role</span>}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isReportIssueModalOpen && reportIssueAssignment && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 relative">
+            <button onClick={() => { setIsReportIssueModalOpen(false); setIssueDescription(''); setReportIssueAssignment(null) }} className="absolute right-4 top-4 text-zinc-400 hover:text-zinc-900"><X className="h-5 w-5" /></button>
+            <h3 className="text-lg font-semibold text-zinc-900 mb-4">Report Assignment Issue</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 mb-1">Assignment</label>
+                <div className="text-sm text-zinc-600">{reportIssueAssignment.filename}</div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 mb-1">Issue Description</label>
+                <textarea
+                  value={issueDescription}
+                  onChange={(e) => setIssueDescription(e.target.value)}
+                  placeholder="Describe the issue with this assignment..."
+                  className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 resize-none"
+                  rows={4}
+                  required
+                />
+              </div>
+              <div className="flex gap-3 mt-6">
+                <button onClick={() => { setIsReportIssueModalOpen(false); setIssueDescription(''); setReportIssueAssignment(null) }} className="flex-1 rounded-md border border-zinc-200 bg-white px-5 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 transition">Cancel</button>
+                <button onClick={handleSubmitIssue} disabled={isSubmittingIssue || !issueDescription.trim()} className="flex-1 inline-flex items-center justify-center gap-2 rounded-md bg-red-600 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-red-500/20 hover:bg-red-700 disabled:opacity-50 transition">
+                  {isSubmittingIssue ? 'Submitting...' : 'Submit Issue'}
                 </button>
               </div>
             </div>
