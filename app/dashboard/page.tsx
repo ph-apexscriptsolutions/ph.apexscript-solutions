@@ -198,6 +198,7 @@ export default function DashboardPage() {
   const [reportIssueAssignment, setReportIssueAssignment] = useState<any | null>(null)
   const [issueDescription, setIssueDescription] = useState("")
   const [isSubmittingIssue, setIsSubmittingIssue] = useState(false)
+  const [assignmentsWithUpdatedDescription, setAssignmentsWithUpdatedDescription] = useState<Set<number>>(new Set())
 
   const normalizeGridTemplate = (template: string, expectedColumns: number) => {
     const parts = template.trim().split(/\s+/).filter(Boolean)
@@ -1445,6 +1446,10 @@ export default function DashboardPage() {
         const data = await res.json()
         if (!res.ok) throw new Error(data.error || 'Failed to update assignment')
         if (workerId) await fetchAssignments(workerId)
+        // Add to updated description notifications if description was changed
+        if (newAssignmentDescription) {
+          setAssignmentsWithUpdatedDescription(prev => new Set([...prev, editAssignmentId]))
+        }
         setToastMessage('✅ Assignment updated')
         setShowToast(true)
         setTimeout(() => { setShowToast(false); setToastMessage(null) }, 3000)
@@ -2247,8 +2252,11 @@ export default function DashboardPage() {
                         {assignments.map((a: any) => (
                         <div key={a.id} className="grid gap-1 items-center py-1 px-2 rounded-md border border-zinc-200 bg-white hover:bg-zinc-50 transition" style={{ gridTemplateColumns: effectiveRowTemplate }}>
                           <div>
-                            <button type="button" onClick={() => setSelectedAssignment(a)} className="text-sm font-medium text-slate-900 underline-offset-4 hover:underline">
+                            <button type="button" onClick={() => { setSelectedAssignment(a); setAssignmentsWithUpdatedDescription(prev => { const newSet = new Set(prev); newSet.delete(a.id); return newSet }) }} className="text-sm font-medium text-slate-900 underline-offset-4 hover:underline flex items-center gap-2">
                               {getDisplayFileName(a.filename)}
+                              {assignmentsWithUpdatedDescription.has(a.id) && (
+                                <span className="inline-flex h-2 w-2 rounded-full bg-red-500 animate-pulse" title="Description updated" />
+                              )}
                             </button>
                           </div>
                           <div className="flex items-center gap-1">

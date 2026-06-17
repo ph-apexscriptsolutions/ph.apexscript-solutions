@@ -128,6 +128,26 @@ export default function AdminChat({
     return result || {}
   }
 
+  const playNotificationSound = () => {
+    try {
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
+      const oscillator = audioContext.createOscillator()
+      const gainNode = audioContext.createGain()
+      
+      oscillator.connect(gainNode)
+      gainNode.connect(audioContext.destination)
+      
+      oscillator.frequency.value = 800
+      oscillator.type = 'sine'
+      gainNode.gain.value = 0.3
+      
+      oscillator.start()
+      oscillator.stop(audioContext.currentTime + 0.2)
+    } catch (err) {
+      console.error('Failed to play notification sound:', err)
+    }
+  }
+
   const subscribeWorker = (workerId: string) => {
     const channelName = `chat:worker:${workerId}`
     const channel = supabase.channel(channelName)
@@ -135,14 +155,20 @@ export default function AdminChat({
     channel.on('broadcast', { event: 'message' }, (payload: any) => {
       const eventPayload = normalizePayload(payload)
       const messageId = eventPayload.messageId || `${Date.now()}-${Math.random()}`
+      const senderType = eventPayload.senderType || 'worker'
       
       // Prevent duplicate messages
       if (processedMessageIdsRef.current.has(messageId)) return
       processedMessageIdsRef.current.add(messageId)
       
+      // Play notification sound if message is from worker
+      if (senderType === 'worker') {
+        playNotificationSound()
+      }
+      
       const msg: Msg = {
         sender: eventPayload.sender || 'worker',
-        senderType: eventPayload.senderType || 'worker',
+        senderType,
         content: eventPayload.content ?? eventPayload.message ?? eventPayload.text ?? '',
         ts: Date.now(),
         messageId,

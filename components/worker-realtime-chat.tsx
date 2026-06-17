@@ -196,44 +196,60 @@ export default function WorkerRealtimeChat({ workerId, initialName }: { workerId
     <>
       {/* Floating icon */}
       <div className="fixed bottom-6 right-6 z-50">
-        <button onClick={() => setOpen(true)} className="relative flex h-12 w-12 items-center justify-center rounded-full bg-cyan-600 text-white shadow-lg focus:outline-none">
-          <MessageCircle className="h-6 w-6" />
-          {unread > 0 && <span className="absolute -top-2 -right-2 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-600 px-1.5 text-xs font-semibold text-white">{unread}</span>}
+        <button onClick={() => setOpen(true)} className="relative flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-cyan-500 to-cyan-600 text-white shadow-lg shadow-cyan-500/30 hover:shadow-cyan-500/50 transition-all hover:scale-105 focus:outline-none">
+          <MessageCircle className="h-7 w-7" />
+          {unread > 0 && <span className="absolute -top-1 -right-1 inline-flex h-6 min-w-[24px] items-center justify-center rounded-full bg-red-500 px-1.5 text-xs font-semibold text-white shadow-md animate-pulse">{unread}</span>}
         </button>
       </div>
 
       {open && (
         <div className="fixed inset-0 z-60 flex items-center justify-center p-4">
-          <div onClick={() => setOpen(false)} className="absolute inset-0 bg-black/40" />
-          <div className="relative z-70 w-full max-w-md rounded-xl bg-white shadow-xl">
-            <div className="flex items-center justify-between border-b px-4 py-3">
-              <div className="text-sm font-semibold">Chat</div>
-              <button onClick={() => setOpen(false)} className="text-zinc-500 hover:text-zinc-900"><X className="h-4 w-4" /></button>
+          <div onClick={() => setOpen(false)} className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+          <div className="relative z-70 w-full max-w-md rounded-2xl bg-white shadow-2xl overflow-hidden">
+            <div className="flex items-center justify-between border-b border-zinc-100 bg-gradient-to-r from-cyan-50 to-white px-5 py-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-cyan-100">
+                  <MessageCircle className="h-5 w-5 text-cyan-600" />
+                </div>
+                <div>
+                  <div className="text-sm font-semibold text-zinc-900">Support Chat</div>
+                  <div className="text-xs text-zinc-500">We're here to help</div>
+                </div>
+              </div>
+              <button onClick={() => setOpen(false)} className="rounded-full p-2 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-900 transition-colors">
+                <X className="h-5 w-5" />
+              </button>
             </div>
 
-            <div className="max-h-80 overflow-y-auto p-4 space-y-3 text-sm" style={{ height: '320px' }}>
+            <div className="max-h-80 overflow-y-auto p-4 space-y-3 text-sm bg-gradient-to-b from-zinc-50 to-white" style={{ height: '320px' }}>
               {messages.length === 0 ? (
-                <div className="text-center text-zinc-400">No messages yet. Say hello 👋</div>
+                <div className="flex flex-col items-center justify-center h-full text-center">
+                  <div className="h-16 w-16 rounded-full bg-cyan-100 flex items-center justify-center mb-3">
+                    <MessageCircle className="h-8 w-8 text-cyan-600" />
+                  </div>
+                  <div className="text-zinc-600 font-medium">No messages yet</div>
+                  <div className="text-zinc-400 text-sm">Send us a message to get started 👋</div>
+                </div>
               ) : (
                 messages.map((m, idx) => (
                   <div key={idx} className={`flex ${m.senderType === 'worker' ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`rounded-lg px-3 py-2 text-sm ${m.senderType === 'worker' ? 'bg-cyan-600 text-white' : 'bg-zinc-100 text-zinc-900'}`}>
-                      <div className="font-semibold text-xs mb-1 flex items-center gap-2">
+                    <div className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm shadow-sm ${m.senderType === 'worker' ? 'bg-gradient-to-br from-cyan-500 to-cyan-600 text-white rounded-br-md' : 'bg-white border border-zinc-200 text-zinc-900 rounded-bl-md'}`}>
+                      <div className="font-semibold text-xs mb-1.5 flex items-center gap-2">
                         {m.senderType === 'admin' ? (
                           (() => {
                             const { name, role } = parseSenderRole(m.sender)
                             return (
                               <>
-                                {role && <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${getRoleBadgeClass(role)}`}>{role}</span>}
-                                <span>{name}</span>
+                                {role && <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${getRoleBadgeClass(role)}`}>{role}</span>}
+                                <span className="text-zinc-700">{name}</span>
                               </>
                             )
                           })()
                         ) : (
-                          m.sender
+                          <span className="text-cyan-100">You</span>
                         )}
                       </div>
-                      {m.content}
+                      <div className="leading-relaxed">{m.content}</div>
                     </div>
                   </div>
                 ))
@@ -241,9 +257,24 @@ export default function WorkerRealtimeChat({ workerId, initialName }: { workerId
               <div ref={endRef} />
             </div>
 
-            <div className="flex gap-2 border-t p-3">
-              <input value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') sendMessage() }} className="flex-1 rounded-md border border-zinc-300 px-3 py-2 text-sm outline-none" placeholder="Type a message..." />
-              <button onClick={sendMessage} className="inline-flex items-center gap-2 rounded-md bg-cyan-600 px-3 py-2 text-sm font-semibold text-white hover:bg-cyan-700">Send</button>
+            <div className="flex gap-3 border-t border-zinc-100 bg-white p-4">
+              <input 
+                value={text} 
+                onChange={(e) => setText(e.target.value)} 
+                onKeyDown={(e) => { if (e.key === 'Enter') sendMessage() }} 
+                className="flex-1 rounded-xl border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all" 
+                placeholder="Type your message..." 
+              />
+              <button 
+                onClick={sendMessage} 
+                disabled={!text.trim()}
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-cyan-500 to-cyan-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-cyan-500/30 hover:shadow-cyan-500/50 transition-all hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+              >
+                <span>Send</span>
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                </svg>
+              </button>
             </div>
           </div>
         </div>
