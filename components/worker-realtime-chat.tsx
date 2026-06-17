@@ -38,9 +38,12 @@ export default function WorkerRealtimeChat({ workerId, initialName }: { workerId
   const [name, setName] = useState(initialName || 'You')
   const [unread, setUnread] = useState(0)
   const [processedMessageIds, setProcessedMessageIds] = useState<Set<string>>(new Set())
+  const [isFirstMessage, setIsFirstMessage] = useState(true)
+  const [hasShownAutoMessage, setHasShownAutoMessage] = useState(false)
   const channelRef = useRef<any | null>(null)
   const presenceChannelRef = useRef<any | null>(null)
   const endRef = useRef<HTMLDivElement | null>(null)
+  const autoMessageTimerRef = useRef<NodeJS.Timeout | null>(null)
 
   const normalizePayload = (payload: any) => {
     let result = payload
@@ -58,7 +61,14 @@ export default function WorkerRealtimeChat({ workerId, initialName }: { workerId
     channel.on('broadcast', { event: 'message' }, (payload: any) => {
       const eventPayload = normalizePayload(payload)
       const messageId = eventPayload.messageId || `${Date.now()}-${Math.random()}`
-      
+      const senderType = eventPayload.senderType || 'admin'
+
+      // Clear the auto message timer if an admin responds
+      if (senderType === 'admin' && autoMessageTimerRef.current) {
+        clearTimeout(autoMessageTimerRef.current)
+        autoMessageTimerRef.current = null
+      }
+
       // Prevent duplicate messages
       setProcessedMessageIds((prev) => {
         if (prev.has(messageId)) return prev
@@ -69,7 +79,7 @@ export default function WorkerRealtimeChat({ workerId, initialName }: { workerId
 
       const msg: Msg = {
         sender: eventPayload.sender || 'admin',
-        senderType: eventPayload.senderType || 'admin',
+        senderType,
         content: eventPayload.content ?? eventPayload.message ?? eventPayload.text ?? '',
         ts: Date.now(),
         messageId,
@@ -109,6 +119,10 @@ export default function WorkerRealtimeChat({ workerId, initialName }: { workerId
       }
     })
     return () => {
+      if (autoMessageTimerRef.current) {
+        clearTimeout(autoMessageTimerRef.current)
+        autoMessageTimerRef.current = null
+      }
       try {
         presenceChannelRef.current?.untrack().catch(() => {})
       } catch (e) {}
@@ -149,6 +163,25 @@ export default function WorkerRealtimeChat({ workerId, initialName }: { workerId
     // Add message locally immediately so worker sees their own message
     setProcessedMessageIds((prev) => new Set([...prev, messageId]))
     setMessages((p) => [...p, msg])
+    
+    // Start 10-second timer for first message if auto message hasn't been shown yet
+    if (isFirstMessage && !hasShownAutoMessage) {
+      setIsFirstMessage(false)
+      autoMessageTimerRef.current = setTimeout(() => {
+        const autoMessageId = `auto-${Date.now()}`
+        const autoMessage: Msg = {
+          sender: 'System',
+          senderType: 'admin',
+          content: 'Our agents are currently unavailable to respond at this time. Please send us your message, and we will relay it to the appropriate agent. We appreciate your patience and will ensure your concern is addressed as soon as possible.',
+          ts: Date.now(),
+          messageId: autoMessageId,
+        }
+        setProcessedMessageIds((prev) => new Set([...prev, autoMessageId]))
+        setMessages((p) => [...p, autoMessage])
+        setHasShownAutoMessage(true)
+        setTimeout(() => endRef.current?.scrollIntoView({ behavior: 'smooth' }), 50)
+      }, 10000) // 10 seconds
+    }
     
     try {
       const channelName = `chat:worker:${workerId}`
