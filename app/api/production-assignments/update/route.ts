@@ -23,7 +23,10 @@ export async function POST(request: Request) {
     if (status) updates.status = status
     if (typeof filename !== 'undefined') updates.filename = filename
     if (typeof dueTime !== 'undefined') updates.due_time = dueTime
-    if (typeof description !== 'undefined') updates.description = description
+    if (typeof description !== 'undefined') {
+      updates.description = description
+      updates.description_updated_at = new Date().toISOString()
+    }
 
     if (Object.keys(updates).length === 0) {
       return NextResponse.json({ error: 'No update fields provided' }, { status: 400 })
