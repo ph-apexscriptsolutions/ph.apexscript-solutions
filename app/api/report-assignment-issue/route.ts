@@ -90,39 +90,27 @@ export async function POST(request: Request) {
       }
     }
 
-    // Send email notification to admins
+    // Send email notification to ph.apexscriptsolutions@gmail.com
     if (transporter) {
       try {
-        // Fetch all admin emails
-        const { data: admins } = await supabase
-          .from('worker_profiles')
-          .select('email, full_name')
-          .eq('role', 'admin')
-
-        if (admins && admins.length > 0) {
-          const adminEmails = admins.map((admin: any) => 
-            `"${admin.full_name || 'Admin'}" <${admin.email}>`
-          ).join(', ')
-
-          await transporter.sendMail({
-            from: `"[ISSUE] ApexScript Solutions" <${process.env.EMAIL_USER}>`,
-            to: adminEmails,
-            subject: '[ALERT] Assignment Issue Reported',
-            html: `
-              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                <h2 style="color: #333;">Assignment Issue Reported</h2>
-                <p style="color: #666; line-height: 1.6;">An issue has been reported for an assignment.</p>
-                <p style="color: #666; line-height: 1.6;"><strong>Worker:</strong> ${workerName || 'Unknown Worker'}</p>
-                <p style="color: #666; line-height: 1.6;"><strong>Assignment:</strong> ${assignmentFilename}</p>
-                <p style="color: #666; line-height: 1.6;"><strong>Issue Description:</strong></p>
-                <p style="color: #666; line-height: 1.6; background: #f5f5f5; padding: 10px; border-radius: 4px;">${issueDescription}</p>
-                <p style="color: #666; line-height: 1.6;">Please check the dashboard to review and resolve this issue.</p>
-                <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 30px 0;">
-                <p style="color: #999; font-size: 12px; margin: 0;">This is an automated message. Please do not reply.</p>
-              </div>
-            `,
-          })
-        }
+        await transporter.sendMail({
+          from: `"[ISSUE] ApexScript Solutions" <${process.env.EMAIL_USER}>`,
+          to: 'ph.apexscriptsolutions@gmail.com',
+          subject: '[ALERT] Assignment Issue Reported',
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+              <h2 style="color: #333;">Assignment Issue Reported</h2>
+              <p style="color: #666; line-height: 1.6;">An issue has been reported for an assignment.</p>
+              <p style="color: #666; line-height: 1.6;"><strong>Worker:</strong> ${workerName || 'Unknown Worker'}</p>
+              <p style="color: #666; line-height: 1.6;"><strong>Assignment:</strong> ${assignmentFilename}</p>
+              <p style="color: #666; line-height: 1.6;"><strong>Issue Description:</strong></p>
+              <p style="color: #666; line-height: 1.6; background: #f5f5f5; padding: 10px; border-radius: 4px;">${issueDescription}</p>
+              <p style="color: #666; line-height: 1.6;">Please check the dashboard to review and resolve this issue.</p>
+              <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 30px 0;">
+              <p style="color: #999; font-size: 12px; margin: 0;">This is an automated message. Please do not reply.</p>
+            </div>
+          `,
+        })
       } catch (emailError) {
         console.error('Failed to send admin notification email:', emailError)
         // Don't fail the request if email sending fails
