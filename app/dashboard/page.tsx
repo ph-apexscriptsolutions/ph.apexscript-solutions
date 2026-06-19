@@ -1720,6 +1720,8 @@ export default function DashboardPage() {
                             const lastSeen = new Date(w.last_seen)
                             const now = new Date()
                             const diffMinutes = (now.getTime() - lastSeen.getTime()) / (1000 * 60)
+                            // Hide last seen if offline for more than 12 hours
+                            if (diffMinutes > 720) return null
                             if (diffMinutes < 1) {
                               return <span className="text-green-600 text-xs font-medium">Online</span>
                             } else {
@@ -1793,6 +1795,8 @@ export default function DashboardPage() {
                             const lastSeen = new Date(w.last_seen)
                             const now = new Date()
                             const diffMinutes = (now.getTime() - lastSeen.getTime()) / (1000 * 60)
+                            // Hide last seen if offline for more than 12 hours
+                            if (diffMinutes > 720) return null
                             if (diffMinutes < 1) {
                               return <span className="text-green-600 text-xs font-medium">Online</span>
                             } else {
@@ -1866,6 +1870,8 @@ export default function DashboardPage() {
                             const lastSeen = new Date(w.last_seen)
                             const now = new Date()
                             const diffMinutes = (now.getTime() - lastSeen.getTime()) / (1000 * 60)
+                            // Hide last seen if offline for more than 12 hours
+                            if (diffMinutes > 720) return null
                             if (diffMinutes < 1) {
                               return <span className="text-green-600 text-xs font-medium">Online</span>
                             } else {
@@ -1939,6 +1945,8 @@ export default function DashboardPage() {
                             const lastSeen = new Date(w.last_seen)
                             const now = new Date()
                             const diffMinutes = (now.getTime() - lastSeen.getTime()) / (1000 * 60)
+                            // Hide last seen if offline for more than 12 hours
+                            if (diffMinutes > 720) return null
                             if (diffMinutes < 1) {
                               return <span className="text-green-600 text-xs font-medium">Online</span>
                             } else {
