@@ -947,37 +947,24 @@ export default function DashboardPage() {
     if (!isAdmin) return
 
     const channel = supabase
-      .channel('worker-profiles-changes', {
-        config: {
-          broadcast: { ack: true },
-        },
-      })
+      .channel('worker-profiles-changes')
       .on(
         'postgres_changes',
         {
           event: 'UPDATE',
           schema: 'public',
-          table: 'worker_profiles'
+          table: 'worker_profiles',
+          filter: 'last_seen=not.is_null'
         },
         (payload) => {
-          console.log('Worker profile update received:', payload)
-          // Update the worker in the list when any field changes
           setAllWorkers(prev => prev.map(w => 
-            w.id === payload.new.id ? { ...w, ...payload.new } : w
+            w.id === payload.new.id ? { ...w, last_seen: payload.new.last_seen } : w
           ))
         }
       )
-      .subscribe((status) => {
-        console.log('Subscription status:', status)
-        if (status === 'SUBSCRIBED') {
-          console.log('Successfully subscribed to worker_profiles changes')
-        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-          console.error('Subscription error:', status)
-        }
-      })
+      .subscribe()
 
     return () => {
-      console.log('Cleaning up subscription')
       supabase.removeChannel(channel)
     }
   }, [isAdmin])
