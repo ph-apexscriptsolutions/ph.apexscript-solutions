@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { X, CheckCircle, AlertCircle } from 'lucide-react'
 
 export default function ApplyPage() {
   const router = useRouter()
@@ -10,21 +11,21 @@ export default function ApplyPage() {
     email: '',
     phone: '',
     jobTitle: '',
-    department: '',
     experience: '',
     coverLetter: '',
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [submitMessage, setSubmitMessage] = useState('')
+  const [showModal, setShowModal] = useState(false)
+  const [modalType, setModalType] = useState<'success' | 'error'>('success')
+  const [modalMessage, setModalMessage] = useState('')
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }))
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
-    setSubmitMessage('')
 
     try {
       const response = await fetch('/api/submit-application', {
@@ -36,23 +37,34 @@ export default function ApplyPage() {
       const data = await response.json()
 
       if (response.ok) {
-        setSubmitMessage('Application submitted successfully! We will review your application and get back to you soon.')
+        setModalType('success')
+        setModalMessage('Application submitted successfully! We will review your application and get back to you soon.')
         setFormData({
           fullName: '',
           email: '',
           phone: '',
           jobTitle: '',
-          department: '',
           experience: '',
           coverLetter: '',
         })
       } else {
-        setSubmitMessage(data.error || 'Failed to submit application. Please try again.')
+        setModalType('error')
+        setModalMessage(data.error || 'Failed to submit application. Please try again.')
       }
+      setShowModal(true)
     } catch (err) {
-      setSubmitMessage('An error occurred. Please try again.')
+      setModalType('error')
+      setModalMessage('An error occurred. Please try again.')
+      setShowModal(true)
     } finally {
       setIsSubmitting(false)
+    }
+  }
+
+  const closeModal = () => {
+    setShowModal(false)
+    if (modalType === 'success') {
+      router.push('/')
     }
   }
 
@@ -131,27 +143,6 @@ export default function ApplyPage() {
             </div>
 
             <div>
-              <label htmlFor="department" className="block text-sm font-medium text-slate-700 mb-2">
-                Department *
-              </label>
-              <select
-                id="department"
-                name="department"
-                required
-                value={formData.department}
-                onChange={handleChange}
-                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none transition"
-              >
-                <option value="">Select a department</option>
-                <option value="Transcription">Transcription</option>
-                <option value="Project Management">Project Management</option>
-                <option value="Human Resources">Human Resources</option>
-                <option value="Quality Assurance">Quality Assurance</option>
-                <option value="Other">Other</option>
-              </select>
-            </div>
-
-            <div>
               <label htmlFor="experience" className="block text-sm font-medium text-slate-700 mb-2">
                 Years of Experience *
               </label>
@@ -190,12 +181,6 @@ export default function ApplyPage() {
             >
               {isSubmitting ? 'Submitting...' : 'Submit Application'}
             </button>
-
-            {submitMessage && (
-              <div className={`p-4 rounded-lg ${submitMessage.includes('success') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                {submitMessage}
-              </div>
-            )}
           </form>
         </div>
 
@@ -209,6 +194,38 @@ export default function ApplyPage() {
           </button>
         </div>
       </div>
+
+      {/* Modal Popup */}
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div onClick={closeModal} className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+          <div className="relative z-10 w-full max-w-md rounded-2xl bg-white shadow-2xl overflow-hidden">
+            <div className="p-6">
+              <div className="flex items-center justify-center mb-4">
+                {modalType === 'success' ? (
+                  <div className="h-16 w-16 rounded-full bg-green-100 flex items-center justify-center">
+                    <CheckCircle className="h-8 w-8 text-green-600" />
+                  </div>
+                ) : (
+                  <div className="h-16 w-16 rounded-full bg-red-100 flex items-center justify-center">
+                    <AlertCircle className="h-8 w-8 text-red-600" />
+                  </div>
+                )}
+              </div>
+              <h3 className={`text-xl font-semibold text-center mb-2 ${modalType === 'success' ? 'text-slate-900' : 'text-red-900'}`}>
+                {modalType === 'success' ? 'Application Submitted!' : 'Error'}
+              </h3>
+              <p className="text-slate-600 text-center mb-6">{modalMessage}</p>
+              <button
+                onClick={closeModal}
+                className="w-full bg-gradient-to-r from-cyan-500 to-cyan-600 text-white font-semibold py-3 px-6 rounded-lg hover:from-cyan-600 hover:to-cyan-700 transition-all"
+              >
+                {modalType === 'success' ? 'Close' : 'Try Again'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
