@@ -43,15 +43,12 @@ export function SiteHeader() {
             FAQ
           </Link>
           
-          {/* Heto ang fix: Inalis ang <Button asChild> para hindi mag-error */}
-          <a 
-            href={APPLY_EXTERNAL_URL} 
-            target="_blank" 
-            rel="noopener noreferrer"
+          <Link 
+            href="/apply" 
             className="ml-2 inline-flex items-center justify-center rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 transition-colors cursor-pointer"
           >
             Apply as Transcriber
-          </a>
+          </Link>
         </nav>
 
         {/* Mobile Toggle */}
@@ -79,15 +76,13 @@ export function SiteHeader() {
               FAQ
             </Link>
             
-            <a 
-              href={APPLY_EXTERNAL_URL} 
-              target="_blank" 
-              rel="noopener noreferrer"
+            <Link 
+              href="/apply" 
               className="mt-2 w-full inline-flex items-center justify-center rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 transition-colors cursor-pointer"
               onClick={() => setOpen(false)}
             >
               Apply as Transcriber
-            </a>
+            </Link>
           </nav>
         </div>
       )}
