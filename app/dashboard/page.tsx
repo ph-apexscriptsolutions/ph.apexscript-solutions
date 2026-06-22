@@ -969,6 +969,32 @@ export default function DashboardPage() {
     }
   }, [isAdmin])
 
+  // Polling fallback for last_seen updates (in case real-time doesn't work)
+  useEffect(() => {
+    if (!isAdmin) return
+
+    const pollLastSeen = async () => {
+      try {
+        const { data: workers } = await supabase.from("worker_profiles").select("*, last_seen").order("full_name")
+        if (workers) {
+          setAllWorkers(workers)
+        }
+      } catch (err) {
+        console.error('Failed to poll last_seen:', err)
+      }
+    }
+
+    // Poll every 10 seconds for more responsive updates
+    const interval = setInterval(pollLastSeen, 10000)
+    
+    // Initial poll
+    pollLastSeen()
+
+    return () => {
+      clearInterval(interval)
+    }
+  }, [isAdmin])
+
   // Update last_seen timestamp periodically for workers
   useEffect(() => {
     if (!profile?.id || isAdmin) return
