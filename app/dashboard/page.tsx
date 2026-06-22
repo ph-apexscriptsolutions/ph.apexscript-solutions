@@ -7,9 +7,9 @@ import AdminChat from '@/components/admin-chat'
 import WorkerRealtimeChat from '@/components/worker-realtime-chat'
 import { FlagIcon } from "@/components/flag-icon"
 
-const Card = ({ children, className }: { children: React.ReactNode; className?: string }) => <div className={`rounded-2xl border border-white/10 bg-white/10 backdrop-blur-xl shadow-xl shadow-black/20 ${className}`}>{children}</div>
-const CardHeader = ({ children, className }: { children: React.ReactNode; className?: string }) => <div className={`flex flex-col space-y-1.5 p-6 border-b border-white/10 ${className}`}>{children}</div>
-const CardTitle = ({ children, className }: { children: React.ReactNode; className?: string }) => <h3 className={`font-bold text-lg leading-none tracking-tight text-white ${className}`}>{children}</h3>
+const Card = ({ children, className }: { children: React.ReactNode; className?: string }) => <div className={`rounded-2xl border border-zinc-200/60 bg-white/95 backdrop-blur-sm shadow-xl shadow-zinc-200/50 ${className}`}>{children}</div>
+const CardHeader = ({ children, className }: { children: React.ReactNode; className?: string }) => <div className={`flex flex-col space-y-1.5 p-6 border-b border-zinc-100 ${className}`}>{children}</div>
+const CardTitle = ({ children, className }: { children: React.ReactNode; className?: string }) => <h3 className={`font-bold text-lg leading-none tracking-tight text-zinc-900 ${className}`}>{children}</h3>
 const CardContent = ({ children, className }: { children: React.ReactNode; className?: string }) => <div className={`p-6 pt-4 ${className}`}>{children}</div>
 
 const formatKB = (sizeStr: string | null) => {
@@ -1593,34 +1593,26 @@ export default function DashboardPage() {
   if (loading && !user) return <div className="flex min-h-screen items-center justify-center bg-zinc-50"><p className="text-zinc-500">Loading...</p></div>
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-cyan-900 to-slate-900 relative overflow-hidden">
-      {/* Animated background elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-cyan-500/20 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-purple-500/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-cyan-400/10 rounded-full blur-3xl" />
-      </div>
-
-      <div className="relative z-10">
+    <div className="min-h-screen bg-zinc-50">
       {showToast && toastMessage && (
         <div className="fixed right-6 bottom-6 z-50 max-w-xs rounded-lg bg-slate-900 px-4 py-3 text-white shadow-lg">
           <div className="text-sm font-medium">{toastMessage}</div>
         </div>
       )}
-      <header className="border-b border-white/10 bg-white/10 backdrop-blur-xl px-6 py-5 flex items-center justify-between sticky top-0 z-40 shadow-lg">
+      <header className="border-b border-zinc-200/60 bg-white/95 backdrop-blur-sm px-6 py-5 flex items-center justify-between sticky top-0 z-40 shadow-sm">
         <div className="flex items-center gap-4">
-          {isAdmin && view === "detail" && <button onClick={handleBackToList} className="flex items-center gap-2 text-sm font-medium text-cyan-200 hover:text-white transition-colors"><ArrowLeft className="h-4 w-4" /> Back to Team</button>}
+          {isAdmin && view === "detail" && <button onClick={handleBackToList} className="flex items-center gap-2 text-sm font-medium text-zinc-600 hover:text-zinc-900 transition-colors"><ArrowLeft className="h-4 w-4" /> Back to Team</button>}
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-400 via-cyan-500 to-sky-400 text-white shadow-lg shadow-cyan-500/50">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-500 via-cyan-600 to-sky-500 text-white shadow-lg shadow-cyan-500/30">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M3 12a9 9 0 1118 0 9 9 0 01-18 0z"/></svg>
             </div>
             <div>
-              <div className="text-lg font-bold text-white tracking-tight">ApexScript Transcription Services</div>
-              <div className="text-xs font-medium text-cyan-200 uppercase tracking-wider">{isAdmin ? 'Admin Dashboard' : 'Worker Dashboard'}</div>
+              <div className="text-lg font-bold text-zinc-900 tracking-tight">ApexScript Transcription Services</div>
+              <div className="text-xs font-medium text-zinc-500 uppercase tracking-wider">{isAdmin ? 'Admin Dashboard' : 'Worker Dashboard'}</div>
             </div>
           </div>
         </div>
-        <button onClick={handleLogout} className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-red-500 to-rose-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-red-500/30 hover:from-red-600 hover:to-rose-600 transition-all"><LogOut className="h-4 w-4" /> Log Out</button>
+        <button onClick={handleLogout} className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-red-500 to-rose-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-red-500/25 hover:from-red-600 hover:to-rose-600 transition-all"><LogOut className="h-4 w-4" /> Log Out</button>
       </header>
 
 
@@ -1636,30 +1628,30 @@ export default function DashboardPage() {
         {announcements.length > 0 ? (
           <>
             {announcementSchemaHint && (
-              <div className="rounded-3xl border border-red-400/30 bg-red-500/10 backdrop-blur-sm p-5 text-red-200 shadow-lg">
+              <div className="rounded-3xl border border-red-200 bg-red-50 p-5 text-red-900 shadow-sm">
                 <div className="flex flex-col gap-2">
                   <div className="text-sm font-semibold">Database migration recommended</div>
-                  <div className="text-xs text-red-300">Your announcements table is missing the expected column. Run the SQL below to fix it.</div>
-                  <pre className="overflow-x-auto rounded-2xl border border-red-400/20 bg-black/30 p-3 text-xs text-red-200"><code>{announcementSchemaHint}</code></pre>
+                  <div className="text-xs text-red-700">Your announcements table is missing the expected column. Run the SQL below to fix it.</div>
+                  <pre className="overflow-x-auto rounded-2xl border border-red-100 bg-white p-3 text-xs text-zinc-900"><code>{announcementSchemaHint}</code></pre>
                 </div>
               </div>
             )}
 
-            <div className="rounded-3xl border border-amber-400/30 bg-amber-500/10 backdrop-blur-sm p-5 text-amber-100 shadow-lg">
+            <div className="rounded-3xl border border-amber-200 bg-amber-50 p-5 text-amber-950 shadow-sm">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <p className="text-sm font-semibold uppercase tracking-[0.18em] text-amber-300">Announcement</p>
-                  <p className="mt-1 text-sm text-amber-100">Important message from your admin team.</p>
+                  <p className="text-sm font-semibold uppercase tracking-[0.18em] text-amber-700">Announcement</p>
+                  <p className="mt-1 text-sm text-amber-900">Important message from your admin team.</p>
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <div className="text-xs text-amber-300">Realtime updates</div>
+                  <div className="text-xs text-amber-600">Realtime updates</div>
                   {isAdmin && announcements[0]?.id && (
                     <div className="flex gap-2">
-                      <button onClick={() => startEditingAnnouncement(announcements[0])} className="rounded-md border border-amber-400/30 bg-white/10 backdrop-blur-sm px-3 py-1 text-xs font-semibold text-amber-200 hover:bg-white/20 transition">
+                      <button onClick={() => startEditingAnnouncement(announcements[0])} className="rounded-md border border-amber-200 bg-white px-3 py-1 text-xs font-semibold text-amber-700 hover:bg-amber-100 transition">
                         Edit
                       </button>
-                      <button onClick={() => deleteAnnouncement(announcements[0].id)} className="rounded-md border border-amber-400/30 bg-white/10 backdrop-blur-sm px-3 py-1 text-xs font-semibold text-amber-200 hover:bg-white/20 transition">
+                      <button onClick={() => deleteAnnouncement(announcements[0].id)} className="rounded-md border border-amber-200 bg-white px-3 py-1 text-xs font-semibold text-amber-700 hover:bg-amber-100 transition">
                         Delete
                       </button>
                     </div>
@@ -1668,10 +1660,10 @@ export default function DashboardPage() {
               </div>
 
               <div className="mt-4">
-                <div className="rounded-2xl border border-amber-400/20 bg-white/5 backdrop-blur-sm p-4 shadow-lg">
-                  <div className="text-sm text-white leading-relaxed whitespace-pre-wrap">{announcements[0]?.message}</div>
+                <div className="rounded-2xl border border-amber-100 bg-white p-4 shadow-sm">
+                  <div className="text-sm text-zinc-900 leading-relaxed whitespace-pre-wrap">{announcements[0]?.message}</div>
                   {announcements[0]?.created_at ? (
-                    <div className="mt-3 text-xs text-amber-300">
+                    <div className="mt-3 text-xs text-amber-500">
                       {new Date(announcements[0].created_at).toLocaleString()}
                     </div>
                   ) : null}
@@ -1680,14 +1672,14 @@ export default function DashboardPage() {
             </div>
           </>
         ) : (
-          <div className="rounded-3xl border border-white/10 bg-white/5 backdrop-blur-sm p-8 text-center">
+          <div className="rounded-3xl border border-zinc-200 bg-zinc-50 p-8 text-center">
             <div className="text-zinc-400 mb-3">
               <svg className="h-12 w-12 mx-auto opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
-            <p className="text-sm font-medium text-zinc-300">No New Announcements</p>
-            <p className="text-xs text-zinc-400 mt-1">Check back later for updates from your admin team.</p>
+            <p className="text-sm font-medium text-zinc-600">No New Announcements</p>
+            <p className="text-xs text-zinc-500 mt-1">Check back later for updates from your admin team.</p>
           </div>
         )}
 
@@ -1695,20 +1687,20 @@ export default function DashboardPage() {
           <div>
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h2 className="text-2xl font-semibold text-white">Team Members</h2>
-                <p className="text-zinc-400">Select a worker to view their production records and information.</p>
+                <h2 className="text-2xl font-semibold text-zinc-900">Team Members</h2>
+                <p className="text-zinc-500">Select a worker to view their production records and information.</p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
-                <button onClick={() => setIsAddWorkerModalOpen(true)} className="inline-flex items-center gap-2 rounded-md bg-gradient-to-r from-cyan-500 via-cyan-600 to-sky-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-cyan-500/30 hover:from-cyan-600 hover:via-cyan-700 hover:to-sky-600 transition">
+                <button onClick={() => setIsAddWorkerModalOpen(true)} className="inline-flex items-center gap-2 rounded-md bg-gradient-to-r from-slate-900 via-zinc-900 to-stone-900 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 hover:from-slate-700 hover:via-zinc-800 hover:to-stone-800 transition">
                   <UserPlus className="h-4 w-4" /> Add New Worker
                 </button>
                 {isAdmin && (
-                  <button onClick={() => { setAnnouncementSchemaHint(null); setIsAnnouncementModalOpen(true) }} className="inline-flex items-center gap-2 rounded-md bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-amber-500/30 hover:from-amber-600 hover:to-orange-600 transition">
+                  <button onClick={() => { setAnnouncementSchemaHint(null); setIsAnnouncementModalOpen(true) }} className="inline-flex items-center gap-2 rounded-md bg-amber-500 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-amber-500/20 hover:bg-amber-600 transition">
                     Announcement
                   </button>
                 )}
                 {isAdmin && (
-                  <button onClick={() => { setIsPayslipAdminModalOpen(true); fetchPayslipRequests() }} className="inline-flex items-center gap-2 rounded-md border border-white/20 bg-white/10 backdrop-blur-sm px-4 py-2 text-sm font-medium text-white hover:bg-white/20 transition">
+                  <button onClick={() => { setIsPayslipAdminModalOpen(true); fetchPayslipRequests() }} className="inline-flex items-center gap-2 rounded-md border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 transition">
                     Payslip Requests
                   </button>
                 )}
@@ -1717,11 +1709,11 @@ export default function DashboardPage() {
             
             <div className="space-y-6">
               <section>
-                <h3 className="text-sm font-semibold text-zinc-300 mb-2">Admins</h3>
+                <h3 className="text-sm font-semibold text-zinc-600 mb-2">Admins</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                   {admins.length > 0 ? admins.map((w: any) => (
-                    <div key={w.id} role="button" tabIndex={0} onClick={() => handleViewWorker(w)} onKeyDown={(e) => { if (e.key === 'Enter') handleViewWorker(w) }} className="group relative flex items-center gap-4 p-4 bg-white/10 backdrop-blur-sm rounded-xl border border-white/20 shadow-lg hover:shadow-xl hover:bg-white/15 transition-all text-left cursor-pointer">
-                      <div className="relative flex h-12 w-12 shrink-0 overflow-hidden rounded-full bg-white/20 text-white">
+                    <div key={w.id} role="button" tabIndex={0} onClick={() => handleViewWorker(w)} onKeyDown={(e) => { if (e.key === 'Enter') handleViewWorker(w) }} className="group relative flex items-center gap-4 p-4 bg-white rounded-xl border border-zinc-200 shadow-sm hover:shadow-md transition-all text-left cursor-pointer">
+                      <div className="relative flex h-12 w-12 shrink-0 overflow-hidden rounded-full bg-zinc-200 text-zinc-500">
                         <div className="flex h-full w-full items-center justify-center"><User className="h-6 w-6" /></div>
                         {w.last_seen && (() => {
                           const lastSeen = new Date(w.last_seen)
@@ -1734,8 +1726,8 @@ export default function DashboardPage() {
                         })()}
                       </div>
                       <div className="overflow-hidden">
-                        <p className="font-semibold text-white truncate">{w.full_name}</p>
-                        <p className="text-zinc-400 text-sm mt-1 truncate flex items-center gap-1">
+                        <p className="font-semibold text-zinc-900 truncate">{w.full_name}</p>
+                        <p className="text-zinc-500 text-sm mt-1 truncate flex items-center gap-1">
                           <span>{w.job_title || "Transcriber"} · {w.department || "General"}</span>
                           {w.location ? (
                             <span className="inline-flex items-center gap-1">
@@ -1787,16 +1779,16 @@ export default function DashboardPage() {
                         </div>
                       )}
                     </div>
-                  )) : <div className="text-zinc-400">No admins found.</div>}
+                  )) : <div className="text-zinc-500">No admins found.</div>}
                 </div>
               </section>
 
               <section>
-                <h3 className="text-sm font-semibold text-zinc-300 mb-2">Project Manager & Human Resource</h3>
+                <h3 className="text-sm font-semibold text-zinc-600 mb-2">Project Manager & Human Resource</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                   {hrProjectManagers.length > 0 ? hrProjectManagers.map((w: any) => (
-                    <div key={w.id} role="button" tabIndex={0} onClick={() => handleViewWorker(w)} onKeyDown={(e) => { if (e.key === 'Enter') handleViewWorker(w) }} className="group relative flex items-center gap-4 p-4 bg-white/10 backdrop-blur-sm rounded-xl border border-white/20 shadow-lg hover:shadow-xl hover:bg-white/15 transition-all text-left cursor-pointer">
-                      <div className="relative flex h-12 w-12 shrink-0 overflow-hidden rounded-full bg-white/20 text-white">
+                    <div key={w.id} role="button" tabIndex={0} onClick={() => handleViewWorker(w)} onKeyDown={(e) => { if (e.key === 'Enter') handleViewWorker(w) }} className="group relative flex items-center gap-4 p-4 bg-white rounded-xl border border-zinc-200 shadow-sm hover:shadow-md transition-all text-left cursor-pointer">
+                      <div className="relative flex h-12 w-12 shrink-0 overflow-hidden rounded-full bg-zinc-200 text-zinc-500">
                         <div className="flex h-full w-full items-center justify-center"><User className="h-6 w-6" /></div>
                         {w.last_seen && (() => {
                           const lastSeen = new Date(w.last_seen)
@@ -1809,8 +1801,8 @@ export default function DashboardPage() {
                         })()}
                       </div>
                       <div className="overflow-hidden">
-                        <p className="font-semibold text-white truncate">{w.full_name}</p>
-                        <p className="text-zinc-400 text-sm mt-1 truncate flex items-center gap-1">
+                        <p className="font-semibold text-zinc-900 truncate">{w.full_name}</p>
+                        <p className="text-zinc-500 text-sm mt-1 truncate flex items-center gap-1">
                           <span>{w.job_title || "Transcriber"} · {w.department || "General"}</span>
                           {w.location ? (
                             <span className="inline-flex items-center gap-1">
@@ -1862,16 +1854,16 @@ export default function DashboardPage() {
                         </div>
                       )}
                     </div>
-                  )) : <div className="text-zinc-400">No Project Managers & HR found.</div>}
+                  )) : <div className="text-zinc-500">No Project Managers & HR found.</div>}
                 </div>
               </section>
 
               <section>
-                <h3 className="text-sm font-semibold text-zinc-300 mb-2">Moderators</h3>
+                <h3 className="text-sm font-semibold text-zinc-600 mb-2">Moderators</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                   {moderators.length > 0 ? moderators.map((w: any) => (
-                    <div key={w.id} role="button" tabIndex={0} onClick={() => handleViewWorker(w)} onKeyDown={(e) => { if (e.key === 'Enter') handleViewWorker(w) }} className="group relative flex items-center gap-4 p-4 bg-white/10 backdrop-blur-sm rounded-xl border border-white/20 shadow-lg hover:shadow-xl hover:bg-white/15 transition-all text-left cursor-pointer">
-                      <div className="relative flex h-12 w-12 shrink-0 overflow-hidden rounded-full bg-white/20 text-white">
+                    <div key={w.id} role="button" tabIndex={0} onClick={() => handleViewWorker(w)} onKeyDown={(e) => { if (e.key === 'Enter') handleViewWorker(w) }} className="group relative flex items-center gap-4 p-4 bg-white rounded-xl border border-zinc-200 shadow-sm hover:shadow-md transition-all text-left cursor-pointer">
+                      <div className="relative flex h-12 w-12 shrink-0 overflow-hidden rounded-full bg-zinc-200 text-zinc-500">
                         <div className="flex h-full w-full items-center justify-center"><User className="h-6 w-6" /></div>
                         {w.last_seen && (() => {
                           const lastSeen = new Date(w.last_seen)
@@ -1884,8 +1876,8 @@ export default function DashboardPage() {
                         })()}
                       </div>
                       <div className="overflow-hidden">
-                        <p className="font-semibold text-white truncate">{w.full_name}</p>
-                        <p className="text-zinc-400 text-sm mt-1 truncate flex items-center gap-1">
+                        <p className="font-semibold text-zinc-900 truncate">{w.full_name}</p>
+                        <p className="text-zinc-500 text-sm mt-1 truncate flex items-center gap-1">
                           <span>{w.job_title || "Transcriber"} · {w.department || "General"}</span>
                           {w.location ? (
                             <span className="inline-flex items-center gap-1">
@@ -1937,16 +1929,16 @@ export default function DashboardPage() {
                         </div>
                       )}
                     </div>
-                  )) : <div className="text-zinc-400">No moderators found.</div>}
+                  )) : <div className="text-zinc-500">No moderators found.</div>}
                 </div>
               </section>
 
               <section>
-                <h3 className="text-sm font-semibold text-zinc-300 mb-2">Workers</h3>
+                <h3 className="text-sm font-semibold text-zinc-600 mb-2">Workers</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                   {workersList.length > 0 ? workersList.map((w: any) => (
-                    <div key={w.id} role="button" tabIndex={0} onClick={() => handleViewWorker(w)} onKeyDown={(e) => { if (e.key === 'Enter') handleViewWorker(w) }} className="group relative flex items-center gap-4 p-4 bg-white/10 backdrop-blur-sm rounded-xl border border-white/20 shadow-lg hover:shadow-xl hover:bg-white/15 transition-all text-left cursor-pointer">
-                      <div className="relative flex h-12 w-12 shrink-0 overflow-hidden rounded-full bg-white/20 text-white">
+                    <div key={w.id} role="button" tabIndex={0} onClick={() => handleViewWorker(w)} onKeyDown={(e) => { if (e.key === 'Enter') handleViewWorker(w) }} className="group relative flex items-center gap-4 p-4 bg-white rounded-xl border border-zinc-200 shadow-sm hover:shadow-md transition-all text-left cursor-pointer">
+                      <div className="relative flex h-12 w-12 shrink-0 overflow-hidden rounded-full bg-zinc-200 text-zinc-500">
                         <div className="flex h-full w-full items-center justify-center"><User className="h-6 w-6" /></div>
                         {w.last_seen && (() => {
                           const lastSeen = new Date(w.last_seen)
@@ -1959,8 +1951,8 @@ export default function DashboardPage() {
                         })()}
                       </div>
                       <div className="overflow-hidden">
-                        <p className="font-semibold text-white truncate">{w.full_name}</p>
-                        <p className="text-zinc-400 text-sm mt-1 truncate flex items-center gap-1">
+                        <p className="font-semibold text-zinc-900 truncate">{w.full_name}</p>
+                        <p className="text-zinc-500 text-sm mt-1 truncate flex items-center gap-1">
                           <span>{w.job_title || "Transcriber"} · {w.department || "General"}</span>
                           {w.location ? (
                             <span className="inline-flex items-center gap-1">
@@ -2012,7 +2004,7 @@ export default function DashboardPage() {
                         </div>
                       )}
                     </div>
-                  )) : <div className="text-zinc-400">No workers found.</div>}
+                  )) : <div className="text-zinc-500">No workers found.</div>}
                 </div>
               </section>
             </div>
@@ -3022,7 +3014,6 @@ export default function DashboardPage() {
       )}
 
 
-    </div>
     </div>
   )
 }
