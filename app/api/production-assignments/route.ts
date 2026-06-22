@@ -93,7 +93,7 @@ export async function POST(request: Request) {
         console.log('Attempting to send email to:', workerData.email)
         console.log('Using from email:', process.env.EMAIL_USER)
         const result = await transporter.sendMail({
-          from: `"[WORKER] ApexScript Solutions" <${process.env.EMAIL_USER}>`,
+          from: `"[WORKER] ApexScript Transcription Services" <${process.env.EMAIL_USER}>`,
           to: `"${workerData.full_name || 'Worker'}" <${workerData.email}>`,
           subject: '[ALERT] New Assignment Available',
           html: `

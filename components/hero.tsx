@@ -12,7 +12,7 @@ export function Hero() {
           Precision-Driven Transcription for Professional Excellence.
         </h1>
         <p className="mx-auto mt-5 max-w-xl text-pretty text-base leading-relaxed text-muted-foreground sm:text-lg">
-          ApexScript Solutions delivers precise, professionally formatted
+          ApexScript Transcription Services delivers precise, professionally formatted
           transcripts from your audio and video. We specialize in legal
           proceedings, senate hearings, academic research, conference calls,
           earnings calls, and podcasts.

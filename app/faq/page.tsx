@@ -12,7 +12,7 @@ export default function FAQPage() {
       </div>
 
       <footer className="border-t border-border py-8 text-center text-sm text-muted-foreground">
-        © 2026 ApexScript Solutions. All rights reserved.
+        © 2026 ApexScript Transcription Services. All rights reserved.
       </footer>
     </main>
   )

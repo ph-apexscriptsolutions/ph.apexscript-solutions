@@ -94,7 +94,7 @@ export async function POST(request: Request) {
     if (transporter) {
       try {
         await transporter.sendMail({
-          from: `"[ISSUE] ApexScript Solutions" <${process.env.EMAIL_USER}>`,
+          from: `"[ISSUE] ApexScript Transcription Services" <${process.env.EMAIL_USER}>`,
           to: 'ph.apexscriptsolutions@gmail.com',
           subject: '[ALERT] Assignment Issue Reported',
           html: `

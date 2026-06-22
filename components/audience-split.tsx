@@ -119,7 +119,7 @@ export function AudienceSplit() {
           </h2>
           <p className="mt-3 text-pretty text-muted-foreground">
             Whether you need files transcribed or you transcribe them,
-            ApexScript Solutions has a home for you.
+            ApexScript Transcription Services has a home for you.
           </p>
         </div>
 

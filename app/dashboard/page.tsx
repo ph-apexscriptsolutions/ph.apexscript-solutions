@@ -1607,7 +1607,7 @@ export default function DashboardPage() {
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M3 12a9 9 0 1118 0 9 9 0 01-18 0z"/></svg>
             </div>
             <div>
-              <div className="text-lg font-semibold text-zinc-900">ApexScript Solutions</div>
+              <div className="text-lg font-semibold text-zinc-900">ApexScript Transcription Services</div>
               <div className="text-xs text-zinc-400">{isAdmin ? 'Admin Dashboard' : 'Worker Dashboard'}</div>
             </div>
           </div>

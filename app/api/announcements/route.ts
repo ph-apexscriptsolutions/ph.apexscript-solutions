@@ -185,7 +185,7 @@ export async function POST(request: Request) {
 
           if (workerEmails.length > 0) {
             const result = await transporter.sendMail({
-              from: `"[WORKER] ApexScript Solutions" <${process.env.EMAIL_USER}>`,
+              from: `"[WORKER] ApexScript Transcription Services" <${process.env.EMAIL_USER}>`,
               to: process.env.EMAIL_USER,
               bcc: workerEmails.join(', '),
               subject: '[ANNOUNCEMENT] New Announcement from Admin',
@@ -194,7 +194,7 @@ export async function POST(request: Request) {
                   <h2 style="color: #333;">New Announcement</h2>
                   <p style="color: #666; line-height: 1.6;">Please check your dashboard for the latest announcement.</p>
                   <p style="color: #999; font-size: 12px; margin-top: 20px;">
-                    This is an automated message from ApexScript Solutions.
+                    This is an automated message from ApexScript Transcription Services.
                   </p>
                 </div>
               `,

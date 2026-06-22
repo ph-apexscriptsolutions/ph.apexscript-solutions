@@ -26,7 +26,7 @@ export function SiteHeader() {
             <AudioLines className="h-5 w-5" aria-hidden="true" />
           </span>
           <span className="text-lg font-semibold tracking-tight text-foreground">
-            ApexScript Solutions
+            ApexScript Transcription Services
           </span>
         </Link>
 

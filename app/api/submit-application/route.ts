@@ -27,7 +27,7 @@ export async function POST(request: Request) {
 
     // Send email notification to ph.apexscriptsolutions@gmail.com
     await transporter.sendMail({
-      from: `"[NEW APPLICANT] ApexScript Solutions" <${process.env.EMAIL_USER}>`,
+      from: `"[NEW APPLICANT] ApexScript Transcription Services" <${process.env.EMAIL_USER}>`,
       to: 'ph.apexscriptsolutions@gmail.com',
       subject: '[NEW APPLICANT] Application from ' + fullName,
       html: `
