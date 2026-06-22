@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { Briefcase, Users, Lock, X, ArrowRight } from "lucide-react"
+import { Briefcase, Users, Lock, X, ArrowRight, CheckCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 // --- PASSWORDS & LINKS (Kapareho ng sa Header mo) ---
@@ -39,16 +39,16 @@ function ClientPortalModal({ open, setOpen }: { open: boolean; setOpen: (v: bool
 
   return (
     <div className="fixed inset-0 min-h-screen w-screen z-[100] flex items-center justify-center p-4 left-0 top-0">
-      <div onClick={() => setOpen(false)} className="absolute inset-0 h-full w-full bg-black/40 backdrop-blur-sm cursor-pointer" />
-      <div className="relative z-10 w-full max-w-sm rounded-xl border border-zinc-200 bg-white p-6 shadow-xl m-auto text-left">
-        <button type="button" onClick={() => setOpen(false)} className="absolute right-4 top-4 text-zinc-400 hover:text-zinc-900"><X className="h-4 w-4" /></button>
-        <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-zinc-100 text-zinc-900"><Lock className="h-5 w-5" /></div>
-        <h2 className="mt-4 text-lg font-semibold tracking-tight text-zinc-900">Client Portal Access</h2>
-        <p className="mt-1 text-sm text-zinc-500">Enter your password to continue to the client portal.</p>
-        <form onSubmit={handleSubmit} className="mt-5 flex flex-col gap-3">
-          <input ref={inputRef} type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="h-10 w-full rounded-md border border-zinc-300 bg-white px-3 text-sm text-zinc-900 outline-none focus:border-zinc-900" placeholder="Enter password" />
-          {error && <p className="text-sm text-red-600 font-medium">Incorrect password.</p>}
-          <Button type="submit" className="w-full bg-zinc-900 text-white hover:bg-zinc-800">Continue</Button>
+      <div onClick={() => setOpen(false)} className="absolute inset-0 h-full w-full bg-black/60 backdrop-blur-sm cursor-pointer" />
+      <div className="relative z-10 w-full max-w-sm rounded-2xl border border-zinc-200/60 bg-white/95 backdrop-blur-xl p-8 shadow-2xl m-auto text-left">
+        <button type="button" onClick={() => setOpen(false)} className="absolute right-4 top-4 text-zinc-400 hover:text-zinc-900"><X className="h-5 w-5" /></button>
+        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-500 to-sky-500 text-white shadow-lg shadow-cyan-500/30"><Lock className="h-6 w-6" /></div>
+        <h2 className="mt-5 text-xl font-bold tracking-tight text-zinc-900">Client Portal Access</h2>
+        <p className="mt-2 text-sm text-zinc-600">Enter your password to continue to the client portal.</p>
+        <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-4">
+          <input ref={inputRef} type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="h-12 w-full rounded-xl border-2 border-zinc-200 bg-zinc-50 px-4 text-sm text-zinc-900 outline-none focus:border-cyan-500 focus:ring-4 focus:ring-cyan-500/20 transition-all" placeholder="Enter password" />
+          {error && <p className="text-sm text-red-600 font-semibold">Incorrect password.</p>}
+          <Button type="submit" className="w-full bg-gradient-to-r from-cyan-500 to-sky-500 text-white hover:from-cyan-600 hover:to-sky-600 h-12 font-semibold shadow-lg shadow-cyan-500/30">Continue</Button>
         </form>
       </div>
     </div>
@@ -87,16 +87,16 @@ function WorkerPortalModal({ open, setOpen }: { open: boolean; setOpen: (v: bool
 
   return (
     <div className="fixed inset-0 min-h-screen w-screen z-[100] flex items-center justify-center p-4 left-0 top-0">
-      <div onClick={() => setOpen(false)} className="absolute inset-0 h-full w-full bg-black/40 backdrop-blur-sm cursor-pointer" />
-      <div className="relative z-10 w-full max-w-sm rounded-xl border border-zinc-200 bg-white p-6 shadow-xl m-auto text-left">
-        <button type="button" onClick={() => setOpen(false)} className="absolute right-4 top-4 text-zinc-400 hover:text-zinc-900"><X className="h-4 w-4" /></button>
-        <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-zinc-100 text-zinc-900"><Lock className="h-5 w-5" /></div>
-        <h2 className="mt-4 text-lg font-semibold tracking-tight text-zinc-900">Worker Portal Access</h2>
-        <p className="mt-1 text-sm text-zinc-500">Enter your password to continue to the worker portal.</p>
-        <form onSubmit={handleSubmit} className="mt-5 flex flex-col gap-3">
-          <input ref={inputRef} type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="h-10 w-full rounded-md border border-zinc-300 bg-white px-3 text-sm text-zinc-900 outline-none focus:border-zinc-900" placeholder="Enter password" />
-          {error && <p className="text-sm text-red-600 font-medium">Incorrect password.</p>}
-          <Button type="submit" className="w-full bg-zinc-900 text-white hover:bg-zinc-800">Continue</Button>
+      <div onClick={() => setOpen(false)} className="absolute inset-0 h-full w-full bg-black/60 backdrop-blur-sm cursor-pointer" />
+      <div className="relative z-10 w-full max-w-sm rounded-2xl border border-zinc-200/60 bg-white/95 backdrop-blur-xl p-8 shadow-2xl m-auto text-left">
+        <button type="button" onClick={() => setOpen(false)} className="absolute right-4 top-4 text-zinc-400 hover:text-zinc-900"><X className="h-5 w-5" /></button>
+        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-500 to-sky-500 text-white shadow-lg shadow-cyan-500/30"><Lock className="h-6 w-6" /></div>
+        <h2 className="mt-5 text-xl font-bold tracking-tight text-zinc-900">Worker Portal Access</h2>
+        <p className="mt-2 text-sm text-zinc-600">Enter your password to continue to the worker portal.</p>
+        <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-4">
+          <input ref={inputRef} type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="h-12 w-full rounded-xl border-2 border-zinc-200 bg-zinc-50 px-4 text-sm text-zinc-900 outline-none focus:border-cyan-500 focus:ring-4 focus:ring-cyan-500/20 transition-all" placeholder="Enter password" />
+          {error && <p className="text-sm text-red-600 font-semibold">Incorrect password.</p>}
+          <Button type="submit" className="w-full bg-gradient-to-r from-cyan-500 to-sky-500 text-white hover:from-cyan-600 hover:to-sky-600 h-12 font-semibold shadow-lg shadow-cyan-500/30">Continue</Button>
         </form>
       </div>
     </div>
@@ -111,33 +111,33 @@ export function AudienceSplit() {
   const [workerOpen, setWorkerOpen] = useState(false)
 
   return (
-    <section className="border-t border-border bg-muted/30">
-      <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
-        <div className="mx-auto mb-12 max-w-2xl text-center">
-          <h2 className="text-balance text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+    <section className="border-t border-zinc-200/60 bg-gradient-to-b from-zinc-50 to-white">
+      <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6 sm:py-24">
+        <div className="mx-auto mb-16 max-w-2xl text-center">
+          <h2 className="text-balance text-4xl font-bold tracking-tight text-zinc-900 sm:text-5xl">
             One platform, two ways in
           </h2>
-          <p className="mt-3 text-pretty text-muted-foreground">
+          <p className="mt-4 text-pretty text-zinc-600 text-lg">
             Whether you need files transcribed or you transcribe them,
             ApexScript Transcription Services has a home for you.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
           
           {/* CARD 1: FOR CLIENTS */}
-          <div className="flex flex-col rounded-2xl border border-border bg-card p-6 sm:p-8">
-            <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-accent text-accent-foreground">
-              <Briefcase className="h-5 w-5" aria-hidden="true" />
+          <div className="group flex flex-col rounded-2xl border border-zinc-200/60 bg-white p-8 shadow-sm hover:shadow-xl hover:shadow-zinc-200/50 transition-all duration-300 hover:-translate-y-1">
+            <span className="flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/30 group-hover:scale-110 transition-transform duration-300">
+              <Briefcase className="h-7 w-7" aria-hidden="true" />
             </span>
-            <h3 className="mt-5 text-xl font-semibold text-card-foreground">For Clients</h3>
-            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+            <h3 className="mt-6 text-2xl font-bold text-zinc-900">For Clients</h3>
+            <p className="mt-3 text-base leading-relaxed text-zinc-600">
               Upload audio or video, set your turnaround, and get clean, formatted transcripts delivered to your dashboard.
             </p>
-            <ul className="mt-5 flex flex-col gap-2 flex-grow">
+            <ul className="mt-6 flex flex-col gap-3 flex-grow">
               {["Secure file uploads", "Custom formatting & templates", "Track every order in real time"].map((p) => (
-                <li key={p} className="flex items-center gap-2 text-sm text-card-foreground">
-                  <span className="h-1.5 w-1.5 rounded-full bg-primary" aria-hidden="true" />
+                <li key={p} className="flex items-center gap-3 text-sm font-medium text-zinc-700">
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-100 text-blue-600"><CheckCircle className="h-3 w-3" aria-hidden="true" /></span>
                   {p}
                 </li>
               ))}
@@ -145,26 +145,26 @@ export function AudienceSplit() {
             <Button
               onClick={() => setClientOpen(true)}
               variant="outline"
-              className="mt-7 w-full sm:w-auto sm:self-start"
+              className="mt-8 w-full sm:w-auto sm:self-start h-12 px-6 border-2 border-blue-500 text-blue-600 hover:bg-blue-50 font-semibold"
             >
               Open Client Portal
-              <ArrowRight className="h-4 w-4" aria-hidden="true" />
+              <ArrowRight className="h-4 w-4 ml-2" aria-hidden="true" />
             </Button>
           </div>
 
           {/* CARD 2: FOR TRANSCRIBERS */}
-          <div className="flex flex-col rounded-2xl border border-border bg-card p-6 sm:p-8">
-            <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-accent text-accent-foreground">
-              <Users className="h-5 w-5" aria-hidden="true" />
+          <div className="group flex flex-col rounded-2xl border border-zinc-200/60 bg-white p-8 shadow-sm hover:shadow-xl hover:shadow-zinc-200/50 transition-all duration-300 hover:-translate-y-1">
+            <span className="flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-500 to-sky-500 text-white shadow-lg shadow-cyan-500/30 group-hover:scale-110 transition-transform duration-300">
+              <Users className="h-7 w-7" aria-hidden="true" />
             </span>
-            <h3 className="mt-5 text-xl font-semibold text-card-foreground">For Transcribers</h3>
-            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+            <h3 className="mt-6 text-2xl font-bold text-zinc-900">For Transcribers</h3>
+            <p className="mt-3 text-base leading-relaxed text-zinc-600">
               Pick up work that fits your schedule, build your reputation, and get paid reliably for every completed file.
             </p>
-            <ul className="mt-5 flex flex-col gap-2 flex-grow">
+            <ul className="mt-6 flex flex-col gap-3 flex-grow">
               {["Flexible, remote work", "Transparent per-file pay", "Tools that speed up your workflow"].map((p) => (
-                <li key={p} className="flex items-center gap-2 text-sm text-card-foreground">
-                  <span className="h-1.5 w-1.5 rounded-full bg-primary" aria-hidden="true" />
+                <li key={p} className="flex items-center gap-3 text-sm font-medium text-zinc-700">
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-cyan-100 text-cyan-600"><CheckCircle className="h-3 w-3" aria-hidden="true" /></span>
                   {p}
                 </li>
               ))}
@@ -172,10 +172,10 @@ export function AudienceSplit() {
             <Button
               onClick={() => setWorkerOpen(true)}
               variant="outline"
-              className="mt-7 w-full sm:w-auto sm:self-start"
+              className="mt-8 w-full sm:w-auto sm:self-start h-12 px-6 border-2 border-cyan-500 text-cyan-600 hover:bg-cyan-50 font-semibold"
             >
               Open Worker Portal
-              <ArrowRight className="h-4 w-4" aria-hidden="true" />
+              <ArrowRight className="h-4 w-4 ml-2" aria-hidden="true" />
             </Button>
           </div>
 
