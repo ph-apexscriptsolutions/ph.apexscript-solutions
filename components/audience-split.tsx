@@ -39,16 +39,16 @@ function ClientPortalModal({ open, setOpen }: { open: boolean; setOpen: (v: bool
 
   return (
     <div className="fixed inset-0 min-h-screen w-screen z-[100] flex items-center justify-center p-4 left-0 top-0">
-      <div onClick={() => setOpen(false)} className="absolute inset-0 h-full w-full bg-black/60 backdrop-blur-sm cursor-pointer" />
-      <div className="relative z-10 w-full max-w-sm rounded-2xl border border-zinc-200/60 bg-white/95 backdrop-blur-xl p-8 shadow-2xl m-auto text-left">
-        <button type="button" onClick={() => setOpen(false)} className="absolute right-4 top-4 text-zinc-400 hover:text-zinc-900"><X className="h-5 w-5" /></button>
-        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-500 to-sky-500 text-white shadow-lg shadow-cyan-500/30"><Lock className="h-6 w-6" /></div>
-        <h2 className="mt-5 text-xl font-bold tracking-tight text-zinc-900">Client Portal Access</h2>
+      <div onClick={() => setOpen(false)} className="absolute inset-0 h-full w-full bg-black/70 backdrop-blur-md cursor-pointer" />
+      <div className="relative z-10 w-full max-w-sm rounded-3xl border border-white/20 bg-gradient-to-br from-white/95 to-white/90 backdrop-blur-2xl p-8 shadow-2xl m-auto text-left">
+        <button type="button" onClick={() => setOpen(false)} className="absolute right-4 top-4 text-zinc-400 hover:text-zinc-900 transition-colors"><X className="h-5 w-5" /></button>
+        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-600 text-white shadow-xl shadow-blue-500/40"><Lock className="h-7 w-7" /></div>
+        <h2 className="mt-6 text-2xl font-bold tracking-tight text-zinc-900">Client Portal Access</h2>
         <p className="mt-2 text-sm text-zinc-600">Enter your password to continue to the client portal.</p>
         <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-4">
-          <input ref={inputRef} type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="h-12 w-full rounded-xl border-2 border-zinc-200 bg-zinc-50 px-4 text-sm text-zinc-900 outline-none focus:border-cyan-500 focus:ring-4 focus:ring-cyan-500/20 transition-all" placeholder="Enter password" />
+          <input ref={inputRef} type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="h-12 w-full rounded-xl border-2 border-zinc-200 bg-white px-4 text-sm text-zinc-900 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all" placeholder="Enter password" />
           {error && <p className="text-sm text-red-600 font-semibold">Incorrect password.</p>}
-          <Button type="submit" className="w-full bg-gradient-to-r from-cyan-500 to-sky-500 text-white hover:from-cyan-600 hover:to-sky-600 h-12 font-semibold shadow-lg shadow-cyan-500/30">Continue</Button>
+          <Button type="submit" className="w-full bg-gradient-to-r from-blue-500 via-blue-600 to-indigo-600 text-white hover:from-blue-600 hover:via-blue-700 hover:to-indigo-700 h-12 font-semibold shadow-xl shadow-blue-500/30">Continue</Button>
         </form>
       </div>
     </div>
@@ -87,16 +87,16 @@ function WorkerPortalModal({ open, setOpen }: { open: boolean; setOpen: (v: bool
 
   return (
     <div className="fixed inset-0 min-h-screen w-screen z-[100] flex items-center justify-center p-4 left-0 top-0">
-      <div onClick={() => setOpen(false)} className="absolute inset-0 h-full w-full bg-black/60 backdrop-blur-sm cursor-pointer" />
-      <div className="relative z-10 w-full max-w-sm rounded-2xl border border-zinc-200/60 bg-white/95 backdrop-blur-xl p-8 shadow-2xl m-auto text-left">
-        <button type="button" onClick={() => setOpen(false)} className="absolute right-4 top-4 text-zinc-400 hover:text-zinc-900"><X className="h-5 w-5" /></button>
-        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-500 to-sky-500 text-white shadow-lg shadow-cyan-500/30"><Lock className="h-6 w-6" /></div>
-        <h2 className="mt-5 text-xl font-bold tracking-tight text-zinc-900">Worker Portal Access</h2>
+      <div onClick={() => setOpen(false)} className="absolute inset-0 h-full w-full bg-black/70 backdrop-blur-md cursor-pointer" />
+      <div className="relative z-10 w-full max-w-sm rounded-3xl border border-white/20 bg-gradient-to-br from-white/95 to-white/90 backdrop-blur-2xl p-8 shadow-2xl m-auto text-left">
+        <button type="button" onClick={() => setOpen(false)} className="absolute right-4 top-4 text-zinc-400 hover:text-zinc-900 transition-colors"><X className="h-5 w-5" /></button>
+        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-500 via-cyan-600 to-sky-600 text-white shadow-xl shadow-cyan-500/40"><Lock className="h-7 w-7" /></div>
+        <h2 className="mt-6 text-2xl font-bold tracking-tight text-zinc-900">Worker Portal Access</h2>
         <p className="mt-2 text-sm text-zinc-600">Enter your password to continue to the worker portal.</p>
         <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-4">
-          <input ref={inputRef} type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="h-12 w-full rounded-xl border-2 border-zinc-200 bg-zinc-50 px-4 text-sm text-zinc-900 outline-none focus:border-cyan-500 focus:ring-4 focus:ring-cyan-500/20 transition-all" placeholder="Enter password" />
+          <input ref={inputRef} type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="h-12 w-full rounded-xl border-2 border-zinc-200 bg-white px-4 text-sm text-zinc-900 outline-none focus:border-cyan-500 focus:ring-4 focus:ring-cyan-500/20 transition-all" placeholder="Enter password" />
           {error && <p className="text-sm text-red-600 font-semibold">Incorrect password.</p>}
-          <Button type="submit" className="w-full bg-gradient-to-r from-cyan-500 to-sky-500 text-white hover:from-cyan-600 hover:to-sky-600 h-12 font-semibold shadow-lg shadow-cyan-500/30">Continue</Button>
+          <Button type="submit" className="w-full bg-gradient-to-r from-cyan-500 via-cyan-600 to-sky-600 text-white hover:from-cyan-600 hover:via-cyan-700 hover:to-sky-700 h-12 font-semibold shadow-xl shadow-cyan-500/30">Continue</Button>
         </form>
       </div>
     </div>
