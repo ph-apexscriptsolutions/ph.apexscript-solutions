@@ -19,7 +19,7 @@ export default function ApplyPage() {
   const [modalType, setModalType] = useState<'success' | 'error'>('success')
   const [modalMessage, setModalMessage] = useState('')
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }))
   }
 
@@ -130,16 +130,22 @@ export default function ApplyPage() {
               <label htmlFor="jobTitle" className="block text-sm font-medium text-slate-700 mb-2">
                 Position Applying For *
               </label>
-              <input
-                type="text"
+              <select
                 id="jobTitle"
                 name="jobTitle"
                 required
                 value={formData.jobTitle}
                 onChange={handleChange}
                 className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none transition"
-                placeholder="Transcriber, Project Manager, etc."
-              />
+              >
+                <option value="">Select a position</option>
+                <option value="Assistant Human Resources">Assistant Human Resources</option>
+                <option value="Assistant Project Manager">Assistant Project Manager</option>
+                <option value="Billing and Invoice Clerk">Billing and Invoice Clerk</option>
+                <option value="Quality Assurance">Quality Assurance</option>
+                <option value="Senior Editor">Senior Editor</option>
+                <option value="Transcriber">Transcriber</option>
+              </select>
             </div>
 
             <div>
