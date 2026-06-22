@@ -7,10 +7,10 @@ import AdminChat from '@/components/admin-chat'
 import WorkerRealtimeChat from '@/components/worker-realtime-chat'
 import { FlagIcon } from "@/components/flag-icon"
 
-const Card = ({ children, className }: { children: React.ReactNode; className?: string }) => <div className={`rounded-xl border border-zinc-200 bg-white shadow-md ${className}`}>{children}</div>
-const CardHeader = ({ children, className }: { children: React.ReactNode; className?: string }) => <div className={`flex flex-col space-y-1.5 p-6 ${className}`}>{children}</div>
-const CardTitle = ({ children, className }: { children: React.ReactNode; className?: string }) => <h3 className={`font-semibold leading-none tracking-tight ${className}`}>{children}</h3>
-const CardContent = ({ children, className }: { children: React.ReactNode; className?: string }) => <div className={`p-6 pt-0 ${className}`}>{children}</div>
+const Card = ({ children, className }: { children: React.ReactNode; className?: string }) => <div className={`rounded-2xl border border-zinc-200/60 bg-white/95 backdrop-blur-sm shadow-xl shadow-zinc-200/50 ${className}`}>{children}</div>
+const CardHeader = ({ children, className }: { children: React.ReactNode; className?: string }) => <div className={`flex flex-col space-y-1.5 p-6 border-b border-zinc-100 ${className}`}>{children}</div>
+const CardTitle = ({ children, className }: { children: React.ReactNode; className?: string }) => <h3 className={`font-bold text-lg leading-none tracking-tight text-zinc-900 ${className}`}>{children}</h3>
+const CardContent = ({ children, className }: { children: React.ReactNode; className?: string }) => <div className={`p-6 pt-4 ${className}`}>{children}</div>
 
 const formatKB = (sizeStr: string | null) => {
   if (!sizeStr) return "0.0 KB"
@@ -1599,20 +1599,20 @@ export default function DashboardPage() {
           <div className="text-sm font-medium">{toastMessage}</div>
         </div>
       )}
-      <header className="border-b bg-white px-6 py-4 flex items-center justify-between sticky top-0 z-40">
+      <header className="border-b border-zinc-200/60 bg-white/95 backdrop-blur-sm px-6 py-5 flex items-center justify-between sticky top-0 z-40 shadow-sm">
         <div className="flex items-center gap-4">
-          {isAdmin && view === "detail" && <button onClick={handleBackToList} className="flex items-center gap-2 text-sm text-zinc-600 hover:text-zinc-900"><ArrowLeft className="h-4 w-4" /> Back to Team</button>}
+          {isAdmin && view === "detail" && <button onClick={handleBackToList} className="flex items-center gap-2 text-sm font-medium text-zinc-600 hover:text-zinc-900 transition-colors"><ArrowLeft className="h-4 w-4" /> Back to Team</button>}
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-md bg-gradient-to-br from-cyan-600 to-sky-500 text-white shadow-md">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-500 via-cyan-600 to-sky-500 text-white shadow-lg shadow-cyan-500/30">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M3 12a9 9 0 1118 0 9 9 0 01-18 0z"/></svg>
             </div>
             <div>
-              <div className="text-lg font-semibold text-zinc-900">ApexScript Transcription Services</div>
-              <div className="text-xs text-zinc-400">{isAdmin ? 'Admin Dashboard' : 'Worker Dashboard'}</div>
+              <div className="text-lg font-bold text-zinc-900 tracking-tight">ApexScript Transcription Services</div>
+              <div className="text-xs font-medium text-zinc-500 uppercase tracking-wider">{isAdmin ? 'Admin Dashboard' : 'Worker Dashboard'}</div>
             </div>
           </div>
         </div>
-        <button onClick={handleLogout} className="inline-flex items-center gap-2 rounded-md bg-gradient-to-r from-red-600 to-rose-500 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-red-500/20 hover:from-red-700 hover:to-rose-600 transition"><LogOut className="h-4 w-4" /> Log Out</button>
+        <button onClick={handleLogout} className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-red-500 to-rose-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-red-500/25 hover:from-red-600 hover:to-rose-600 transition-all"><LogOut className="h-4 w-4" /> Log Out</button>
       </header>
 
 
@@ -2105,41 +2105,47 @@ export default function DashboardPage() {
               )}
             </div>
 
-            <div className="grid gap-4 md:grid-cols-3 mt-6">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-zinc-500">Total Files</CardTitle>
-                  <FileText className="h-4 w-4 text-zinc-400" />
+            <div className="grid gap-5 md:grid-cols-3 mt-6">
+              <Card className="bg-gradient-to-br from-white to-zinc-50 border-zinc-200/80 hover:shadow-2xl hover:shadow-zinc-200/60 transition-all duration-300">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                  <CardTitle className="text-sm font-semibold text-zinc-600 uppercase tracking-wider">Total Files</CardTitle>
+                  <div className="h-9 w-9 rounded-lg bg-cyan-100 flex items-center justify-center">
+                    <FileText className="h-5 w-5 text-cyan-600" />
+                  </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold text-zinc-900">{filteredTotalFiles}</div>
-                  <p className="text-xs text-zinc-500 mt-1">{filterApplied ? "Selected Period" : ""}</p>
+                  <div className="text-4xl font-bold text-zinc-900 tracking-tight">{filteredTotalFiles}</div>
+                  <p className="text-xs text-zinc-500 mt-1">{filterApplied ? "Selected Period" : "All Time"}</p>
                 </CardContent>
               </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-zinc-500">Total Kilobytes</CardTitle>
-                  <HardDrive className="h-4 w-4 text-zinc-400" />
+              <Card className="bg-gradient-to-br from-white to-zinc-50 border-zinc-200/80 hover:shadow-2xl hover:shadow-zinc-200/60 transition-all duration-300">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                  <CardTitle className="text-sm font-semibold text-zinc-600 uppercase tracking-wider">Total Kilobytes</CardTitle>
+                  <div className="h-9 w-9 rounded-lg bg-purple-100 flex items-center justify-center">
+                    <HardDrive className="h-5 w-5 text-purple-600" />
+                  </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold text-zinc-900">{filteredTotalKB}</div>
-                  <p className="text-xs text-zinc-500 mt-1">{filterApplied ? "Selected Period" : ""}</p>
+                  <div className="text-4xl font-bold text-zinc-900 tracking-tight">{filteredTotalKB}</div>
+                  <p className="text-xs text-zinc-500 mt-1">{filterApplied ? "Selected Period" : "All Time"}</p>
                 </CardContent>
               </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-zinc-500">Total Earnings</CardTitle>
-                  <CreditCard className="h-4 w-4 text-zinc-400" />
+              <Card className="bg-gradient-to-br from-white to-zinc-50 border-zinc-200/80 hover:shadow-2xl hover:shadow-zinc-200/60 transition-all duration-300">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                  <CardTitle className="text-sm font-semibold text-zinc-600 uppercase tracking-wider">Total Earnings</CardTitle>
+                  <div className="h-9 w-9 rounded-lg bg-emerald-100 flex items-center justify-center">
+                    <CreditCard className="h-5 w-5 text-emerald-600" />
+                  </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold text-zinc-900">{computedEarnings ?? '-'}</div>
+                  <div className="text-4xl font-bold text-zinc-900 tracking-tight">{computedEarnings ?? '-'}</div>
                   <p className="text-xs text-zinc-500 mt-1">{computedEarnings ? `Based on ${formatCurrency(activeWorker?.base_payment_per_60kb || 700, activeWorker?.location)} per 60KB` : ''}</p>
                   <div className="flex gap-2 mt-4">
-                    <button type="button" onClick={computeTotalEarnings} className="inline-flex items-center justify-center rounded-md bg-slate-900 px-4 py-2 text-xs font-semibold text-white shadow-sm shadow-slate-900/20 hover:bg-slate-700 transition">
+                    <button type="button" onClick={computeTotalEarnings} className="inline-flex items-center justify-center rounded-lg bg-gradient-to-r from-slate-800 to-slate-900 px-4 py-2 text-xs font-semibold text-white shadow-lg shadow-slate-900/20 hover:from-slate-700 hover:to-slate-800 transition-all">
                       Compute Total Earnings
                     </button>
                     {isAdmin && (
-                      <button type="button" onClick={() => { setIsPaymentModalOpen(true); setSelectedPaymentRate(activeWorker?.base_payment_per_60kb || 700) }} className="inline-flex items-center gap-2 rounded-md border border-slate-900 px-4 py-2 text-xs font-semibold text-slate-900 hover:bg-slate-50 transition">
+                      <button type="button" onClick={() => { setIsPaymentModalOpen(true); setSelectedPaymentRate(activeWorker?.base_payment_per_60kb || 700) }} className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-all">
                         <Pencil className="h-3.5 w-3.5" /> Edit Rate
                       </button>
                     )}
@@ -2149,55 +2155,55 @@ export default function DashboardPage() {
             </div>
             <div className="grid gap-6 xl:grid-cols-[2fr_1fr] mt-6">
               <div className="space-y-6">
-                <Card>
+                <Card className="bg-gradient-to-br from-white to-zinc-50 border-zinc-200/80">
                   <CardHeader>
-                    <CardTitle className="text-lg font-black tracking-wider uppercase">Production Records</CardTitle>
+                    <CardTitle className="text-lg font-bold text-zinc-900 tracking-tight">Production Records</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-end sm:gap-2">
+                    <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:gap-2">
                       <div className="flex flex-wrap items-end gap-2">
                         <div className="flex flex-col">
-                          <label className="text-[11px] text-zinc-600 font-medium mb-1">Start Date</label>
-                          <input type="date" value={startDate} onChange={(e) => { setStartDate(e.target.value); setFilterApplied(false); }} className="border border-zinc-300 rounded-md px-2.5 py-1.5 text-sm text-zinc-700 outline-none focus:border-zinc-500 focus:ring-1 focus:ring-zinc-400" placeholder="mm/dd/yyyy" />
+                          <label className="text-xs font-semibold text-zinc-600 mb-1.5">Start Date</label>
+                          <input type="date" value={startDate} onChange={(e) => { setStartDate(e.target.value); setFilterApplied(false); }} className="border border-zinc-300 rounded-lg px-3 py-2 text-sm text-zinc-700 outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all" placeholder="mm/dd/yyyy" />
                         </div>
                         <div className="flex flex-col">
-                          <label className="text-[11px] text-zinc-600 font-medium mb-1">End Date</label>
-                          <input type="date" value={endDate} onChange={(e) => { setEndDate(e.target.value); setFilterApplied(false); }} className="border border-zinc-300 rounded-md px-2.5 py-1.5 text-sm text-zinc-700 outline-none focus:border-zinc-500 focus:ring-1 focus:ring-zinc-400" placeholder="mm/dd/yyyy" />
+                          <label className="text-xs font-semibold text-zinc-600 mb-1.5">End Date</label>
+                          <input type="date" value={endDate} onChange={(e) => { setEndDate(e.target.value); setFilterApplied(false); }} className="border border-zinc-300 rounded-lg px-3 py-2 text-sm text-zinc-700 outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all" placeholder="mm/dd/yyyy" />
                         </div>
-                        <button onClick={applyFilters} className="inline-flex items-center gap-1.5 rounded-md bg-gradient-to-r from-slate-900 via-zinc-900 to-stone-900 px-3.5 py-1.5 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 hover:from-slate-700 hover:via-zinc-800 hover:to-stone-800 transition">
+                        <button onClick={applyFilters} className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-cyan-600 to-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-cyan-500/25 hover:from-cyan-700 hover:to-sky-700 transition-all">
                           <span>⊡</span> Filter
                         </button>
                         {(startDate || endDate) && (
-                          <button onClick={clearFilters} className="inline-flex items-center gap-1 px-3.5 py-1.5 rounded-md bg-zinc-500 text-white text-sm font-semibold hover:bg-zinc-800 active:bg-zinc-900 transition">
+                          <button onClick={clearFilters} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg bg-zinc-600 text-white text-sm font-semibold hover:bg-zinc-700 active:bg-zinc-800 transition-all">
                             <X className="h-3.5 w-3.5" /> Clear
                           </button>
                         )}
                       </div>
                     </div>
-                    <div className="overflow-x-auto">
+                    <div className="overflow-x-auto rounded-xl border border-zinc-200">
                       <table className="w-full text-sm text-left">
-                        <thead className="bg-zinc-100 text-zinc-700 uppercase text-[11px]">
+                        <thead className="bg-zinc-100/80 text-zinc-700 uppercase text-[11px] font-semibold tracking-wider">
                           <tr>
-                            <th className="px-3 py-2 text-left rounded-l-md">File Name</th>
-                            <th className="px-3 py-2 text-left">Date Completed</th>
-                            <th className="px-3 py-2 text-left">Size (KB)</th>
-                            {isAdmin && <th className="px-3 py-2 text-left rounded-r-md">Actions</th>}
+                            <th className="px-4 py-3 text-left rounded-tl-lg">File Name</th>
+                            <th className="px-4 py-3 text-left">Date Completed</th>
+                            <th className="px-4 py-3 text-left">Size (KB)</th>
+                            {isAdmin && <th className="px-4 py-3 text-left rounded-tr-lg">Actions</th>}
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-zinc-200">
+                        <tbody className="divide-y divide-zinc-200/60 bg-white">
                           {records.length > 0 ? records.map((r: any) => (
-                            <tr key={r.id} className="hover:bg-zinc-50">
-                              <td className="px-3 py-2 font-medium text-zinc-900">{getDisplayFileName(r.file_name)}</td>
-                              <td className="px-3 py-2 text-zinc-600">{formatDateDMY(r.date_completed)}</td>
-                              <td className="px-3 py-2 font-medium text-blue-600">{formatKB(r.byte_size)}</td>
+                            <tr key={r.id} className="hover:bg-zinc-50/80 transition-colors">
+                              <td className="px-4 py-3 font-semibold text-zinc-900">{getDisplayFileName(r.file_name)}</td>
+                              <td className="px-4 py-3 text-zinc-600">{formatDateDMY(r.date_completed)}</td>
+                              <td className="px-4 py-3 font-bold text-cyan-600">{formatKB(r.byte_size)}</td>
                               {isAdmin && (
-                                <td className="px-3 py-2">
+                                <td className="px-4 py-3">
                                   <div className="flex items-center gap-1">
-                                    <button onClick={() => openEditModal(r)} className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2.5 py-1 text-sm font-medium text-slate-700 shadow-sm shadow-slate-200/80 hover:border-slate-300 hover:text-slate-900 hover:shadow-md transition">
+                                    <button onClick={() => openEditModal(r)} className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 shadow-sm shadow-slate-200/80 hover:border-slate-300 hover:text-slate-900 hover:shadow-md transition-all">
                                       <Pencil className="h-4 w-4" /> Edit
                                     </button>
-                                    <button onClick={() => handleDeleteRecord(r.id)} className="inline-flex items-center gap-1 rounded-md bg-gradient-to-r from-red-600 to-rose-500 px-2.5 py-1 text-sm font-semibold text-white shadow-sm shadow-red-500/20 hover:from-red-700 hover:to-rose-600 transition">
-                                      <X className="h-4 w-4" /> Delete
+                                    <button onClick={() => handleDeleteRecord(r.id)} className="inline-flex items-center gap-1 rounded-lg bg-gradient-to-r from-red-500 to-rose-500 px-3 py-1.5 text-sm font-semibold text-white shadow-sm shadow-red-500/20 hover:from-red-600 hover:to-rose-600 transition-all">
+                                      <Trash2 className="h-4 w-4" /> Delete
                                     </button>
                                   </div>
                                 </td>
@@ -2205,33 +2211,33 @@ export default function DashboardPage() {
                             </tr>
                           )) : (
                             <tr>
-                              <td colSpan={isAdmin ? 4 : 3} className="px-3 py-6 text-center text-zinc-500">No production records found.</td>
+                              <td colSpan={isAdmin ? 4 : 3} className="px-4 py-8 text-center text-zinc-500 font-medium">No production records found.</td>
                             </tr>
                           )}
                         </tbody>
                       </table>
                     </div>
                   </CardContent>
-                  <div className="border-t border-zinc-200 px-4 py-3 flex flex-col sm:flex-row items-center justify-center gap-2">
+                  <div className="border-t border-zinc-200 px-6 py-4 flex flex-col sm:flex-row items-center justify-center gap-2 bg-zinc-50/50">
                     {isAdmin && (
-                      <button onClick={() => setIsManualAddModalOpen(true)} className="inline-flex items-center gap-2 rounded-md border border-zinc-200 bg-white px-4 py-2 text-sm font-semibold text-zinc-900 shadow-sm shadow-zinc-200/70 hover:bg-zinc-50 transition">
+                      <button onClick={() => setIsManualAddModalOpen(true)} className="inline-flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-4 py-2.5 text-sm font-semibold text-zinc-700 shadow-sm shadow-zinc-200/70 hover:bg-zinc-50 transition-all">
                         <FileText className="h-4 w-4" /> Add File Manually
                       </button>
                     )}
-                    <button onClick={() => setIsUploadModalOpen(true)} className="inline-flex items-center gap-2 rounded-md bg-gradient-to-r from-slate-900 via-zinc-900 to-stone-900 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 hover:from-slate-700 hover:via-zinc-800 hover:to-stone-800 transition">
+                    <button onClick={() => setIsUploadModalOpen(true)} className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-cyan-600 to-sky-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-cyan-500/25 hover:from-cyan-700 hover:to-sky-700 transition-all">
                       <Upload className="h-5 w-5" /> Upload File
                     </button>
                   </div>
                 </Card>
 
-                <Card className="mt-6">
+                <Card className="mt-6 bg-gradient-to-br from-white to-zinc-50 border-zinc-200/80">
                   <CardHeader className="flex flex-wrap items-center justify-between gap-4">
                     <div>
-                      <CardTitle className="text-lg font-black tracking-wider uppercase">PAYSLIP REQUEST HISTORY</CardTitle>
+                      <CardTitle className="text-lg font-bold text-zinc-900 tracking-tight">Payslip Request History</CardTitle>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
                       {(user?.id === activeWorker?.id || isAdmin) && (
-                        <button type="button" onClick={() => setIsPayslipModalOpen(true)} className="inline-flex items-center justify-center rounded-md border border-zinc-300 px-3 py-2 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 transition">
+                        <button type="button" onClick={() => setIsPayslipModalOpen(true)} className="inline-flex items-center justify-center rounded-lg border border-zinc-300 bg-white px-4 py-2 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 transition-all shadow-sm">
                           Request Payslip
                         </button>
                       )}
@@ -2239,30 +2245,30 @@ export default function DashboardPage() {
                   </CardHeader>
                   <CardContent>
                     {payslipRequests.length === 0 ? (
-                      <p className="text-center text-sm text-zinc-500">No payslip requests yet for this worker.</p>
+                      <p className="text-center text-sm text-zinc-500 font-medium py-4">No payslip requests yet for this worker.</p>
                     ) : (
                       <div className="space-y-2 max-h-[350px] overflow-y-auto pr-2">
                         {payslipRequests.map((r: any) => (
-                          <div key={r.id} className="rounded-lg border border-zinc-200 bg-zinc-50 p-2">
+                          <div key={r.id} className="rounded-xl border border-zinc-200/60 bg-white p-3 shadow-sm hover:shadow-md transition-shadow">
                             <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                               <div>
-                                <div className="text-xs font-semibold text-zinc-900">{r.cutoff_start} → {r.cutoff_end}</div>
+                                <div className="text-xs font-bold text-zinc-900">{r.cutoff_start} → {r.cutoff_end}</div>
                                 <div className="text-xs text-zinc-500">Requested {new Date(r.requested_at).toLocaleDateString()}</div>
                               </div>
-                              <div className="text-xs uppercase tracking-tight text-zinc-700">{r.status}</div>
+                              <div className="text-xs uppercase tracking-tight font-semibold text-zinc-700">{r.status}</div>
                             </div>
-                            <div className="mt-1 flex flex-wrap items-center gap-1">
+                            <div className="mt-2 flex flex-wrap items-center gap-1">
                               {r.payslip_url ? (
-                                <a href={r.payslip_url} target="_blank" rel="noreferrer" className="inline-flex items-center rounded-md bg-slate-900 px-2 py-0.5 text-xs font-semibold text-white hover:bg-slate-700 transition">
+                                <a href={r.payslip_url} target="_blank" rel="noreferrer" className="inline-flex items-center rounded-lg bg-gradient-to-r from-cyan-600 to-sky-600 px-3 py-1 text-xs font-semibold text-white hover:from-cyan-700 hover:to-sky-700 transition-all shadow-sm">
                                   Download payslip
                                 </a>
                               ) : r.status === 'approved' ? (
-                                <span className="rounded-md bg-blue-100 px-1.5 py-0.5 text-xs font-medium text-blue-800">Approved - waiting for upload</span>
+                                <span className="rounded-lg bg-blue-100 px-2 py-1 text-xs font-semibold text-blue-800">Approved - waiting for upload</span>
                               ) : (
-                                <span className="rounded-md bg-yellow-100 px-1.5 py-0.5 text-xs font-medium text-yellow-800">Waiting for approval</span>
+                                <span className="rounded-lg bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-800">Waiting for approval</span>
                               )}
                               {r.status === 'paid' && (
-                                <span className="rounded-md bg-green-100 px-1.5 py-0.5 text-xs font-medium text-green-800">Paid</span>
+                                <span className="rounded-lg bg-emerald-100 px-2 py-1 text-xs font-semibold text-emerald-800">Paid</span>
                               )}
                             </div>
                           </div>
@@ -2273,14 +2279,14 @@ export default function DashboardPage() {
                 </Card>
               </div>
 
-              <Card className="flex flex-col overflow-hidden">
+              <Card className="flex flex-col overflow-hidden bg-gradient-to-br from-white to-zinc-50 border-zinc-200/80">
                 <CardHeader className="flex flex-wrap items-center justify-between gap-2">
                   <div>
-                    <CardTitle className="text-lg font-black tracking-wider uppercase">Current Assignments</CardTitle>
+                    <CardTitle className="text-lg font-bold text-zinc-900 tracking-tight">Current Assignments</CardTitle>
                   </div>
                   <div className="flex items-center gap-1">
                     {isAdmin && (
-                      <button onClick={() => { setEditAssignmentId(null); setNewAssignmentFilename(''); setNewAssignmentDescription(''); setIsAddAssignmentModalOpen(true) }} className="inline-flex items-center gap-1 rounded-md border border-slate-900 px-2 py-1.5 text-xs font-semibold text-slate-900 hover:bg-slate-50 transition">
+                      <button onClick={() => { setEditAssignmentId(null); setNewAssignmentFilename(''); setNewAssignmentDescription(''); setIsAddAssignmentModalOpen(true) }} className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-all shadow-sm">
                         <span>+</span> Add Assignment
                       </button>
                     )}
@@ -2289,43 +2295,45 @@ export default function DashboardPage() {
                 <CardContent className="">
                   <div className="space-y-1">
                     
-                    <div className="grid gap-1 items-center bg-zinc-100 px-2 py-2 border-b border-zinc-200" style={{ gridTemplateColumns: effectiveHeaderTemplate }}>
-                      <div className="text-xs font-semibold text-zinc-600 uppercase">Filename</div>
-                      <div className="text-xs font-semibold text-zinc-600 uppercase">Status</div>
-                      {isAdmin && <div className="text-xs font-semibold text-zinc-600 uppercase">Actions</div>}
+                    <div className="grid gap-1 items-center bg-zinc-100/80 px-3 py-2.5 border-b border-zinc-200/60 rounded-t-lg" style={{ gridTemplateColumns: effectiveHeaderTemplate }}>
+                      <div className="text-xs font-bold text-zinc-700 uppercase tracking-wider">Filename</div>
+                      <div className="text-xs font-bold text-zinc-700 uppercase tracking-wider">Status</div>
+                      {isAdmin && <div className="text-xs font-bold text-zinc-700 uppercase tracking-wider">Actions</div>}
                     </div>
                     {showAllSubmittedMessage ? (
-                      <div className="text-center py-3 flex flex-col items-center gap-2">
-                        <Check className="h-5 w-5 text-green-600" />
+                      <div className="text-center py-4 flex flex-col items-center gap-2">
+                        <div className="h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center">
+                          <Check className="h-5 w-5 text-emerald-600" />
+                        </div>
                         <p className="text-sm font-semibold text-zinc-700">All Assignments Submitted</p>
                       </div>
                     ) : assignments.length === 0 ? (
-                      <p className="text-center text-sm text-zinc-500">No assignments for this worker.</p>
+                      <p className="text-center text-sm text-zinc-500 font-medium py-4">No assignments for this worker.</p>
                     ) : (
                       <div className="space-y-1">
                         {assignments.map((a: any) => (
-                        <div key={a.id} className="grid gap-1 items-center py-1 px-2 rounded-md border border-zinc-200 bg-white hover:bg-zinc-50 transition" style={{ gridTemplateColumns: effectiveRowTemplate }}>
+                        <div key={a.id} className="grid gap-1 items-center py-2 px-3 rounded-lg border border-zinc-200/60 bg-white hover:bg-zinc-50/80 transition-all" style={{ gridTemplateColumns: effectiveRowTemplate }}>
                           <div>
-                            <button type="button" onClick={() => { setSelectedAssignment(a); if (profile?.id) localStorage.setItem(`last_viewed_description_${profile.id}_${a.id}`, new Date().toISOString()); setAssignmentsWithUpdatedDescription(prev => { const newSet = new Set(prev); newSet.delete(a.id); return newSet }) }} className="text-sm font-medium text-slate-900 underline-offset-4 hover:underline flex items-center gap-2">
+                            <button type="button" onClick={() => { setSelectedAssignment(a); if (profile?.id) localStorage.setItem(`last_viewed_description_${profile.id}_${a.id}`, new Date().toISOString()); setAssignmentsWithUpdatedDescription(prev => { const newSet = new Set(prev); newSet.delete(a.id); return newSet }) }} className="text-sm font-bold text-slate-900 underline-offset-4 hover:underline flex items-center gap-2">
                               {getDisplayFileName(a.filename)}
                               {assignmentsWithUpdatedDescription.has(a.id) && (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-red-500 text-white text-[10px] font-bold animate-pulse">REVISED</span>
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-red-500 text-white text-[10px] font-bold animate-pulse shadow-sm">REVISED</span>
                               )}
                             </button>
                           </div>
                           <div className="flex items-center gap-1">
                             {a.status === 'done' ? (
-                              <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-800"><span aria-hidden="true">✓</span><span>Done</span></span>
+                              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-bold text-emerald-800"><span aria-hidden="true">✓</span><span>Done</span></span>
                             ) : a.status === 'cancelled' ? (
-                              <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-800"><span aria-hidden="true">✕</span><span>Cancelled</span></span>
+                              <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2.5 py-1 text-xs font-bold text-red-800"><span aria-hidden="true">✕</span><span>Cancelled</span></span>
                             ) : (
-                              <span className="inline-flex items-center gap-1 rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-semibold text-yellow-800"><span aria-hidden="true">⏳</span><span>Pending</span></span>
+                              <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-1 text-xs font-bold text-amber-800"><span aria-hidden="true">⏳</span><span>Pending</span></span>
                             )}
                           </div>
                           {isAdmin && (
                             <div className="flex items-center gap-1">
                               {a.status !== 'cancelled' && (
-                                <button onClick={() => cancelAssignment(a.id)} className="inline-flex items-center gap-1 rounded-md bg-orange-50 px-2 py-1 text-xs font-semibold text-orange-700 hover:bg-orange-100 transition border border-orange-200">
+                                <button onClick={() => cancelAssignment(a.id)} className="inline-flex items-center gap-1 rounded-lg bg-orange-50 px-2 py-1 text-xs font-semibold text-orange-700 hover:bg-orange-100 transition-all border border-orange-200">
                                   <X className="h-3.5 w-3.5" /> Cancel
                                 </button>
                               )}
@@ -2334,10 +2342,10 @@ export default function DashboardPage() {
                                 setNewAssignmentFilename(a.filename || '')
                                 setNewAssignmentDescription(a.description || '')
                                 setIsAddAssignmentModalOpen(true)
-                              }} className="inline-flex items-center gap-1 rounded-md bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-100 transition border border-blue-200">
+                              }} className="inline-flex items-center gap-1 rounded-lg bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-100 transition-all border border-blue-200">
                                 <Pencil className="h-3.5 w-3.5" /> Edit
                               </button>
-                              <button onClick={() => deleteAssignment(a.id)} className="inline-flex items-center gap-1 rounded-md bg-red-50 px-2 py-1 text-xs font-semibold text-red-700 hover:bg-red-100 transition border border-red-200">
+                              <button onClick={() => deleteAssignment(a.id)} className="inline-flex items-center gap-1 rounded-lg bg-red-50 px-2 py-1 text-xs font-semibold text-red-700 hover:bg-red-100 transition-all border border-red-200">
                                 <X className="h-3.5 w-3.5" /> Delete
                               </button>
                             </div>
