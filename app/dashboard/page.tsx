@@ -1719,7 +1719,7 @@ export default function DashboardPage() {
                           const lastSeen = new Date(w.last_seen)
                           const now = new Date()
                           const diffMinutes = (now.getTime() - lastSeen.getTime()) / (1000 * 60)
-                          if (diffMinutes < 2) {
+                          if (diffMinutes < 5) {
                             return <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white bg-green-500" />
                           }
                           return null
@@ -1748,7 +1748,7 @@ export default function DashboardPage() {
                             const diffMinutes = (now.getTime() - lastSeen.getTime()) / (1000 * 60)
                             // Hide last seen if offline for more than 12 hours
                             if (diffMinutes > 720) return null
-                            if (diffMinutes < 2) {
+                            if (diffMinutes < 5) {
                               return <span className="text-green-600 text-xs font-medium">Online</span>
                             } else {
                               const minutesAgo = Math.floor(diffMinutes)
@@ -1794,7 +1794,7 @@ export default function DashboardPage() {
                           const lastSeen = new Date(w.last_seen)
                           const now = new Date()
                           const diffMinutes = (now.getTime() - lastSeen.getTime()) / (1000 * 60)
-                          if (diffMinutes < 2) {
+                          if (diffMinutes < 5) {
                             return <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white bg-green-500" />
                           }
                           return null
@@ -1823,7 +1823,7 @@ export default function DashboardPage() {
                             const diffMinutes = (now.getTime() - lastSeen.getTime()) / (1000 * 60)
                             // Hide last seen if offline for more than 12 hours
                             if (diffMinutes > 720) return null
-                            if (diffMinutes < 2) {
+                            if (diffMinutes < 5) {
                               return <span className="text-green-600 text-xs font-medium">Online</span>
                             } else {
                               const minutesAgo = Math.floor(diffMinutes)
@@ -1869,7 +1869,7 @@ export default function DashboardPage() {
                           const lastSeen = new Date(w.last_seen)
                           const now = new Date()
                           const diffMinutes = (now.getTime() - lastSeen.getTime()) / (1000 * 60)
-                          if (diffMinutes < 2) {
+                          if (diffMinutes < 5) {
                             return <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white bg-green-500" />
                           }
                           return null
@@ -1898,7 +1898,7 @@ export default function DashboardPage() {
                             const diffMinutes = (now.getTime() - lastSeen.getTime()) / (1000 * 60)
                             // Hide last seen if offline for more than 12 hours
                             if (diffMinutes > 720) return null
-                            if (diffMinutes < 2) {
+                            if (diffMinutes < 5) {
                               return <span className="text-green-600 text-xs font-medium">Online</span>
                             } else {
                               const minutesAgo = Math.floor(diffMinutes)
@@ -1944,7 +1944,7 @@ export default function DashboardPage() {
                           const lastSeen = new Date(w.last_seen)
                           const now = new Date()
                           const diffMinutes = (now.getTime() - lastSeen.getTime()) / (1000 * 60)
-                          if (diffMinutes < 2) {
+                          if (diffMinutes < 5) {
                             return <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white bg-green-500" />
                           }
                           return null
@@ -1973,7 +1973,7 @@ export default function DashboardPage() {
                             const diffMinutes = (now.getTime() - lastSeen.getTime()) / (1000 * 60)
                             // Hide last seen if offline for more than 12 hours
                             if (diffMinutes > 720) return null
-                            if (diffMinutes < 2) {
+                            if (diffMinutes < 5) {
                               return <span className="text-green-600 text-xs font-medium">Online</span>
                             } else {
                               const minutesAgo = Math.floor(diffMinutes)
