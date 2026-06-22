@@ -73,6 +73,7 @@ export default function ApplyPage() {
       <div className="max-w-2xl mx-auto">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-slate-900 mb-2">Join Our Team</h1>
+          <p className="text-red-600 font-semibold mb-2">High demand for Transcriptionist position</p>
           <p className="text-slate-600">Fill out the form below to apply for a position at ApexScript Transcription Services</p>
         </div>
 
