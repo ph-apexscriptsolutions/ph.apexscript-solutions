@@ -2237,7 +2237,7 @@ export default function DashboardPage() {
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
                       {(user?.id === activeWorker?.id || isAdmin) && (
-                        <button type="button" onClick={() => setIsPayslipModalOpen(true)} className="inline-flex items-center justify-center rounded-xl border-2 border-zinc-300 bg-white px-4 py-2 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 hover:border-zinc-400 transition-all shadow-sm hover:shadow-md">
+                        <button type="button" onClick={() => setIsPayslipModalOpen(true)} className="inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 px-4 py-2 text-xs font-semibold text-white shadow-xl shadow-emerald-500/30 hover:from-emerald-600 hover:to-teal-600 hover:shadow-xl hover:shadow-emerald-500/40 transition-all">
                           Request Payslip
                         </button>
                       )}
