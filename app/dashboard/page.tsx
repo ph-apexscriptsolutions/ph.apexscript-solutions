@@ -2618,23 +2618,23 @@ export default function DashboardPage() {
 
       {isUploadModalOpen && activeWorker && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
-          <div className="bg-gradient-to-br from-white to-zinc-50/50 rounded-3xl shadow-2xl shadow-zinc-500/30 w-full max-w-md p-8 relative border-2 border-zinc-200/80">
-            <button onClick={() => { setIsUploadModalOpen(false); setSelectedFile(null); }} className="absolute right-4 top-4 text-zinc-400 hover:text-zinc-900 transition-colors"><X className="h-5 w-5" /></button>
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-400 via-cyan-500 to-sky-400 text-white shadow-xl shadow-cyan-500/30 mb-6">
-              <Upload className="h-7 w-7" />
+          <div className="bg-gradient-to-br from-cyan-50 via-sky-50 to-blue-50 rounded-3xl shadow-2xl shadow-cyan-500/30 w-full max-w-md p-6 relative border-2 border-cyan-200/80">
+            <button onClick={() => { setIsUploadModalOpen(false); setSelectedFile(null); }} className="absolute right-4 top-4 text-cyan-400 hover:text-cyan-700 transition-colors"><X className="h-5 w-5" /></button>
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-400 via-cyan-500 to-sky-400 text-white shadow-xl shadow-cyan-500/30 mb-4">
+              <Upload className="h-6 w-6" />
             </div>
-            <h3 className="text-2xl font-bold text-zinc-900 mb-2">Upload New File</h3>
-            <p className="text-sm text-zinc-600 mb-6">Select a .txt file to upload to your production records.</p>
-            <form onSubmit={handleFileUpload} className="space-y-5">
+            <h3 className="text-xl font-bold text-zinc-900 mb-1">Upload New File</h3>
+            <p className="text-xs text-zinc-600 mb-4">Select a .txt file to upload to your production records.</p>
+            <form onSubmit={handleFileUpload} className="space-y-4">
               <div>
-                <label className="block text-sm font-semibold text-zinc-700 mb-2">Select .txt File</label>
+                <label className="block text-xs font-semibold text-zinc-700 mb-1.5">Select .txt File</label>
                 <div className="relative">
-                  <input type="file" accept=".txt" onChange={(e) => setSelectedFile(e.target.files?.[0] || null)} className="w-full text-sm text-zinc-500 file:mr-4 file:py-3 file:px-5 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-gradient-to-r file:from-cyan-500 file:to-sky-500 file:text-white hover:file:from-cyan-600 hover:file:to-sky-600 file:shadow-lg file:shadow-cyan-500/30 transition-all cursor-pointer" />
+                  <input type="file" accept=".txt" onChange={(e) => setSelectedFile(e.target.files?.[0] || null)} className="w-full text-sm text-zinc-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-gradient-to-r file:from-cyan-500 file:to-sky-500 file:text-white hover:file:from-cyan-600 hover:file:to-sky-600 file:shadow-lg file:shadow-cyan-500/30 transition-all cursor-pointer" />
                 </div>
               </div>
-              <div className="flex gap-3 mt-6">
-                <button type="button" onClick={() => { setIsUploadModalOpen(false); setSelectedFile(null); }} className="flex-1 rounded-xl border-2 border-zinc-200 bg-white px-5 py-3 text-sm font-semibold text-zinc-700 hover:bg-zinc-50 hover:border-zinc-300 transition-all shadow-sm hover:shadow-md">Cancel</button>
-                <button type="submit" disabled={isUploading} className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-600 to-sky-600 px-5 py-3 text-sm font-semibold text-white shadow-xl shadow-cyan-500/30 hover:from-cyan-700 hover:to-sky-700 hover:shadow-xl hover:shadow-cyan-500/40 disabled:opacity-50 transition-all">
+              <div className="flex gap-3 mt-4">
+                <button type="button" onClick={() => { setIsUploadModalOpen(false); setSelectedFile(null); }} className="flex-1 rounded-xl border-2 border-cyan-200 bg-white px-4 py-2.5 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 hover:border-cyan-300 transition-all shadow-sm hover:shadow-md">Cancel</button>
+                <button type="submit" disabled={isUploading} className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-600 to-sky-600 px-4 py-2.5 text-xs font-semibold text-white shadow-xl shadow-cyan-500/30 hover:from-cyan-700 hover:to-sky-700 hover:shadow-xl hover:shadow-cyan-500/40 disabled:opacity-50 transition-all">
                   {isUploading ? "Uploading..." : "Upload File"}
                 </button>
               </div>
