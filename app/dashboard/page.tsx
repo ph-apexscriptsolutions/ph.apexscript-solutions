@@ -2677,41 +2677,40 @@ export default function DashboardPage() {
 
       {isPayslipModalOpen && activeWorker && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
-          <div className="bg-gradient-to-br from-white to-zinc-50/50 rounded-3xl shadow-2xl shadow-zinc-500/30 w-full max-w-md p-8 relative border-2 border-zinc-200/80">
-            <button onClick={() => { setIsPayslipModalOpen(false); const currentMonth = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`; setPayslipSelectedMonth(currentMonth); setPayslipSelectedCutoff('first') }} className="absolute right-4 top-4 text-zinc-400 hover:text-zinc-900 transition-colors"><X className="h-5 w-5" /></button>
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-400 via-emerald-500 to-teal-400 text-white shadow-xl shadow-emerald-500/30 mb-6">
-              <CreditCard className="h-7 w-7" />
+          <div className="bg-gradient-to-br from-sky-50 via-blue-50 to-cyan-50 rounded-3xl shadow-2xl shadow-blue-500/30 w-full max-w-md p-6 relative border-2 border-blue-200/80">
+            <button onClick={() => { setIsPayslipModalOpen(false); const currentMonth = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`; setPayslipSelectedMonth(currentMonth); setPayslipSelectedCutoff('first') }} className="absolute right-4 top-4 text-blue-400 hover:text-blue-700 transition-colors"><X className="h-5 w-5" /></button>
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-400 via-blue-500 to-sky-400 text-white shadow-xl shadow-blue-500/30 mb-4">
+              <CreditCard className="h-6 w-6" />
             </div>
-            <h3 className="text-2xl font-bold text-zinc-900 mb-2">Request Payslip</h3>
-            <p className="text-sm text-zinc-600 mb-6">Select the month and payroll cutoff period for your payslip request.</p>
-            <div className="space-y-5">
+            <h3 className="text-xl font-bold text-zinc-900 mb-1">Request Payslip</h3>
+            <p className="text-xs text-zinc-600 mb-4">Select the month and payroll cutoff period.</p>
+            <div className="space-y-4">
               <div>
-                <label className="block text-sm font-semibold text-zinc-700 mb-2">Select Month</label>
-                <input type="month" value={payslipSelectedMonth} onChange={(e) => setPayslipSelectedMonth(e.target.value)} className="w-full rounded-xl border-2 border-zinc-200 px-4 py-3 text-sm text-zinc-900 outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/20 transition-all" />
+                <label className="block text-xs font-semibold text-zinc-700 mb-1.5">Select Month</label>
+                <input type="month" value={payslipSelectedMonth} onChange={(e) => setPayslipSelectedMonth(e.target.value)} className="w-full rounded-xl border-2 border-blue-200 px-3 py-2 text-sm text-zinc-900 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all" />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-zinc-700 mb-3">Select Payroll Cutoff</label>
-                <div className="space-y-3">
-                  <label className="flex items-center p-4 border-2 border-zinc-200 rounded-xl cursor-pointer hover:border-emerald-400 hover:bg-emerald-50/50 transition-all" htmlFor="cutoff-first">
-                    <input type="radio" id="cutoff-first" name="payslip-cutoff" value="first" checked={payslipSelectedCutoff === 'first'} onChange={(e) => setPayslipSelectedCutoff(e.target.value)} className="h-5 w-5 rounded border-zinc-300 text-emerald-600 focus:ring-emerald-500" />
+                <label className="block text-xs font-semibold text-zinc-700 mb-2">Select Payroll Cutoff</label>
+                <div className="space-y-2">
+                  <label className="flex items-center p-3 border-2 border-blue-200 rounded-xl cursor-pointer hover:border-blue-400 hover:bg-blue-100/50 transition-all" htmlFor="cutoff-first">
+                    <input type="radio" id="cutoff-first" name="payslip-cutoff" value="first" checked={payslipSelectedCutoff === 'first'} onChange={(e) => setPayslipSelectedCutoff(e.target.value)} className="h-4 w-4 rounded border-zinc-300 text-blue-600 focus:ring-blue-500" />
                     <span className="ml-3 flex flex-col">
-                      <span className="text-sm font-semibold text-zinc-900">First Cutoff</span>
+                      <span className="text-xs font-semibold text-zinc-900">First Cutoff</span>
                       <span className="text-xs text-zinc-500">1st - 14th of the month</span>
                     </span>
                   </label>
-                  <label className="flex items-center p-4 border-2 border-zinc-200 rounded-xl cursor-pointer hover:border-emerald-400 hover:bg-emerald-50/50 transition-all" htmlFor="cutoff-second">
-                    <input type="radio" id="cutoff-second" name="payslip-cutoff" value="second" checked={payslipSelectedCutoff === 'second'} onChange={(e) => setPayslipSelectedCutoff(e.target.value)} className="h-5 w-5 rounded border-zinc-300 text-emerald-600 focus:ring-emerald-500" />
+                  <label className="flex items-center p-3 border-2 border-blue-200 rounded-xl cursor-pointer hover:border-blue-400 hover:bg-blue-100/50 transition-all" htmlFor="cutoff-second">
+                    <input type="radio" id="cutoff-second" name="payslip-cutoff" value="second" checked={payslipSelectedCutoff === 'second'} onChange={(e) => setPayslipSelectedCutoff(e.target.value)} className="h-4 w-4 rounded border-zinc-300 text-blue-600 focus:ring-blue-500" />
                     <span className="ml-3 flex flex-col">
-                      <span className="text-sm font-semibold text-zinc-900">Second Cutoff</span>
+                      <span className="text-xs font-semibold text-zinc-900">Second Cutoff</span>
                       <span className="text-xs text-zinc-500">15th - end of month</span>
                     </span>
                   </label>
                 </div>
               </div>
-              <p className="text-xs text-zinc-500">A payslip request will be sent to the admin for processing.</p>
-              <div className="flex gap-3 mt-6">
-                <button type="button" onClick={() => { setIsPayslipModalOpen(false); const currentMonth = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`; setPayslipSelectedMonth(currentMonth); setPayslipSelectedCutoff('first') }} className="flex-1 rounded-xl border-2 border-zinc-200 bg-white px-5 py-3 text-sm font-semibold text-zinc-700 hover:bg-zinc-50 hover:border-zinc-300 transition-all shadow-sm hover:shadow-md">Cancel</button>
-                <button type="button" disabled={isRequestingPayslip} onClick={requestPayslip} className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-5 py-3 text-sm font-semibold text-white shadow-xl shadow-emerald-500/30 hover:from-emerald-700 hover:to-teal-700 hover:shadow-xl hover:shadow-emerald-500/40 disabled:opacity-50 transition-all">{isRequestingPayslip ? 'Requesting...' : 'Request Payslip'}</button>
+              <div className="flex gap-3 mt-4">
+                <button type="button" onClick={() => { setIsPayslipModalOpen(false); const currentMonth = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`; setPayslipSelectedMonth(currentMonth); setPayslipSelectedCutoff('first') }} className="flex-1 rounded-xl border-2 border-blue-200 bg-white px-4 py-2.5 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 hover:border-blue-300 transition-all shadow-sm hover:shadow-md">Cancel</button>
+                <button type="button" disabled={isRequestingPayslip} onClick={requestPayslip} className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-sky-600 px-4 py-2.5 text-xs font-semibold text-white shadow-xl shadow-blue-500/30 hover:from-blue-700 hover:to-sky-700 hover:shadow-xl hover:shadow-blue-500/40 disabled:opacity-50 transition-all">{isRequestingPayslip ? 'Requesting...' : 'Request Payslip'}</button>
               </div>
             </div>
           </div>
