@@ -7,8 +7,8 @@ import AdminChat from '@/components/admin-chat'
 import WorkerRealtimeChat from '@/components/worker-realtime-chat'
 import { FlagIcon } from "@/components/flag-icon"
 
-const Card = ({ children, className }: { children: React.ReactNode; className?: string }) => <div className={`rounded-2xl border border-zinc-200/60 bg-white/95 backdrop-blur-sm shadow-xl shadow-zinc-200/50 ${className}`}>{children}</div>
-const CardHeader = ({ children, className }: { children: React.ReactNode; className?: string }) => <div className={`flex flex-col space-y-1.5 p-6 border-b border-zinc-100 ${className}`}>{children}</div>
+const Card = ({ children, className }: { children: React.ReactNode; className?: string }) => <div className={`rounded-2xl border border-zinc-200/80 bg-gradient-to-br from-white to-zinc-50/50 backdrop-blur-sm shadow-xl shadow-zinc-200/60 hover:shadow-2xl hover:shadow-zinc-200/80 transition-all duration-300 ${className}`}>{children}</div>
+const CardHeader = ({ children, className }: { children: React.ReactNode; className?: string }) => <div className={`flex flex-col space-y-1.5 p-6 border-b border-zinc-100/80 ${className}`}>{children}</div>
 const CardTitle = ({ children, className }: { children: React.ReactNode; className?: string }) => <h3 className={`font-bold text-lg leading-none tracking-tight text-zinc-900 ${className}`}>{children}</h3>
 const CardContent = ({ children, className }: { children: React.ReactNode; className?: string }) => <div className={`p-6 pt-4 ${className}`}>{children}</div>
 
@@ -1599,11 +1599,11 @@ export default function DashboardPage() {
           <div className="text-sm font-medium">{toastMessage}</div>
         </div>
       )}
-      <header className="border-b border-zinc-200/60 bg-white/95 backdrop-blur-sm px-6 py-5 flex items-center justify-between sticky top-0 z-40 shadow-sm">
+      <header className="border-b border-zinc-200/80 bg-gradient-to-r from-white to-zinc-50/50 backdrop-blur-md px-6 py-5 flex items-center justify-between sticky top-0 z-40 shadow-lg shadow-zinc-200/50">
         <div className="flex items-center gap-4">
           {isAdmin && view === "detail" && <button onClick={handleBackToList} className="flex items-center gap-2 text-sm font-medium text-zinc-600 hover:text-zinc-900 transition-colors"><ArrowLeft className="h-4 w-4" /> Back to Team</button>}
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-500 via-cyan-600 to-sky-500 text-white shadow-lg shadow-cyan-500/30">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-500 via-cyan-600 to-sky-500 text-white shadow-xl shadow-cyan-500/40">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M3 12a9 9 0 1118 0 9 9 0 01-18 0z"/></svg>
             </div>
             <div>
@@ -1612,7 +1612,7 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
-        <button onClick={handleLogout} className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-red-500 to-rose-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-red-500/25 hover:from-red-600 hover:to-rose-600 transition-all"><LogOut className="h-4 w-4" /> Log Out</button>
+        <button onClick={handleLogout} className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-red-500 to-rose-500 px-5 py-2.5 text-sm font-semibold text-white shadow-xl shadow-red-500/30 hover:from-red-600 hover:to-rose-600 hover:shadow-xl hover:shadow-red-500/40 transition-all"><LogOut className="h-4 w-4" /> Log Out</button>
       </header>
 
 
@@ -1691,16 +1691,16 @@ export default function DashboardPage() {
                 <p className="text-zinc-500">Select a worker to view their production records and information.</p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
-                <button onClick={() => setIsAddWorkerModalOpen(true)} className="inline-flex items-center gap-2 rounded-md bg-gradient-to-r from-slate-900 via-zinc-900 to-stone-900 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 hover:from-slate-700 hover:via-zinc-800 hover:to-stone-800 transition">
+                <button onClick={() => setIsAddWorkerModalOpen(true)} className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-slate-900 via-zinc-900 to-stone-900 px-5 py-2.5 text-sm font-semibold text-white shadow-xl shadow-slate-900/30 hover:from-slate-800 hover:via-zinc-800 hover:to-stone-800 hover:shadow-xl hover:shadow-slate-900/40 transition-all">
                   <UserPlus className="h-4 w-4" /> Add New Worker
                 </button>
                 {isAdmin && (
-                  <button onClick={() => { setAnnouncementSchemaHint(null); setIsAnnouncementModalOpen(true) }} className="inline-flex items-center gap-2 rounded-md bg-amber-500 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-amber-500/20 hover:bg-amber-600 transition">
+                  <button onClick={() => { setAnnouncementSchemaHint(null); setIsAnnouncementModalOpen(true) }} className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-2 text-sm font-semibold text-white shadow-xl shadow-amber-500/30 hover:from-amber-600 hover:to-orange-600 hover:shadow-xl hover:shadow-amber-500/40 transition-all">
                     Announcement
                   </button>
                 )}
                 {isAdmin && (
-                  <button onClick={() => { setIsPayslipAdminModalOpen(true); fetchPayslipRequests() }} className="inline-flex items-center gap-2 rounded-md border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 transition">
+                  <button onClick={() => { setIsPayslipAdminModalOpen(true); fetchPayslipRequests() }} className="inline-flex items-center gap-2 rounded-xl border-2 border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 hover:border-zinc-300 shadow-sm hover:shadow-md transition-all">
                     Payslip Requests
                   </button>
                 )}
@@ -2106,11 +2106,11 @@ export default function DashboardPage() {
             </div>
 
             <div className="grid gap-5 md:grid-cols-3 mt-6">
-              <Card className="bg-gradient-to-br from-white to-zinc-50 border-zinc-200/80 hover:shadow-2xl hover:shadow-zinc-200/60 transition-all duration-300">
+              <Card className="bg-gradient-to-br from-white to-zinc-50/50 border-zinc-200/80 hover:shadow-2xl hover:shadow-zinc-200/60 transition-all duration-300 hover:-translate-y-1">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
                   <CardTitle className="text-sm font-semibold text-zinc-600 uppercase tracking-wider">Total Files</CardTitle>
-                  <div className="h-9 w-9 rounded-lg bg-cyan-100 flex items-center justify-center">
-                    <FileText className="h-5 w-5 text-cyan-600" />
+                  <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-cyan-400 to-cyan-500 flex items-center justify-center shadow-lg shadow-cyan-500/30">
+                    <FileText className="h-5 w-5 text-white" />
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -2118,11 +2118,11 @@ export default function DashboardPage() {
                   <p className="text-xs text-zinc-500 mt-1">{filterApplied ? "Selected Period" : "All Time"}</p>
                 </CardContent>
               </Card>
-              <Card className="bg-gradient-to-br from-white to-zinc-50 border-zinc-200/80 hover:shadow-2xl hover:shadow-zinc-200/60 transition-all duration-300">
+              <Card className="bg-gradient-to-br from-white to-zinc-50/50 border-zinc-200/80 hover:shadow-2xl hover:shadow-zinc-200/60 transition-all duration-300 hover:-translate-y-1">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
                   <CardTitle className="text-sm font-semibold text-zinc-600 uppercase tracking-wider">Total Kilobytes</CardTitle>
-                  <div className="h-9 w-9 rounded-lg bg-purple-100 flex items-center justify-center">
-                    <HardDrive className="h-5 w-5 text-purple-600" />
+                  <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-purple-400 to-purple-500 flex items-center justify-center shadow-lg shadow-purple-500/30">
+                    <HardDrive className="h-5 w-5 text-white" />
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -2130,22 +2130,22 @@ export default function DashboardPage() {
                   <p className="text-xs text-zinc-500 mt-1">{filterApplied ? "Selected Period" : "All Time"}</p>
                 </CardContent>
               </Card>
-              <Card className="bg-gradient-to-br from-white to-zinc-50 border-zinc-200/80 hover:shadow-2xl hover:shadow-zinc-200/60 transition-all duration-300">
+              <Card className="bg-gradient-to-br from-white to-zinc-50/50 border-zinc-200/80 hover:shadow-2xl hover:shadow-zinc-200/60 transition-all duration-300 hover:-translate-y-1">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
                   <CardTitle className="text-sm font-semibold text-zinc-600 uppercase tracking-wider">Total Earnings</CardTitle>
-                  <div className="h-9 w-9 rounded-lg bg-emerald-100 flex items-center justify-center">
-                    <CreditCard className="h-5 w-5 text-emerald-600" />
+                  <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-500/30">
+                    <CreditCard className="h-5 w-5 text-white" />
                   </div>
                 </CardHeader>
                 <CardContent>
                   <div className="text-4xl font-bold text-zinc-900 tracking-tight">{computedEarnings ?? '-'}</div>
                   <p className="text-xs text-zinc-500 mt-1">{computedEarnings ? `Based on ${formatCurrency(activeWorker?.base_payment_per_60kb || 700, activeWorker?.location)} per 60KB` : ''}</p>
                   <div className="flex gap-2 mt-4">
-                    <button type="button" onClick={computeTotalEarnings} className="inline-flex items-center justify-center rounded-lg bg-gradient-to-r from-slate-800 to-slate-900 px-4 py-2 text-xs font-semibold text-white shadow-lg shadow-slate-900/20 hover:from-slate-700 hover:to-slate-800 transition-all">
+                    <button type="button" onClick={computeTotalEarnings} className="inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-slate-800 to-slate-900 px-4 py-2 text-xs font-semibold text-white shadow-xl shadow-slate-900/30 hover:from-slate-700 hover:to-slate-800 hover:shadow-xl hover:shadow-slate-900/40 transition-all">
                       Compute Total Earnings
                     </button>
                     {isAdmin && (
-                      <button type="button" onClick={() => { setIsPaymentModalOpen(true); setSelectedPaymentRate(activeWorker?.base_payment_per_60kb || 700) }} className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-all">
+                      <button type="button" onClick={() => { setIsPaymentModalOpen(true); setSelectedPaymentRate(activeWorker?.base_payment_per_60kb || 700) }} className="inline-flex items-center gap-2 rounded-xl border-2 border-slate-200 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:border-slate-300 shadow-sm hover:shadow-md transition-all">
                         <Pencil className="h-3.5 w-3.5" /> Edit Rate
                       </button>
                     )}
@@ -2170,11 +2170,11 @@ export default function DashboardPage() {
                           <label className="text-xs font-semibold text-zinc-600 mb-1.5">End Date</label>
                           <input type="date" value={endDate} onChange={(e) => { setEndDate(e.target.value); setFilterApplied(false); }} className="border border-zinc-300 rounded-lg px-3 py-2 text-sm text-zinc-700 outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all" placeholder="mm/dd/yyyy" />
                         </div>
-                        <button onClick={applyFilters} className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-cyan-600 to-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-cyan-500/25 hover:from-cyan-700 hover:to-sky-700 transition-all">
+                        <button onClick={applyFilters} className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-cyan-600 to-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-xl shadow-cyan-500/30 hover:from-cyan-700 hover:to-sky-700 hover:shadow-xl hover:shadow-cyan-500/40 transition-all">
                           <span>⊡</span> Filter
                         </button>
                         {(startDate || endDate) && (
-                          <button onClick={clearFilters} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg bg-zinc-600 text-white text-sm font-semibold hover:bg-zinc-700 active:bg-zinc-800 transition-all">
+                          <button onClick={clearFilters} className="inline-flex items-center gap-1 px-4 py-2 rounded-xl bg-zinc-600 text-white text-sm font-semibold hover:bg-zinc-700 active:bg-zinc-800 shadow-lg shadow-zinc-500/20 transition-all">
                             <X className="h-3.5 w-3.5" /> Clear
                           </button>
                         )}
@@ -2199,10 +2199,10 @@ export default function DashboardPage() {
                               {isAdmin && (
                                 <td className="px-4 py-3">
                                   <div className="flex items-center gap-1">
-                                    <button onClick={() => openEditModal(r)} className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 shadow-sm shadow-slate-200/80 hover:border-slate-300 hover:text-slate-900 hover:shadow-md transition-all">
+                                    <button onClick={() => openEditModal(r)} className="inline-flex items-center gap-1 rounded-xl border-2 border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 shadow-sm shadow-slate-200/80 hover:border-slate-300 hover:text-slate-900 hover:shadow-md transition-all">
                                       <Pencil className="h-4 w-4" /> Edit
                                     </button>
-                                    <button onClick={() => handleDeleteRecord(r.id)} className="inline-flex items-center gap-1 rounded-lg bg-gradient-to-r from-red-500 to-rose-500 px-3 py-1.5 text-sm font-semibold text-white shadow-sm shadow-red-500/20 hover:from-red-600 hover:to-rose-600 transition-all">
+                                    <button onClick={() => handleDeleteRecord(r.id)} className="inline-flex items-center gap-1 rounded-xl bg-gradient-to-r from-red-500 to-rose-500 px-3 py-1.5 text-sm font-semibold text-white shadow-xl shadow-red-500/30 hover:from-red-600 hover:to-rose-600 hover:shadow-xl hover:shadow-red-500/40 transition-all">
                                       <Trash2 className="h-4 w-4" /> Delete
                                     </button>
                                   </div>
@@ -2218,13 +2218,13 @@ export default function DashboardPage() {
                       </table>
                     </div>
                   </CardContent>
-                  <div className="border-t border-zinc-200 px-6 py-4 flex flex-col sm:flex-row items-center justify-center gap-2 bg-zinc-50/50">
+                  <div className="border-t border-zinc-200/80 px-6 py-4 flex flex-col sm:flex-row items-center justify-center gap-2 bg-zinc-50/50">
                     {isAdmin && (
-                      <button onClick={() => setIsManualAddModalOpen(true)} className="inline-flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-4 py-2.5 text-sm font-semibold text-zinc-700 shadow-sm shadow-zinc-200/70 hover:bg-zinc-50 transition-all">
+                      <button onClick={() => setIsManualAddModalOpen(true)} className="inline-flex items-center gap-2 rounded-xl border-2 border-zinc-200 bg-white px-4 py-2.5 text-sm font-semibold text-zinc-700 shadow-sm shadow-zinc-200/70 hover:bg-zinc-50 hover:border-zinc-300 hover:shadow-md transition-all">
                         <FileText className="h-4 w-4" /> Add File Manually
                       </button>
                     )}
-                    <button onClick={() => setIsUploadModalOpen(true)} className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-cyan-600 to-sky-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-cyan-500/25 hover:from-cyan-700 hover:to-sky-700 transition-all">
+                    <button onClick={() => setIsUploadModalOpen(true)} className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-600 to-sky-600 px-5 py-2.5 text-sm font-semibold text-white shadow-xl shadow-cyan-500/30 hover:from-cyan-700 hover:to-sky-700 hover:shadow-xl hover:shadow-cyan-500/40 transition-all">
                       <Upload className="h-5 w-5" /> Upload File
                     </button>
                   </div>
@@ -2237,7 +2237,7 @@ export default function DashboardPage() {
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
                       {(user?.id === activeWorker?.id || isAdmin) && (
-                        <button type="button" onClick={() => setIsPayslipModalOpen(true)} className="inline-flex items-center justify-center rounded-lg border border-zinc-300 bg-white px-4 py-2 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 transition-all shadow-sm">
+                        <button type="button" onClick={() => setIsPayslipModalOpen(true)} className="inline-flex items-center justify-center rounded-xl border-2 border-zinc-300 bg-white px-4 py-2 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 hover:border-zinc-400 transition-all shadow-sm hover:shadow-md">
                           Request Payslip
                         </button>
                       )}
@@ -2249,7 +2249,7 @@ export default function DashboardPage() {
                     ) : (
                       <div className="space-y-2 max-h-[350px] overflow-y-auto pr-2">
                         {payslipRequests.map((r: any) => (
-                          <div key={r.id} className="rounded-xl border border-zinc-200/60 bg-white p-3 shadow-sm hover:shadow-md transition-shadow">
+                          <div key={r.id} className="rounded-xl border-2 border-zinc-200/60 bg-white p-3 shadow-sm hover:shadow-md hover:border-zinc-300 transition-all">
                             <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                               <div>
                                 <div className="text-xs font-bold text-zinc-900">{r.cutoff_start} → {r.cutoff_end}</div>
@@ -2259,16 +2259,16 @@ export default function DashboardPage() {
                             </div>
                             <div className="mt-2 flex flex-wrap items-center gap-1">
                               {r.payslip_url ? (
-                                <a href={r.payslip_url} target="_blank" rel="noreferrer" className="inline-flex items-center rounded-lg bg-gradient-to-r from-cyan-600 to-sky-600 px-3 py-1 text-xs font-semibold text-white hover:from-cyan-700 hover:to-sky-700 transition-all shadow-sm">
+                                <a href={r.payslip_url} target="_blank" rel="noreferrer" className="inline-flex items-center rounded-xl bg-gradient-to-r from-cyan-600 to-sky-600 px-3 py-1 text-xs font-semibold text-white hover:from-cyan-700 hover:to-sky-700 transition-all shadow-sm hover:shadow-md">
                                   Download payslip
                                 </a>
                               ) : r.status === 'approved' ? (
-                                <span className="rounded-lg bg-blue-100 px-2 py-1 text-xs font-semibold text-blue-800">Approved - waiting for upload</span>
+                                <span className="rounded-xl bg-blue-100 px-2 py-1 text-xs font-semibold text-blue-800">Approved - waiting for upload</span>
                               ) : (
-                                <span className="rounded-lg bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-800">Waiting for approval</span>
+                                <span className="rounded-xl bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-800">Waiting for approval</span>
                               )}
                               {r.status === 'paid' && (
-                                <span className="rounded-lg bg-emerald-100 px-2 py-1 text-xs font-semibold text-emerald-800">Paid</span>
+                                <span className="rounded-xl bg-emerald-100 px-2 py-1 text-xs font-semibold text-emerald-800">Paid</span>
                               )}
                             </div>
                           </div>
@@ -2286,7 +2286,7 @@ export default function DashboardPage() {
                   </div>
                   <div className="flex items-center gap-1">
                     {isAdmin && (
-                      <button onClick={() => { setEditAssignmentId(null); setNewAssignmentFilename(''); setNewAssignmentDescription(''); setIsAddAssignmentModalOpen(true) }} className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-all shadow-sm">
+                      <button onClick={() => { setEditAssignmentId(null); setNewAssignmentFilename(''); setNewAssignmentDescription(''); setIsAddAssignmentModalOpen(true) }} className="inline-flex items-center gap-1 rounded-xl border-2 border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm hover:shadow-md">
                         <span>+</span> Add Assignment
                       </button>
                     )}
