@@ -87,7 +87,7 @@ export default function ApplyPage() {
             <h1 className="text-5xl font-bold text-white mb-4 tracking-tight">Join Our Team</h1>
             <div className="inline-flex items-center gap-2 bg-gradient-to-r from-red-500 to-rose-500 text-white px-6 py-2.5 rounded-full font-semibold shadow-lg shadow-red-500/30 mb-4">
               <span className="animate-pulse">🔥</span>
-              <span>High demand for Transcriptionist position</span>
+              <span>High demand for Transcriber and Assistant Human Resources position</span>
             </div>
             <p className="text-cyan-100 text-lg max-w-xl mx-auto">Fill out the form below to apply for a position at ApexScript Transcription Services and start your journey with us.</p>
           </div>
