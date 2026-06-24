@@ -47,9 +47,11 @@ export function SiteHeader() {
             href="/apply" 
             target="_blank" 
             rel="noopener noreferrer"
-            className="ml-2 inline-flex items-center justify-center rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 transition-colors cursor-pointer"
+            className="ml-2 group relative inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-cyan-500 via-cyan-600 to-sky-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-cyan-500/30 hover:shadow-cyan-500/50 hover:scale-105 transition-all duration-300 cursor-pointer"
           >
-            Join our Team
+            <span className="relative z-10">Join our Team</span>
+            <span className="relative z-10">✨</span>
+            <div className="absolute inset-0 rounded-full bg-gradient-to-r from-cyan-400 via-sky-500 to-cyan-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
           </a>
         </nav>
 
@@ -82,10 +84,12 @@ export function SiteHeader() {
               href="/apply" 
               target="_blank" 
               rel="noopener noreferrer"
-              className="mt-2 w-full inline-flex items-center justify-center rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 transition-colors cursor-pointer"
+              className="mt-2 w-full group relative inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-cyan-500 via-cyan-600 to-sky-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-cyan-500/30 hover:shadow-cyan-500/50 hover:scale-105 transition-all duration-300 cursor-pointer"
               onClick={() => setOpen(false)}
             >
-              Join our Team
+              <span className="relative z-10">Join our Team</span>
+              <span className="relative z-10">✨</span>
+              <div className="absolute inset-0 rounded-full bg-gradient-to-r from-cyan-400 via-sky-500 to-cyan-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
             </a>
           </nav>
         </div>
