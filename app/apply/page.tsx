@@ -169,12 +169,12 @@ export default function ApplyPage() {
                       className="w-full px-3 py-2.5 border-2 border-slate-200 rounded-lg focus:border-cyan-500 focus:ring-4 focus:ring-cyan-500/20 outline-none transition-all bg-slate-50 focus:bg-white text-sm"
                     >
                       <option value="">Select a position</option>
-                      <option value="Assistant Human Resources">Assistant Human Resources</option>
+                      <option value="Assistant Human Resources">🔥 Assistant Human Resources (URGENT)</option>
                       <option value="Assistant Project Manager">Assistant Project Manager</option>
                       <option value="Billing and Invoice Clerk">Billing and Invoice Clerk</option>
                       <option value="Quality Assurance">Quality Assurance</option>
                       <option value="Senior Editor">Senior Editor</option>
-                      <option value="Transcriber">Transcriber</option>
+                      <option value="Transcriber">🔥 Transcriber (URGENT)</option>
                     </select>
                   </div>
                 </div>
