@@ -84,7 +84,7 @@ export default function ApplyPage() {
             <div className="inline-flex items-center justify-center h-12 w-12 rounded-xl bg-gradient-to-br from-cyan-400 to-cyan-600 text-white shadow-xl shadow-cyan-500/50 mb-4">
               <Briefcase className="h-6 w-6" />
             </div>
-            <h1 className="text-3xl font-bold text-white mb-3 tracking-tight">Join Our Team</h1>
+            <h1 className="text-4xl font-bold text-white mb-3 tracking-tight">Join Our Team</h1>
             <div className="inline-flex items-center gap-2 bg-gradient-to-r from-red-500 to-rose-500 text-white px-4 py-2 rounded-full text-xs font-semibold shadow-lg shadow-red-500/40 mb-3 animate-pulse">
               <span>🔥</span>
               <span>High demand for Transcriber and Assistant Human Resources position</span>
