@@ -106,7 +106,10 @@ export function FAQ() {
                     {item.type === "payout" ? (
                       <div className="space-y-4">
                         <p><strong className="text-zinc-900">Compensation Basis:</strong> Remuneration is calculated based on the file size of the processed output (e.g., .txt or ASCII-encoded files). We strictly measure the file size in kilobytes (KB).</p>
-                        <p><strong className="text-zinc-900">Base Rate:</strong> New transcribers are compensated at a rate of 700 PHP per 60KB of processed text. Compensation rates are subject to increase based on the transcriber's demonstrated performance, specifically focusing on consistency, quality, and accuracy metrics over time.</p>
+                        <p><strong className="text-zinc-900">Base Rate:</strong></p>
+                        <p className="ml-4">Philippines-based transcribers: 700 PHP per 60KB of processed text.</p>
+                        <p className="ml-4">International transcribers (outside the Philippines): USD 15 per 60KB of processed text</p>
+                        <p className="mt-3"><strong className="text-zinc-900">Performance-Based Increases:</strong> Compensation rates may increase over time based on the transcriber's performance, including consistency, quality, accuracy, and overall reliability.</p>
                         <div className="border-t border-zinc-200 pt-4">
                           <p><strong className="text-zinc-900">Payout Schedule:</strong> Payouts are processed twice a month, on the 1st and 15th. If a payday falls on a weekend or public holiday, the release is moved to the next business day.</p>
                           <p className="font-bold text-zinc-900 mt-2">Cut-off Periods:</p>
