@@ -153,6 +153,20 @@ export default function DashboardPage() {
   const [payslipSelectedCutoff, setPayslipSelectedCutoff] = useState("first")
   const [isRequestingPayslip, setIsRequestingPayslip] = useState(false)
   const [payslipRequests, setPayslipRequests] = useState<any[]>([])
+  const [isPaymentHistoryModalOpen, setIsPaymentHistoryModalOpen] = useState(false)
+  const [paymentHistory, setPaymentHistory] = useState<any[]>([])
+  const [isLoadingPaymentHistory, setIsLoadingPaymentHistory] = useState(false)
+  const [isAddingPaymentRecord, setIsAddingPaymentRecord] = useState(false)
+  const [paymentHistoryForm, setPaymentHistoryForm] = useState({
+    amount: "",
+    paymentDate: (() => {
+      const now = new Date();
+      return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    })(),
+    bankType: "",
+    referenceNumber: "",
+    notes: ""
+      })
   const [realtimeStatus, setRealtimeStatus] = useState<'connected' | 'connecting' | 'disconnected'>('connecting')
   const [isPayslipAdminModalOpen, setIsPayslipAdminModalOpen] = useState(false)
   const [isRoleEditModalOpen, setIsRoleEditModalOpen] = useState(false)
@@ -287,6 +301,7 @@ export default function DashboardPage() {
     if (!activeWorker?.id) return
     fetchWorkerPayslipRequests(activeWorker.id)
     fetchAssignments(activeWorker.id)
+    fetchPaymentHistory(activeWorker.id)
   }, [activeWorker?.id])
 
   
@@ -1305,6 +1320,100 @@ export default function DashboardPage() {
     }
   }
 
+  const fetchPaymentHistory = async (workerId: string) => {
+    setIsLoadingPaymentHistory(true)
+    try {
+      const res = await fetch(`/api/payment-history?workerId=${encodeURIComponent(workerId)}`)
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to fetch payment history')
+      setPaymentHistory(data.payments || [])
+    } catch (err: any) {
+      console.error('Fetch payment history error:', err)
+      setPaymentHistory([])
+    } finally {
+      setIsLoadingPaymentHistory(false)
+    }
+  }
+
+  const addPaymentRecord = async (e: FormEvent) => {
+    e.preventDefault()
+    if (!activeWorker?.id) return
+
+    const amount = parseFloat(paymentHistoryForm.amount)
+    if (isNaN(amount) || amount <= 0) {
+      alert('Please enter a valid amount greater than 0')
+      return
+    }
+
+    setIsAddingPaymentRecord(true)
+    try {
+      const res = await fetch('/api/payment-history', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          workerId: activeWorker.id,
+          amount,
+          paymentDate: paymentHistoryForm.paymentDate,
+          bankType: paymentHistoryForm.bankType,
+          referenceNumber: paymentHistoryForm.referenceNumber,
+
+          notes: paymentHistoryForm.notes
+        })
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to add payment record')
+      
+      // Reset form
+      setPaymentHistoryForm({
+        amount: '',
+        paymentDate: (() => {
+          const now = new Date();
+          return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+        })(),
+        bankType: '',
+        referenceNumber: '',
+
+        notes: ''
+      })
+      
+      // Refresh list
+      await fetchPaymentHistory(activeWorker.id)
+      setToastMessage('✅ Payment record added successfully')
+      setShowToast(true)
+      setTimeout(() => { setShowToast(false); setToastMessage(null) }, 3000)
+    } catch (err: any) {
+      console.error('Add payment record error:', err)
+      alert(err.message || 'Failed to add payment record')
+    } finally {
+      setIsAddingPaymentRecord(false)
+    }
+  }
+
+  const deletePaymentRecord = async (recordId: number) => {
+    if (!confirm('Are you sure you want to delete this payment record?')) return
+    if (!activeWorker?.id) return
+
+    try {
+      const res = await fetch('/api/payment-history/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paymentId: recordId })
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to delete payment record')
+
+      // Refresh list
+      await fetchPaymentHistory(activeWorker.id)
+      setToastMessage('🗑️ Payment record deleted')
+      setShowToast(true)
+      setTimeout(() => { setShowToast(false); setToastMessage(null) }, 3000)
+    } catch (err: any) {
+      console.error('Delete payment record error:', err)
+      alert(err.message || 'Failed to delete payment record')
+    }
+  }
+
+
   const uploadPayslipFile = async (requestId: number, file: File) => {
     if (!file) return
     const formData = new FormData()
@@ -1612,7 +1721,7 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
-        <button onClick={handleLogout} className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-red-500 to-rose-500 px-5 py-2.5 text-sm font-semibold text-white shadow-xl shadow-red-500/30 hover:from-red-600 hover:to-rose-600 hover:shadow-xl hover:shadow-red-500/40 transition-all"><LogOut className="h-4 w-4" /> Log Out</button>
+        <button onClick={handleLogout} className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 via-cyan-600 to-sky-500 px-5 py-2.5 text-sm font-semibold text-white shadow-xl shadow-cyan-500/30 hover:from-cyan-600 hover:via-cyan-700 hover:to-sky-600 hover:shadow-xl hover:shadow-cyan-500/40 transition-all"><LogOut className="h-4 w-4" /> Log Out</button>
       </header>
 
 
@@ -1648,10 +1757,10 @@ export default function DashboardPage() {
                   <div className="text-xs text-amber-600">Realtime updates</div>
                   {isAdmin && announcements[0]?.id && (
                     <div className="flex gap-2">
-                      <button onClick={() => startEditingAnnouncement(announcements[0])} className="rounded-md border border-amber-200 bg-white px-3 py-1 text-xs font-semibold text-amber-700 hover:bg-amber-100 transition">
+                      <button onClick={() => startEditingAnnouncement(announcements[0])} className="rounded-md border border-cyan-200 bg-gradient-to-r from-cyan-500 to-sky-500 px-3 py-1 text-xs font-semibold text-white hover:from-cyan-600 hover:to-sky-600 transition shadow-md shadow-cyan-500/20">
                         Edit
                       </button>
-                      <button onClick={() => deleteAnnouncement(announcements[0].id)} className="rounded-md border border-amber-200 bg-white px-3 py-1 text-xs font-semibold text-amber-700 hover:bg-amber-100 transition">
+                      <button onClick={() => deleteAnnouncement(announcements[0].id)} className="rounded-md border border-cyan-200 bg-gradient-to-r from-cyan-500 to-sky-500 px-3 py-1 text-xs font-semibold text-white hover:from-cyan-600 hover:to-sky-600 transition shadow-md shadow-cyan-500/20">
                         Delete
                       </button>
                     </div>
@@ -1691,16 +1800,16 @@ export default function DashboardPage() {
                 <p className="text-zinc-500">Select a worker to view their production records and information.</p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
-                <button onClick={() => setIsAddWorkerModalOpen(true)} className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-slate-900 via-zinc-900 to-stone-900 px-5 py-2.5 text-sm font-semibold text-white shadow-xl shadow-slate-900/30 hover:from-slate-800 hover:via-zinc-800 hover:to-stone-800 hover:shadow-xl hover:shadow-slate-900/40 transition-all">
+                <button onClick={() => setIsAddWorkerModalOpen(true)} className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 via-cyan-600 to-sky-500 px-5 py-2.5 text-sm font-semibold text-white shadow-xl shadow-cyan-500/30 hover:from-cyan-600 hover:via-cyan-700 hover:to-sky-600 hover:shadow-xl hover:shadow-cyan-500/40 transition-all">
                   <UserPlus className="h-4 w-4" /> Add New Worker
                 </button>
                 {isAdmin && (
-                  <button onClick={() => { setAnnouncementSchemaHint(null); setIsAnnouncementModalOpen(true) }} className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-2 text-sm font-semibold text-white shadow-xl shadow-amber-500/30 hover:from-amber-600 hover:to-orange-600 hover:shadow-xl hover:shadow-amber-500/40 transition-all">
+                  <button onClick={() => { setAnnouncementSchemaHint(null); setIsAnnouncementModalOpen(true) }} className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 via-cyan-600 to-sky-500 px-4 py-2 text-sm font-semibold text-white shadow-xl shadow-cyan-500/30 hover:from-cyan-600 hover:via-cyan-700 hover:to-sky-600 hover:shadow-xl hover:shadow-cyan-500/40 transition-all">
                     Announcement
                   </button>
                 )}
                 {isAdmin && (
-                  <button onClick={() => { setIsPayslipAdminModalOpen(true); fetchPayslipRequests() }} className="inline-flex items-center gap-2 rounded-xl border-2 border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 hover:border-zinc-300 shadow-sm hover:shadow-md transition-all">
+                  <button onClick={() => { setIsPayslipAdminModalOpen(true); fetchPayslipRequests() }} className="inline-flex items-center gap-2 rounded-xl border-2 border-cyan-200 bg-gradient-to-r from-cyan-500 to-sky-500 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-cyan-500/30 hover:from-cyan-600 hover:to-sky-600 hover:border-cyan-300 transition-all">
                     Payslip Requests
                   </button>
                 )}
@@ -1768,7 +1877,7 @@ export default function DashboardPage() {
                       </div>
                       {isAdmin && w.id !== user?.id && (
                         <div className="absolute right-3 top-3 flex gap-1">
-                          <button type="button" onClick={(e) => { e.stopPropagation(); setEditingRoleWorker(w); setNewRole(w.role || 'worker'); setIsRoleEditModalOpen(true) }} className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-white shadow-sm shadow-blue-500/20 hover:bg-blue-700 transition" aria-label="Edit role">
+                          <button type="button" onClick={(e) => { e.stopPropagation(); setEditingRoleWorker(w); setNewRole(w.role || 'worker'); setIsRoleEditModalOpen(true) }} className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-r from-cyan-500 to-sky-500 text-white shadow-sm shadow-cyan-500/20 hover:from-cyan-600 hover:to-sky-600 transition" aria-label="Edit role">
                             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                             </svg>
@@ -1843,7 +1952,7 @@ export default function DashboardPage() {
                       </div>
                       {isAdmin && w.id !== user?.id && (
                         <div className="absolute right-3 top-3 flex gap-1">
-                          <button type="button" onClick={(e) => { e.stopPropagation(); setEditingRoleWorker(w); setNewRole(w.role || 'worker'); setIsRoleEditModalOpen(true) }} className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-white shadow-sm shadow-blue-500/20 hover:bg-blue-700 transition" aria-label="Edit role">
+                          <button type="button" onClick={(e) => { e.stopPropagation(); setEditingRoleWorker(w); setNewRole(w.role || 'worker'); setIsRoleEditModalOpen(true) }} className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-r from-cyan-500 to-sky-500 text-white shadow-sm shadow-cyan-500/20 hover:from-cyan-600 hover:to-sky-600 transition" aria-label="Edit role">
                             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                             </svg>
@@ -1918,7 +2027,7 @@ export default function DashboardPage() {
                       </div>
                       {isAdmin && w.id !== user?.id && (
                         <div className="absolute right-3 top-3 flex gap-1">
-                          <button type="button" onClick={(e) => { e.stopPropagation(); setEditingRoleWorker(w); setNewRole(w.role || 'worker'); setIsRoleEditModalOpen(true) }} className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-white shadow-sm shadow-blue-500/20 hover:bg-blue-700 transition" aria-label="Edit role">
+                          <button type="button" onClick={(e) => { e.stopPropagation(); setEditingRoleWorker(w); setNewRole(w.role || 'worker'); setIsRoleEditModalOpen(true) }} className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-r from-cyan-500 to-sky-500 text-white shadow-sm shadow-cyan-500/20 hover:from-cyan-600 hover:to-sky-600 transition" aria-label="Edit role">
                             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                             </svg>
@@ -1993,7 +2102,7 @@ export default function DashboardPage() {
                       </div>
                       {isAdmin && w.id !== user?.id && (
                         <div className="absolute right-3 top-3 flex gap-1">
-                          <button type="button" onClick={(e) => { e.stopPropagation(); setEditingRoleWorker(w); setNewRole(w.role || 'worker'); setIsRoleEditModalOpen(true) }} className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-white shadow-sm shadow-blue-500/20 hover:bg-blue-700 transition" aria-label="Edit role">
+                          <button type="button" onClick={(e) => { e.stopPropagation(); setEditingRoleWorker(w); setNewRole(w.role || 'worker'); setIsRoleEditModalOpen(true) }} className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-r from-cyan-500 to-sky-500 text-white shadow-sm shadow-cyan-500/20 hover:from-cyan-600 hover:to-sky-600 transition" aria-label="Edit role">
                             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                             </svg>
@@ -2237,9 +2346,14 @@ export default function DashboardPage() {
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
                       {(user?.id === activeWorker?.id || isAdmin) && (
-                        <button type="button" onClick={() => setIsPayslipModalOpen(true)} className="inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 px-4 py-2 text-xs font-semibold text-white shadow-xl shadow-emerald-500/30 hover:from-emerald-600 hover:to-teal-600 hover:shadow-xl hover:shadow-emerald-500/40 transition-all">
-                          Request Payslip
-                        </button>
+                        <>
+                          <button type="button" onClick={() => setIsPayslipModalOpen(true)} className="inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 px-4 py-2 text-xs font-semibold text-white shadow-xl shadow-emerald-500/30 hover:from-emerald-600 hover:to-teal-600 hover:shadow-xl hover:shadow-emerald-500/40 transition-all">
+                            Request Payslip
+                          </button>
+                          <button type="button" onClick={() => { setPaymentHistory([]); setIsPaymentHistoryModalOpen(true); if (activeWorker?.id) fetchPaymentHistory(activeWorker.id) }} className="inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-blue-500 to-indigo-500 px-4 py-2 text-xs font-semibold text-white shadow-xl shadow-blue-500/30 hover:from-blue-600 hover:to-indigo-600 hover:shadow-xl hover:shadow-blue-500/40 transition-all">
+                            Payment History
+                          </button>
+                        </>
                       )}
                     </div>
                   </CardHeader>
@@ -2404,7 +2518,7 @@ export default function DashboardPage() {
                     <button type="button" onClick={() => { setIsReportIssueModalOpen(true); setReportIssueAssignment(selectedAssignment) }} className="inline-flex items-center justify-center rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 transition">
                       Report Issue
                     </button>
-                    <button type="button" onClick={() => setSelectedAssignment(null)} className="inline-flex items-center justify-center rounded-md bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700 transition">
+                    <button type="button" onClick={() => setSelectedAssignment(null)} className="inline-flex items-center justify-center rounded-md bg-gradient-to-r from-cyan-500 to-sky-500 px-4 py-2 text-sm font-semibold text-white hover:from-cyan-600 hover:to-sky-600 transition">
                       Close
                     </button>
                   </div>
@@ -2429,7 +2543,7 @@ export default function DashboardPage() {
                     </div>
                     <div className="flex gap-3">
                       <button type="button" onClick={() => { setIsAddAssignmentModalOpen(false); setNewAssignmentFilename(""); setNewAssignmentDescription("") }} className="flex-1 rounded-md border border-zinc-200 bg-white px-5 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 transition">Cancel</button>
-                      <button type="submit" disabled={isAddingAssignment} className="flex-1 inline-flex items-center justify-center gap-2 rounded-md bg-gradient-to-r from-slate-900 to-zinc-900 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 hover:from-slate-700 hover:to-zinc-800 disabled:opacity-50">
+                      <button type="submit" disabled={isAddingAssignment} className="flex-1 inline-flex items-center justify-center gap-2 rounded-md bg-gradient-to-r from-cyan-500 to-sky-500 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-cyan-500/20 hover:from-cyan-600 hover:to-sky-600 disabled:opacity-50">
                         {isAddingAssignment ? "Adding..." : "Add Assignment"}
                       </button>
                     </div>
@@ -2504,7 +2618,7 @@ export default function DashboardPage() {
               <p className="text-xs text-zinc-500">A confirmation email will be sent to this address to activate the account.</p>
               <div className="flex gap-3 mt-6">
                 <button type="button" onClick={() => { setIsAddWorkerModalOpen(false); setNewWorkerForm({ fullName: "", jobTitle: "", department: "", email: "", password: "", role: "worker", location: 'United States' }); }} className="flex-1 rounded-md border border-zinc-200 bg-white px-5 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 transition">Cancel</button>
-                <button type="submit" disabled={isAddingWorker} className="flex-1 inline-flex items-center justify-center gap-2 rounded-md bg-gradient-to-r from-slate-900 to-zinc-900 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 hover:from-slate-700 hover:to-zinc-800 disabled:opacity-50">{isAddingWorker ? "Adding..." : "Add Worker"}</button>
+                <button type="submit" disabled={isAddingWorker} className="flex-1 inline-flex items-center justify-center gap-2 rounded-md bg-gradient-to-r from-cyan-500 to-sky-500 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-cyan-500/20 hover:from-cyan-600 hover:to-sky-600 disabled:opacity-50">{isAddingWorker ? "Adding..." : "Add Worker"}</button>
               </div>
             </form>
           </div>
@@ -2576,7 +2690,7 @@ export default function DashboardPage() {
               </div>
               <div className="flex gap-3 mt-6">
                 <button type="button" onClick={() => setIsBankModalOpen(false)} className="flex-1 rounded-md border border-zinc-200 bg-white px-5 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 transition">Cancel</button>
-                <button type="submit" disabled={isUpdatingBank} className="flex-1 inline-flex items-center justify-center gap-2 rounded-md bg-gradient-to-r from-slate-900 to-zinc-900 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 hover:from-slate-700 hover:to-zinc-800 disabled:opacity-50">
+                <button type="submit" disabled={isUpdatingBank} className="flex-1 inline-flex items-center justify-center gap-2 rounded-md bg-gradient-to-r from-cyan-500 to-sky-500 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-cyan-500/20 hover:from-cyan-600 hover:to-sky-600 disabled:opacity-50">
                   {isUpdatingBank ? 'Saving...' : 'Save Details'}
                 </button>
               </div>
@@ -2598,8 +2712,8 @@ export default function DashboardPage() {
                   onClick={() => setSelectedPaymentRate(rate)}
                   className={`rounded-lg py-2 px-3 text-sm font-semibold transition ${
                     selectedPaymentRate === rate
-                      ? 'bg-slate-900 text-white'
-                      : 'border border-zinc-300 text-zinc-700 hover:border-slate-900'
+                      ? 'bg-gradient-to-r from-cyan-500 to-sky-500 text-white'
+                      : 'border border-zinc-300 text-zinc-700 hover:border-cyan-500'
                   }`}
                 >
                   {formatCurrency(rate, activeWorker?.location)}
@@ -2666,7 +2780,7 @@ export default function DashboardPage() {
               <p className="text-xs text-zinc-500">Enter details for a new production record without uploading a file.</p>
               <div className="flex gap-3 mt-6">
                 <button type="button" onClick={() => { setIsManualAddModalOpen(false); setManualFileForm({ fileName: '', dateCompleted: '', byteSize: '' }) }} className="flex-1 rounded-md border border-zinc-200 bg-white px-5 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 transition">Cancel</button>
-                <button type="submit" disabled={isAddingManualRecord} className="flex-1 inline-flex items-center justify-center gap-2 rounded-md bg-gradient-to-r from-slate-900 to-zinc-900 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 hover:from-slate-700 hover:to-zinc-800 disabled:opacity-50">
+                <button type="submit" disabled={isAddingManualRecord} className="flex-1 inline-flex items-center justify-center gap-2 rounded-md bg-gradient-to-r from-cyan-500 to-sky-500 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-cyan-500/20 hover:from-cyan-600 hover:to-sky-600 disabled:opacity-50">
                   {isAddingManualRecord ? 'Adding...' : 'Add Record'}
                 </button>
               </div>
@@ -2717,6 +2831,167 @@ export default function DashboardPage() {
         </div>
       )}
 
+      {isPaymentHistoryModalOpen && activeWorker && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
+          <div className={`bg-gradient-to-br from-slate-50 via-indigo-50/30 to-blue-50 rounded-3xl shadow-2xl shadow-indigo-500/20 w-full ${isAdmin ? 'max-w-2xl' : 'max-w-md'} p-6 relative border-2 border-indigo-200/80 max-h-[90vh] flex flex-col`}>
+            <button onClick={() => setIsPaymentHistoryModalOpen(false)} className="absolute right-4 top-4 text-indigo-400 hover:text-indigo-700 transition-colors"><X className="h-5 w-5" /></button>
+            
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-blue-600 text-white shadow-xl shadow-indigo-500/30 mb-4 flex-shrink-0">
+              <CreditCard className="h-6 w-6" />
+            </div>
+            
+            <h3 className="text-xl font-bold text-zinc-900 mb-1 flex-shrink-0">Payment History</h3>
+            <p className="text-xs text-zinc-600 mb-4 flex-shrink-0">
+              {isAdmin ? "Add and view payment history records for this worker." : "View all your past payments received."}
+            </p>
+
+            <div className="flex-1 overflow-y-auto min-h-0 space-y-6 pr-1">
+              {isAdmin && (
+                <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-4 border border-indigo-100 shadow-sm">
+                  <h4 className="text-xs font-bold text-indigo-900 uppercase tracking-wider mb-3">Add Payment Record (Admin Only)</h4>
+                  <form onSubmit={addPaymentRecord} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-semibold text-zinc-700 mb-1">Amount</label>
+                      <input 
+                        type="number" 
+                        step="0.01" 
+                        placeholder="e.g. 150.00" 
+                        value={paymentHistoryForm.amount} 
+                        onChange={(e) => setPaymentHistoryForm({ ...paymentHistoryForm, amount: e.target.value })} 
+                        className="w-full rounded-xl border border-zinc-200 px-3 py-1.5 text-xs text-zinc-900 outline-none focus:border-indigo-500 transition-all bg-white" 
+                        required 
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-zinc-700 mb-1">Payment Date</label>
+                      <input 
+                        type="date" 
+                        value={paymentHistoryForm.paymentDate} 
+                        onChange={(e) => setPaymentHistoryForm({ ...paymentHistoryForm, paymentDate: e.target.value })} 
+                        className="w-full rounded-xl border border-zinc-200 px-3 py-1.5 text-xs text-zinc-900 outline-none focus:border-indigo-500 transition-all bg-white" 
+                        required 
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-zinc-700 mb-1">Bank Type</label>
+                      <input 
+                        type="text" 
+                        placeholder="e.g. GCash, bank transfer, PayPal" 
+                        value={paymentHistoryForm.bankType} 
+                        onChange={(e) => setPaymentHistoryForm({ ...paymentHistoryForm, bankType: e.target.value })} 
+                        className="w-full rounded-xl border border-zinc-200 px-3 py-1.5 text-xs text-zinc-900 outline-none focus:border-indigo-500 transition-all bg-white" 
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-zinc-700 mb-1">Reference Number</label>
+                      <input 
+                        type="text" 
+                        placeholder="Transaction ID / Receipt #" 
+                        value={paymentHistoryForm.referenceNumber} 
+                        onChange={(e) => setPaymentHistoryForm({ ...paymentHistoryForm, referenceNumber: e.target.value })} 
+                        className="w-full rounded-xl border border-zinc-200 px-3 py-1.5 text-xs text-zinc-900 outline-none focus:border-indigo-500 transition-all bg-white" 
+                      />
+                    </div>
+                    <div>
+
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-zinc-700 mb-1">Notes / Remarks</label>
+                      <input 
+                        type="text" 
+                        placeholder="e.g. June First Cutoff Payment" 
+                        value={paymentHistoryForm.notes} 
+                        onChange={(e) => setPaymentHistoryForm({ ...paymentHistoryForm, notes: e.target.value })} 
+                        className="w-full rounded-xl border border-zinc-200 px-3 py-1.5 text-xs text-zinc-900 outline-none focus:border-indigo-500 transition-all bg-white" 
+                      />
+                    </div>
+                    <div className="sm:col-span-2 flex justify-end mt-2">
+                      <button 
+                        type="submit" 
+                        disabled={isAddingPaymentRecord} 
+                        className="rounded-xl bg-gradient-to-r from-indigo-600 to-blue-600 px-5 py-2 text-xs font-semibold text-white shadow-md shadow-indigo-500/20 hover:from-indigo-700 hover:to-blue-700 disabled:opacity-50 transition-all"
+                      >
+                        {isAddingPaymentRecord ? 'Adding...' : 'Save Payment Record'}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              )}
+
+              <div className="space-y-3">
+                <h4 className="text-xs font-bold text-zinc-700 uppercase tracking-wider mb-2 flex items-center justify-between">
+                  <span>Past Payments</span>
+                  <span className="text-[10px] lowercase font-normal text-zinc-500">({paymentHistory.length} records)</span>
+                </h4>
+                {isLoadingPaymentHistory ? (
+                  <p className="text-center text-xs text-zinc-500 font-medium py-6">Loading payments...</p>
+                ) : paymentHistory.length === 0 ? (
+                  <p className="text-center text-xs text-zinc-500 font-medium py-6 bg-white/40 border border-dashed border-zinc-200 rounded-2xl">No payment history found.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {paymentHistory.map((r: any) => (
+                      <div key={r.id} className="rounded-2xl border border-zinc-200/80 bg-white p-3.5 shadow-sm hover:shadow-md hover:border-zinc-300 transition-all flex items-start justify-between gap-3">
+                        {/* Left: details */}
+                        <div className="space-y-1 flex-1 min-w-0">
+                          {/* Line 1: date + bank type */}
+                          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-zinc-500">
+                            <span className="font-medium text-zinc-700">Paid: {formatDate(r.payment_date)}</span>
+                            {r.bank_type && (
+                              <>
+                                <span className="text-zinc-300">•</span>
+                                <span className="bg-indigo-50 text-indigo-700 border border-indigo-100 px-2 py-0.5 rounded-lg text-[10px] font-semibold uppercase tracking-wider">
+                                  {r.bank_type}
+                                </span>
+                              </>
+                            )}
+                          </div>
+                          {/* Line 2: reference number (always on its own line) */}
+                          {r.reference_number && (
+                            <div className="text-xs text-zinc-500">
+                              <span className="bg-zinc-100 px-1.5 py-0.5 rounded text-[10px] font-mono">Ref: {r.reference_number}</span>
+                            </div>
+                          )}
+                          {r.notes && (
+                            <p className="text-xs text-zinc-600 bg-zinc-50/50 p-2 rounded-xl border border-zinc-100 mt-1.5">{r.notes}</p>
+                          )}
+
+                        </div>
+                        {/* Right: amount + delete */}
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <span className="text-sm font-bold text-zinc-900">
+                            {formatCurrency(r.amount, activeWorker.location)}
+                          </span>
+                          {isAdmin && (
+                            <button 
+                              type="button" 
+                              onClick={() => deletePaymentRecord(r.id)} 
+                              className="text-rose-400 hover:text-rose-600 p-1 hover:bg-rose-50 rounded-lg transition-colors"
+                              title="Delete record"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            <div className="border-t border-zinc-200/60 pt-4 mt-4 flex justify-end flex-shrink-0">
+              <button 
+                type="button" 
+                onClick={() => setIsPaymentHistoryModalOpen(false)} 
+                className="rounded-xl border border-zinc-200 bg-white px-5 py-2 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 transition"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {isPayslipAdminModalOpen && isAdmin && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl p-6 relative max-h-[80vh] overflow-y-auto">
@@ -2758,7 +3033,7 @@ export default function DashboardPage() {
                           <button disabled={isProcessingRequest} onClick={() => updatePayslipRequestStatus(r.id, 'approved')} className="inline-flex items-center gap-2 rounded-md border border-slate-900 px-3 py-1 text-xs font-semibold text-slate-900 hover:bg-slate-50 transition">Approve</button>
                         )}
                         {r.status === 'approved' && !r.payslip_url && (
-                          <label className="inline-flex cursor-pointer items-center gap-2 rounded-md bg-slate-900 px-3 py-1 text-xs font-semibold text-white hover:bg-slate-700 transition">
+                          <label className="inline-flex cursor-pointer items-center gap-2 rounded-md bg-gradient-to-r from-cyan-500 to-sky-500 px-3 py-1 text-xs font-semibold text-white hover:from-cyan-600 hover:to-sky-600 transition">
                             Upload payslip
                             <input type="file" accept="application/pdf" className="hidden" onChange={(e) => {
                               const file = e.target.files?.[0]
@@ -2768,7 +3043,7 @@ export default function DashboardPage() {
                           </label>
                         )}
                         {r.payslip_url && (
-                          <a href={r.payslip_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-md bg-slate-900 px-3 py-1 text-xs font-semibold text-white hover:bg-slate-700 transition">Download payslip</a>
+                          <a href={r.payslip_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-md bg-gradient-to-r from-cyan-500 to-sky-500 px-3 py-1 text-xs font-semibold text-white hover:from-cyan-600 hover:to-sky-600 transition">Download payslip</a>
                         )}
                         {r.status !== 'paid' && (
                           <button disabled={isProcessingRequest} onClick={() => updatePayslipRequestStatus(r.id, 'paid')} className="inline-flex items-center gap-2 rounded-md bg-green-600 px-3 py-1 text-xs font-semibold text-white hover:bg-green-700 transition">Mark Paid</button>
@@ -2911,7 +3186,7 @@ export default function DashboardPage() {
               </div>
               <div className="flex gap-3 mt-6">
                 <button type="button" onClick={() => setIsEditWorkerModalOpen(false)} className="flex-1 rounded-md border border-zinc-200 bg-white px-5 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 transition">Cancel</button>
-                <button type="submit" disabled={isUpdatingWorkerDetails} className="flex-1 inline-flex items-center justify-center gap-2 rounded-md bg-gradient-to-r from-slate-900 to-zinc-900 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 hover:from-slate-700 hover:to-zinc-800 disabled:opacity-50">
+                <button type="submit" disabled={isUpdatingWorkerDetails} className="flex-1 inline-flex items-center justify-center gap-2 rounded-md bg-gradient-to-r from-cyan-500 to-sky-500 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-cyan-500/20 hover:from-cyan-600 hover:to-sky-600 disabled:opacity-50">
                   {isUpdatingWorkerDetails ? 'Saving...' : <span className="flex items-center gap-2"><Save className="h-4 w-4" /> Save</span>}
                 </button>
               </div>
