@@ -2343,7 +2343,7 @@ export default function DashboardPage() {
                 <Card className="mt-6 bg-gradient-to-br from-white to-zinc-50 border-zinc-200/80">
                   <CardHeader className="flex flex-wrap items-center justify-between gap-4">
                     <div>
-                      <CardTitle className="text-lg font-bold text-zinc-900 tracking-tight">Payslip Request History</CardTitle>
+                      <CardTitle className="text-lg font-bold text-zinc-900 tracking-tight">Payslip Request/Payment History</CardTitle>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
                       {(user?.id === activeWorker?.id || isAdmin) && (
