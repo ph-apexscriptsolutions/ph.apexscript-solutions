@@ -158,15 +158,16 @@ export default function DashboardPage() {
   const [isLoadingPaymentHistory, setIsLoadingPaymentHistory] = useState(false)
   const [isAddingPaymentRecord, setIsAddingPaymentRecord] = useState(false)
   const [paymentHistoryForm, setPaymentHistoryForm] = useState({
+    senderBank: "",
+    referenceNumber: "",
+    recipientBank: "",
     amount: "",
-    paymentDate: (() => {
+    dateSent: (() => {
       const now = new Date();
       return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     })(),
-    bankType: "",
-    referenceNumber: "",
     notes: ""
-      })
+  })
   const [realtimeStatus, setRealtimeStatus] = useState<'connected' | 'connecting' | 'disconnected'>('connecting')
   const [isPayslipAdminModalOpen, setIsPayslipAdminModalOpen] = useState(false)
   const [isRoleEditModalOpen, setIsRoleEditModalOpen] = useState(false)
@@ -1352,11 +1353,11 @@ export default function DashboardPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           workerId: activeWorker.id,
-          amount,
-          paymentDate: paymentHistoryForm.paymentDate,
-          bankType: paymentHistoryForm.bankType,
+          senderBank: paymentHistoryForm.senderBank,
           referenceNumber: paymentHistoryForm.referenceNumber,
-
+          recipientBank: paymentHistoryForm.recipientBank,
+          amount,
+          paymentDate: paymentHistoryForm.dateSent,
           notes: paymentHistoryForm.notes
         })
       })
@@ -1365,14 +1366,14 @@ export default function DashboardPage() {
       
       // Reset form
       setPaymentHistoryForm({
+        senderBank: '',
+        referenceNumber: '',
+        recipientBank: '',
         amount: '',
-        paymentDate: (() => {
+        dateSent: (() => {
           const now = new Date();
           return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
         })(),
-        bankType: '',
-        referenceNumber: '',
-
         notes: ''
       })
       
@@ -2851,34 +2852,12 @@ export default function DashboardPage() {
                   <h4 className="text-xs font-bold text-indigo-900 uppercase tracking-wider mb-3">Add Payment Record (Admin Only)</h4>
                   <form onSubmit={addPaymentRecord} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-[11px] font-semibold text-zinc-700 mb-1">Amount</label>
-                      <input 
-                        type="number" 
-                        step="0.01" 
-                        placeholder="e.g. 150.00" 
-                        value={paymentHistoryForm.amount} 
-                        onChange={(e) => setPaymentHistoryForm({ ...paymentHistoryForm, amount: e.target.value })} 
-                        className="w-full rounded-xl border border-zinc-200 px-3 py-1.5 text-xs text-zinc-900 outline-none focus:border-indigo-500 transition-all bg-white" 
-                        required 
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[11px] font-semibold text-zinc-700 mb-1">Payment Date</label>
-                      <input 
-                        type="date" 
-                        value={paymentHistoryForm.paymentDate} 
-                        onChange={(e) => setPaymentHistoryForm({ ...paymentHistoryForm, paymentDate: e.target.value })} 
-                        className="w-full rounded-xl border border-zinc-200 px-3 py-1.5 text-xs text-zinc-900 outline-none focus:border-indigo-500 transition-all bg-white" 
-                        required 
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[11px] font-semibold text-zinc-700 mb-1">Bank Type</label>
+                      <label className="block text-[11px] font-semibold text-zinc-700 mb-1">Sender's Bank</label>
                       <input 
                         type="text" 
-                        placeholder="e.g. GCash, bank transfer, PayPal" 
-                        value={paymentHistoryForm.bankType} 
-                        onChange={(e) => setPaymentHistoryForm({ ...paymentHistoryForm, bankType: e.target.value })} 
+                        placeholder="e.g. GCash, BDO, PayPal" 
+                        value={paymentHistoryForm.senderBank} 
+                        onChange={(e) => setPaymentHistoryForm({ ...paymentHistoryForm, senderBank: e.target.value })} 
                         className="w-full rounded-xl border border-zinc-200 px-3 py-1.5 text-xs text-zinc-900 outline-none focus:border-indigo-500 transition-all bg-white" 
                       />
                     </div>
@@ -2893,7 +2872,36 @@ export default function DashboardPage() {
                       />
                     </div>
                     <div>
-
+                      <label className="block text-[11px] font-semibold text-zinc-700 mb-1">Recipient Bank</label>
+                      <input 
+                        type="text" 
+                        placeholder="e.g. BPI, Metrobank, GCash" 
+                        value={paymentHistoryForm.recipientBank} 
+                        onChange={(e) => setPaymentHistoryForm({ ...paymentHistoryForm, recipientBank: e.target.value })} 
+                        className="w-full rounded-xl border border-zinc-200 px-3 py-1.5 text-xs text-zinc-900 outline-none focus:border-indigo-500 transition-all bg-white" 
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-zinc-700 mb-1">Amount</label>
+                      <input 
+                        type="number" 
+                        step="0.01" 
+                        placeholder="e.g. 150.00" 
+                        value={paymentHistoryForm.amount} 
+                        onChange={(e) => setPaymentHistoryForm({ ...paymentHistoryForm, amount: e.target.value })} 
+                        className="w-full rounded-xl border border-zinc-200 px-3 py-1.5 text-xs text-zinc-900 outline-none focus:border-indigo-500 transition-all bg-white" 
+                        required 
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-zinc-700 mb-1">Date Sent</label>
+                      <input 
+                        type="date" 
+                        value={paymentHistoryForm.dateSent} 
+                        onChange={(e) => setPaymentHistoryForm({ ...paymentHistoryForm, dateSent: e.target.value })} 
+                        className="w-full rounded-xl border border-zinc-200 px-3 py-1.5 text-xs text-zinc-900 outline-none focus:border-indigo-500 transition-all bg-white" 
+                        required 
+                      />
                     </div>
                     <div>
                       <label className="block text-[11px] font-semibold text-zinc-700 mb-1">Notes / Remarks</label>
@@ -2933,27 +2941,24 @@ export default function DashboardPage() {
                       <div key={r.id} className="rounded-2xl border border-zinc-200/80 bg-white p-3.5 shadow-sm hover:shadow-md hover:border-zinc-300 transition-all flex items-start justify-between gap-3">
                         {/* Left: details */}
                         <div className="space-y-1 flex-1 min-w-0">
-                          {/* Line 1: date + bank type */}
-                          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-zinc-500">
-                            <span className="font-medium text-zinc-700">Paid: {formatDate(r.payment_date)}</span>
-                            {r.bank_type && (
-                              <>
-                                <span className="text-zinc-300">•</span>
-                                <span className="bg-indigo-50 text-indigo-700 border border-indigo-100 px-2 py-0.5 rounded-lg text-[10px] font-semibold uppercase tracking-wider">
-                                  {r.bank_type}
-                                </span>
-                              </>
-                            )}
+                          {/* Line 1: date sent */}
+                          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
+                            <span className="font-semibold text-zinc-800">Sent: {formatDate(r.payment_date)}</span>
                           </div>
-                          {/* Line 2: reference number (always on its own line) */}
-                          {r.reference_number && (
-                            <div className="text-xs text-zinc-500">
-                              <span className="bg-zinc-100 px-1.5 py-0.5 rounded text-[10px] font-mono">Ref: {r.reference_number}</span>
+                          {/* Line 2: sender bank → recipient bank */}
+                          {(r.bank_type || r.reference_number) && (
+                            <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[11px] text-zinc-500">
+                              {r.bank_type && (
+                                <span className="bg-indigo-50 text-indigo-700 border border-indigo-100 px-2 py-0.5 rounded-lg text-[10px] font-semibold uppercase tracking-wider">{r.bank_type}</span>
+                              )}
+                              {r.bank_type && r.reference_number && <span className="text-zinc-300">→</span>}
+                              {r.reference_number && (
+                                <span className="bg-emerald-50 text-emerald-700 border border-emerald-100 px-2 py-0.5 rounded-lg text-[10px] font-semibold uppercase tracking-wider">{r.reference_number}</span>
+                              )}
                             </div>
                           )}
-                          {r.notes && (
-                            <p className="text-xs text-zinc-600 bg-zinc-50/50 p-2 rounded-xl border border-zinc-100 mt-1.5">{r.notes}</p>
-                          )}
+                          {/* Line 3: notes / ref */}
+                          {r.notes && <span className="bg-zinc-100 px-1.5 py-0.5 rounded text-[10px] font-mono text-zinc-600">{r.notes}</span>}
 
                         </div>
                         {/* Right: amount + delete */}

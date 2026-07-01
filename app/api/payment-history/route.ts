@@ -50,9 +50,9 @@ export async function POST(request: Request) {
     const workerId = body.workerId as string
     const amount = Number(body.amount)
     const paymentDate = body.paymentDate as string
-    const bankType = body.bankType as string || null
+    const senderBank = body.senderBank as string || null
     const referenceNumber = body.referenceNumber as string || null
-
+    const recipientBank = body.recipientBank as string || null
     const notes = body.notes as string || null
 
     if (!workerId || isNaN(amount) || !paymentDate) {
@@ -66,10 +66,9 @@ export async function POST(request: Request) {
         worker_id: workerId,
         amount,
         payment_date: paymentDate,
-        bank_type: bankType,
-        reference_number: referenceNumber,
-
-        notes,
+        bank_type: senderBank,
+        reference_number: recipientBank,
+        notes: referenceNumber ? `Ref: ${referenceNumber}${notes ? ' | ' + notes : ''}` : (notes || null),
         created_at: new Date().toISOString(),
       })
       .select()
