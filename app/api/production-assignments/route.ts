@@ -46,7 +46,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { workerId, filename, dueTime, description } = body
+    const { workerId, filename, dueTime, description, attachmentUrl } = body
 
     if (!workerId || !filename) {
       return NextResponse.json({ error: 'Missing workerId or filename' }, { status: 400 })
@@ -64,6 +64,7 @@ export async function POST(request: Request) {
         status: 'pending',
         due_time: formattedDueTime,
         description: description || null,
+        attachment_url: attachmentUrl || null,
       }])
       .select()
 

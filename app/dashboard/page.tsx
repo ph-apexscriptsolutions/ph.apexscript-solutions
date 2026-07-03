@@ -206,6 +206,8 @@ export default function DashboardPage() {
   const [newAssignmentFilename, setNewAssignmentFilename] = useState("")
   const [newAssignmentDescription, setNewAssignmentDescription] = useState("")
   const [isAddingAssignment, setIsAddingAssignment] = useState(false)
+  const [newAssignmentAttachment, setNewAssignmentAttachment] = useState<File | null>(null)
+  const [isUploadingAttachment, setIsUploadingAttachment] = useState(false)
   const [editAssignmentId, setEditAssignmentId] = useState<number | null>(null)
   const [selectedAssignment, setSelectedAssignment] = useState<any | null>(null)
   const [assignmentHeaderTemplate, setAssignmentHeaderTemplate] = useState('3fr 1fr 1fr')
@@ -1557,6 +1559,23 @@ export default function DashboardPage() {
     }
     setIsAddingAssignment(true)
     try {
+      // Upload attachment first if one was selected
+      let attachmentUrl: string | null = null
+      if (newAssignmentAttachment) {
+        setIsUploadingAttachment(true)
+        const formData = new FormData()
+        formData.append('workerId', workerId)
+        formData.append('file', newAssignmentAttachment)
+        const uploadRes = await fetch('/api/production-assignments/upload-attachment', {
+          method: 'POST',
+          body: formData,
+        })
+        const uploadData = await uploadRes.json()
+        setIsUploadingAttachment(false)
+        if (!uploadRes.ok) throw new Error(uploadData.error || 'Failed to upload attachment')
+        attachmentUrl = uploadData.attachmentUrl
+      }
+
       const requestUrl = new URL('/api/production-assignments', window.location.origin).toString()
       const res = await fetch(requestUrl, {
         method: 'POST',
@@ -1565,6 +1584,7 @@ export default function DashboardPage() {
           workerId, 
           filename: filename.trim(),
           description: newAssignmentDescription || null,
+          attachmentUrl,
         }),
       })
       let data: any = null
@@ -1577,6 +1597,7 @@ export default function DashboardPage() {
       await fetchAssignments(workerId)
       setNewAssignmentFilename("")
       setNewAssignmentDescription("")
+      setNewAssignmentAttachment(null)
       setIsAddAssignmentModalOpen(false)
       setEditAssignmentId(null)
       setToastMessage('✅ Assignment added')
@@ -2554,6 +2575,20 @@ export default function DashboardPage() {
                         <div className="mt-1 text-sm text-zinc-700 whitespace-pre-wrap break-words">{selectedAssignment.description}</div>
                       </div>
                     )}
+                    {selectedAssignment.attachment_url && (
+                      <div>
+                        <div className="text-xs font-semibold text-zinc-500 uppercase">Attachment</div>
+                        <a
+                          href={selectedAssignment.attachment_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-1 inline-flex items-center gap-2 rounded-md border border-cyan-200 bg-cyan-50 px-3 py-2 text-sm font-medium text-cyan-700 hover:bg-cyan-100 transition"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" /></svg>
+                          Download Attachment
+                        </a>
+                      </div>
+                    )}
                     <div>
                       <div className="text-xs font-semibold text-zinc-500 uppercase">Created</div>
                       <div className="mt-1 text-sm text-zinc-700">{formatDate(selectedAssignment.created_at)}</div>
@@ -2574,7 +2609,7 @@ export default function DashboardPage() {
             {isAddAssignmentModalOpen && activeWorker && (
               <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
                 <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 relative max-h-[90vh] overflow-y-auto">
-                  <button onClick={() => { setIsAddAssignmentModalOpen(false); setNewAssignmentFilename(""); setNewAssignmentDescription("") }} className="absolute right-4 top-4 text-zinc-400 hover:text-zinc-900"><X className="h-5 w-5" /></button>
+                  <button onClick={() => { setIsAddAssignmentModalOpen(false); setNewAssignmentFilename(""); setNewAssignmentDescription(""); setNewAssignmentAttachment(null) }} className="absolute right-4 top-4 text-zinc-400 hover:text-zinc-900"><X className="h-5 w-5" /></button>
                   <h3 className="text-lg font-semibold text-zinc-900 mb-4">Add New Assignment</h3>
                   <form onSubmit={(e) => { e.preventDefault(); saveAssignment(activeWorker.id) }} className="space-y-4">
                     <div>
@@ -2586,10 +2621,42 @@ export default function DashboardPage() {
                       <label className="block text-sm font-medium text-zinc-700 mb-1">Description</label>
                       <textarea value={newAssignmentDescription} onChange={(e) => setNewAssignmentDescription(e.target.value)} placeholder="Add any details about this assignment..." className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 resize-none" rows={3} />
                     </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-zinc-700 mb-1">Attachment <span className="text-zinc-400 font-normal">(optional)</span></label>
+                      <p className="text-xs text-zinc-500 mb-2">Upload assignment instructions or a sample transcript for the worker.</p>
+                      <label
+                        htmlFor="assignment-attachment"
+                        className="flex items-center gap-3 w-full cursor-pointer rounded-lg border-2 border-dashed border-zinc-300 px-4 py-3 text-sm text-zinc-600 hover:border-cyan-400 hover:bg-cyan-50/50 transition-colors"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 shrink-0 text-cyan-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" /></svg>
+                        <span className="truncate flex-1">
+                          {newAssignmentAttachment ? newAssignmentAttachment.name : 'Click to attach a file…'}
+                        </span>
+                        {newAssignmentAttachment && (
+                          <button
+                            type="button"
+                            onClick={(e) => { e.preventDefault(); setNewAssignmentAttachment(null) }}
+                            className="ml-auto shrink-0 text-zinc-400 hover:text-red-500 transition"
+                            title="Remove attachment"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        )}
+                      </label>
+                      <input
+                        id="assignment-attachment"
+                        type="file"
+                        className="sr-only"
+                        accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg"
+                        onChange={(e) => setNewAssignmentAttachment(e.target.files?.[0] ?? null)}
+                      />
+                    </div>
+
                     <div className="flex gap-3">
-                      <button type="button" onClick={() => { setIsAddAssignmentModalOpen(false); setNewAssignmentFilename(""); setNewAssignmentDescription("") }} className="flex-1 rounded-md border border-zinc-200 bg-white px-5 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 transition">Cancel</button>
-                      <button type="submit" disabled={isAddingAssignment} className="flex-1 inline-flex items-center justify-center gap-2 rounded-md bg-gradient-to-r from-cyan-500 to-sky-500 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-cyan-500/20 hover:from-cyan-600 hover:to-sky-600 disabled:opacity-50">
-                        {isAddingAssignment ? "Adding..." : "Add Assignment"}
+                      <button type="button" onClick={() => { setIsAddAssignmentModalOpen(false); setNewAssignmentFilename(""); setNewAssignmentDescription(""); setNewAssignmentAttachment(null) }} className="flex-1 rounded-md border border-zinc-200 bg-white px-5 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 transition">Cancel</button>
+                      <button type="submit" disabled={isAddingAssignment || isUploadingAttachment} className="flex-1 inline-flex items-center justify-center gap-2 rounded-md bg-gradient-to-r from-cyan-500 to-sky-500 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-cyan-500/20 hover:from-cyan-600 hover:to-sky-600 disabled:opacity-50">
+                        {isUploadingAttachment ? 'Uploading...' : isAddingAssignment ? 'Adding...' : 'Add Assignment'}
                       </button>
                     </div>
                   </form>
