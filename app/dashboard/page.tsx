@@ -2,7 +2,7 @@
 import { useEffect, useState, FormEvent } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/utils/supabase/client"
-import { FileText, HardDrive, LogOut, Calendar, X, Pencil, Save, User, ArrowLeft, Upload, UserPlus, CreditCard, Trash2, Check, ChevronDown, Megaphone } from "lucide-react"
+import { FileText, HardDrive, LogOut, Calendar, X, Pencil, Save, User, ArrowLeft, Upload, UserPlus, CreditCard, Trash2, Check, Bell } from "lucide-react"
 import AdminChat from '@/components/admin-chat'
 import WorkerRealtimeChat from '@/components/worker-realtime-chat'
 import { FlagIcon } from "@/components/flag-icon"
@@ -180,6 +180,7 @@ export default function DashboardPage() {
 
   const [announcements, setAnnouncements] = useState<any[]>([])
   const [isAnnouncementExpanded, setIsAnnouncementExpanded] = useState(false)
+  const [isAnnouncementPopupOpen, setIsAnnouncementPopupOpen] = useState(false)
   const [isAnnouncementModalOpen, setIsAnnouncementModalOpen] = useState(false)
   const [announcementMessage, setAnnouncementMessage] = useState("")
   const [isPublishingAnnouncement, setIsPublishingAnnouncement] = useState(false)
@@ -1775,7 +1776,86 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
-        <button onClick={handleLogout} className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 via-cyan-600 to-sky-500 px-5 py-2.5 text-sm font-semibold text-white shadow-xl shadow-cyan-500/30 hover:from-cyan-600 hover:via-cyan-700 hover:to-sky-600 hover:shadow-xl hover:shadow-cyan-500/40 transition-all"><LogOut className="h-4 w-4" /> Log Out</button>
+        <div className="flex items-center gap-3">
+          {/* Bell notification icon */}
+          <div className="relative">
+            <button
+              onClick={() => setIsAnnouncementPopupOpen(prev => !prev)}
+              className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-600 shadow-sm hover:bg-zinc-50 hover:text-zinc-900 transition-all"
+              title="Announcements"
+            >
+              <Bell className="h-5 w-5" />
+              {announcements.length > 0 && (
+                <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white shadow">
+                  {announcements.length}
+                </span>
+              )}
+            </button>
+
+            {/* Announcement popup */}
+            {isAnnouncementPopupOpen && (
+              <>
+                {/* Backdrop to close */}
+                <div className="fixed inset-0 z-40" onClick={() => setIsAnnouncementPopupOpen(false)} />
+                <div className="absolute right-0 top-12 z-50 w-80 sm:w-96 rounded-2xl border border-zinc-200 bg-white shadow-2xl overflow-hidden">
+                  {/* Header */}
+                  <div className="flex items-center justify-between border-b border-zinc-100 px-4 py-3 bg-gradient-to-r from-amber-50 to-orange-50">
+                    <div className="flex items-center gap-2">
+                      <Bell className="h-4 w-4 text-amber-600" />
+                      <span className="text-sm font-semibold text-zinc-800">Announcements</span>
+                      {announcements.length > 0 && (
+                        <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700">{announcements.length}</span>
+                      )}
+                    </div>
+                    <button onClick={() => setIsAnnouncementPopupOpen(false)} className="text-zinc-400 hover:text-zinc-700 transition">
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+
+                  {/* Body */}
+                  <div className="max-h-96 overflow-y-auto divide-y divide-zinc-100">
+                    {announcements.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center py-10 text-center px-4">
+                        <Bell className="h-8 w-8 text-zinc-300 mb-2" />
+                        <p className="text-sm font-medium text-zinc-500">No announcements yet</p>
+                        <p className="text-xs text-zinc-400 mt-1">Check back later for updates.</p>
+                      </div>
+                    ) : (
+                      announcements.map((ann: any) => (
+                        <div key={ann.id} className="px-4 py-3 hover:bg-zinc-50 transition">
+                          <div className="flex items-start justify-between gap-2">
+                            <p className="text-sm text-zinc-800 leading-relaxed whitespace-pre-wrap flex-1">{ann.message}</p>
+                            {isAdmin && (
+                              <div className="flex shrink-0 gap-1 ml-2">
+                                <button
+                                  onClick={() => { startEditingAnnouncement(ann); setIsAnnouncementPopupOpen(false) }}
+                                  className="rounded-md bg-zinc-100 px-2 py-1 text-xs font-medium text-zinc-600 hover:bg-zinc-200 transition"
+                                >
+                                  Edit
+                                </button>
+                                <button
+                                  onClick={() => deleteAnnouncement(ann.id)}
+                                  className="rounded-md bg-red-50 px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-100 transition"
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                          {ann.created_at && (
+                            <p className="mt-1.5 text-xs text-zinc-400">{new Date(ann.created_at).toLocaleString()}</p>
+                          )}
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+
+          <button onClick={handleLogout} className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 via-cyan-600 to-sky-500 px-5 py-2.5 text-sm font-semibold text-white shadow-xl shadow-cyan-500/30 hover:from-cyan-600 hover:via-cyan-700 hover:to-sky-600 hover:shadow-xl hover:shadow-cyan-500/40 transition-all"><LogOut className="h-4 w-4" /> Log Out</button>
+        </div>
       </header>
 
 
@@ -1786,75 +1866,13 @@ export default function DashboardPage() {
         {!isAdmin && profile?.id && (
           <WorkerRealtimeChat workerId={profile.id} initialName={profile.full_name || undefined} />
         )}
-        {announcements.length > 0 ? (
-          <>
-            {announcementSchemaHint && (
-              <div className="rounded-3xl border border-red-200 bg-red-50 p-5 text-red-900 shadow-sm">
-                <div className="flex flex-col gap-2">
-                  <div className="text-sm font-semibold">Database migration recommended</div>
-                  <div className="text-xs text-red-700">Your announcements table is missing the expected column. Run the SQL below to fix it.</div>
-                  <pre className="overflow-x-auto rounded-2xl border border-red-100 bg-white p-3 text-xs text-zinc-900"><code>{announcementSchemaHint}</code></pre>
-                </div>
-              </div>
-            )}
-
-            <div className="rounded-3xl border border-amber-200 bg-amber-50 p-4 text-amber-950 shadow-sm transition-all duration-300">
-              <div 
-                onClick={() => setIsAnnouncementExpanded(!isAnnouncementExpanded)} 
-                className="flex items-center justify-between gap-3 cursor-pointer select-none"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-amber-100 text-amber-800 shadow-inner flex-shrink-0">
-                    <Megaphone className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold uppercase tracking-[0.18em] text-amber-700">Announcement</p>
-                    <p className="mt-0.5 text-xs text-amber-800/80">
-                      {isAnnouncementExpanded ? 'Click to collapse important notice' : 'Click to view important notice'}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <div className="text-xs text-amber-600 hidden sm:block">Realtime updates</div>
-                  {isAdmin && announcements[0]?.id && (
-                    <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
-                      <button onClick={() => startEditingAnnouncement(announcements[0])} className="rounded-md border border-cyan-200 bg-gradient-to-r from-cyan-500 to-sky-500 px-3 py-1 text-xs font-semibold text-white hover:from-cyan-600 hover:to-sky-600 transition shadow-md shadow-cyan-500/20">
-                        Edit
-                      </button>
-                      <button onClick={() => deleteAnnouncement(announcements[0].id)} className="rounded-md border border-cyan-200 bg-gradient-to-r from-cyan-500 to-sky-500 px-3 py-1 text-xs font-semibold text-white hover:from-cyan-600 hover:to-sky-600 transition shadow-md shadow-cyan-500/20">
-                        Delete
-                      </button>
-                    </div>
-                  )}
-                  <ChevronDown className={`h-5 w-5 text-amber-700 transition-transform duration-300 ${isAnnouncementExpanded ? 'rotate-180' : ''}`} />
-                </div>
-              </div>
-
-              {/* Collapsible Area */}
-              <div className={`grid transition-all duration-300 ease-in-out ${isAnnouncementExpanded ? 'grid-rows-[1fr] opacity-100 mt-3' : 'grid-rows-[0fr] opacity-0 overflow-hidden'}`}>
-                <div className="overflow-hidden">
-                  <div className="rounded-2xl border border-amber-100 bg-white p-4 shadow-sm">
-                    <div className="text-sm text-zinc-900 leading-relaxed whitespace-pre-wrap">{announcements[0]?.message}</div>
-                    {announcements[0]?.created_at ? (
-                      <div className="mt-3 text-xs text-amber-500">
-                        {new Date(announcements[0].created_at).toLocaleString()}
-                      </div>
-                    ) : null}
-                  </div>
-                </div>
-              </div>
+        {announcementSchemaHint && (
+          <div className="rounded-3xl border border-red-200 bg-red-50 p-5 text-red-900 shadow-sm">
+            <div className="flex flex-col gap-2">
+              <div className="text-sm font-semibold">Database migration recommended</div>
+              <div className="text-xs text-red-700">Your announcements table is missing the expected column. Run the SQL below to fix it.</div>
+              <pre className="overflow-x-auto rounded-2xl border border-red-100 bg-white p-3 text-xs text-zinc-900"><code>{announcementSchemaHint}</code></pre>
             </div>
-          </>
-        ) : (
-          <div className="rounded-3xl border border-zinc-200 bg-zinc-50 p-8 text-center">
-            <div className="text-zinc-400 mb-3">
-              <svg className="h-12 w-12 mx-auto opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <p className="text-sm font-medium text-zinc-600">No New Announcements</p>
-            <p className="text-xs text-zinc-500 mt-1">Check back later for updates from your admin team.</p>
           </div>
         )}
 
