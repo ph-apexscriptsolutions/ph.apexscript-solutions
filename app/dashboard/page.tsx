@@ -194,6 +194,7 @@ export default function DashboardPage() {
   const [isAddingWorker, setIsAddingWorker] = useState(false)
   const [toastMessage, setToastMessage] = useState<string | null>(null)
   const [showToast, setShowToast] = useState(false)
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false)
 
   const [isEditWorkerModalOpen, setIsEditWorkerModalOpen] = useState(false)
   const [editWorkerForm, setEditWorkerForm] = useState({ fullName: "", jobTitle: "", department: "", email: "", location: "United States" })
@@ -513,7 +514,8 @@ export default function DashboardPage() {
   // Polling fallback removed; relying on realtime subscriptions
 
 
-  const handleLogout = async () => { await supabase.auth.signOut(); router.push("/") }
+  const handleLogout = () => { setIsLogoutModalOpen(true) }
+  const performLogout = async () => { await supabase.auth.signOut(); router.push("/") }
   const handleViewWorker = (w: any) => { setActiveWorker(w); setView("detail") }
   const handleBackToList = () => { setActiveWorker(null); setRecords([]); setView("list"); setStartDate(""); setEndDate(""); setFilterApplied(false); setFilterTrigger(prev => prev + 1) }
   const clearFilters = () => { setStartDate(""); setEndDate(""); setFilterApplied(false); setFilterTrigger(prev => prev + 1) }
@@ -1708,6 +1710,35 @@ export default function DashboardPage() {
       {showToast && toastMessage && (
         <div className="fixed right-6 bottom-6 z-50 max-w-xs rounded-lg bg-slate-900 px-4 py-3 text-white shadow-lg">
           <div className="text-sm font-medium">{toastMessage}</div>
+        </div>
+      )}
+
+      {isLogoutModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
+          <div className="bg-gradient-to-br from-white to-zinc-50 rounded-3xl shadow-2xl p-6 max-w-sm w-full border-2 border-zinc-200/80 text-center animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-red-100 text-red-600 mx-auto mb-4 shadow-sm">
+              <LogOut className="h-6 w-6" />
+            </div>
+            <h3 className="text-lg font-bold text-zinc-900 mb-2">Confirm Log Out</h3>
+            <p className="text-sm text-zinc-500 mb-6">Are you sure you want to log out of your session?</p>
+            <div className="flex gap-3 justify-center">
+              <button 
+                onClick={() => setIsLogoutModalOpen(false)} 
+                className="flex-1 rounded-xl border-2 border-zinc-200 bg-white px-4 py-2.5 text-sm font-semibold text-zinc-700 hover:bg-zinc-50 hover:border-zinc-300 transition-all"
+              >
+                No, Stay
+              </button>
+              <button 
+                onClick={async () => {
+                  setIsLogoutModalOpen(false)
+                  await performLogout()
+                }} 
+                className="flex-1 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 px-4 py-2.5 text-sm font-semibold text-white shadow-xl shadow-red-500/20 hover:from-red-700 hover:to-rose-700 transition-all"
+              >
+                Yes, Log Out
+              </button>
+            </div>
+          </div>
         </div>
       )}
       <header className="border-b border-zinc-200/80 bg-gradient-to-r from-white to-zinc-50/50 backdrop-blur-md px-6 py-5 flex items-center justify-between sticky top-0 z-40 shadow-lg shadow-zinc-200/50">
