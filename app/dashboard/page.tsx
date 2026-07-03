@@ -2,7 +2,7 @@
 import { useEffect, useState, FormEvent } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/utils/supabase/client"
-import { FileText, HardDrive, LogOut, Calendar, X, Pencil, Save, User, ArrowLeft, Upload, UserPlus, CreditCard, Trash2, Check } from "lucide-react"
+import { FileText, HardDrive, LogOut, Calendar, X, Pencil, Save, User, ArrowLeft, Upload, UserPlus, CreditCard, Trash2, Check, ChevronDown, Megaphone } from "lucide-react"
 import AdminChat from '@/components/admin-chat'
 import WorkerRealtimeChat from '@/components/worker-realtime-chat'
 import { FlagIcon } from "@/components/flag-icon"
@@ -179,6 +179,7 @@ export default function DashboardPage() {
   const [isProcessingRequest, setIsProcessingRequest] = useState(false)
 
   const [announcements, setAnnouncements] = useState<any[]>([])
+  const [isAnnouncementExpanded, setIsAnnouncementExpanded] = useState(false)
   const [isAnnouncementModalOpen, setIsAnnouncementModalOpen] = useState(false)
   const [announcementMessage, setAnnouncementMessage] = useState("")
   const [isPublishingAnnouncement, setIsPublishingAnnouncement] = useState(false)
@@ -1728,9 +1729,7 @@ export default function DashboardPage() {
 
       <main className="mx-auto max-w-6xl p-6 space-y-6">
         {isAdmin && (
-          <div className="mb-6">
-            <AdminChat workerProfiles={workersList} />
-          </div>
+          <AdminChat workerProfiles={workersList} />
         )}
         {!isAdmin && profile?.id && (
           <WorkerRealtimeChat workerId={profile.id} initialName={profile.full_name || undefined} />
@@ -1747,17 +1746,27 @@ export default function DashboardPage() {
               </div>
             )}
 
-            <div className="rounded-3xl border border-amber-200 bg-amber-50 p-5 text-amber-950 shadow-sm">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <p className="text-sm font-semibold uppercase tracking-[0.18em] text-amber-700">Announcement</p>
-                  <p className="mt-1 text-sm text-amber-900">Important message from your admin team.</p>
+            <div className="rounded-3xl border border-amber-200 bg-amber-50 p-4 text-amber-950 shadow-sm transition-all duration-300">
+              <div 
+                onClick={() => setIsAnnouncementExpanded(!isAnnouncementExpanded)} 
+                className="flex items-center justify-between gap-3 cursor-pointer select-none"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-amber-100 text-amber-800 shadow-inner flex-shrink-0">
+                    <Megaphone className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold uppercase tracking-[0.18em] text-amber-700">Announcement</p>
+                    <p className="mt-0.5 text-xs text-amber-800/80">
+                      {isAnnouncementExpanded ? 'Click to collapse important notice' : 'Click to view important notice'}
+                    </p>
+                  </div>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <div className="text-xs text-amber-600">Realtime updates</div>
+                <div className="flex items-center gap-3">
+                  <div className="text-xs text-amber-600 hidden sm:block">Realtime updates</div>
                   {isAdmin && announcements[0]?.id && (
-                    <div className="flex gap-2">
+                    <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
                       <button onClick={() => startEditingAnnouncement(announcements[0])} className="rounded-md border border-cyan-200 bg-gradient-to-r from-cyan-500 to-sky-500 px-3 py-1 text-xs font-semibold text-white hover:from-cyan-600 hover:to-sky-600 transition shadow-md shadow-cyan-500/20">
                         Edit
                       </button>
@@ -1766,17 +1775,21 @@ export default function DashboardPage() {
                       </button>
                     </div>
                   )}
+                  <ChevronDown className={`h-5 w-5 text-amber-700 transition-transform duration-300 ${isAnnouncementExpanded ? 'rotate-180' : ''}`} />
                 </div>
               </div>
 
-              <div className="mt-4">
-                <div className="rounded-2xl border border-amber-100 bg-white p-4 shadow-sm">
-                  <div className="text-sm text-zinc-900 leading-relaxed whitespace-pre-wrap">{announcements[0]?.message}</div>
-                  {announcements[0]?.created_at ? (
-                    <div className="mt-3 text-xs text-amber-500">
-                      {new Date(announcements[0].created_at).toLocaleString()}
-                    </div>
-                  ) : null}
+              {/* Collapsible Area */}
+              <div className={`grid transition-all duration-300 ease-in-out ${isAnnouncementExpanded ? 'grid-rows-[1fr] opacity-100 mt-3' : 'grid-rows-[0fr] opacity-0 overflow-hidden'}`}>
+                <div className="overflow-hidden">
+                  <div className="rounded-2xl border border-amber-100 bg-white p-4 shadow-sm">
+                    <div className="text-sm text-zinc-900 leading-relaxed whitespace-pre-wrap">{announcements[0]?.message}</div>
+                    {announcements[0]?.created_at ? (
+                      <div className="mt-3 text-xs text-amber-500">
+                        {new Date(announcements[0].created_at).toLocaleString()}
+                      </div>
+                    ) : null}
+                  </div>
                 </div>
               </div>
             </div>
@@ -2343,7 +2356,7 @@ export default function DashboardPage() {
                 <Card className="mt-6 bg-gradient-to-br from-white to-zinc-50 border-zinc-200/80">
                   <CardHeader className="flex flex-wrap items-center justify-between gap-4">
                     <div>
-                      <CardTitle className="text-lg font-bold text-zinc-900 tracking-tight">Payslip Request/Payment History</CardTitle>
+                      <CardTitle className="text-lg font-bold text-zinc-900 tracking-tight">Payment Records</CardTitle>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
                       {(user?.id === activeWorker?.id || isAdmin) && (
@@ -2352,7 +2365,7 @@ export default function DashboardPage() {
                             Request Payslip
                           </button>
                           <button type="button" onClick={() => { setPaymentHistory([]); setIsPaymentHistoryModalOpen(true); if (activeWorker?.id) fetchPaymentHistory(activeWorker.id) }} className="inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-blue-500 to-indigo-500 px-4 py-2 text-xs font-semibold text-white shadow-xl shadow-blue-500/30 hover:from-blue-600 hover:to-indigo-600 hover:shadow-xl hover:shadow-blue-500/40 transition-all">
-                            Payment History
+                            Payment Records
                           </button>
                         </>
                       )}
@@ -2841,9 +2854,9 @@ export default function DashboardPage() {
               <CreditCard className="h-6 w-6" />
             </div>
             
-            <h3 className="text-xl font-bold text-zinc-900 mb-1 flex-shrink-0">Payment History</h3>
+            <h3 className="text-xl font-bold text-zinc-900 mb-1 flex-shrink-0">Payment Records</h3>
             <p className="text-xs text-zinc-600 mb-4 flex-shrink-0">
-              {isAdmin ? "Add and view payment history records for this worker." : "View all your past payments received."}
+              {isAdmin ? "Add and view payment records for this worker." : "View all your past payments received."}
             </p>
 
             <div className="flex-1 overflow-y-auto min-h-0 space-y-6 pr-1">
@@ -2934,7 +2947,7 @@ export default function DashboardPage() {
                 {isLoadingPaymentHistory ? (
                   <p className="text-center text-xs text-zinc-500 font-medium py-6">Loading payments...</p>
                 ) : paymentHistory.length === 0 ? (
-                  <p className="text-center text-xs text-zinc-500 font-medium py-6 bg-white/40 border border-dashed border-zinc-200 rounded-2xl">No payment history found.</p>
+                  <p className="text-center text-xs text-zinc-500 font-medium py-6 bg-white/40 border border-dashed border-zinc-200 rounded-2xl">No payment records found.</p>
                 ) : (
                   <div className="space-y-2">
                     {paymentHistory.map((r: any) => (
