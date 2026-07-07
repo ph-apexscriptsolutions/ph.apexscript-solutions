@@ -1,4 +1,5 @@
 "use client"
+export const dynamic = 'force-dynamic'
 import { useEffect, useState, FormEvent } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/utils/supabase/client"
@@ -2426,7 +2427,7 @@ export default function DashboardPage() {
                 <Card className="mt-6 bg-gradient-to-br from-white to-zinc-50 border-zinc-200/80">
                   <CardHeader className="flex flex-wrap items-center justify-between gap-4">
                     <div>
-                      <CardTitle className="text-lg font-bold text-zinc-900 tracking-tight">Payment Records</CardTitle>
+                      <CardTitle className="text-lg font-bold text-zinc-900 tracking-tight">Payment Center</CardTitle>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
                       {(user?.id === activeWorker?.id || isAdmin) && (
@@ -2435,7 +2436,7 @@ export default function DashboardPage() {
                             Request Payslip
                           </button>
                           <button type="button" onClick={() => { setPaymentHistory([]); setIsPaymentHistoryModalOpen(true); if (activeWorker?.id) fetchPaymentHistory(activeWorker.id) }} className="inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-blue-500 to-indigo-500 px-4 py-2 text-xs font-semibold text-white shadow-xl shadow-blue-500/30 hover:from-blue-600 hover:to-indigo-600 hover:shadow-xl hover:shadow-blue-500/40 transition-all">
-                            Payment Records
+                            Payment Center
                           </button>
                         </>
                       )}
@@ -2971,7 +2972,7 @@ export default function DashboardPage() {
               <CreditCard className="h-6 w-6" />
             </div>
             
-            <h3 className="text-xl font-bold text-zinc-900 mb-1 flex-shrink-0">Payment Records</h3>
+            <h3 className="text-xl font-bold text-zinc-900 mb-1 flex-shrink-0">Payment Center</h3>
             <p className="text-xs text-zinc-600 mb-4 flex-shrink-0">
               {isAdmin ? "Add and view payment records for this worker." : "View all your past payments received."}
             </p>
