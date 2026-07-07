@@ -2974,13 +2974,13 @@ export default function DashboardPage() {
             
             <h3 className="text-xl font-bold text-zinc-900 mb-1 flex-shrink-0">Payment Center</h3>
             <p className="text-xs text-zinc-600 mb-4 flex-shrink-0">
-              {isAdmin ? "Add and view payment records for this worker." : "View all your past payments received."}
+              {isAdmin ? "Add and view payments for this worker." : "View all your past payments received."}
             </p>
 
             <div className="flex-1 overflow-y-auto min-h-0 space-y-6 pr-1">
               {isAdmin && (
                 <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-4 border border-indigo-100 shadow-sm">
-                  <h4 className="text-xs font-bold text-indigo-900 uppercase tracking-wider mb-3">Add Payment Record (Admin Only)</h4>
+                  <h4 className="text-xs font-bold text-indigo-900 uppercase tracking-wider mb-3">Add Payment (Admin Only)</h4>
                   <form onSubmit={addPaymentRecord} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <label className="block text-[11px] font-semibold text-zinc-700 mb-1">Sender's Bank</label>
@@ -3050,7 +3050,7 @@ export default function DashboardPage() {
                         disabled={isAddingPaymentRecord} 
                         className="rounded-xl bg-gradient-to-r from-indigo-600 to-blue-600 px-5 py-2 text-xs font-semibold text-white shadow-md shadow-indigo-500/20 hover:from-indigo-700 hover:to-blue-700 disabled:opacity-50 transition-all"
                       >
-                        {isAddingPaymentRecord ? 'Adding...' : 'Save Payment Record'}
+                        {isAddingPaymentRecord ? 'Adding...' : 'Save Payment'}
                       </button>
                     </div>
                   </form>
@@ -3065,7 +3065,7 @@ export default function DashboardPage() {
                 {isLoadingPaymentHistory ? (
                   <p className="text-center text-xs text-zinc-500 font-medium py-6">Loading payments...</p>
                 ) : paymentHistory.length === 0 ? (
-                  <p className="text-center text-xs text-zinc-500 font-medium py-6 bg-white/40 border border-dashed border-zinc-200 rounded-2xl">No payment records found.</p>
+                  <p className="text-center text-xs text-zinc-500 font-medium py-6 bg-white/40 border border-dashed border-zinc-200 rounded-2xl">No payments found.</p>
                 ) : (
                   <div className="space-y-2">
                     {paymentHistory.map((r: any) => (
