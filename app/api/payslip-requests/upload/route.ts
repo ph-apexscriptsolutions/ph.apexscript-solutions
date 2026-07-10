@@ -18,9 +18,9 @@ const transporter = process.env.EMAIL_USER && process.env.EMAIL_PASS
 function buildWorkerPayslipEmailHtml(workerName: string, cutoffLabel: string): string {
   return `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #111827;">
-      <div style="background: linear-gradient(135deg, #10b981, #059669); padding: 28px 32px; border-radius: 12px 12px 0 0;">
+      <div style="background: linear-gradient(135deg, #2563eb, #1d4ed8); padding: 28px 32px; border-radius: 12px 12px 0 0;">
         <h2 style="margin: 0; color: #ffffff; font-size: 20px;">&#128196; Payslip Ready for Download</h2>
-        <p style="margin: 6px 0 0; color: #d1fae5; font-size: 13px;">Your requested payslip is now available</p>
+        <p style="margin: 6px 0 0; color: #eff6ff; font-size: 13px;">Your requested payslip is now available</p>
       </div>
       <div style="background: #ffffff; padding: 28px 32px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 12px 12px;">
         <p style="margin: 0 0 16px; font-size: 15px; color: #111827;">Hi <strong>${workerName}</strong>,</p>
@@ -29,9 +29,9 @@ function buildWorkerPayslipEmailHtml(workerName: string, cutoffLabel: string): s
           Your requested payslip for the period <strong>${cutoffLabel}</strong> has been uploaded by the administrator.
         </p>
 
-        <div style="background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 8px; padding: 16px; margin: 20px 0;">
-          <h4 style="margin: 0 0 8px; font-size: 14px; color: #065f46;">&#128229; How to download:</h4>
-          <ol style="margin: 0; padding-left: 20px; font-size: 13px; color: #047857; line-height: 1.6;">
+        <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 16px; margin: 20px 0;">
+          <h4 style="margin: 0 0 8px; font-size: 14px; color: #1e3a8a;">&#128229; How to download:</h4>
+          <ol style="margin: 0; padding-left: 20px; font-size: 13px; color: #1d4ed8; line-height: 1.6;">
             <li>Log in to the <strong>ApexScript Worker Portal</strong>.</li>
             <li>In the Worker Hub, click on the <strong>"Request Payslip"</strong> action card.</li>
             <li>Inside the modal, switch to the <strong>"View Status"</strong> tab.</li>
