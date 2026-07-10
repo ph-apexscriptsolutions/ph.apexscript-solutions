@@ -3927,19 +3927,19 @@ export default function DashboardPage() {
             )}
 
             {/* Day-by-Day Availability Grid */}
-            <div className="flex-1 overflow-y-auto min-h-0 space-y-3 mb-5 pr-1">
+            <div className="flex-1 overflow-y-auto min-h-0 space-y-2 mb-5 pr-1">
               {(['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] as const).map(day => (
-                <div key={day} className={`flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3.5 rounded-2xl border transition-all duration-150 ${isAvailabilityLockedThisWeek ? 'bg-zinc-50 border-zinc-100 opacity-80' : 'bg-zinc-50/50 border-zinc-100 hover:bg-zinc-50'}`}>
-                  <span className="text-sm font-bold text-zinc-800 capitalize flex items-center gap-2">
-                    <span className={`h-2 w-2 rounded-full ${(availabilityForm[day]?.sameday || availabilityForm[day]?.overnight) ? 'bg-emerald-500' : 'bg-zinc-300'}`} />
+                <div key={day} className={`flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-2.5 rounded-xl border transition-all duration-150 ${isAvailabilityLockedThisWeek ? 'bg-zinc-50 border-zinc-100 opacity-80' : 'bg-zinc-50/50 border-zinc-100 hover:bg-zinc-50'}`}>
+                  <span className="text-xs font-bold text-zinc-800 capitalize flex items-center gap-2">
+                    <span className={`h-1.5 w-1.5 rounded-full ${(availabilityForm[day]?.sameday || availabilityForm[day]?.overnight) ? 'bg-emerald-500' : 'bg-zinc-300'}`} />
                     {day}
                   </span>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5">
                     <button
                       type="button"
                       disabled={isAvailabilityLockedThisWeek}
                       onClick={() => toggleDayAvailability(day, 'sameday')}
-                      className={`flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 rounded-xl px-4 py-2 text-xs font-semibold border transition-all duration-200 disabled:cursor-not-allowed ${
+                      className={`flex-1 sm:flex-initial inline-flex items-center justify-center gap-1 rounded-lg px-3 py-1.5 text-[10px] font-semibold border transition-all duration-200 disabled:cursor-not-allowed ${
                         availabilityForm[day]?.sameday
                           ? 'bg-sky-600 border-sky-600 text-white shadow-md shadow-sky-500/25'
                           : 'bg-white border-zinc-200 text-zinc-700 hover:enabled:bg-zinc-100 hover:enabled:border-zinc-300'
@@ -3951,7 +3951,7 @@ export default function DashboardPage() {
                       type="button"
                       disabled={isAvailabilityLockedThisWeek}
                       onClick={() => toggleDayAvailability(day, 'overnight')}
-                      className={`flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 rounded-xl px-4 py-2 text-xs font-semibold border transition-all duration-200 disabled:cursor-not-allowed ${
+                      className={`flex-1 sm:flex-initial inline-flex items-center justify-center gap-1 rounded-lg px-3 py-1.5 text-[10px] font-semibold border transition-all duration-200 disabled:cursor-not-allowed ${
                         availabilityForm[day]?.overnight
                           ? 'bg-indigo-600 border-indigo-600 text-white shadow-md shadow-indigo-500/25'
                           : 'bg-white border-zinc-200 text-zinc-700 hover:enabled:bg-zinc-100 hover:enabled:border-zinc-300'
