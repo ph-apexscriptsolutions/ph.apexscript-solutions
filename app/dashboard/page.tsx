@@ -222,9 +222,15 @@ export default function DashboardPage() {
   const [assignmentsWithUpdatedDescription, setAssignmentsWithUpdatedDescription] = useState<Set<number>>(new Set())
 
   // Weekly Availability
-  const defaultAvailability = { sameday: false, overnight: false, monday: false, tuesday: false, wednesday: false, thursday: false, friday: false }
+  const defaultAvailability = {
+    monday: { sameday: false, overnight: false },
+    tuesday: { sameday: false, overnight: false },
+    wednesday: { sameday: false, overnight: false },
+    thursday: { sameday: false, overnight: false },
+    friday: { sameday: false, overnight: false }
+  }
   const [isAvailabilityModalOpen, setIsAvailabilityModalOpen] = useState(false)
-  const [availabilityForm, setAvailabilityForm] = useState(defaultAvailability)
+  const [availabilityForm, setAvailabilityForm] = useState<Record<string, { sameday: boolean; overnight: boolean }>>(defaultAvailability)
   const [isSavingAvailability, setIsSavingAvailability] = useState(false)
 
   // Check for updated descriptions based on database column
@@ -529,8 +535,42 @@ export default function DashboardPage() {
 
   const fetchAvailability = async (workerId: string) => {
     const { data } = await supabase.from('worker_profiles').select('weekly_availability').eq('id', workerId).single()
-    if (data?.weekly_availability) setAvailabilityForm({ ...defaultAvailability, ...data.weekly_availability })
-    else setAvailabilityForm(defaultAvailability)
+    const avail = data?.weekly_availability
+    
+    if (avail && typeof avail === 'object') {
+      if ('monday' in avail && typeof (avail as any).monday === 'object') {
+        setAvailabilityForm({
+          monday: { sameday: !!(avail as any).monday?.sameday, overnight: !!(avail as any).monday?.overnight },
+          tuesday: { sameday: !!(avail as any).tuesday?.sameday, overnight: !!(avail as any).tuesday?.overnight },
+          wednesday: { sameday: !!(avail as any).wednesday?.sameday, overnight: !!(avail as any).wednesday?.overnight },
+          thursday: { sameday: !!(avail as any).thursday?.sameday, overnight: !!(avail as any).thursday?.overnight },
+          friday: { sameday: !!(avail as any).friday?.sameday, overnight: !!(avail as any).friday?.overnight }
+        })
+      } else {
+        // Fallback for old format
+        const isSameday = !!(avail as any).sameday
+        const isOvernight = !!(avail as any).overnight
+        setAvailabilityForm({
+          monday: { sameday: isSameday && !!(avail as any).monday, overnight: isOvernight && !!(avail as any).monday },
+          tuesday: { sameday: isSameday && !!(avail as any).tuesday, overnight: isOvernight && !!(avail as any).tuesday },
+          wednesday: { sameday: isSameday && !!(avail as any).wednesday, overnight: isOvernight && !!(avail as any).wednesday },
+          thursday: { sameday: isSameday && !!(avail as any).thursday, overnight: isOvernight && !!(avail as any).thursday },
+          friday: { sameday: isSameday && !!(avail as any).friday, overnight: isOvernight && !!(avail as any).friday }
+        })
+      }
+    } else {
+      setAvailabilityForm(defaultAvailability)
+    }
+  }
+
+  const toggleDayAvailability = (day: string, type: 'sameday' | 'overnight') => {
+    setAvailabilityForm(f => ({
+      ...f,
+      [day]: {
+        ...f[day],
+        [type]: !f[day]?.[type]
+      }
+    }))
   }
 
   const saveAvailability = async () => {
@@ -3116,7 +3156,7 @@ export default function DashboardPage() {
       {/* ── Weekly Availability Modal ── */}
       {isAvailabilityModalOpen && activeWorker && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
-          <div className="bg-gradient-to-br from-white via-emerald-50/30 to-teal-50/30 rounded-3xl shadow-2xl shadow-emerald-500/20 w-full max-w-md p-6 relative border border-emerald-200/60">
+          <div className="bg-white rounded-3xl shadow-2xl shadow-emerald-950/20 w-full max-w-lg p-6 relative border border-zinc-200">
             <button onClick={() => setIsAvailabilityModalOpen(false)} className="absolute right-4 top-4 text-zinc-400 hover:text-zinc-700 transition-colors"><X className="h-5 w-5" /></button>
 
             {/* Header */}
@@ -3126,56 +3166,52 @@ export default function DashboardPage() {
               </div>
               <div>
                 <h3 className="text-lg font-bold text-zinc-900">Weekly Availability</h3>
-                <p className="text-xs text-zinc-500">Set your schedule for the week</p>
+                <p className="text-xs text-zinc-600">Set your schedule per day of the week</p>
               </div>
             </div>
 
-            {/* Work Type Toggles */}
-            <div className="mb-5">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-3">Work Type</p>
-              <div className="grid grid-cols-2 gap-2">
-                {([['sameday', 'Sameday', 'bg-sky-500'], ['overnight', 'Overnight', 'bg-indigo-500']] as const).map(([key, label, color]) => (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => setAvailabilityForm(f => ({ ...f, [key]: !f[key] }))}
-                    className={`relative flex items-center justify-between rounded-xl px-4 py-3 border transition-all duration-200 ${availabilityForm[key] ? 'bg-gradient-to-r from-emerald-500 to-teal-500 border-emerald-400 shadow-lg shadow-emerald-500/30 text-white' : 'bg-white border-zinc-200 text-zinc-600 hover:border-zinc-300'}`}
-                  >
-                    <span className="text-sm font-semibold">{label}</span>
-                    <span className={`ml-2 flex h-5 w-5 items-center justify-center rounded-full text-xs font-bold transition-all ${availabilityForm[key] ? 'bg-white/30 text-white' : 'bg-zinc-100 text-zinc-400'}`}>
-                      {availabilityForm[key] ? '✓' : '–'}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Day-of-week toggles Mon–Fri */}
-            <div className="mb-6">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-3">Available Days</p>
-              <div className="grid grid-cols-5 gap-2">
-                {(['monday','tuesday','wednesday','thursday','friday'] as const).map(day => (
-                  <button
-                    key={day}
-                    type="button"
-                    onClick={() => setAvailabilityForm(f => ({ ...f, [day]: !f[day] }))}
-                    className={`flex flex-col items-center gap-1 rounded-xl py-3 border transition-all duration-200 ${availabilityForm[day] ? 'bg-gradient-to-br from-emerald-500 to-teal-500 border-emerald-400 shadow-md shadow-emerald-500/30 text-white' : 'bg-white border-zinc-200 text-zinc-500 hover:border-zinc-300'}`}
-                  >
-                    <span className="text-[10px] font-bold uppercase tracking-wider">{day.slice(0,3)}</span>
-                    <span className={`h-4 w-4 rounded-full flex items-center justify-center text-[9px] font-bold transition-all ${availabilityForm[day] ? 'bg-white/30 text-white' : 'bg-zinc-100 text-zinc-300'}`}>
-                      {availabilityForm[day] ? '✓' : ''}
-                    </span>
-                  </button>
-                ))}
-              </div>
+            {/* Day-by-Day Availability Grid */}
+            <div className="space-y-3 mb-6 max-h-[350px] overflow-y-auto pr-1">
+              {(['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] as const).map(day => (
+                <div key={day} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3.5 rounded-2xl border border-zinc-100 bg-zinc-50/50 hover:bg-zinc-50 transition-all duration-150">
+                  <span className="text-sm font-bold text-zinc-800 capitalize flex items-center gap-2">
+                    <span className={`h-2 w-2 rounded-full ${(availabilityForm[day]?.sameday || availabilityForm[day]?.overnight) ? 'bg-emerald-500' : 'bg-zinc-300'}`} />
+                    {day}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => toggleDayAvailability(day, 'sameday')}
+                      className={`flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 rounded-xl px-4 py-2 text-xs font-semibold border transition-all duration-200 ${
+                        availabilityForm[day]?.sameday
+                          ? 'bg-sky-600 border-sky-600 text-white shadow-md shadow-sky-500/25'
+                          : 'bg-white border-zinc-200 text-zinc-700 hover:bg-zinc-100 hover:border-zinc-300'
+                      }`}
+                    >
+                      {availabilityForm[day]?.sameday ? '✓ Sameday' : 'Sameday'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => toggleDayAvailability(day, 'overnight')}
+                      className={`flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 rounded-xl px-4 py-2 text-xs font-semibold border transition-all duration-200 ${
+                        availabilityForm[day]?.overnight
+                          ? 'bg-indigo-600 border-indigo-600 text-white shadow-md shadow-indigo-500/25'
+                          : 'bg-white border-zinc-200 text-zinc-700 hover:bg-zinc-100 hover:border-zinc-300'
+                      }`}
+                    >
+                      {availabilityForm[day]?.overnight ? '✓ Overnight' : 'Overnight'}
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
 
             {/* Actions */}
             <div className="flex gap-3">
-              <button type="button" onClick={() => setIsAvailabilityModalOpen(false)} className="flex-1 rounded-lg border border-zinc-200 bg-white px-4 py-2 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 transition-all shadow-sm">
+              <button type="button" onClick={() => setIsAvailabilityModalOpen(false)} className="flex-1 rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-xs font-bold text-zinc-700 hover:bg-zinc-50 transition-all shadow-sm">
                 Cancel
               </button>
-              <button type="button" onClick={saveAvailability} disabled={isSavingAvailability} className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 px-4 py-2 text-xs font-semibold text-white shadow-lg shadow-emerald-500/30 hover:from-emerald-700 hover:to-teal-700 hover:shadow-emerald-500/50 hover:shadow-xl disabled:opacity-50 transition-all">
+              <button type="button" onClick={saveAvailability} disabled={isSavingAvailability} className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-4 py-2.5 text-xs font-bold text-white shadow-lg shadow-emerald-500/30 hover:from-emerald-700 hover:to-teal-700 hover:shadow-emerald-500/50 hover:shadow-xl disabled:opacity-50 transition-all">
                 {isSavingAvailability ? 'Saving...' : 'Save Availability'}
               </button>
             </div>
