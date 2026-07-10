@@ -237,6 +237,16 @@ export default function DashboardPage() {
   const [availabilitySubmittedAt, setAvailabilitySubmittedAt] = useState<string | null>(null)
   const [isResettingAvailability, setIsResettingAvailability] = useState(false)
 
+  // Style Guides
+  const [isStyleGuidesModalOpen, setIsStyleGuidesModalOpen] = useState(false)
+  const [isStyleGuidesAdminModalOpen, setIsStyleGuidesAdminModalOpen] = useState(false)
+  const [styleGuides, setStyleGuides] = useState<any[]>([])
+  const [isLoadingStyleGuides, setIsLoadingStyleGuides] = useState(false)
+  const [isUploadingStyleGuide, setIsUploadingStyleGuide] = useState<string | null>(null)
+  const [isDeletingStyleGuide, setIsDeletingStyleGuide] = useState<string | null>(null)
+  const [editingNote, setEditingNote] = useState<{ department: string; value: string } | null>(null)
+  const [isSavingNote, setIsSavingNote] = useState<string | null>(null)
+
   // Check for updated descriptions based on database column
   useEffect(() => {
     if (!assignments.length || !profile?.id) return
@@ -1278,6 +1288,87 @@ export default function DashboardPage() {
   const handleProceedRequestPayslip = async () => {
     setShowPayslipConfirm(false)
     await requestPayslip()
+  }
+
+  const fetchStyleGuides = async () => {
+    setIsLoadingStyleGuides(true)
+    try {
+      const res = await fetch('/api/style-guides')
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to fetch style guides')
+      setStyleGuides(data.guides || [])
+    } catch (err: any) {
+      console.error('Fetch style guides error:', err)
+    } finally {
+      setIsLoadingStyleGuides(false)
+    }
+  }
+
+  const handleStyleGuideUpload = async (department: string, file: File) => {
+    if (!file) return
+    setIsUploadingStyleGuide(department)
+    try {
+      const formData = new FormData()
+      formData.append('department', department)
+      formData.append('file', file)
+      const res = await fetch('/api/style-guides/upload', { method: 'POST', body: formData })
+      const data = await res.json()
+      if (!res.ok || !data.success) throw new Error(data.error || 'Failed to upload style guide')
+      await fetchStyleGuides()
+      setToastMessage(`✅ Style guide uploaded for ${department}`)
+      setShowToast(true)
+      setTimeout(() => { setShowToast(false); setToastMessage(null) }, 3000)
+    } catch (err: any) {
+      console.error('Style guide upload error:', err)
+      alert(`Failed to upload style guide: ${err.message}`)
+    } finally {
+      setIsUploadingStyleGuide(null)
+    }
+  }
+
+  const handleStyleGuideDelete = async (department: string) => {
+    setIsDeletingStyleGuide(department)
+    try {
+      const res = await fetch('/api/style-guides/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ department }),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.success) throw new Error(data.error || 'Failed to remove style guide')
+      await fetchStyleGuides()
+      setToastMessage(`🗑️ Style guide removed for ${department}`)
+      setShowToast(true)
+      setTimeout(() => { setShowToast(false); setToastMessage(null) }, 3000)
+    } catch (err: any) {
+      console.error('Style guide delete error:', err)
+      alert(`Failed to remove style guide: ${err.message}`)
+    } finally {
+      setIsDeletingStyleGuide(null)
+    }
+  }
+
+  const handleStyleGuideNoteSave = async (department: string, note: string) => {
+    setIsSavingNote(department)
+    try {
+      const res = await fetch('/api/style-guides', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ department, note }),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.success) throw new Error(data.error || 'Failed to save note')
+      setStyleGuides(prev => prev.map(g => g.department === department ? { ...g, note } : g))
+      setEditingNote(null)
+      setToastMessage(`📝 Note saved for ${department}`)
+      setShowToast(true)
+      setTimeout(() => { setShowToast(false); setToastMessage(null) }, 3000)
+    } catch (err: any) {
+      console.error('Style guide note save error:', err)
+      alert(`Failed to save note: ${err.message}`)
+    } finally {
+      setIsSavingNote(null)
+    }
   }
 
   const fetchAnnouncements = async () => {
@@ -2408,6 +2499,23 @@ export default function DashboardPage() {
                         </div>
                       </button>
 
+                      {/* Manage Style Guides */}
+                      <button
+                        onClick={() => { setIsStyleGuidesAdminModalOpen(true); fetchStyleGuides() }}
+                        className="group relative flex flex-col items-start gap-3 rounded-2xl border border-white/10 bg-white/5 p-5 text-left backdrop-blur-sm hover:bg-white/10 hover:border-amber-400/40 transition-all duration-200 hover:shadow-xl hover:shadow-amber-600/20"
+                      >
+                        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 shadow-lg shadow-amber-500/30 group-hover:scale-110 transition-transform duration-200">
+                          <svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+                        </div>
+                        <div>
+                          <p className="font-semibold text-white">Style Guides</p>
+                          <p className="mt-0.5 text-xs text-zinc-400">Upload formatting rules by department</p>
+                        </div>
+                        <div className="absolute right-4 top-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <svg className="h-4 w-4 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                        </div>
+                      </button>
+
                     </div>
                   </div>
                 </div>
@@ -2788,6 +2896,24 @@ export default function DashboardPage() {
                         </div>
                         <div className="absolute right-3 top-3 opacity-0 group-hover:opacity-100 transition-opacity">
                           <svg className="h-3.5 w-3.5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                        </div>
+                      </button>
+
+                      {/* Style Guides & Formatting Rules */}
+                      <button
+                        type="button"
+                        onClick={() => { setIsStyleGuidesModalOpen(true); fetchStyleGuides() }}
+                        className="group relative flex flex-col items-start gap-2.5 rounded-xl border border-white/10 bg-white/5 p-4 text-left backdrop-blur-sm hover:bg-white/10 hover:border-amber-400/40 transition-all duration-200 hover:shadow-xl hover:shadow-amber-600/20"
+                      >
+                        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 shadow-lg shadow-amber-500/30 group-hover:scale-110 transition-transform duration-200">
+                          <svg className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-white">Style Guides</p>
+                          <p className="mt-0.5 text-[11px] leading-relaxed text-zinc-400">Download formatting rules by department</p>
+                        </div>
+                        <div className="absolute right-3 top-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <svg className="h-3.5 w-3.5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
                         </div>
                       </button>
 
@@ -3315,6 +3441,234 @@ export default function DashboardPage() {
                 className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-700 to-sky-700 px-4 py-2.5 text-xs font-semibold text-white shadow-xl shadow-blue-600/30 hover:from-blue-800 hover:to-sky-800 hover:shadow-xl transition-all"
               >
                 Yes, Proceed
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Style Guides Worker Modal ── */}
+      {isStyleGuidesModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6 relative max-h-[90vh] flex flex-col overflow-hidden">
+
+            <button 
+              onClick={() => setIsStyleGuidesModalOpen(false)} 
+              className="absolute right-4 top-4 z-10 cursor-pointer text-zinc-400 hover:text-zinc-900 transition-colors"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            {/* Header */}
+            <div className="flex items-center gap-3 mb-5 flex-shrink-0">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 text-white shadow-md shadow-orange-500/20 flex-shrink-0">
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-zinc-900">Style Guides & Formatting Rules</h3>
+                <p className="text-xs text-zinc-500">Download formatting guidelines for your department</p>
+              </div>
+            </div>
+
+            {/* Department List */}
+            <div className="flex-1 overflow-y-auto space-y-2.5 pr-1 min-h-0">
+              {isLoadingStyleGuides ? (
+                <div className="flex flex-col items-center justify-center py-16 text-zinc-400 gap-3">
+                  <svg className="h-6 w-6 animate-spin text-amber-500" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+                  <span className="text-xs">Loading style guides...</span>
+                </div>
+              ) : styleGuides.length === 0 ? (
+                <div className="text-center py-14 text-zinc-400 flex flex-col items-center gap-2">
+                  <span className="text-2xl">📁</span>
+                  <p className="text-sm">No style guides available yet.</p>
+                </div>
+              ) : (
+                styleGuides.map((guide: any) => (
+                  <div key={guide.id} className="flex items-center justify-between rounded-lg border border-zinc-200 bg-zinc-50 hover:bg-orange-50 hover:border-orange-200 p-3 gap-4 transition-all duration-200">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-100 text-amber-600 flex-shrink-0">
+                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-zinc-800 truncate">{guide.department}</p>
+                        {guide.file_name && <p className="text-[10px] text-zinc-400 truncate mt-0.5">{guide.file_name}</p>}
+                      </div>
+                    </div>
+                    {guide.file_url ? (
+                      <a
+                        href={guide.file_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex-shrink-0 inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 px-3 py-1.5 text-xs font-bold text-white hover:from-amber-600 hover:to-orange-700 transition-all shadow-sm hover:shadow-orange-500/20"
+                      >
+                        <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                        Download
+                      </a>
+                    ) : (
+                      <div className="text-xs text-zinc-400 pl-1 italic">
+                        {guide.note || 'No file uploaded yet.'}
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="flex-shrink-0 pt-4 border-t border-zinc-200 mt-4">
+              <button 
+                onClick={() => setIsStyleGuidesModalOpen(false)} 
+                className="w-full rounded-md border border-zinc-300 bg-white px-5 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-100 transition"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Style Guides Admin Modal ── */}
+      {isStyleGuidesAdminModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6 relative max-h-[90vh] flex flex-col overflow-hidden">
+
+            <button 
+              onClick={() => setIsStyleGuidesAdminModalOpen(false)} 
+              className="absolute right-4 top-4 z-10 cursor-pointer text-zinc-400 hover:text-zinc-900 transition-colors"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            {/* Header */}
+            <div className="flex items-center gap-3 mb-5 flex-shrink-0">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 text-white shadow-md shadow-orange-500/20 flex-shrink-0">
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-zinc-900">Manage Style Guides</h3>
+                <p className="text-xs text-zinc-500">Upload or remove formatting guides per department</p>
+              </div>
+            </div>
+
+            {/* Department List */}
+            <div className="flex-1 overflow-y-auto space-y-3 pr-1 min-h-0">
+              {isLoadingStyleGuides ? (
+                <div className="flex flex-col items-center justify-center py-16 text-zinc-400 gap-3">
+                  <svg className="h-6 w-6 animate-spin text-amber-500" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+                  <span className="text-xs">Loading departments...</span>
+                </div>
+              ) : styleGuides.length === 0 ? (
+                <div className="text-center py-14 text-zinc-400">
+                  <p className="text-sm">No departments found. Run database migration 018 first.</p>
+                </div>
+              ) : (
+                styleGuides.map((guide: any) => (
+                  <div key={guide.id} className="rounded-lg border border-zinc-200 bg-zinc-50 p-4 space-y-3 hover:border-orange-200 transition-all duration-200">
+                    <div className="flex items-center gap-2.5">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-100 text-amber-600 flex-shrink-0">
+                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
+                      </div>
+                      <p className="text-sm font-semibold text-zinc-800">{guide.department}</p>
+                    </div>
+
+                    {guide.file_url ? (
+                      <div className="flex items-center gap-2 flex-wrap bg-white border border-zinc-200 p-2 rounded-lg">
+                        <a 
+                          href={guide.file_url} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="flex-1 min-w-0 text-xs text-amber-600 font-semibold underline truncate hover:text-amber-700 transition-colors pl-1"
+                        >
+                          {guide.file_name || 'View file'}
+                        </a>
+                        <button
+                          onClick={() => handleStyleGuideDelete(guide.department)}
+                          disabled={isDeletingStyleGuide === guide.department}
+                          className="inline-flex items-center gap-1.5 rounded-md bg-red-50 border border-red-200 hover:bg-red-100 px-3 py-1.5 text-xs font-semibold text-red-600 hover:text-red-700 transition-all disabled:opacity-50"
+                        >
+                          {isDeletingStyleGuide === guide.department ? (
+                            <svg className="h-3.5 w-3.5 animate-spin text-red-500" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+                          ) : (
+                            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                          )}
+                          Remove
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="pl-1">
+                        {editingNote?.department === guide.department ? (
+                          <div className="space-y-2">
+                            <textarea
+                              autoFocus
+                              rows={2}
+                              className="w-full rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-zinc-700 outline-none resize-none focus:ring-2 focus:ring-amber-400/40"
+                              placeholder="Type a note for workers e.g. 'Coming soon — check back next week'"
+                              value={editingNote.value}
+                              onChange={(e) => setEditingNote({ department: guide.department, value: e.target.value })}
+                            />
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => handleStyleGuideNoteSave(guide.department, editingNote.value)}
+                                disabled={isSavingNote === guide.department}
+                                className="inline-flex items-center gap-1 rounded-md bg-amber-500 hover:bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white transition disabled:opacity-50"
+                              >
+                                {isSavingNote === guide.department ? 'Saving…' : 'Save'}
+                              </button>
+                              <button
+                                onClick={() => setEditingNote(null)}
+                                className="inline-flex items-center gap-1 rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-xs font-medium text-zinc-600 hover:bg-zinc-100 transition"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => setEditingNote({ department: guide.department, value: guide.note || '' })}
+                            className="group flex items-center gap-1.5 text-xs text-zinc-400 hover:text-amber-600 transition-colors"
+                          >
+                            <svg className="h-3.5 w-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                            <span className="italic">{guide.note || 'Add a note for workers…'}</span>
+                          </button>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Upload control */}
+                    <label className={`flex items-center justify-center gap-2 rounded-lg border border-dashed px-4 py-3 cursor-pointer transition-all duration-200 ${isUploadingStyleGuide === guide.department ? 'border-amber-400 bg-amber-50' : 'border-zinc-300 hover:border-amber-400 bg-white hover:bg-amber-50'}`}>
+                      {isUploadingStyleGuide === guide.department ? (
+                        <>
+                          <svg className="h-4 w-4 animate-spin text-amber-500 flex-shrink-0" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+                          <span className="text-xs text-amber-600 font-semibold">Uploading…</span>
+                        </>
+                      ) : (
+                        <>
+                          <svg className="h-4 w-4 text-zinc-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                          <span className="text-xs text-zinc-500 font-medium">{guide.file_url ? 'Replace file' : 'Upload guide'} <span className="text-zinc-400">(PDF, DOC, DOCX)</span></span>
+                        </>
+                      )}
+                      <input
+                        type="file"
+                        className="sr-only"
+                        accept=".pdf,.doc,.docx,.txt"
+                        disabled={isUploadingStyleGuide !== null}
+                        onChange={(e) => {
+                          const file = e.target.files?.[0]
+                          if (file) handleStyleGuideUpload(guide.department, file)
+                          e.target.value = ''
+                        }}
+                      />
+                    </label>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="flex-shrink-0 pt-4 border-t border-zinc-200 mt-4">
+              <button 
+                onClick={() => setIsStyleGuidesAdminModalOpen(false)} 
+                className="w-full rounded-md border border-zinc-300 bg-white px-5 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-100 transition"
+              >
+                Done
               </button>
             </div>
           </div>
