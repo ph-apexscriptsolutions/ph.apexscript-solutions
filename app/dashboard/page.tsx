@@ -3529,49 +3529,49 @@ export default function DashboardPage() {
 
       {/* ── Style Guides Worker Modal ── */}
       {isStyleGuidesModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6 relative max-h-[90vh] flex flex-col overflow-hidden">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-fade-in">
+          <div className="bg-zinc-950/95 border border-orange-500/20 backdrop-blur-xl shadow-[0_0_50px_rgba(249,115,22,0.15)] rounded-3xl w-full max-w-lg p-6 relative max-h-[90vh] flex flex-col overflow-hidden animate-scale-up">
 
             <button 
               onClick={() => setIsStyleGuidesModalOpen(false)} 
-              className="absolute right-4 top-4 z-10 cursor-pointer text-zinc-400 hover:text-zinc-900 transition-colors"
+              className="absolute right-4 top-4 z-10 cursor-pointer text-zinc-500 hover:text-orange-400 hover:rotate-90 transition-all duration-300"
             >
               <X className="h-5 w-5" />
             </button>
 
             {/* Header */}
             <div className="flex items-center gap-3 mb-5 flex-shrink-0">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 text-white shadow-md shadow-orange-500/20 flex-shrink-0">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-orange-500 to-amber-600 text-white shadow-lg shadow-orange-500/30 flex-shrink-0">
                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-zinc-900">Style Guides & Formatting Rules</h3>
-                <p className="text-xs text-zinc-500">Download formatting guidelines for your department</p>
+                <h3 className="text-lg font-bold bg-gradient-to-r from-orange-400 via-amber-400 to-orange-500 bg-clip-text text-transparent">Style Guides & Formatting Rules</h3>
+                <p className="text-xs text-zinc-400 font-medium">Download formatting guidelines for your department</p>
               </div>
             </div>
 
             {/* Department List */}
-            <div className="flex-1 overflow-y-auto space-y-2.5 pr-1 min-h-0">
+            <div className="flex-1 overflow-y-auto space-y-3 pr-1 min-h-0">
               {isLoadingStyleGuides ? (
-                <div className="flex flex-col items-center justify-center py-16 text-zinc-400 gap-3">
-                  <svg className="h-6 w-6 animate-spin text-amber-500" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+                <div className="flex flex-col items-center justify-center py-16 text-zinc-500 gap-3">
+                  <svg className="h-6 w-6 animate-spin text-orange-500" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
                   <span className="text-xs">Loading style guides...</span>
                 </div>
               ) : styleGuides.length === 0 ? (
-                <div className="text-center py-14 text-zinc-400 flex flex-col items-center gap-2">
-                  <span className="text-2xl">📁</span>
-                  <p className="text-sm">No style guides available yet.</p>
+                <div className="text-center py-14 text-zinc-500 flex flex-col items-center gap-2">
+                  <span className="text-2xl opacity-60">📁</span>
+                  <p className="text-sm font-medium">No style guides available yet.</p>
                 </div>
               ) : (
                 styleGuides.map((guide: any) => (
-                  <div key={guide.id} className="flex items-center justify-between rounded-lg border border-zinc-200 bg-zinc-50 hover:bg-orange-50 hover:border-orange-200 p-3 gap-4 transition-all duration-200">
+                  <div key={guide.id} className="flex items-center justify-between rounded-2xl border border-white/5 bg-white/5 hover:bg-orange-500/5 hover:border-orange-500/30 p-4 gap-4 transition-all duration-300 group">
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-100 text-amber-600 flex-shrink-0">
-                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
+                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-orange-500/10 text-orange-400 group-hover:bg-orange-500/20 group-hover:scale-105 transition-all duration-300 flex-shrink-0">
+                        <svg className="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
                       </div>
                       <div className="min-w-0">
-                        <p className="text-sm font-semibold text-zinc-800 truncate">{guide.department}</p>
-                        {guide.file_name && <p className="text-[10px] text-zinc-400 truncate mt-0.5">{guide.file_name}</p>}
+                        <p className="text-sm font-semibold text-zinc-200 group-hover:text-orange-400 transition-colors truncate">{guide.department}</p>
+                        {guide.file_name && <p className="text-[10px] text-zinc-500 truncate mt-0.5">{guide.file_name}</p>}
                       </div>
                     </div>
                     {guide.file_url ? (
@@ -3579,14 +3579,14 @@ export default function DashboardPage() {
                         href={guide.file_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex-shrink-0 inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 px-3 py-1.5 text-xs font-bold text-white hover:from-amber-600 hover:to-orange-700 transition-all shadow-sm hover:shadow-orange-500/20"
+                        className="flex-shrink-0 inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 px-4 py-2 text-xs font-bold text-white hover:from-orange-600 hover:to-amber-600 transition-all duration-300 shadow-md shadow-orange-500/25 hover:shadow-orange-500/35 hover:-translate-y-0.5"
                       >
                         <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
                         Download
                       </a>
                     ) : (
-                      <div className="text-xs text-zinc-400 pl-1 italic">
-                        {guide.note || 'No file uploaded yet.'}
+                      <div className="text-xs text-zinc-400 pl-2.5 py-0.5 italic border-l border-orange-500/30">
+                        {guide.note || 'No file uploaded.'}
                       </div>
                     )}
                   </div>
@@ -3594,10 +3594,10 @@ export default function DashboardPage() {
               )}
             </div>
 
-            <div className="flex-shrink-0 pt-4 border-t border-zinc-200 mt-4">
+            <div className="flex-shrink-0 pt-4 border-t border-white/10 mt-4">
               <button 
                 onClick={() => setIsStyleGuidesModalOpen(false)} 
-                className="w-full rounded-md border border-zinc-300 bg-white px-5 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-100 transition"
+                className="w-full rounded-xl border border-white/10 bg-white/5 px-5 py-2.5 text-sm font-semibold text-zinc-300 hover:bg-white/10 hover:text-white hover:border-orange-500/40 transition-all duration-300 shadow-sm"
               >
                 Close
               </button>
@@ -3608,35 +3608,35 @@ export default function DashboardPage() {
 
       {/* ── Style Guides Admin Modal ── */}
       {isStyleGuidesAdminModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6 relative max-h-[90vh] flex flex-col overflow-hidden">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-fade-in">
+          <div className="bg-zinc-950/95 border border-orange-500/20 backdrop-blur-xl shadow-[0_0_50px_rgba(249,115,22,0.15)] rounded-3xl w-full max-w-lg p-6 relative max-h-[90vh] flex flex-col overflow-hidden animate-scale-up">
 
             <button 
               onClick={() => setIsStyleGuidesAdminModalOpen(false)} 
-              className="absolute right-4 top-4 z-10 cursor-pointer text-zinc-400 hover:text-zinc-900 transition-colors"
+              className="absolute right-4 top-4 z-10 cursor-pointer text-zinc-500 hover:text-orange-400 hover:rotate-90 transition-all duration-300"
             >
               <X className="h-5 w-5" />
             </button>
 
             {/* Header */}
             <div className="flex items-center gap-3 mb-5 flex-shrink-0">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 text-white shadow-md shadow-orange-500/20 flex-shrink-0">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-orange-500 to-amber-600 text-white shadow-lg shadow-orange-500/30 flex-shrink-0">
                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-zinc-900">Manage Style Guides</h3>
-                <p className="text-xs text-zinc-500">Add, rename, or remove formatting guides per department</p>
+                <h3 className="text-lg font-bold bg-gradient-to-r from-orange-400 via-amber-400 to-orange-500 bg-clip-text text-transparent">Manage Style Guides</h3>
+                <p className="text-xs text-zinc-400 font-medium">Add, rename, or remove formatting guides per department</p>
               </div>
             </div>
 
             {/* Add Department Form */}
-            <div className="mb-4 bg-zinc-50 border border-zinc-200 rounded-lg p-3 flex-shrink-0">
-              <p className="text-xs font-semibold text-zinc-700 mb-2">Add New Department</p>
+            <div className="mb-5 bg-white/5 border border-white/10 rounded-2xl p-4 flex-shrink-0 backdrop-blur-sm">
+              <p className="text-xs font-bold text-orange-400 mb-2">Add New Department</p>
               <div className="flex gap-2">
                 <input
                   type="text"
                   placeholder="e.g. Finance Transcription"
-                  className="flex-1 rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-xs text-zinc-800 outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20"
+                  className="flex-1 rounded-xl border border-white/10 bg-black/40 px-3.5 py-2 text-xs text-white placeholder-zinc-500 outline-none focus:border-orange-500/60 focus:ring-2 focus:ring-orange-500/10 transition-all duration-200"
                   value={newDepartmentName}
                   onChange={(e) => setNewDepartmentName(e.target.value)}
                   disabled={isAddingDepartment}
@@ -3649,7 +3649,7 @@ export default function DashboardPage() {
                 <button
                   onClick={() => handleAddStyleGuideDept(newDepartmentName)}
                   disabled={isAddingDepartment || !newDepartmentName.trim()}
-                  className="inline-flex items-center justify-center rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 px-4 py-1.5 text-xs font-bold text-white transition disabled:opacity-50"
+                  className="inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 px-5 py-2 text-xs font-bold text-white transition-all duration-300 shadow-md shadow-orange-500/20 hover:shadow-orange-500/30 hover:-translate-y-0.5 disabled:opacity-50"
                 >
                   {isAddingDepartment ? 'Adding…' : 'Add'}
                 </button>
@@ -3657,25 +3657,25 @@ export default function DashboardPage() {
             </div>
 
             {/* Department List */}
-            <div className="flex-1 overflow-y-auto space-y-3 pr-1 min-h-0">
+            <div className="flex-1 overflow-y-auto space-y-3.5 pr-1 min-h-0">
               {isLoadingStyleGuides ? (
-                <div className="flex flex-col items-center justify-center py-16 text-zinc-400 gap-3">
-                  <svg className="h-6 w-6 animate-spin text-amber-500" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+                <div className="flex flex-col items-center justify-center py-16 text-zinc-500 gap-3">
+                  <svg className="h-6 w-6 animate-spin text-orange-500" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
                   <span className="text-xs">Loading departments...</span>
                 </div>
               ) : styleGuides.length === 0 ? (
-                <div className="text-center py-14 text-zinc-400">
+                <div className="text-center py-14 text-zinc-500">
                   <p className="text-sm font-medium">No departments found. Add one above to get started.</p>
                 </div>
               ) : (
                 styleGuides.map((guide: any) => (
-                  <div key={guide.id} className="relative rounded-lg border border-zinc-200 bg-zinc-50 p-4 space-y-3 hover:border-orange-200 transition-all duration-200">
+                  <div key={guide.id} className="relative rounded-2xl border border-white/5 bg-white/5 p-4 space-y-3.5 hover:border-orange-500/30 hover:bg-orange-500/5 transition-all duration-300">
                     
                     {/* Delete department button */}
                     <button
                       onClick={() => handleDeleteStyleGuideDept(guide.id, guide.department)}
                       disabled={isDeletingDeptId === guide.id}
-                      className="absolute right-3 top-3 text-zinc-400 hover:text-red-600 transition-colors p-1"
+                      className="absolute right-4 top-4 text-zinc-500 hover:text-red-500 hover:scale-110 transition-all duration-200 p-1 cursor-pointer"
                       title="Delete Department"
                     >
                       {isDeletingDeptId === guide.id ? (
@@ -3686,8 +3686,8 @@ export default function DashboardPage() {
                     </button>
 
                     <div className="flex items-center gap-2.5 pr-6">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-100 text-amber-600 flex-shrink-0">
-                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
+                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-orange-500/10 text-orange-400 flex-shrink-0">
+                        <svg className="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
                       </div>
 
                       {renamingDepartmentId === guide.id ? (
@@ -3695,7 +3695,7 @@ export default function DashboardPage() {
                           <input
                             type="text"
                             autoFocus
-                            className="flex-1 rounded-md border border-amber-300 bg-amber-50 px-2 py-1 text-xs text-zinc-800 outline-none focus:ring-1 focus:ring-amber-400"
+                            className="flex-1 rounded-xl border border-orange-500/40 bg-orange-950/20 px-3 py-1.5 text-xs text-white outline-none focus:ring-2 focus:ring-orange-500/20"
                             value={renamingValue}
                             onChange={(e) => setRenamingValue(e.target.value)}
                             disabled={isRenamingDept === guide.id}
@@ -3710,48 +3710,48 @@ export default function DashboardPage() {
                           <button
                             onClick={() => handleRenameStyleGuideDept(guide.id, guide.department, renamingValue)}
                             disabled={isRenamingDept === guide.id || !renamingValue.trim()}
-                            className="rounded bg-amber-500 px-2 py-1 text-[10px] font-bold text-white hover:bg-amber-600 transition"
+                            className="rounded-lg bg-orange-500 px-3 py-1.5 text-xs font-bold text-white hover:bg-orange-600 transition shadow-md shadow-orange-500/25"
                           >
                             {isRenamingDept === guide.id ? 'Saving…' : 'Save'}
                           </button>
                           <button
                             onClick={() => setRenamingDepartmentId(null)}
-                            className="rounded border border-zinc-300 bg-white px-2 py-1 text-[10px] text-zinc-600 hover:bg-zinc-100 transition"
+                            className="rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-zinc-300 hover:bg-white/10 hover:text-white transition"
                           >
                             Cancel
                           </button>
                         </div>
                       ) : (
-                        <div className="flex items-center gap-1.5 group/title min-w-0">
-                          <p className="text-sm font-semibold text-zinc-800 truncate">{guide.department}</p>
+                        <div className="flex items-center gap-2 group/title min-w-0">
+                          <p className="text-sm font-semibold text-zinc-200 truncate">{guide.department}</p>
                           <button
                             onClick={() => {
                               setRenamingDepartmentId(guide.id)
                               setRenamingValue(guide.department)
                             }}
-                            className="opacity-0 group-hover/title:opacity-100 text-zinc-400 hover:text-amber-600 p-0.5 transition-opacity"
+                            className="opacity-0 group-hover/title:opacity-100 text-zinc-500 hover:text-orange-400 p-0.5 transition-opacity cursor-pointer"
                             title="Rename Department"
                           >
-                            <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
                           </button>
                         </div>
                       )}
                     </div>
 
                     {guide.file_url ? (
-                      <div className="flex items-center gap-2 flex-wrap bg-white border border-zinc-200 p-2 rounded-lg">
+                      <div className="flex items-center gap-2 flex-wrap bg-black/40 border border-white/5 p-2 rounded-xl">
                         <a 
                           href={guide.file_url} 
                           target="_blank" 
                           rel="noopener noreferrer" 
-                          className="flex-1 min-w-0 text-xs text-amber-600 font-semibold underline truncate hover:text-amber-700 transition-colors pl-1"
+                          className="flex-1 min-w-0 text-xs text-orange-400 font-semibold underline truncate hover:text-orange-300 transition-colors pl-2"
                         >
                           {guide.file_name || 'View file'}
                         </a>
                         <button
                           onClick={() => handleStyleGuideDelete(guide.department)}
                           disabled={isDeletingStyleGuide === guide.department}
-                          className="inline-flex items-center gap-1.5 rounded-md bg-red-50 border border-red-200 hover:bg-red-100 px-3 py-1.5 text-xs font-semibold text-red-600 hover:text-red-700 transition-all disabled:opacity-50"
+                          className="inline-flex items-center gap-1.5 rounded-xl bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 px-3.5 py-1.5 text-xs font-semibold text-red-400 hover:text-red-300 transition-all disabled:opacity-50 cursor-pointer"
                         >
                           {isDeletingStyleGuide === guide.department ? (
                             <svg className="h-3.5 w-3.5 animate-spin text-red-500" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
@@ -3768,7 +3768,7 @@ export default function DashboardPage() {
                             <textarea
                               autoFocus
                               rows={2}
-                              className="w-full rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-zinc-700 outline-none resize-none focus:ring-2 focus:ring-amber-400/40"
+                              className="w-full rounded-xl border border-orange-500/30 bg-orange-950/10 px-3.5 py-2 text-xs text-zinc-200 outline-none resize-none focus:ring-2 focus:ring-orange-500/20 placeholder-zinc-600"
                               placeholder="Type a note for workers e.g. 'Coming soon — check back next week'"
                               value={editingNote.value}
                               onChange={(e) => setEditingNote({ department: guide.department, value: e.target.value })}
@@ -3777,13 +3777,13 @@ export default function DashboardPage() {
                               <button
                                 onClick={() => handleStyleGuideNoteSave(guide.department, editingNote.value)}
                                 disabled={isSavingNote === guide.department}
-                                className="inline-flex items-center gap-1 rounded-md bg-amber-500 hover:bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white transition disabled:opacity-50"
+                                className="inline-flex items-center gap-1 rounded-lg bg-orange-500 hover:bg-orange-600 px-3 py-1.5 text-xs font-semibold text-white transition disabled:opacity-50 cursor-pointer"
                               >
                                 {isSavingNote === guide.department ? 'Saving…' : 'Save'}
                               </button>
                               <button
                                 onClick={() => setEditingNote(null)}
-                                className="inline-flex items-center gap-1 rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-xs font-medium text-zinc-600 hover:bg-zinc-100 transition"
+                                className="inline-flex items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-zinc-300 hover:bg-white/10 hover:text-white transition cursor-pointer"
                               >
                                 Cancel
                               </button>
@@ -3792,7 +3792,7 @@ export default function DashboardPage() {
                         ) : (
                           <button
                             onClick={() => setEditingNote({ department: guide.department, value: guide.note || '' })}
-                            className="group flex items-center gap-1.5 text-xs text-zinc-400 hover:text-amber-600 transition-colors"
+                            className="group flex items-center gap-1.5 text-xs text-zinc-500 hover:text-orange-400 transition-colors cursor-pointer"
                           >
                             <svg className="h-3.5 w-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
                             <span className="italic">{guide.note || 'Add a note for workers…'}</span>
@@ -3802,16 +3802,16 @@ export default function DashboardPage() {
                     )}
 
                     {/* Upload control */}
-                    <label className={`flex items-center justify-center gap-2 rounded-lg border border-dashed px-4 py-3 cursor-pointer transition-all duration-200 ${isUploadingStyleGuide === guide.department ? 'border-amber-400 bg-amber-50' : 'border-zinc-300 hover:border-amber-400 bg-white hover:bg-amber-50'}`}>
+                    <label className={`flex items-center justify-center gap-2 rounded-xl border border-dashed px-4 py-3 cursor-pointer transition-all duration-250 ${isUploadingStyleGuide === guide.department ? 'border-orange-400 bg-orange-500/10' : 'border-white/10 hover:border-orange-500/40 bg-black/20 hover:bg-orange-500/5'}`}>
                       {isUploadingStyleGuide === guide.department ? (
                         <>
-                          <svg className="h-4 w-4 animate-spin text-amber-500 flex-shrink-0" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
-                          <span className="text-xs text-amber-600 font-semibold">Uploading…</span>
+                          <svg className="h-4 w-4 animate-spin text-orange-500 flex-shrink-0" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+                          <span className="text-xs text-orange-400 font-semibold">Uploading…</span>
                         </>
                       ) : (
                         <>
-                          <svg className="h-4 w-4 text-zinc-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
-                          <span className="text-xs text-zinc-500 font-medium">{guide.file_url ? 'Replace file' : 'Upload guide'} <span className="text-zinc-400">(PDF, DOC, DOCX)</span></span>
+                          <svg className="h-4 w-4 text-zinc-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                          <span className="text-xs text-zinc-400 font-medium">{guide.file_url ? 'Replace file' : 'Upload guide'} <span className="text-zinc-500">(PDF, DOC, DOCX, TXT)</span></span>
                         </>
                       )}
                       <input
@@ -3831,10 +3831,10 @@ export default function DashboardPage() {
               )}
             </div>
 
-            <div className="flex-shrink-0 pt-4 border-t border-zinc-200 mt-4">
+            <div className="flex-shrink-0 pt-4 border-t border-white/10 mt-4">
               <button 
                 onClick={() => setIsStyleGuidesAdminModalOpen(false)} 
-                className="w-full rounded-md border border-zinc-300 bg-white px-5 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-100 transition"
+                className="w-full rounded-xl border border-white/10 bg-white/5 px-5 py-2.5 text-sm font-semibold text-zinc-300 hover:bg-white/10 hover:text-white hover:border-orange-500/40 transition-all duration-300 shadow-sm"
               >
                 Done
               </button>
