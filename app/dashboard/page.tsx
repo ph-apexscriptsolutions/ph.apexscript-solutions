@@ -3899,11 +3899,11 @@ export default function DashboardPage() {
 
             {/* Locked badge (workers who already submitted this week) */}
             {isAvailabilityLockedThisWeek && (
-              <div className="flex-shrink-0 mb-4 rounded-2xl bg-emerald-50 border border-emerald-200 p-3.5 flex items-center gap-3">
-                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500 text-white text-sm flex-shrink-0">✓</span>
+              <div className="flex-shrink-0 mb-3 rounded-xl bg-emerald-50 border border-emerald-200 p-2.5 flex items-center gap-2">
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500 text-white text-xs flex-shrink-0">✓</span>
                 <div>
-                  <p className="text-sm font-bold text-emerald-800">Availability submitted for this week</p>
-                  <p className="text-xs text-emerald-700 mt-0.5">Your schedule has been recorded. You may update it again next week.</p>
+                  <p className="text-xs font-bold text-emerald-800">Availability submitted for this week</p>
+                  <p className="text-[10px] text-emerald-700 mt-0.5">Your schedule has been recorded. You may update it again next week.</p>
                 </div>
               </div>
             )}
