@@ -3849,7 +3849,7 @@ export default function DashboardPage() {
       {/* ── Weekly Availability Modal ── */}
       {isAvailabilityModalOpen && activeWorker && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
-          <div className="bg-white rounded-3xl shadow-2xl shadow-emerald-950/20 w-full max-w-lg p-6 relative border border-zinc-200 max-h-[90vh] flex flex-col">
+          <div className="bg-green-50 rounded-3xl shadow-2xl shadow-emerald-950/20 w-full max-w-lg p-6 relative border border-green-200 max-h-[90vh] flex flex-col">
             <button onClick={() => setIsAvailabilityModalOpen(false)} className="absolute right-4 top-4 text-zinc-400 hover:text-zinc-700 transition-colors"><X className="h-5 w-5" /></button>
 
             {/* Header */}
