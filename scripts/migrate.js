@@ -71,7 +71,9 @@ const MIGRATIONS = [
     created_at timestamptz NOT NULL DEFAULT now(),
     admin_deleted boolean DEFAULT false
   );
-  CREATE INDEX IF NOT EXISTS idx_payment_history_worker_id ON public.payment_history(worker_id);`
+  CREATE INDEX IF NOT EXISTS idx_payment_history_worker_id ON public.payment_history(worker_id);`,
+  `ALTER TABLE public.worker_profiles
+    ADD COLUMN IF NOT EXISTS weekly_availability jsonb;`
 ]
 
 function loadEnvFile(filePath) {
