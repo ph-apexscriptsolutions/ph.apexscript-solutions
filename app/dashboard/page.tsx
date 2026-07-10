@@ -177,6 +177,7 @@ export default function DashboardPage() {
   const [paymentHistory, setPaymentHistory] = useState<any[]>([])
   const [isLoadingPaymentHistory, setIsLoadingPaymentHistory] = useState(false)
   const [isAddingPaymentRecord, setIsAddingPaymentRecord] = useState(false)
+  const [isCurrentAssignmentsModalOpen, setIsCurrentAssignmentsModalOpen] = useState(false)
   const [paymentHistoryForm, setPaymentHistoryForm] = useState({
     senderBank: "",
     referenceNumber: "",
@@ -2839,84 +2840,7 @@ export default function DashboardPage() {
                 </div>
               </Card>
 
-              {/* Current Assignments Card */}
-              <Card className="flex flex-col overflow-hidden bg-gradient-to-br from-white to-zinc-50 border-zinc-200/80 xl:h-full">
-                <CardHeader className="flex flex-wrap items-center justify-between gap-2">
-                  <div>
-                    <CardTitle className="text-lg font-bold text-zinc-900 tracking-tight">Current Assignments</CardTitle>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    {isAdmin && (
-                      <button onClick={() => { setEditAssignmentId(null); setNewAssignmentFilename(''); setNewAssignmentDescription(''); setIsAddAssignmentModalOpen(true) }} className="inline-flex items-center gap-1 rounded-xl border-2 border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-800 hover:bg-slate-100 hover:border-slate-400 transition-all shadow-sm hover:shadow-md">
-                        <span>+</span> Add Assignment
-                      </button>
-                    )}
-                  </div>
-                </CardHeader>
-                <CardContent className="flex-1 overflow-y-auto">
-                  <div className="space-y-1">
-                    <div className="grid gap-1 items-center bg-zinc-100/80 px-3 py-2.5 border-b border-zinc-200/60 rounded-t-lg" style={{ gridTemplateColumns: effectiveHeaderTemplate }}>
-                      <div className="text-xs font-bold text-zinc-700 uppercase tracking-wider">Filename</div>
-                      <div className="text-xs font-bold text-zinc-700 uppercase tracking-wider">Status</div>
-                      {isAdmin && <div className="text-xs font-bold text-zinc-700 uppercase tracking-wider">Actions</div>}
-                    </div>
-                    {showAllSubmittedMessage ? (
-                      <div className="text-center py-4 flex flex-col items-center gap-2">
-                        <div className="h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center">
-                          <Check className="h-5 w-5 text-emerald-600" />
-                        </div>
-                        <p className="text-sm font-semibold text-zinc-700">All Assignments Submitted</p>
-                      </div>
-                    ) : assignments.length === 0 ? (
-                      <p className="text-center text-sm text-zinc-500 font-medium py-4">No assignments for this worker.</p>
-                    ) : (
-                      <div className="space-y-1">
-                        {assignments.map((a: any) => (
-                          <div key={a.id} className="grid gap-1 items-center py-2 px-3 rounded-lg border border-zinc-200/60 bg-white hover:bg-zinc-50/80 transition-all" style={{ gridTemplateColumns: effectiveRowTemplate }}>
-                            <div>
-                              <button type="button" onClick={() => { setSelectedAssignment(a); if (profile?.id) localStorage.setItem(`last_viewed_description_${profile.id}_${a.id}`, new Date().toISOString()); setAssignmentsWithUpdatedDescription(prev => { const newSet = new Set(prev); newSet.delete(a.id); return newSet }) }} className="text-sm font-bold text-slate-900 underline-offset-4 hover:underline flex items-center gap-2">
-                                {getDisplayFileName(a.filename)}
-                                {assignmentsWithUpdatedDescription.has(a.id) && (
-                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-red-500 text-white text-[10px] font-bold animate-pulse shadow-sm">REVISED</span>
-                                )}
-                              </button>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              {a.status === 'done' ? (
-                                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-bold text-emerald-800"><span aria-hidden="true">✓</span><span>Done</span></span>
-                              ) : a.status === 'cancelled' ? (
-                                <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2.5 py-1 text-xs font-bold text-red-800"><span aria-hidden="true">✕</span><span>Cancelled</span></span>
-                              ) : (
-                                <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-1 text-xs font-bold text-amber-800"><span aria-hidden="true">⏳</span><span>Pending</span></span>
-                              )}
-                            </div>
-                            {isAdmin && (
-                              <div className="flex items-center gap-1">
-                                {a.status !== 'cancelled' && (
-                                  <button onClick={() => cancelAssignment(a.id)} className="inline-flex items-center gap-1 rounded-lg bg-orange-50 px-2 py-1 text-xs font-semibold text-orange-700 hover:bg-orange-100 transition-all border border-orange-200">
-                                    <X className="h-3.5 w-3.5" /> Cancel
-                                  </button>
-                                )}
-                                <button onClick={() => {
-                                  setEditAssignmentId(a.id)
-                                  setNewAssignmentFilename(a.filename)
-                                  setNewAssignmentDescription(a.description || '')
-                                  setIsAddAssignmentModalOpen(true)
-                                }} className="inline-flex items-center gap-1 rounded-lg bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-100 transition-all border border-blue-200">
-                                  <Pencil className="h-3.5 w-3.5" /> Edit
-                                </button>
-                                <button onClick={() => deleteAssignment(a.id)} className="inline-flex items-center gap-1 rounded-lg bg-red-50 px-2 py-1 text-xs font-semibold text-red-700 hover:bg-red-100 transition-all border border-red-200">
-                                  <X className="h-3.5 w-3.5" /> Delete
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
+              {/* Current Assignments Card - Hidden, now in Worker Hub modal */}
             </div>
 
             {/* ── Worker Hub ── */}
@@ -2941,6 +2865,24 @@ export default function DashboardPage() {
                   {/* Hub Action Cards */}
                   {(user?.id === activeWorker?.id || isAdmin) && (
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1.5 mb-4">
+
+                      {/* Current Assignments */}
+                      <button
+                        type="button"
+                        onClick={() => setIsCurrentAssignmentsModalOpen(true)}
+                        className="group relative flex flex-col items-start gap-1 rounded-md border border-white/10 bg-white/5 p-2 text-left backdrop-blur-sm hover:bg-white/10 hover:border-cyan-400/40 transition-all duration-200 hover:shadow-xl hover:shadow-cyan-600/20"
+                      >
+                        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br from-cyan-500 to-sky-600 shadow-lg shadow-cyan-500/30 group-hover:scale-110 transition-transform duration-200">
+                          <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+                        </div>
+                        <div>
+                          <p className="text-[11px] font-semibold text-white">Current Assignments</p>
+                          <p className="mt-0.5 text-[8px] leading-relaxed text-zinc-400">View your active work assignments</p>
+                        </div>
+                        <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <svg className="h-2.5 w-2.5 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                        </div>
+                      </button>
 
                       {/* Request Payslip */}
                       <button
@@ -3863,6 +3805,101 @@ export default function DashboardPage() {
                 className="w-full rounded-xl border border-orange-200 bg-orange-50 px-5 py-2.5 text-sm font-semibold text-zinc-700 hover:bg-orange-100 hover:text-zinc-900 hover:border-orange-300 transition-all duration-300 shadow-sm"
               >
                 Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Current Assignments Modal ── */}
+      {isCurrentAssignmentsModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
+          <div className="bg-gradient-to-br from-white to-zinc-50 rounded-3xl shadow-2xl shadow-zinc-500/20 w-full max-w-2xl p-6 relative border border-zinc-200 max-h-[90vh] flex flex-col">
+            <button onClick={() => setIsCurrentAssignmentsModalOpen(false)} className="absolute right-4 top-4 text-zinc-400 hover:text-zinc-700 transition-colors"><X className="h-5 w-5" /></button>
+            
+            <div className="flex items-center justify-between mb-4 flex-shrink-0">
+              <div>
+                <h3 className="text-xl font-bold text-zinc-900 mb-1 flex-shrink-0">Current Assignments</h3>
+                <p className="text-xs text-zinc-600">View your active work assignments</p>
+              </div>
+              {isAdmin && (
+                <button onClick={() => { setIsCurrentAssignmentsModalOpen(false); setEditAssignmentId(null); setNewAssignmentFilename(''); setNewAssignmentDescription(''); setIsAddAssignmentModalOpen(true) }} className="inline-flex items-center gap-1 rounded-xl border-2 border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-800 hover:bg-slate-100 hover:border-slate-400 transition-all shadow-sm hover:shadow-md">
+                  <span>+</span> Add Assignment
+                </button>
+              )}
+            </div>
+
+            <div className="flex-1 overflow-y-auto min-h-0">
+              <div className="space-y-1">
+                <div className="grid gap-1 items-center bg-zinc-100/80 px-3 py-2.5 border-b border-zinc-200/60 rounded-t-lg" style={{ gridTemplateColumns: effectiveHeaderTemplate }}>
+                  <div className="text-xs font-bold text-zinc-700 uppercase tracking-wider">Filename</div>
+                  <div className="text-xs font-bold text-zinc-700 uppercase tracking-wider">Status</div>
+                  {isAdmin && <div className="text-xs font-bold text-zinc-700 uppercase tracking-wider">Actions</div>}
+                </div>
+                {showAllSubmittedMessage ? (
+                  <div className="text-center py-4 flex flex-col items-center gap-2">
+                    <div className="h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center">
+                      <Check className="h-5 w-5 text-emerald-600" />
+                    </div>
+                    <p className="text-sm font-semibold text-zinc-700">All Assignments Submitted</p>
+                  </div>
+                ) : assignments.length === 0 ? (
+                  <p className="text-center text-sm text-zinc-500 font-medium py-4">No assignments for this worker.</p>
+                ) : (
+                  <div className="space-y-1">
+                    {assignments.map((a: any) => (
+                      <div key={a.id} className="grid gap-1 items-center py-2 px-3 rounded-lg border border-zinc-200/60 bg-white hover:bg-zinc-50/80 transition-all" style={{ gridTemplateColumns: effectiveRowTemplate }}>
+                        <div>
+                          <button type="button" onClick={() => { setSelectedAssignment(a); setIsCurrentAssignmentsModalOpen(false); if (profile?.id) localStorage.setItem(`last_viewed_description_${profile.id}_${a.id}`, new Date().toISOString()); setAssignmentsWithUpdatedDescription(prev => { const newSet = new Set(prev); newSet.delete(a.id); return newSet }) }} className="text-sm font-bold text-slate-900 underline-offset-4 hover:underline flex items-center gap-2">
+                            {getDisplayFileName(a.filename)}
+                            {assignmentsWithUpdatedDescription.has(a.id) && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-red-500 text-white text-[10px] font-bold animate-pulse shadow-sm">REVISED</span>
+                            )}
+                          </button>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          {a.status === 'done' ? (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-bold text-emerald-800"><span aria-hidden="true">✓</span><span>Done</span></span>
+                          ) : a.status === 'cancelled' ? (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2.5 py-1 text-xs font-bold text-red-800"><span aria-hidden="true">✕</span><span>Cancelled</span></span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-1 text-xs font-bold text-amber-800"><span aria-hidden="true">⏳</span><span>Pending</span></span>
+                          )}
+                        </div>
+                        {isAdmin && (
+                          <div className="flex items-center gap-1">
+                            {a.status !== 'cancelled' && (
+                              <button onClick={() => cancelAssignment(a.id)} className="inline-flex items-center gap-1 rounded-lg bg-orange-50 px-2 py-1 text-xs font-semibold text-orange-700 hover:bg-orange-100 transition-all border border-orange-200">
+                                <X className="h-3.5 w-3.5" /> Cancel
+                              </button>
+                            )}
+                            <button onClick={() => {
+                              setEditAssignmentId(a.id)
+                              setNewAssignmentFilename(a.filename)
+                              setNewAssignmentDescription(a.description || '')
+                              setIsAddAssignmentModalOpen(true)
+                            }} className="inline-flex items-center gap-1 rounded-lg bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-100 transition-all border border-blue-200">
+                              <Pencil className="h-3.5 w-3.5" /> Edit
+                            </button>
+                            <button onClick={() => deleteAssignment(a.id)} className="inline-flex items-center gap-1 rounded-lg bg-red-50 px-2 py-1 text-xs font-semibold text-red-700 hover:bg-red-100 transition-all border border-red-200">
+                              <X className="h-3.5 w-3.5" /> Delete
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="border-t border-zinc-200/60 pt-4 mt-4 flex justify-end flex-shrink-0">
+              <button 
+                type="button" 
+                onClick={() => setIsCurrentAssignmentsModalOpen(false)} 
+                className="rounded-xl border border-zinc-200 bg-white px-5 py-2 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 transition"
+              >
+                Close
               </button>
             </div>
           </div>
