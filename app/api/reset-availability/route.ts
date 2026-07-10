@@ -114,3 +114,34 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: err.message || 'Failed to reset availability' }, { status: 500 })
   }
 }
+
+export async function POST(request: Request) {
+  try {
+    const { workerId } = await request.json()
+    if (!workerId) {
+      return NextResponse.json({ error: 'Missing worker ID.' }, { status: 400 })
+    }
+
+    const supabase = getSupabaseServerClient()
+
+    // Reset weekly_availability and availability_submitted_at for this specific worker
+    const { error } = await supabase
+      .from('worker_profiles')
+      .update({
+        weekly_availability: null,
+        availability_submitted_at: null,
+      })
+      .eq('id', workerId)
+
+    if (error) {
+      console.error('Reset single worker availability error:', error)
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    return NextResponse.json({ success: true })
+  } catch (err: any) {
+    console.error('Reset single worker availability unexpected error:', err)
+    return NextResponse.json({ error: err.message || 'Failed to reset availability' }, { status: 500 })
+  }
+}
+

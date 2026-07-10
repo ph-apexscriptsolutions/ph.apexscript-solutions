@@ -233,6 +233,7 @@ export default function DashboardPage() {
   const [availabilityForm, setAvailabilityForm] = useState<Record<string, { sameday: boolean; overnight: boolean }>>(defaultAvailability)
   const [isSavingAvailability, setIsSavingAvailability] = useState(false)
   const [availabilitySubmittedAt, setAvailabilitySubmittedAt] = useState<string | null>(null)
+  const [isResettingAvailability, setIsResettingAvailability] = useState(false)
 
   // Check for updated descriptions based on database column
   useEffect(() => {
@@ -597,6 +598,35 @@ export default function DashboardPage() {
       }
     } finally {
       setIsSavingAvailability(false)
+    }
+  }
+
+  const resetAvailability = async () => {
+    if (!activeWorker?.id) return
+    const workerName = activeWorker.full_name || activeWorker.name || activeWorker.email || 'this worker'
+    if (!confirm(`Are you sure you want to reset ${workerName}'s availability? This will unlock the form so they can submit again.`)) return
+
+    setIsResettingAvailability(true)
+    try {
+      const res = await fetch('/api/reset-availability', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ workerId: activeWorker.id }),
+      })
+      if (res.ok) {
+        setAvailabilitySubmittedAt(null)
+        setAvailabilityForm(defaultAvailability)
+        setToastMessage('✅ Weekly availability reset!')
+        setShowToast(true)
+        setTimeout(() => { setShowToast(false); setToastMessage(null) }, 3000)
+      } else {
+        const err = await res.json()
+        alert('Failed to reset: ' + (err.error || 'Unknown error'))
+      }
+    } catch (err: any) {
+      alert('Failed to reset: ' + (err.message || 'Unknown error'))
+    } finally {
+      setIsResettingAvailability(false)
     }
   }
   const handleViewWorker = (w: any) => { setActiveWorker(w); setView("detail") }
@@ -3229,9 +3259,19 @@ export default function DashboardPage() {
 
             {/* Admin override notice */}
             {isAdmin && availabilitySubmittedAt && (
-              <div className="flex-shrink-0 mb-4 rounded-2xl bg-sky-50 border border-sky-200 p-3 flex items-center gap-2">
-                <span className="text-sky-500 text-sm">🔓</span>
-                <p className="text-xs text-sky-800 font-medium">Admin override — you can edit this worker's availability at any time.</p>
+              <div className="flex-shrink-0 mb-4 rounded-2xl bg-sky-50 border border-sky-200 p-3.5 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-sky-500 text-sm">🔓</span>
+                  <p className="text-xs text-sky-850 font-medium">Admin override — you can edit or reset this worker's availability.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={resetAvailability}
+                  disabled={isResettingAvailability}
+                  className="px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-700 text-white text-xs font-semibold transition-all shadow-sm disabled:opacity-50 flex-shrink-0"
+                >
+                  {isResettingAvailability ? 'Resetting...' : 'Reset'}
+                </button>
               </div>
             )}
 
