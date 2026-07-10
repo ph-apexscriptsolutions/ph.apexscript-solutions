@@ -2740,9 +2740,9 @@ export default function DashboardPage() {
                       <button
                         type="button"
                         onClick={() => { setPaymentHistory([]); setIsPaymentHistoryModalOpen(true); if (activeWorker?.id) fetchPaymentHistory(activeWorker.id) }}
-                        className="group relative flex flex-col items-start gap-2.5 rounded-xl border border-white/10 bg-white/5 p-4 text-left backdrop-blur-sm hover:bg-white/10 hover:border-violet-400/40 transition-all duration-200 hover:shadow-xl hover:shadow-violet-600/20"
+                        className="group relative flex flex-col items-start gap-2.5 rounded-xl border border-white/10 bg-white/5 p-4 text-left backdrop-blur-sm hover:bg-white/10 hover:border-indigo-400/40 transition-all duration-200 hover:shadow-xl hover:shadow-indigo-600/20"
                       >
-                        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 shadow-lg shadow-violet-500/30 group-hover:scale-110 transition-transform duration-200">
+                        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-blue-600 shadow-lg shadow-indigo-500/30 group-hover:scale-110 transition-transform duration-200">
                           <CreditCard className="h-4.5 w-4.5 text-white" />
                         </div>
                         <div>
@@ -2750,7 +2750,7 @@ export default function DashboardPage() {
                           <p className="mt-0.5 text-[11px] leading-relaxed text-zinc-400">View all past payments &amp; transactions</p>
                         </div>
                         <div className="absolute right-3 top-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <svg className="h-3.5 w-3.5 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                          <svg className="h-3.5 w-3.5 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
                         </div>
                       </button>
 
