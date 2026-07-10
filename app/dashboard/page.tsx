@@ -3196,7 +3196,7 @@ export default function DashboardPage() {
                         <div key={r.id} className="rounded-2xl border border-blue-100 bg-white/60 p-3.5 hover:bg-white transition-all">
                           <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between">
                             <div>
-                              <div className="text-xs font-bold text-zinc-800">{r.cutoff_start} → {r.cutoff_end}</div>
+                              <div className="text-xs font-bold text-zinc-800">{(() => { const d = new Date(r.cutoff_start + 'T00:00:00'); const month = d.toLocaleString('default', { month: 'long' }); const year = d.getFullYear(); const cutoff = d.getDate() <= 15 ? 'First Cutoff' : 'Second Cutoff'; return `${month} ${year} — ${cutoff}`; })()}</div>
                               <div className="text-[10px] text-zinc-500">Requested {new Date(r.requested_at).toLocaleDateString()}</div>
                             </div>
                             <span className={`text-[10px] uppercase tracking-wider font-bold px-2.5 py-0.5 rounded-full ${
@@ -3535,7 +3535,7 @@ export default function DashboardPage() {
                           )}
                         </div>
                         {r.worker_email && <div className="text-xs text-zinc-500">{r.worker_email}</div>}
-                        <div className="text-xs text-zinc-500">{r.cutoff_start} → {r.cutoff_end}</div>
+                        <div className="text-xs text-zinc-500">{(() => { const d = new Date(r.cutoff_start + 'T00:00:00'); const month = d.toLocaleString('default', { month: 'long' }); const year = d.getFullYear(); const cutoff = d.getDate() <= 15 ? 'First Cutoff' : 'Second Cutoff'; return `${month} ${year} — ${cutoff}`; })()}</div>
                         <div className="text-xs text-zinc-400 mt-1">Status: {r.status}</div>
                         {r.payslip_url && (
                           <div className="mt-1 text-xs">
