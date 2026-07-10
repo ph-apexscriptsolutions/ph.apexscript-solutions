@@ -246,6 +246,12 @@ export default function DashboardPage() {
   const [isDeletingStyleGuide, setIsDeletingStyleGuide] = useState<string | null>(null)
   const [editingNote, setEditingNote] = useState<{ department: string; value: string } | null>(null)
   const [isSavingNote, setIsSavingNote] = useState<string | null>(null)
+  const [newDepartmentName, setNewDepartmentName] = useState('')
+  const [isAddingDepartment, setIsAddingDepartment] = useState(false)
+  const [renamingDepartmentId, setRenamingDepartmentId] = useState<number | null>(null)
+  const [renamingValue, setRenamingValue] = useState('')
+  const [isRenamingDept, setIsRenamingDept] = useState<number | null>(null)
+  const [isDeletingDeptId, setIsDeletingDeptId] = useState<number | null>(null)
 
   // Check for updated descriptions based on database column
   useEffect(() => {
@@ -1368,6 +1374,80 @@ export default function DashboardPage() {
       alert(`Failed to save note: ${err.message}`)
     } finally {
       setIsSavingNote(null)
+    }
+  }
+
+  const handleAddStyleGuideDept = async (deptName: string) => {
+    if (!deptName || !deptName.trim()) return
+    setIsAddingDepartment(true)
+    try {
+      const res = await fetch('/api/style-guides', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ department: deptName }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to add department')
+      await fetchStyleGuides()
+      setNewDepartmentName('')
+      setToastMessage(`✅ Added department: ${deptName}`)
+      setShowToast(true)
+      setTimeout(() => { setShowToast(false); setToastMessage(null) }, 3000)
+    } catch (err: any) {
+      console.error('Style guide add department error:', err)
+      alert(`Failed to add department: ${err.message}`)
+    } finally {
+      setIsAddingDepartment(false)
+    }
+  }
+
+  const handleRenameStyleGuideDept = async (id: number, oldName: string, newName: string) => {
+    if (!newName || !newName.trim() || newName.trim() === oldName) {
+      setRenamingDepartmentId(null)
+      return
+    }
+    setIsRenamingDept(id)
+    try {
+      const res = await fetch('/api/style-guides', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, renameTo: newName }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to rename department')
+      await fetchStyleGuides()
+      setRenamingDepartmentId(null)
+      setToastMessage(`✅ Renamed department to: ${newName}`)
+      setShowToast(true)
+      setTimeout(() => { setShowToast(false); setToastMessage(null) }, 3000)
+    } catch (err: any) {
+      console.error('Style guide rename department error:', err)
+      alert(`Failed to rename department: ${err.message}`)
+    } finally {
+      setIsRenamingDept(null)
+    }
+  }
+
+  const handleDeleteStyleGuideDept = async (id: number, deptName: string) => {
+    if (!confirm(`Are you sure you want to permanently delete the department "${deptName}" and its uploaded style guide file?`)) {
+      return
+    }
+    setIsDeletingDeptId(id)
+    try {
+      const res = await fetch(`/api/style-guides?id=${id}`, {
+        method: 'DELETE',
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to delete department')
+      await fetchStyleGuides()
+      setToastMessage(`🗑️ Deleted department: ${deptName}`)
+      setShowToast(true)
+      setTimeout(() => { setShowToast(false); setToastMessage(null) }, 3000)
+    } catch (err: any) {
+      console.error('Style guide delete department error:', err)
+      alert(`Failed to delete department: ${err.message}`)
+    } finally {
+      setIsDeletingDeptId(null)
     }
   }
 
@@ -3545,7 +3625,34 @@ export default function DashboardPage() {
               </div>
               <div>
                 <h3 className="text-lg font-semibold text-zinc-900">Manage Style Guides</h3>
-                <p className="text-xs text-zinc-500">Upload or remove formatting guides per department</p>
+                <p className="text-xs text-zinc-500">Add, rename, or remove formatting guides per department</p>
+              </div>
+            </div>
+
+            {/* Add Department Form */}
+            <div className="mb-4 bg-zinc-50 border border-zinc-200 rounded-lg p-3 flex-shrink-0">
+              <p className="text-xs font-semibold text-zinc-700 mb-2">Add New Department</p>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="e.g. Finance Transcription"
+                  className="flex-1 rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-xs text-zinc-800 outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20"
+                  value={newDepartmentName}
+                  onChange={(e) => setNewDepartmentName(e.target.value)}
+                  disabled={isAddingDepartment}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleAddStyleGuideDept(newDepartmentName)
+                    }
+                  }}
+                />
+                <button
+                  onClick={() => handleAddStyleGuideDept(newDepartmentName)}
+                  disabled={isAddingDepartment || !newDepartmentName.trim()}
+                  className="inline-flex items-center justify-center rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 px-4 py-1.5 text-xs font-bold text-white transition disabled:opacity-50"
+                >
+                  {isAddingDepartment ? 'Adding…' : 'Add'}
+                </button>
               </div>
             </div>
 
@@ -3558,16 +3665,77 @@ export default function DashboardPage() {
                 </div>
               ) : styleGuides.length === 0 ? (
                 <div className="text-center py-14 text-zinc-400">
-                  <p className="text-sm">No departments found. Run database migration 018 first.</p>
+                  <p className="text-sm font-medium">No departments found. Add one above to get started.</p>
                 </div>
               ) : (
                 styleGuides.map((guide: any) => (
-                  <div key={guide.id} className="rounded-lg border border-zinc-200 bg-zinc-50 p-4 space-y-3 hover:border-orange-200 transition-all duration-200">
-                    <div className="flex items-center gap-2.5">
+                  <div key={guide.id} className="relative rounded-lg border border-zinc-200 bg-zinc-50 p-4 space-y-3 hover:border-orange-200 transition-all duration-200">
+                    
+                    {/* Delete department button */}
+                    <button
+                      onClick={() => handleDeleteStyleGuideDept(guide.id, guide.department)}
+                      disabled={isDeletingDeptId === guide.id}
+                      className="absolute right-3 top-3 text-zinc-400 hover:text-red-600 transition-colors p-1"
+                      title="Delete Department"
+                    >
+                      {isDeletingDeptId === guide.id ? (
+                        <svg className="h-4 w-4 animate-spin text-red-500" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+                      ) : (
+                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                      )}
+                    </button>
+
+                    <div className="flex items-center gap-2.5 pr-6">
                       <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-100 text-amber-600 flex-shrink-0">
                         <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
                       </div>
-                      <p className="text-sm font-semibold text-zinc-800">{guide.department}</p>
+
+                      {renamingDepartmentId === guide.id ? (
+                        <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                          <input
+                            type="text"
+                            autoFocus
+                            className="flex-1 rounded-md border border-amber-300 bg-amber-50 px-2 py-1 text-xs text-zinc-800 outline-none focus:ring-1 focus:ring-amber-400"
+                            value={renamingValue}
+                            onChange={(e) => setRenamingValue(e.target.value)}
+                            disabled={isRenamingDept === guide.id}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                handleRenameStyleGuideDept(guide.id, guide.department, renamingValue)
+                              } else if (e.key === 'Escape') {
+                                setRenamingDepartmentId(null)
+                              }
+                            }}
+                          />
+                          <button
+                            onClick={() => handleRenameStyleGuideDept(guide.id, guide.department, renamingValue)}
+                            disabled={isRenamingDept === guide.id || !renamingValue.trim()}
+                            className="rounded bg-amber-500 px-2 py-1 text-[10px] font-bold text-white hover:bg-amber-600 transition"
+                          >
+                            {isRenamingDept === guide.id ? 'Saving…' : 'Save'}
+                          </button>
+                          <button
+                            onClick={() => setRenamingDepartmentId(null)}
+                            className="rounded border border-zinc-300 bg-white px-2 py-1 text-[10px] text-zinc-600 hover:bg-zinc-100 transition"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1.5 group/title min-w-0">
+                          <p className="text-sm font-semibold text-zinc-800 truncate">{guide.department}</p>
+                          <button
+                            onClick={() => {
+                              setRenamingDepartmentId(guide.id)
+                              setRenamingValue(guide.department)
+                            }}
+                            className="opacity-0 group-hover/title:opacity-100 text-zinc-400 hover:text-amber-600 p-0.5 transition-opacity"
+                            title="Rename Department"
+                          >
+                            <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                          </button>
+                        </div>
+                      )}
                     </div>
 
                     {guide.file_url ? (
@@ -3590,7 +3758,7 @@ export default function DashboardPage() {
                           ) : (
                             <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                           )}
-                          Remove
+                          Remove File
                         </button>
                       </div>
                     ) : (
