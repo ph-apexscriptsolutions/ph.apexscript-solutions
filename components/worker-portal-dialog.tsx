@@ -113,7 +113,7 @@ export function WorkerPortalDialog({ triggerClassName }: { triggerClassName?: st
               
               {error && <p className="text-xs text-red-600 font-semibold">{error}</p>}
               
-              <Button type="submit" disabled={isLoading} className="w-full bg-gradient-to-r from-cyan-500 via-cyan-600 to-sky-500 text-white hover:from-cyan-600 hover:via-cyan-700 hover:to-sky-600 h-11 font-semibold shadow-lg shadow-cyan-500/30 cursor-pointer mt-1 disabled:opacity-50">
+              <Button type="submit" disabled={isLoading} className="w-full bg-gradient-to-r from-cyan-600 via-cyan-700 to-sky-600 text-white hover:from-cyan-700 hover:via-cyan-800 hover:to-sky-700 h-11 font-semibold shadow-lg shadow-cyan-600/30 cursor-pointer mt-1 disabled:opacity-50">
                 {isLoading ? "Verifying..." : "Log In"}
               </Button>
             </form>

@@ -196,7 +196,7 @@ export default function WorkerRealtimeChat({ workerId, initialName }: { workerId
     <>
       {/* Floating icon */}
       <div className="fixed bottom-6 right-6 z-50">
-        <button onClick={() => setOpen(true)} className="relative flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-cyan-500 to-cyan-600 text-white shadow-lg shadow-cyan-500/30 hover:shadow-cyan-500/50 transition-all hover:scale-105 focus:outline-none">
+        <button onClick={() => setOpen(true)} className="relative flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-cyan-600 to-cyan-700 text-white shadow-lg shadow-cyan-600/30 hover:shadow-cyan-600/50 transition-all hover:scale-105 focus:outline-none">
           <MessageCircle className="h-7 w-7" />
           {unread > 0 && <span className="absolute -top-1 -right-1 inline-flex h-6 min-w-[24px] items-center justify-center rounded-full bg-red-500 px-1.5 text-xs font-semibold text-white shadow-md animate-pulse">{unread}</span>}
         </button>
@@ -268,7 +268,7 @@ export default function WorkerRealtimeChat({ workerId, initialName }: { workerId
               <button 
                 onClick={sendMessage} 
                 disabled={!text.trim()}
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-cyan-500 to-cyan-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-cyan-500/30 hover:shadow-cyan-500/50 transition-all hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-cyan-600 to-cyan-700 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-cyan-600/30 hover:shadow-cyan-600/50 transition-all hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
               >
                 <span>Send</span>
                 <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

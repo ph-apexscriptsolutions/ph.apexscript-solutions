@@ -1747,7 +1747,7 @@ export default function DashboardPage() {
             <div className="flex gap-3 justify-center">
               <button 
                 onClick={() => setIsLogoutModalOpen(false)} 
-                className="flex-1 rounded-xl border-2 border-zinc-200 bg-white px-4 py-2.5 text-sm font-semibold text-zinc-700 hover:bg-zinc-50 hover:border-zinc-300 transition-all"
+                className="flex-1 rounded-xl border-2 border-zinc-300 bg-white px-4 py-2.5 text-sm font-semibold text-zinc-800 hover:bg-zinc-100 hover:border-zinc-400 transition-all"
               >
                 No, Stay
               </button>
@@ -1756,7 +1756,7 @@ export default function DashboardPage() {
                   setIsLogoutModalOpen(false)
                   await performLogout()
                 }} 
-                className="flex-1 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 px-4 py-2.5 text-sm font-semibold text-white shadow-xl shadow-red-500/20 hover:from-red-700 hover:to-rose-700 transition-all"
+                className="flex-1 rounded-xl bg-gradient-to-r from-red-700 to-rose-700 px-4 py-2.5 text-sm font-semibold text-white shadow-xl shadow-red-600/20 hover:from-red-800 hover:to-rose-800 transition-all"
               >
                 Yes, Log Out
               </button>
@@ -1855,7 +1855,7 @@ export default function DashboardPage() {
             )}
           </div>
 
-          <button onClick={handleLogout} className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 via-cyan-600 to-sky-500 px-5 py-2.5 text-sm font-semibold text-white shadow-xl shadow-cyan-500/30 hover:from-cyan-600 hover:via-cyan-700 hover:to-sky-600 hover:shadow-xl hover:shadow-cyan-500/40 transition-all"><LogOut className="h-4 w-4" /> Log Out</button>
+          <button onClick={handleLogout} className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-600 via-cyan-700 to-sky-600 px-5 py-2.5 text-sm font-semibold text-white shadow-xl shadow-cyan-600/30 hover:from-cyan-700 hover:via-cyan-800 hover:to-sky-700 hover:shadow-xl hover:shadow-cyan-600/40 transition-all"><LogOut className="h-4 w-4" /> Log Out</button>
         </div>
       </header>
 
@@ -1883,21 +1883,6 @@ export default function DashboardPage() {
               <div>
                 <h2 className="text-2xl font-semibold text-zinc-900">Team Members</h2>
                 <p className="text-zinc-500">Select a worker to view their production records and information.</p>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <button onClick={() => setIsAddWorkerModalOpen(true)} className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 via-cyan-600 to-sky-500 px-5 py-2.5 text-sm font-semibold text-white shadow-xl shadow-cyan-500/30 hover:from-cyan-600 hover:via-cyan-700 hover:to-sky-600 hover:shadow-xl hover:shadow-cyan-500/40 transition-all">
-                  <UserPlus className="h-4 w-4" /> Add New Worker
-                </button>
-                {isAdmin && (
-                  <button onClick={() => { setAnnouncementSchemaHint(null); setIsAnnouncementModalOpen(true) }} className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 via-cyan-600 to-sky-500 px-4 py-2 text-sm font-semibold text-white shadow-xl shadow-cyan-500/30 hover:from-cyan-600 hover:via-cyan-700 hover:to-sky-600 hover:shadow-xl hover:shadow-cyan-500/40 transition-all">
-                    Announcement
-                  </button>
-                )}
-                {isAdmin && (
-                  <button onClick={() => { setIsPayslipAdminModalOpen(true); fetchPayslipRequests() }} className="inline-flex items-center gap-2 rounded-xl border-2 border-cyan-200 bg-gradient-to-r from-cyan-500 to-sky-500 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-cyan-500/30 hover:from-cyan-600 hover:to-sky-600 hover:border-cyan-300 transition-all">
-                    Payslip Requests
-                  </button>
-                )}
               </div>
             </div>
             
@@ -1962,12 +1947,12 @@ export default function DashboardPage() {
                       </div>
                       {isAdmin && w.id !== user?.id && (
                         <div className="absolute right-3 top-3 flex gap-1">
-                          <button type="button" onClick={(e) => { e.stopPropagation(); setEditingRoleWorker(w); setNewRole(w.role || 'worker'); setIsRoleEditModalOpen(true) }} className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-r from-cyan-500 to-sky-500 text-white shadow-sm shadow-cyan-500/20 hover:from-cyan-600 hover:to-sky-600 transition" aria-label="Edit role">
+                          <button type="button" onClick={(e) => { e.stopPropagation(); setEditingRoleWorker(w); setNewRole(w.role || 'worker'); setIsRoleEditModalOpen(true) }} className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-r from-cyan-600 to-sky-600 text-white shadow-sm shadow-cyan-600/20 hover:from-cyan-700 hover:to-sky-700 transition" aria-label="Edit role">
                             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                             </svg>
                           </button>
-                          <button type="button" onClick={(e) => { e.stopPropagation(); handleDeleteWorker(w.id, w.full_name) }} className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-red-600 text-white shadow-sm shadow-red-500/20 hover:bg-red-700 transition" aria-label="Delete worker">
+                          <button type="button" onClick={(e) => { e.stopPropagation(); handleDeleteWorker(w.id, w.full_name) }} className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-red-700 text-white shadow-sm shadow-red-600/20 hover:bg-red-800 transition" aria-label="Delete worker">
                             <X className="h-4 w-4" />
                           </button>
                         </div>
@@ -2037,12 +2022,12 @@ export default function DashboardPage() {
                       </div>
                       {isAdmin && w.id !== user?.id && (
                         <div className="absolute right-3 top-3 flex gap-1">
-                          <button type="button" onClick={(e) => { e.stopPropagation(); setEditingRoleWorker(w); setNewRole(w.role || 'worker'); setIsRoleEditModalOpen(true) }} className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-r from-cyan-500 to-sky-500 text-white shadow-sm shadow-cyan-500/20 hover:from-cyan-600 hover:to-sky-600 transition" aria-label="Edit role">
+                          <button type="button" onClick={(e) => { e.stopPropagation(); setEditingRoleWorker(w); setNewRole(w.role || 'worker'); setIsRoleEditModalOpen(true) }} className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-r from-cyan-600 to-sky-600 text-white shadow-sm shadow-cyan-600/20 hover:from-cyan-700 hover:to-sky-700 transition" aria-label="Edit role">
                             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                             </svg>
                           </button>
-                          <button type="button" onClick={(e) => { e.stopPropagation(); handleDeleteWorker(w.id, w.full_name) }} className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-red-600 text-white shadow-sm shadow-red-500/20 hover:bg-red-700 transition" aria-label="Delete worker">
+                          <button type="button" onClick={(e) => { e.stopPropagation(); handleDeleteWorker(w.id, w.full_name) }} className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-red-700 text-white shadow-sm shadow-red-600/20 hover:bg-red-800 transition" aria-label="Delete worker">
                             <X className="h-4 w-4" />
                           </button>
                         </div>
@@ -2112,12 +2097,12 @@ export default function DashboardPage() {
                       </div>
                       {isAdmin && w.id !== user?.id && (
                         <div className="absolute right-3 top-3 flex gap-1">
-                          <button type="button" onClick={(e) => { e.stopPropagation(); setEditingRoleWorker(w); setNewRole(w.role || 'worker'); setIsRoleEditModalOpen(true) }} className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-r from-cyan-500 to-sky-500 text-white shadow-sm shadow-cyan-500/20 hover:from-cyan-600 hover:to-sky-600 transition" aria-label="Edit role">
+                          <button type="button" onClick={(e) => { e.stopPropagation(); setEditingRoleWorker(w); setNewRole(w.role || 'worker'); setIsRoleEditModalOpen(true) }} className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-r from-cyan-600 to-sky-600 text-white shadow-sm shadow-cyan-600/20 hover:from-cyan-700 hover:to-sky-700 transition" aria-label="Edit role">
                             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                             </svg>
                           </button>
-                          <button type="button" onClick={(e) => { e.stopPropagation(); handleDeleteWorker(w.id, w.full_name) }} className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-red-600 text-white shadow-sm shadow-red-500/20 hover:bg-red-700 transition" aria-label="Delete worker">
+                          <button type="button" onClick={(e) => { e.stopPropagation(); handleDeleteWorker(w.id, w.full_name) }} className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-red-700 text-white shadow-sm shadow-red-600/20 hover:bg-red-800 transition" aria-label="Delete worker">
                             <X className="h-4 w-4" />
                           </button>
                         </div>
@@ -2187,12 +2172,12 @@ export default function DashboardPage() {
                       </div>
                       {isAdmin && w.id !== user?.id && (
                         <div className="absolute right-3 top-3 flex gap-1">
-                          <button type="button" onClick={(e) => { e.stopPropagation(); setEditingRoleWorker(w); setNewRole(w.role || 'worker'); setIsRoleEditModalOpen(true) }} className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-r from-cyan-500 to-sky-500 text-white shadow-sm shadow-cyan-500/20 hover:from-cyan-600 hover:to-sky-600 transition" aria-label="Edit role">
+                          <button type="button" onClick={(e) => { e.stopPropagation(); setEditingRoleWorker(w); setNewRole(w.role || 'worker'); setIsRoleEditModalOpen(true) }} className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-r from-cyan-600 to-sky-600 text-white shadow-sm shadow-cyan-600/20 hover:from-cyan-700 hover:to-sky-700 transition" aria-label="Edit role">
                             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                             </svg>
                           </button>
-                          <button type="button" onClick={(e) => { e.stopPropagation(); handleDeleteWorker(w.id, w.full_name) }} className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-red-600 text-white shadow-sm shadow-red-500/20 hover:bg-red-700 transition" aria-label="Delete worker">
+                          <button type="button" onClick={(e) => { e.stopPropagation(); handleDeleteWorker(w.id, w.full_name) }} className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-red-700 text-white shadow-sm shadow-red-600/20 hover:bg-red-800 transition" aria-label="Delete worker">
                             <X className="h-4 w-4" />
                           </button>
                         </div>
@@ -2201,6 +2186,84 @@ export default function DashboardPage() {
                   )) : <div className="text-zinc-500">No workers found.</div>}
                 </div>
               </section>
+
+              {/* ── Admin Hub ── */}
+              <div className="mt-10">
+                <div className="relative overflow-hidden rounded-3xl border border-zinc-200/60 bg-gradient-to-br from-slate-900 via-zinc-900 to-slate-800 p-8 shadow-2xl">
+                  {/* Decorative glow blobs */}
+                  <div className="pointer-events-none absolute -top-24 -right-24 h-64 w-64 rounded-full bg-cyan-500/10 blur-3xl" />
+                  <div className="pointer-events-none absolute -bottom-20 -left-20 h-56 w-56 rounded-full bg-sky-500/10 blur-3xl" />
+
+                  <div className="relative">
+                    {/* Hub Header */}
+                    <div className="mb-6 flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-500 to-sky-600 shadow-lg shadow-cyan-600/30">
+                        <svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-bold text-white tracking-tight">Admin Hub</h3>
+                        <p className="text-sm text-zinc-400">Quick access to administrative actions</p>
+                      </div>
+                    </div>
+
+                    {/* Hub Action Cards */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+
+                      {/* Add New Worker */}
+                      <button
+                        onClick={() => setIsAddWorkerModalOpen(true)}
+                        className="group relative flex flex-col items-start gap-3 rounded-2xl border border-white/10 bg-white/5 p-5 text-left backdrop-blur-sm hover:bg-white/10 hover:border-cyan-400/40 transition-all duration-200 hover:shadow-xl hover:shadow-cyan-600/20"
+                      >
+                        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-500 to-sky-600 shadow-lg shadow-cyan-500/30 group-hover:scale-110 transition-transform duration-200">
+                          <UserPlus className="h-5 w-5 text-white" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-white">Add New Worker</p>
+                          <p className="mt-0.5 text-xs text-zinc-400">Register a new team member</p>
+                        </div>
+                        <div className="absolute right-4 top-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <svg className="h-4 w-4 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                        </div>
+                      </button>
+
+                      {/* Announcement */}
+                      <button
+                        onClick={() => { setAnnouncementSchemaHint(null); setIsAnnouncementModalOpen(true) }}
+                        className="group relative flex flex-col items-start gap-3 rounded-2xl border border-white/10 bg-white/5 p-5 text-left backdrop-blur-sm hover:bg-white/10 hover:border-amber-400/40 transition-all duration-200 hover:shadow-xl hover:shadow-amber-600/20"
+                      >
+                        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 shadow-lg shadow-amber-500/30 group-hover:scale-110 transition-transform duration-200">
+                          <Bell className="h-5 w-5 text-white" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-white">Announcement</p>
+                          <p className="mt-0.5 text-xs text-zinc-400">Broadcast a message to all workers</p>
+                        </div>
+                        <div className="absolute right-4 top-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <svg className="h-4 w-4 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                        </div>
+                      </button>
+
+                      {/* Payslip Requests */}
+                      <button
+                        onClick={() => { setIsPayslipAdminModalOpen(true); fetchPayslipRequests() }}
+                        className="group relative flex flex-col items-start gap-3 rounded-2xl border border-white/10 bg-white/5 p-5 text-left backdrop-blur-sm hover:bg-white/10 hover:border-emerald-400/40 transition-all duration-200 hover:shadow-xl hover:shadow-emerald-600/20"
+                      >
+                        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-green-600 shadow-lg shadow-emerald-500/30 group-hover:scale-110 transition-transform duration-200">
+                          <FileText className="h-5 w-5 text-white" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-white">Payslip Requests</p>
+                          <p className="mt-0.5 text-xs text-zinc-400">Review &amp; manage payslip requests</p>
+                        </div>
+                        <div className="absolute right-4 top-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <svg className="h-4 w-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                        </div>
+                      </button>
+
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         ) : (
@@ -2299,201 +2362,146 @@ export default function DashboardPage() {
               )}
             </div>
 
-            <div className="grid gap-5 md:grid-cols-3 mt-6">
-              <Card className="bg-gradient-to-br from-white to-zinc-50/50 border-zinc-200/80 hover:shadow-2xl hover:shadow-zinc-200/60 transition-all duration-300 hover:-translate-y-1">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                  <CardTitle className="text-sm font-semibold text-zinc-600 uppercase tracking-wider">Total Files</CardTitle>
-                  <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-cyan-400 to-cyan-500 flex items-center justify-center shadow-lg shadow-cyan-500/30">
-                    <FileText className="h-5 w-5 text-white" />
+            <div className="grid gap-3 md:grid-cols-3 mt-3">
+              <Card className="bg-gradient-to-br from-white to-zinc-50/50 border-zinc-200/80 hover:shadow-md hover:shadow-zinc-200/30 transition-all duration-300 hover:-translate-y-0.5">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-1">
+                  <CardTitle className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Total Files</CardTitle>
+                  <div className="h-7 w-7 rounded-md bg-gradient-to-br from-cyan-400 to-cyan-500 flex items-center justify-center shadow-md shadow-cyan-500/20">
+                    <FileText className="h-3.5 w-3.5 text-white" />
                   </div>
                 </CardHeader>
-                <CardContent>
-                  <div className="text-4xl font-bold text-zinc-900 tracking-tight">{filteredTotalFiles}</div>
-                  <p className="text-xs text-zinc-500 mt-1">{filterApplied ? "Selected Period" : "All Time"}</p>
+                <CardContent className="p-3 pt-0">
+                  <div className="text-xl font-extrabold text-zinc-900 tracking-tight">{filteredTotalFiles}</div>
+                  <p className="text-[10px] text-zinc-400 mt-0.5">{filterApplied ? "Selected Period" : "All Time"}</p>
                 </CardContent>
               </Card>
-              <Card className="bg-gradient-to-br from-white to-zinc-50/50 border-zinc-200/80 hover:shadow-2xl hover:shadow-zinc-200/60 transition-all duration-300 hover:-translate-y-1">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                  <CardTitle className="text-sm font-semibold text-zinc-600 uppercase tracking-wider">Total Kilobytes</CardTitle>
-                  <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-purple-400 to-purple-500 flex items-center justify-center shadow-lg shadow-purple-500/30">
-                    <HardDrive className="h-5 w-5 text-white" />
+              <Card className="bg-gradient-to-br from-white to-zinc-50/50 border-zinc-200/80 hover:shadow-md hover:shadow-zinc-200/30 transition-all duration-300 hover:-translate-y-0.5">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-1">
+                  <CardTitle className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Total Kilobytes</CardTitle>
+                  <div className="h-7 w-7 rounded-md bg-gradient-to-br from-purple-400 to-purple-500 flex items-center justify-center shadow-md shadow-purple-500/20">
+                    <HardDrive className="h-3.5 w-3.5 text-white" />
                   </div>
                 </CardHeader>
-                <CardContent>
-                  <div className="text-4xl font-bold text-zinc-900 tracking-tight">{filteredTotalKB}</div>
-                  <p className="text-xs text-zinc-500 mt-1">{filterApplied ? "Selected Period" : "All Time"}</p>
+                <CardContent className="p-3 pt-0">
+                  <div className="text-xl font-extrabold text-zinc-900 tracking-tight">{filteredTotalKB}</div>
+                  <p className="text-[10px] text-zinc-400 mt-0.5">{filterApplied ? "Selected Period" : "All Time"}</p>
                 </CardContent>
               </Card>
-              <Card className="bg-gradient-to-br from-white to-zinc-50/50 border-zinc-200/80 hover:shadow-2xl hover:shadow-zinc-200/60 transition-all duration-300 hover:-translate-y-1">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                  <CardTitle className="text-sm font-semibold text-zinc-600 uppercase tracking-wider">Total Earnings</CardTitle>
-                  <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-500/30">
-                    <CreditCard className="h-5 w-5 text-white" />
+              <Card className="bg-gradient-to-br from-white to-zinc-50/50 border-zinc-200/80 hover:shadow-md hover:shadow-zinc-200/30 transition-all duration-300 hover:-translate-y-0.5">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-1">
+                  <CardTitle className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Total Earnings</CardTitle>
+                  <div className="h-7 w-7 rounded-md bg-gradient-to-br from-emerald-400 to-emerald-500 flex items-center justify-center shadow-md shadow-emerald-500/20">
+                    <CreditCard className="h-3.5 w-3.5 text-white" />
                   </div>
                 </CardHeader>
-                <CardContent>
-                  <div className="text-4xl font-bold text-zinc-900 tracking-tight">{computedEarnings ?? '-'}</div>
-                  <p className="text-xs text-zinc-500 mt-1">{computedEarnings ? `Based on ${formatCurrency(activeWorker?.base_payment_per_60kb || 700, activeWorker?.location)} per 60KB` : ''}</p>
-                  <div className="flex gap-2 mt-4">
-                    <button type="button" onClick={computeTotalEarnings} className="inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-slate-800 to-slate-900 px-4 py-2 text-xs font-semibold text-white shadow-xl shadow-slate-900/30 hover:from-slate-700 hover:to-slate-800 hover:shadow-xl hover:shadow-slate-900/40 transition-all">
-                      Compute Total Earnings
+                <CardContent className="p-3 pt-0">
+                  <div className="text-xl font-extrabold text-zinc-900 tracking-tight">{computedEarnings ?? '-'}</div>
+                  <p className="text-[10px] text-zinc-400 mt-0.5">{computedEarnings ? `Based on ${formatCurrency(activeWorker?.base_payment_per_60kb || 700, activeWorker?.location)} per 60KB` : ''}</p>
+                  <div className="flex gap-1.5 mt-2">
+                    <button type="button" onClick={computeTotalEarnings} className="inline-flex items-center justify-center rounded-md bg-gradient-to-r from-slate-900 to-zinc-900 px-2.5 py-1 text-[10px] font-semibold text-white shadow-sm hover:from-slate-950 hover:to-black hover:shadow transition-all">
+                      Compute Earnings
                     </button>
                     {isAdmin && (
-                      <button type="button" onClick={() => { setIsPaymentModalOpen(true); setSelectedPaymentRate(activeWorker?.base_payment_per_60kb || 700) }} className="inline-flex items-center gap-2 rounded-xl border-2 border-slate-200 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:border-slate-300 shadow-sm hover:shadow-md transition-all">
-                        <Pencil className="h-3.5 w-3.5" /> Edit Rate
+                      <button type="button" onClick={() => { setIsPaymentModalOpen(true); setSelectedPaymentRate(activeWorker?.base_payment_per_60kb || 700) }} className="inline-flex items-center gap-1 rounded-md border border-zinc-300 px-2 py-1 text-[10px] font-semibold text-slate-800 hover:bg-slate-50 hover:border-slate-400 transition-all">
+                        <Pencil className="h-2.5 w-2.5" /> Rate
                       </button>
                     )}
                   </div>
                 </CardContent>
               </Card>
             </div>
-            <div className="grid gap-6 xl:grid-cols-[2fr_1fr] mt-6">
-              <div className="space-y-6">
-                <Card className="bg-gradient-to-br from-white to-zinc-50 border-zinc-200/80">
-                  <CardHeader>
-                    <CardTitle className="text-lg font-bold text-zinc-900 tracking-tight">Production Records</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:gap-2">
-                      <div className="flex flex-wrap items-end gap-2">
-                        <div className="flex flex-col">
-                          <label className="text-xs font-semibold text-zinc-600 mb-1.5">Start Date</label>
-                          <input type="date" value={startDate} onChange={(e) => { setStartDate(e.target.value); setFilterApplied(false); }} className="border border-zinc-300 rounded-lg px-3 py-2 text-sm text-zinc-700 outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all" placeholder="mm/dd/yyyy" />
-                        </div>
-                        <div className="flex flex-col">
-                          <label className="text-xs font-semibold text-zinc-600 mb-1.5">End Date</label>
-                          <input type="date" value={endDate} onChange={(e) => { setEndDate(e.target.value); setFilterApplied(false); }} className="border border-zinc-300 rounded-lg px-3 py-2 text-sm text-zinc-700 outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all" placeholder="mm/dd/yyyy" />
-                        </div>
-                        <button onClick={applyFilters} className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-cyan-600 to-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-xl shadow-cyan-500/30 hover:from-cyan-700 hover:to-sky-700 hover:shadow-xl hover:shadow-cyan-500/40 transition-all">
-                          <span>⊡</span> Filter
-                        </button>
-                        {(startDate || endDate) && (
-                          <button onClick={clearFilters} className="inline-flex items-center gap-1 px-4 py-2 rounded-xl bg-zinc-600 text-white text-sm font-semibold hover:bg-zinc-700 active:bg-zinc-800 shadow-lg shadow-zinc-500/20 transition-all">
-                            <X className="h-3.5 w-3.5" /> Clear
-                          </button>
-                        )}
+            <div className="grid gap-6 xl:grid-cols-[2fr_1fr] xl:items-stretch mt-4">
+              <Card className="bg-gradient-to-br from-white to-zinc-50 border-zinc-200/80">
+                <CardHeader>
+                  <CardTitle className="text-lg font-bold text-zinc-900 tracking-tight">Production Records</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:gap-2">
+                    <div className="flex flex-wrap items-end gap-2">
+                      <div className="flex flex-col">
+                        <label className="text-xs font-semibold text-zinc-600 mb-1.5">Start Date</label>
+                        <input type="date" value={startDate} onChange={(e) => { setStartDate(e.target.value); setFilterApplied(false); }} className="border border-zinc-300 rounded-lg px-3 py-2 text-sm text-zinc-700 outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all" placeholder="mm/dd/yyyy" />
                       </div>
-                    </div>
-                    <div className="overflow-x-auto rounded-xl border border-zinc-200">
-                      <table className="w-full text-sm text-left">
-                        <thead className="bg-zinc-100/80 text-zinc-700 uppercase text-[11px] font-semibold tracking-wider">
-                          <tr>
-                            <th className="px-4 py-3 text-left rounded-tl-lg">File Name</th>
-                            <th className="px-4 py-3 text-left">Date Completed</th>
-                            <th className="px-4 py-3 text-left">Size (KB)</th>
-                            {isAdmin && <th className="px-4 py-3 text-left rounded-tr-lg">Actions</th>}
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-zinc-200/60 bg-white">
-                          {records.length > 0 ? records.map((r: any) => (
-                            <tr key={r.id} className="hover:bg-zinc-50/80 transition-colors">
-                              <td className="px-4 py-3 font-semibold text-zinc-900">{getDisplayFileName(r.file_name)}</td>
-                              <td className="px-4 py-3 text-zinc-600">{formatDateDMY(r.date_completed)}</td>
-                              <td className="px-4 py-3 font-bold text-cyan-600">{formatKB(r.byte_size)}</td>
-                              {isAdmin && (
-                                <td className="px-4 py-3">
-                                  <div className="flex items-center gap-1">
-                                    <button onClick={() => openEditModal(r)} className="inline-flex items-center gap-1 rounded-xl border-2 border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 shadow-sm shadow-slate-200/80 hover:border-slate-300 hover:text-slate-900 hover:shadow-md transition-all">
-                                      <Pencil className="h-4 w-4" /> Edit
-                                    </button>
-                                    <button onClick={() => handleDeleteRecord(r.id)} className="inline-flex items-center gap-1 rounded-xl bg-gradient-to-r from-red-500 to-rose-500 px-3 py-1.5 text-sm font-semibold text-white shadow-xl shadow-red-500/30 hover:from-red-600 hover:to-rose-600 hover:shadow-xl hover:shadow-red-500/40 transition-all">
-                                      <Trash2 className="h-4 w-4" /> Delete
-                                    </button>
-                                  </div>
-                                </td>
-                              )}
-                            </tr>
-                          )) : (
-                            <tr>
-                              <td colSpan={isAdmin ? 4 : 3} className="px-4 py-8 text-center text-zinc-500 font-medium">No production records found.</td>
-                            </tr>
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
-                  </CardContent>
-                  <div className="border-t border-zinc-200/80 px-6 py-4 flex flex-col sm:flex-row items-center justify-center gap-2 bg-zinc-50/50">
-                    {isAdmin && (
-                      <button onClick={() => setIsManualAddModalOpen(true)} className="inline-flex items-center gap-2 rounded-xl border-2 border-zinc-200 bg-white px-4 py-2.5 text-sm font-semibold text-zinc-700 shadow-sm shadow-zinc-200/70 hover:bg-zinc-50 hover:border-zinc-300 hover:shadow-md transition-all">
-                        <FileText className="h-4 w-4" /> Add File Manually
+                      <div className="flex flex-col">
+                        <label className="text-xs font-semibold text-zinc-600 mb-1.5">End Date</label>
+                        <input type="date" value={endDate} onChange={(e) => { setEndDate(e.target.value); setFilterApplied(false); }} className="border border-zinc-300 rounded-lg px-3 py-2 text-sm text-zinc-700 outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all" placeholder="mm/dd/yyyy" />
+                      </div>
+                      <button onClick={applyFilters} className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-cyan-700 to-sky-700 px-4 py-2 text-sm font-semibold text-white shadow-xl shadow-cyan-600/30 hover:from-cyan-800 hover:to-sky-800 hover:shadow-xl hover:shadow-cyan-600/40 transition-all">
+                        <span>⊡</span> Filter
                       </button>
-                    )}
-                    <button onClick={() => setIsUploadModalOpen(true)} className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-600 to-sky-600 px-5 py-2.5 text-sm font-semibold text-white shadow-xl shadow-cyan-500/30 hover:from-cyan-700 hover:to-sky-700 hover:shadow-xl hover:shadow-cyan-500/40 transition-all">
-                      <Upload className="h-5 w-5" /> Upload File
-                    </button>
-                  </div>
-                </Card>
-
-                <Card className="mt-6 bg-gradient-to-br from-white to-zinc-50 border-zinc-200/80">
-                  <CardHeader className="flex flex-wrap items-center justify-between gap-4">
-                    <div>
-                      <CardTitle className="text-lg font-bold text-zinc-900 tracking-tight">Payment Center</CardTitle>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      {(user?.id === activeWorker?.id || isAdmin) && (
-                        <>
-                          <button type="button" onClick={() => setIsPayslipModalOpen(true)} className="inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 px-4 py-2 text-xs font-semibold text-white shadow-xl shadow-emerald-500/30 hover:from-emerald-600 hover:to-teal-600 hover:shadow-xl hover:shadow-emerald-500/40 transition-all">
-                            Request Payslip
-                          </button>
-                          <button type="button" onClick={() => { setPaymentHistory([]); setIsPaymentHistoryModalOpen(true); if (activeWorker?.id) fetchPaymentHistory(activeWorker.id) }} className="inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-blue-500 to-indigo-500 px-4 py-2 text-xs font-semibold text-white shadow-xl shadow-blue-500/30 hover:from-blue-600 hover:to-indigo-600 hover:shadow-xl hover:shadow-blue-500/40 transition-all">
-                            Payment History
-                          </button>
-                        </>
+                      {(startDate || endDate) && (
+                        <button onClick={clearFilters} className="inline-flex items-center gap-1 px-4 py-2 rounded-xl bg-zinc-700 text-white text-sm font-semibold hover:bg-zinc-800 active:bg-zinc-900 shadow-lg shadow-zinc-600/20 transition-all">
+                          <X className="h-3.5 w-3.5" /> Clear
+                        </button>
                       )}
                     </div>
-                  </CardHeader>
-                  <CardContent>
-                    {payslipRequests.length === 0 ? (
-                      <p className="text-center text-sm text-zinc-500 font-medium py-4">No payslip requests yet for this worker.</p>
-                    ) : (
-                      <div className="space-y-2 max-h-[350px] overflow-y-auto pr-2">
-                        {payslipRequests.map((r: any) => (
-                          <div key={r.id} className="rounded-xl border-2 border-zinc-200/60 bg-white p-3 shadow-sm hover:shadow-md hover:border-zinc-300 transition-all">
-                            <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                              <div>
-                                <div className="text-xs font-bold text-zinc-900">{r.cutoff_start} → {r.cutoff_end}</div>
-                                <div className="text-xs text-zinc-500">Requested {new Date(r.requested_at).toLocaleDateString()}</div>
-                              </div>
-                              <div className="text-xs uppercase tracking-tight font-semibold text-zinc-700">{r.status}</div>
-                            </div>
-                            <div className="mt-2 flex flex-wrap items-center gap-1">
-                              {r.payslip_url ? (
-                                <a href={r.payslip_url} target="_blank" rel="noreferrer" className="inline-flex items-center rounded-xl bg-gradient-to-r from-cyan-600 to-sky-600 px-3 py-1 text-xs font-semibold text-white hover:from-cyan-700 hover:to-sky-700 transition-all shadow-sm hover:shadow-md">
-                                  Download payslip
-                                </a>
-                              ) : r.status === 'approved' ? (
-                                <span className="rounded-xl bg-blue-100 px-2 py-1 text-xs font-semibold text-blue-800">Approved - waiting for upload</span>
-                              ) : (
-                                <span className="rounded-xl bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-800">Waiting for approval</span>
-                              )}
-                              {r.status === 'paid' && (
-                                <span className="rounded-xl bg-emerald-100 px-2 py-1 text-xs font-semibold text-emerald-800">Paid</span>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </div>
+                  </div>
+                  <div className="overflow-x-auto rounded-xl border border-zinc-200">
+                    <table className="w-full text-sm text-left">
+                      <thead className="bg-zinc-100/80 text-zinc-700 uppercase text-[11px] font-semibold tracking-wider">
+                        <tr>
+                          <th className="px-4 py-3 text-left rounded-tl-lg">File Name</th>
+                          <th className="px-4 py-3 text-left">Date Completed</th>
+                          <th className="px-4 py-3 text-left">Size (KB)</th>
+                          {isAdmin && <th className="px-4 py-3 text-left rounded-tr-lg">Actions</th>}
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-zinc-200/60 bg-white">
+                        {records.length > 0 ? records.map((r: any) => (
+                          <tr key={r.id} className="hover:bg-zinc-50/80 transition-colors">
+                            <td className="px-4 py-3 font-semibold text-zinc-900">{getDisplayFileName(r.file_name)}</td>
+                            <td className="px-4 py-3 text-zinc-600">{formatDateDMY(r.date_completed)}</td>
+                            <td className="px-4 py-3 font-bold text-cyan-600">{formatKB(r.byte_size)}</td>
+                            {isAdmin && (
+                              <td className="px-4 py-3">
+                                <div className="flex items-center gap-1">
+                                  <button onClick={() => openEditModal(r)} className="inline-flex items-center gap-1 rounded-xl border-2 border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-800 shadow-sm shadow-slate-300/80 hover:border-slate-400 hover:text-zinc-900 hover:shadow-md transition-all">
+                                    <Pencil className="h-4 w-4" /> Edit
+                                  </button>
+                                  <button onClick={() => handleDeleteRecord(r.id)} className="inline-flex items-center gap-1 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 px-3 py-1.5 text-sm font-semibold text-white shadow-xl shadow-red-600/30 hover:from-red-700 hover:to-rose-700 hover:shadow-xl hover:shadow-red-600/40 transition-all">
+                                    <Trash2 className="h-4 w-4" /> Delete
+                                  </button>
+                                </div>
+                              </td>
+                            )}
+                          </tr>
+                        )) : (
+                          <tr>
+                            <td colSpan={isAdmin ? 4 : 3} className="px-4 py-8 text-center text-zinc-500 font-medium">No production records found.</td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </CardContent>
+                <div className="border-t border-zinc-200/80 px-6 py-4 flex flex-col sm:flex-row items-center justify-center gap-2 bg-zinc-50/50">
+                  {isAdmin && (
+                    <button onClick={() => setIsManualAddModalOpen(true)} className="inline-flex items-center gap-2 rounded-xl border-2 border-zinc-300 bg-white px-4 py-2.5 text-sm font-semibold text-zinc-800 shadow-sm shadow-zinc-200/70 hover:bg-zinc-100 hover:border-zinc-400 hover:shadow-md transition-all">
+                      <FileText className="h-4 w-4" /> Add File Manually
+                    </button>
+                  )}
+                  <button onClick={() => setIsUploadModalOpen(true)} className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-700 to-sky-700 px-5 py-2.5 text-sm font-semibold text-white shadow-xl shadow-cyan-600/30 hover:from-cyan-800 hover:to-sky-800 hover:shadow-xl hover:shadow-cyan-600/40 transition-all">
+                    <Upload className="h-5 w-5" /> Upload File
+                  </button>
+                </div>
+              </Card>
 
-              <Card className="flex flex-col overflow-hidden bg-gradient-to-br from-white to-zinc-50 border-zinc-200/80">
+              {/* Current Assignments Card */}
+              <Card className="flex flex-col overflow-hidden bg-gradient-to-br from-white to-zinc-50 border-zinc-200/80 xl:h-full">
                 <CardHeader className="flex flex-wrap items-center justify-between gap-2">
                   <div>
                     <CardTitle className="text-lg font-bold text-zinc-900 tracking-tight">Current Assignments</CardTitle>
                   </div>
                   <div className="flex items-center gap-1">
                     {isAdmin && (
-                      <button onClick={() => { setEditAssignmentId(null); setNewAssignmentFilename(''); setNewAssignmentDescription(''); setIsAddAssignmentModalOpen(true) }} className="inline-flex items-center gap-1 rounded-xl border-2 border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm hover:shadow-md">
+                      <button onClick={() => { setEditAssignmentId(null); setNewAssignmentFilename(''); setNewAssignmentDescription(''); setIsAddAssignmentModalOpen(true) }} className="inline-flex items-center gap-1 rounded-xl border-2 border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-800 hover:bg-slate-100 hover:border-slate-400 transition-all shadow-sm hover:shadow-md">
                         <span>+</span> Add Assignment
                       </button>
                     )}
                   </div>
                 </CardHeader>
-                <CardContent className="">
+                <CardContent className="flex-1 overflow-y-auto">
                   <div className="space-y-1">
-                    
                     <div className="grid gap-1 items-center bg-zinc-100/80 px-3 py-2.5 border-b border-zinc-200/60 rounded-t-lg" style={{ gridTemplateColumns: effectiveHeaderTemplate }}>
                       <div className="text-xs font-bold text-zinc-700 uppercase tracking-wider">Filename</div>
                       <div className="text-xs font-bold text-zinc-700 uppercase tracking-wider">Status</div>
@@ -2511,51 +2519,152 @@ export default function DashboardPage() {
                     ) : (
                       <div className="space-y-1">
                         {assignments.map((a: any) => (
-                        <div key={a.id} className="grid gap-1 items-center py-2 px-3 rounded-lg border border-zinc-200/60 bg-white hover:bg-zinc-50/80 transition-all" style={{ gridTemplateColumns: effectiveRowTemplate }}>
-                          <div>
-                            <button type="button" onClick={() => { setSelectedAssignment(a); if (profile?.id) localStorage.setItem(`last_viewed_description_${profile.id}_${a.id}`, new Date().toISOString()); setAssignmentsWithUpdatedDescription(prev => { const newSet = new Set(prev); newSet.delete(a.id); return newSet }) }} className="text-sm font-bold text-slate-900 underline-offset-4 hover:underline flex items-center gap-2">
-                              {getDisplayFileName(a.filename)}
-                              {assignmentsWithUpdatedDescription.has(a.id) && (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-red-500 text-white text-[10px] font-bold animate-pulse shadow-sm">REVISED</span>
-                              )}
-                            </button>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            {a.status === 'done' ? (
-                              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-bold text-emerald-800"><span aria-hidden="true">✓</span><span>Done</span></span>
-                            ) : a.status === 'cancelled' ? (
-                              <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2.5 py-1 text-xs font-bold text-red-800"><span aria-hidden="true">✕</span><span>Cancelled</span></span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-1 text-xs font-bold text-amber-800"><span aria-hidden="true">⏳</span><span>Pending</span></span>
-                            )}
-                          </div>
-                          {isAdmin && (
-                            <div className="flex items-center gap-1">
-                              {a.status !== 'cancelled' && (
-                                <button onClick={() => cancelAssignment(a.id)} className="inline-flex items-center gap-1 rounded-lg bg-orange-50 px-2 py-1 text-xs font-semibold text-orange-700 hover:bg-orange-100 transition-all border border-orange-200">
-                                  <X className="h-3.5 w-3.5" /> Cancel
-                                </button>
-                              )}
-                              <button onClick={() => {
-                                setEditAssignmentId(a.id)
-                                setNewAssignmentFilename(a.filename || '')
-                                setNewAssignmentDescription(a.description || '')
-                                setIsAddAssignmentModalOpen(true)
-                              }} className="inline-flex items-center gap-1 rounded-lg bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-100 transition-all border border-blue-200">
-                                <Pencil className="h-3.5 w-3.5" /> Edit
-                              </button>
-                              <button onClick={() => deleteAssignment(a.id)} className="inline-flex items-center gap-1 rounded-lg bg-red-50 px-2 py-1 text-xs font-semibold text-red-700 hover:bg-red-100 transition-all border border-red-200">
-                                <X className="h-3.5 w-3.5" /> Delete
+                          <div key={a.id} className="grid gap-1 items-center py-2 px-3 rounded-lg border border-zinc-200/60 bg-white hover:bg-zinc-50/80 transition-all" style={{ gridTemplateColumns: effectiveRowTemplate }}>
+                            <div>
+                              <button type="button" onClick={() => { setSelectedAssignment(a); if (profile?.id) localStorage.setItem(`last_viewed_description_${profile.id}_${a.id}`, new Date().toISOString()); setAssignmentsWithUpdatedDescription(prev => { const newSet = new Set(prev); newSet.delete(a.id); return newSet }) }} className="text-sm font-bold text-slate-900 underline-offset-4 hover:underline flex items-center gap-2">
+                                {getDisplayFileName(a.filename)}
+                                {assignmentsWithUpdatedDescription.has(a.id) && (
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-red-500 text-white text-[10px] font-bold animate-pulse shadow-sm">REVISED</span>
+                                )}
                               </button>
                             </div>
-                          )}
-                        </div>
-                      ))}
+                            <div className="flex items-center gap-1">
+                              {a.status === 'done' ? (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-bold text-emerald-800"><span aria-hidden="true">✓</span><span>Done</span></span>
+                              ) : a.status === 'cancelled' ? (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2.5 py-1 text-xs font-bold text-red-800"><span aria-hidden="true">✕</span><span>Cancelled</span></span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-1 text-xs font-bold text-amber-800"><span aria-hidden="true">⏳</span><span>Pending</span></span>
+                              )}
+                            </div>
+                            {isAdmin && (
+                              <div className="flex items-center gap-1">
+                                {a.status !== 'cancelled' && (
+                                  <button onClick={() => cancelAssignment(a.id)} className="inline-flex items-center gap-1 rounded-lg bg-orange-50 px-2 py-1 text-xs font-semibold text-orange-700 hover:bg-orange-100 transition-all border border-orange-200">
+                                    <X className="h-3.5 w-3.5" /> Cancel
+                                  </button>
+                                )}
+                                <button onClick={() => {
+                                  setEditAssignmentId(a.id)
+                                  setNewAssignmentFilename(a.filename)
+                                  setNewAssignmentDescription(a.description || '')
+                                  setIsAddAssignmentModalOpen(true)
+                                }} className="inline-flex items-center gap-1 rounded-lg bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-100 transition-all border border-blue-200">
+                                  <Pencil className="h-3.5 w-3.5" /> Edit
+                                </button>
+                                <button onClick={() => deleteAssignment(a.id)} className="inline-flex items-center gap-1 rounded-lg bg-red-50 px-2 py-1 text-xs font-semibold text-red-700 hover:bg-red-100 transition-all border border-red-200">
+                                  <X className="h-3.5 w-3.5" /> Delete
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        ))}
                       </div>
                     )}
                   </div>
                 </CardContent>
               </Card>
+            </div>
+
+            {/* ── Worker Hub ── */}
+            <div className="mt-6">
+              <div className="relative overflow-hidden rounded-2xl border border-zinc-200/60 bg-gradient-to-br from-slate-900 via-zinc-900 to-slate-800 p-6 shadow-2xl">
+                {/* Decorative glow blobs */}
+                <div className="pointer-events-none absolute -top-24 -right-24 h-64 w-64 rounded-full bg-blue-500/10 blur-3xl" />
+                <div className="pointer-events-none absolute -bottom-20 -left-20 h-56 w-56 rounded-full bg-indigo-500/10 blur-3xl" />
+
+                <div className="relative">
+                  {/* Hub Header */}
+                  <div className="mb-4 flex items-center gap-3">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg shadow-blue-600/30">
+                      <CreditCard className="h-4.5 w-4.5 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold text-white tracking-tight">Worker Hub</h3>
+                      <p className="text-xs text-zinc-400">Quick access to payment &amp; payslip actions</p>
+                    </div>
+                  </div>
+
+                  {/* Hub Action Cards */}
+                  {(user?.id === activeWorker?.id || isAdmin) && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3.5 mb-5">
+
+                      {/* Request Payslip */}
+                      <button
+                        type="button"
+                        onClick={() => setIsPayslipModalOpen(true)}
+                        className="group relative flex flex-col items-start gap-2.5 rounded-xl border border-white/10 bg-white/5 p-4 text-left backdrop-blur-sm hover:bg-white/10 hover:border-blue-400/40 transition-all duration-200 hover:shadow-xl hover:shadow-blue-600/20"
+                      >
+                        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg shadow-blue-500/30 group-hover:scale-110 transition-transform duration-200">
+                          <FileText className="h-4.5 w-4.5 text-white" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-white">Request Payslip</p>
+                          <p className="mt-0.5 text-[11px] leading-relaxed text-zinc-400">Submit a payslip request for a cutoff period</p>
+                        </div>
+                        <div className="absolute right-3 top-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <svg className="h-3.5 w-3.5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                        </div>
+                      </button>
+
+                      {/* Payment History */}
+                      <button
+                        type="button"
+                        onClick={() => { setPaymentHistory([]); setIsPaymentHistoryModalOpen(true); if (activeWorker?.id) fetchPaymentHistory(activeWorker.id) }}
+                        className="group relative flex flex-col items-start gap-2.5 rounded-xl border border-white/10 bg-white/5 p-4 text-left backdrop-blur-sm hover:bg-white/10 hover:border-violet-400/40 transition-all duration-200 hover:shadow-xl hover:shadow-violet-600/20"
+                      >
+                        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 shadow-lg shadow-violet-500/30 group-hover:scale-110 transition-transform duration-200">
+                          <CreditCard className="h-4.5 w-4.5 text-white" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-white">Payment History</p>
+                          <p className="mt-0.5 text-[11px] leading-relaxed text-zinc-400">View all past payments &amp; transactions</p>
+                        </div>
+                        <div className="absolute right-3 top-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <svg className="h-3.5 w-3.5 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                        </div>
+                      </button>
+
+                    </div>
+                  )}
+
+                  {/* Payslip Request History */}
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-2">Payslip Request History</p>
+                    {payslipRequests.length === 0 ? (
+                      <p className="text-center text-sm text-zinc-500 font-medium py-4">No payslip requests yet for this worker.</p>
+                    ) : (
+                      <div className="space-y-2 max-h-[240px] overflow-y-auto pr-1">
+                        {payslipRequests.map((r: any) => (
+                          <div key={r.id} className="rounded-xl border border-white/10 bg-white/5 p-3 hover:bg-white/10 transition-all">
+                            <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                              <div>
+                                <div className="text-xs font-bold text-white">{r.cutoff_start} → {r.cutoff_end}</div>
+                                <div className="text-xs text-zinc-400">Requested {new Date(r.requested_at).toLocaleDateString()}</div>
+                              </div>
+                              <div className="text-xs uppercase tracking-tight font-semibold text-zinc-300">{r.status}</div>
+                            </div>
+                            <div className="mt-2 flex flex-wrap items-center gap-1">
+                              {r.payslip_url ? (
+                                <a href={r.payslip_url} target="_blank" rel="noreferrer" className="inline-flex items-center rounded-xl bg-gradient-to-r from-cyan-600 to-sky-600 px-3 py-1 text-xs font-semibold text-white hover:from-cyan-700 hover:to-sky-700 transition-all shadow-sm hover:shadow-md">
+                                  Download payslip
+                                </a>
+                              ) : r.status === 'approved' ? (
+                                <span className="rounded-xl bg-blue-900/60 border border-blue-500/30 px-2 py-1 text-xs font-semibold text-blue-300">Approved - waiting for upload</span>
+                              ) : (
+                                <span className="rounded-xl bg-amber-900/60 border border-amber-500/30 px-2 py-1 text-xs font-semibold text-amber-300">Waiting for approval</span>
+                              )}
+                              {r.status === 'paid' && (
+                                <span className="rounded-xl bg-emerald-900/60 border border-emerald-500/30 px-2 py-1 text-xs font-semibold text-emerald-300">Paid</span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
 
             {selectedAssignment && (
@@ -2615,10 +2724,10 @@ export default function DashboardPage() {
                     </div>
                   </div>
                   <div className="border-t border-zinc-200 p-5 flex gap-3 justify-end">
-                    <button type="button" onClick={() => { setIsReportIssueModalOpen(true); setReportIssueAssignment(selectedAssignment) }} className="inline-flex items-center justify-center rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 transition">
+                    <button type="button" onClick={() => { setIsReportIssueModalOpen(true); setReportIssueAssignment(selectedAssignment) }} className="inline-flex items-center justify-center rounded-md bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800 transition">
                       Report Issue
                     </button>
-                    <button type="button" onClick={() => setSelectedAssignment(null)} className="inline-flex items-center justify-center rounded-md bg-gradient-to-r from-cyan-500 to-sky-500 px-4 py-2 text-sm font-semibold text-white hover:from-cyan-600 hover:to-sky-600 transition">
+                    <button type="button" onClick={() => setSelectedAssignment(null)} className="inline-flex items-center justify-center rounded-md bg-gradient-to-r from-cyan-600 to-sky-600 px-4 py-2 text-sm font-semibold text-white hover:from-cyan-700 hover:to-sky-700 transition">
                       Close
                     </button>
                   </div>
@@ -2674,8 +2783,8 @@ export default function DashboardPage() {
                     </div>
 
                     <div className="flex gap-3">
-                      <button type="button" onClick={() => { setIsAddAssignmentModalOpen(false); setNewAssignmentFilename(""); setNewAssignmentDescription(""); setNewAssignmentAttachment(null) }} className="flex-1 rounded-md border border-zinc-200 bg-white px-5 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 transition">Cancel</button>
-                      <button type="submit" disabled={isAddingAssignment || isUploadingAttachment} className="flex-1 inline-flex items-center justify-center gap-2 rounded-md bg-gradient-to-r from-cyan-500 to-sky-500 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-cyan-500/20 hover:from-cyan-600 hover:to-sky-600 disabled:opacity-50">
+                      <button type="button" onClick={() => { setIsAddAssignmentModalOpen(false); setNewAssignmentFilename(""); setNewAssignmentDescription(""); setNewAssignmentAttachment(null) }} className="flex-1 rounded-md border border-zinc-300 bg-white px-5 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-100 transition">Cancel</button>
+                      <button type="submit" disabled={isAddingAssignment || isUploadingAttachment} className="flex-1 inline-flex items-center justify-center gap-2 rounded-md bg-gradient-to-r from-cyan-600 to-sky-600 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-cyan-600/20 hover:from-cyan-700 hover:to-sky-700 disabled:opacity-50">
                         {isUploadingAttachment ? 'Uploading...' : isAddingAssignment ? 'Adding...' : 'Add Assignment'}
                       </button>
                     </div>
@@ -2749,8 +2858,8 @@ export default function DashboardPage() {
               </div>
               <p className="text-xs text-zinc-500">A confirmation email will be sent to this address to activate the account.</p>
               <div className="flex gap-3 mt-6">
-                <button type="button" onClick={() => { setIsAddWorkerModalOpen(false); setNewWorkerForm({ fullName: "", jobTitle: "", department: "", email: "", password: "", role: "worker", location: 'United States' }); }} className="flex-1 rounded-md border border-zinc-200 bg-white px-5 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 transition">Cancel</button>
-                <button type="submit" disabled={isAddingWorker} className="flex-1 inline-flex items-center justify-center gap-2 rounded-md bg-gradient-to-r from-cyan-500 to-sky-500 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-cyan-500/20 hover:from-cyan-600 hover:to-sky-600 disabled:opacity-50">{isAddingWorker ? "Adding..." : "Add Worker"}</button>
+                <button type="button" onClick={() => { setIsAddWorkerModalOpen(false); setNewWorkerForm({ fullName: "", jobTitle: "", department: "", email: "", password: "", role: "worker", location: 'United States' }); }} className="flex-1 rounded-md border border-zinc-300 bg-white px-5 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-100 transition">Cancel</button>
+                <button type="submit" disabled={isAddingWorker} className="flex-1 inline-flex items-center justify-center gap-2 rounded-md bg-gradient-to-r from-cyan-600 to-sky-600 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-cyan-600/20 hover:from-cyan-700 hover:to-sky-700 disabled:opacity-50">{isAddingWorker ? "Adding..." : "Add Worker"}</button>
               </div>
             </form>
           </div>
@@ -2821,8 +2930,8 @@ export default function DashboardPage() {
                 {!isAdmin && <p className="text-xs text-zinc-500 mt-1">Contact admin to change employee ID</p>}
               </div>
               <div className="flex gap-3 mt-6">
-                <button type="button" onClick={() => setIsBankModalOpen(false)} className="flex-1 rounded-md border border-zinc-200 bg-white px-5 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 transition">Cancel</button>
-                <button type="submit" disabled={isUpdatingBank} className="flex-1 inline-flex items-center justify-center gap-2 rounded-md bg-gradient-to-r from-cyan-500 to-sky-500 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-cyan-500/20 hover:from-cyan-600 hover:to-sky-600 disabled:opacity-50">
+                <button type="button" onClick={() => setIsBankModalOpen(false)} className="flex-1 rounded-md border border-zinc-300 bg-white px-5 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-100 transition">Cancel</button>
+                <button type="submit" disabled={isUpdatingBank} className="flex-1 inline-flex items-center justify-center gap-2 rounded-md bg-gradient-to-r from-cyan-600 to-sky-600 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-cyan-600/20 hover:from-cyan-700 hover:to-sky-700 disabled:opacity-50">
                   {isUpdatingBank ? 'Saving...' : 'Save Details'}
                 </button>
               </div>
@@ -2853,8 +2962,8 @@ export default function DashboardPage() {
               ))}
             </div>
             <div className="flex gap-3">
-              <button type="button" onClick={() => setIsPaymentModalOpen(false)} className="flex-1 rounded-md border border-zinc-200 bg-white px-5 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 transition">Cancel</button>
-              <button type="button" onClick={handleSavePaymentRate} disabled={isUpdatingPayment} className="flex-1 inline-flex items-center justify-center gap-2 rounded-md bg-gradient-to-r from-slate-900 to-zinc-900 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 hover:from-slate-700 hover:to-zinc-800 disabled:opacity-50">
+              <button type="button" onClick={() => setIsPaymentModalOpen(false)} className="flex-1 rounded-md border border-zinc-300 bg-white px-5 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-100 transition">Cancel</button>
+              <button type="button" onClick={handleSavePaymentRate} disabled={isUpdatingPayment} className="flex-1 inline-flex items-center justify-center gap-2 rounded-md bg-gradient-to-r from-slate-900 to-zinc-900 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 hover:from-slate-800 hover:to-zinc-900 disabled:opacity-50">
                 {isUpdatingPayment ? 'Updating...' : 'Update Rate'}
               </button>
             </div>
@@ -2880,7 +2989,7 @@ export default function DashboardPage() {
               </div>
               <div className="flex gap-3 mt-4">
                 <button type="button" onClick={() => { setIsUploadModalOpen(false); setSelectedFile(null); }} className="flex-1 rounded-xl border-2 border-cyan-200 bg-white px-4 py-2.5 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 hover:border-cyan-300 transition-all shadow-sm hover:shadow-md">Cancel</button>
-                <button type="submit" disabled={isUploading} className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-600 to-sky-600 px-4 py-2.5 text-xs font-semibold text-white shadow-xl shadow-cyan-500/30 hover:from-cyan-700 hover:to-sky-700 hover:shadow-xl hover:shadow-cyan-500/40 disabled:opacity-50 transition-all">
+                <button type="submit" disabled={isUploading} className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-700 to-sky-700 px-4 py-2.5 text-xs font-semibold text-white shadow-xl shadow-cyan-600/30 hover:from-cyan-800 hover:to-sky-800 hover:shadow-xl hover:shadow-cyan-600/40 disabled:opacity-50 transition-all">
                   {isUploading ? "Uploading..." : "Upload File"}
                 </button>
               </div>
@@ -2911,8 +3020,8 @@ export default function DashboardPage() {
               </div>
               <p className="text-xs text-zinc-500">Enter details for a new production record without uploading a file.</p>
               <div className="flex gap-3 mt-6">
-                <button type="button" onClick={() => { setIsManualAddModalOpen(false); setManualFileForm({ fileName: '', dateCompleted: '', byteSize: '' }) }} className="flex-1 rounded-md border border-zinc-200 bg-white px-5 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 transition">Cancel</button>
-                <button type="submit" disabled={isAddingManualRecord} className="flex-1 inline-flex items-center justify-center gap-2 rounded-md bg-gradient-to-r from-cyan-500 to-sky-500 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-cyan-500/20 hover:from-cyan-600 hover:to-sky-600 disabled:opacity-50">
+                <button type="button" onClick={() => { setIsManualAddModalOpen(false); setManualFileForm({ fileName: '', dateCompleted: '', byteSize: '' }) }} className="flex-1 rounded-md border border-zinc-300 bg-white px-5 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-100 transition">Cancel</button>
+                <button type="submit" disabled={isAddingManualRecord} className="flex-1 inline-flex items-center justify-center gap-2 rounded-md bg-gradient-to-r from-cyan-600 to-sky-600 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-cyan-600/20 hover:from-cyan-700 hover:to-sky-700 disabled:opacity-50">
                   {isAddingManualRecord ? 'Adding...' : 'Add Record'}
                 </button>
               </div>
@@ -2956,7 +3065,7 @@ export default function DashboardPage() {
               </div>
               <div className="flex gap-3 mt-4">
                 <button type="button" onClick={() => { setIsPayslipModalOpen(false); const currentMonth = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`; setPayslipSelectedMonth(currentMonth); setPayslipSelectedCutoff('first') }} className="flex-1 rounded-xl border-2 border-blue-200 bg-white px-4 py-2.5 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 hover:border-blue-300 transition-all shadow-sm hover:shadow-md">Cancel</button>
-                <button type="button" disabled={isRequestingPayslip} onClick={requestPayslip} className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-sky-600 px-4 py-2.5 text-xs font-semibold text-white shadow-xl shadow-blue-500/30 hover:from-blue-700 hover:to-sky-700 hover:shadow-xl hover:shadow-blue-500/40 disabled:opacity-50 transition-all">{isRequestingPayslip ? 'Requesting...' : 'Request Payslip'}</button>
+                <button type="button" disabled={isRequestingPayslip} onClick={requestPayslip} className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-700 to-sky-700 px-4 py-2.5 text-xs font-semibold text-white shadow-xl shadow-blue-600/30 hover:from-blue-800 hover:to-sky-800 hover:shadow-xl hover:shadow-blue-600/40 disabled:opacity-50 transition-all">{isRequestingPayslip ? 'Requesting...' : 'Request Payslip'}</button>
               </div>
             </div>
           </div>
@@ -2965,14 +3074,14 @@ export default function DashboardPage() {
 
       {isPaymentHistoryModalOpen && activeWorker && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
-          <div className={`bg-gradient-to-br from-slate-50 via-indigo-50/30 to-blue-50 rounded-3xl shadow-2xl shadow-indigo-500/20 w-full ${isAdmin ? 'max-w-2xl' : 'max-w-md'} p-6 relative border-2 border-indigo-200/80 max-h-[90vh] flex flex-col`}>
+          <div className={`bg-gradient-to-br from-slate-50 via-indigo-50 to-blue-50 rounded-3xl shadow-2xl shadow-indigo-500/20 w-full ${isAdmin ? 'max-w-2xl' : 'max-w-md'} p-6 relative border-2 border-indigo-200/80 max-h-[90vh] flex flex-col`}>
             <button onClick={() => setIsPaymentHistoryModalOpen(false)} className="absolute right-4 top-4 text-indigo-400 hover:text-indigo-700 transition-colors"><X className="h-5 w-5" /></button>
             
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-blue-600 text-white shadow-xl shadow-indigo-500/30 mb-4 flex-shrink-0">
               <CreditCard className="h-6 w-6" />
             </div>
             
-            <h3 className="text-xl font-bold text-zinc-900 mb-1 flex-shrink-0">Payment Center</h3>
+            <h3 className="text-xl font-bold text-zinc-900 mb-1 flex-shrink-0">Worker Hub</h3>
             <p className="text-xs text-zinc-600 mb-4 flex-shrink-0">
               {isAdmin ? "Add and view payments for this worker." : "View all your past payments received."}
             </p>
@@ -3179,12 +3288,12 @@ export default function DashboardPage() {
                           </label>
                         )}
                         {r.payslip_url && (
-                          <a href={r.payslip_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-md bg-gradient-to-r from-cyan-500 to-sky-500 px-3 py-1 text-xs font-semibold text-white hover:from-cyan-600 hover:to-sky-600 transition">Download payslip</a>
+                          <a href={r.payslip_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-md bg-gradient-to-r from-cyan-600 to-sky-600 px-3 py-1 text-xs font-semibold text-white hover:from-cyan-700 hover:to-sky-700 transition">Download payslip</a>
                         )}
                         {r.status !== 'paid' && (
-                          <button disabled={isProcessingRequest} onClick={() => updatePayslipRequestStatus(r.id, 'paid')} className="inline-flex items-center gap-2 rounded-md bg-green-600 px-3 py-1 text-xs font-semibold text-white hover:bg-green-700 transition">Mark Paid</button>
+                          <button disabled={isProcessingRequest} onClick={() => updatePayslipRequestStatus(r.id, 'paid')} className="inline-flex items-center gap-2 rounded-md bg-green-700 px-3 py-1 text-xs font-semibold text-white hover:bg-green-800 transition">Mark Paid</button>
                         )}
-                        <button disabled={isProcessingRequest} onClick={() => deletePayslipRequest(r.id)} className="inline-flex items-center gap-2 rounded-md bg-red-600 px-3 py-1 text-xs font-semibold text-white hover:bg-red-700 transition" title="Delete payslip request">
+                        <button disabled={isProcessingRequest} onClick={() => deletePayslipRequest(r.id)} className="inline-flex items-center gap-2 rounded-md bg-red-700 px-3 py-1 text-xs font-semibold text-white hover:bg-red-800 transition" title="Delete payslip request">
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>
                       </div>
@@ -3321,8 +3430,8 @@ export default function DashboardPage() {
                 </div>
               </div>
               <div className="flex gap-3 mt-6">
-                <button type="button" onClick={() => setIsEditWorkerModalOpen(false)} className="flex-1 rounded-md border border-zinc-200 bg-white px-5 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 transition">Cancel</button>
-                <button type="submit" disabled={isUpdatingWorkerDetails} className="flex-1 inline-flex items-center justify-center gap-2 rounded-md bg-gradient-to-r from-cyan-500 to-sky-500 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-cyan-500/20 hover:from-cyan-600 hover:to-sky-600 disabled:opacity-50">
+                <button type="button" onClick={() => setIsEditWorkerModalOpen(false)} className="flex-1 rounded-md border border-zinc-300 bg-white px-5 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-100 transition">Cancel</button>
+                <button type="submit" disabled={isUpdatingWorkerDetails} className="flex-1 inline-flex items-center justify-center gap-2 rounded-md bg-gradient-to-r from-cyan-600 to-sky-600 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-cyan-600/20 hover:from-cyan-700 hover:to-sky-700 disabled:opacity-50">
                   {isUpdatingWorkerDetails ? 'Saving...' : <span className="flex items-center gap-2"><Save className="h-4 w-4" /> Save</span>}
                 </button>
               </div>
@@ -3351,8 +3460,8 @@ export default function DashboardPage() {
               </div>
             </div>
             <div className="flex gap-3 mt-6">
-              <button onClick={() => setIsEditModalOpen(false)} className="flex-1 px-4 py-2 text-sm font-medium text-zinc-700 bg-zinc-100 rounded-md hover:bg-zinc-200">Cancel</button>
-              <button onClick={saveEdit} disabled={isSaving} className="flex-1 inline-flex items-center justify-center gap-2 rounded-md bg-gradient-to-r from-slate-900 to-zinc-900 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 hover:from-slate-700 hover:to-zinc-800 disabled:opacity-50">
+              <button onClick={() => setIsEditModalOpen(false)} className="flex-1 px-4 py-2 text-sm font-medium text-zinc-800 bg-zinc-200 rounded-md hover:bg-zinc-300">Cancel</button>
+              <button onClick={saveEdit} disabled={isSaving} className="flex-1 inline-flex items-center justify-center gap-2 rounded-md bg-gradient-to-r from-slate-900 to-zinc-900 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 hover:from-slate-800 hover:to-zinc-900 disabled:opacity-50">
                 {isSaving ? "Saving..." : <span className="flex items-center gap-2"><Save className="h-4 w-4" /> Save</span>}
               </button>
             </div>
@@ -3391,8 +3500,8 @@ export default function DashboardPage() {
                 </select>
               </div>
               <div className="flex gap-3 mt-6">
-                <button onClick={() => setIsRoleEditModalOpen(false)} className="flex-1 px-4 py-2 text-sm font-medium text-zinc-700 bg-zinc-100 rounded-md hover:bg-zinc-200">Cancel</button>
-                <button onClick={handleUpdateRole} disabled={isUpdatingRole} className="flex-1 inline-flex items-center justify-center gap-2 rounded-md bg-gradient-to-r from-slate-900 to-zinc-900 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 hover:from-slate-700 hover:to-zinc-800 disabled:opacity-50">
+                <button onClick={() => setIsRoleEditModalOpen(false)} className="flex-1 px-4 py-2 text-sm font-medium text-zinc-800 bg-zinc-200 rounded-md hover:bg-zinc-300">Cancel</button>
+                <button onClick={handleUpdateRole} disabled={isUpdatingRole} className="flex-1 inline-flex items-center justify-center gap-2 rounded-md bg-gradient-to-r from-slate-900 to-zinc-900 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 hover:from-slate-800 hover:to-zinc-900 disabled:opacity-50">
                   {isUpdatingRole ? "Updating..." : <span className="flex items-center gap-2"><Save className="h-4 w-4" /> Update Role</span>}
                 </button>
               </div>
@@ -3423,8 +3532,8 @@ export default function DashboardPage() {
                 />
               </div>
               <div className="flex gap-3 mt-6">
-                <button onClick={() => { setIsReportIssueModalOpen(false); setIssueDescription(''); setReportIssueAssignment(null) }} className="flex-1 rounded-md border border-zinc-200 bg-white px-5 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 transition">Cancel</button>
-                <button onClick={handleSubmitIssue} disabled={isSubmittingIssue || !issueDescription.trim()} className="flex-1 inline-flex items-center justify-center gap-2 rounded-md bg-red-600 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-red-500/20 hover:bg-red-700 disabled:opacity-50 transition">
+                <button onClick={() => { setIsReportIssueModalOpen(false); setIssueDescription(''); setReportIssueAssignment(null) }} className="flex-1 rounded-md border border-zinc-300 bg-white px-5 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-100 transition">Cancel</button>
+                <button onClick={handleSubmitIssue} disabled={isSubmittingIssue || !issueDescription.trim()} className="flex-1 inline-flex items-center justify-center gap-2 rounded-md bg-red-700 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-red-600/20 hover:bg-red-800 disabled:opacity-50 transition">
                   {isSubmittingIssue ? 'Submitting...' : 'Submit Issue'}
                 </button>
               </div>

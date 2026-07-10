@@ -483,7 +483,7 @@ function AdminComposer({ workerId, sendMessage }: { workerId: string; sendMessag
   return (
     <div className="mt-2 flex items-center gap-2">
       <input value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { sendMessage(workerId, text); setText('') } }} className="flex-1 rounded border px-2 py-1.5 text-xs" placeholder="Type a message..." />
-      <button onClick={() => { sendMessage(workerId, text); setText('') }} className="rounded bg-cyan-600 px-3 py-1.5 text-xs text-white">Send</button>
+      <button onClick={() => { sendMessage(workerId, text); setText('') }} className="rounded bg-cyan-700 hover:bg-cyan-800 px-3 py-1.5 text-xs text-white">Send</button>
     </div>
   )
 }
