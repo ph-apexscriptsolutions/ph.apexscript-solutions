@@ -1223,12 +1223,14 @@ export default function DashboardPage() {
     
     if (payslipSelectedCutoff === 'first') {
       // First cutoff: 1st - 14th
-      cutoffStart = new Date(selectedYear, selectedMonth - 1, 1).toISOString().split('T')[0]
-      cutoffEnd = new Date(selectedYear, selectedMonth - 1, 14).toISOString().split('T')[0]
+      const lastDay = 14
+      cutoffStart = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}-01`
+      cutoffEnd = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}-${lastDay}`
     } else {
       // Second cutoff: 15th - last day of month
-      cutoffStart = new Date(selectedYear, selectedMonth - 1, 15).toISOString().split('T')[0]
-      cutoffEnd = new Date(selectedYear, selectedMonth, 0).toISOString().split('T')[0]
+      const lastDayOfMonth = new Date(selectedYear, selectedMonth, 0).getDate()
+      cutoffStart = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}-15`
+      cutoffEnd = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}-${lastDayOfMonth}`
     }
 
     setIsRequestingPayslip(true)
@@ -3196,7 +3198,7 @@ export default function DashboardPage() {
                         <div key={r.id} className="rounded-2xl border border-blue-100 bg-white/60 p-3.5 hover:bg-white transition-all">
                           <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between">
                             <div>
-                              <div className="text-xs font-bold text-zinc-800">{(() => { const d = new Date(r.cutoff_start + 'T00:00:00'); const month = d.toLocaleString('default', { month: 'long' }); const year = d.getFullYear(); const cutoff = d.getDate() <= 15 ? 'First Cutoff' : 'Second Cutoff'; return `${month} ${year} — ${cutoff}`; })()}</div>
+                              <div className="text-xs font-bold text-zinc-800">{(() => { const [y, m, day] = r.cutoff_start.split('-').map(Number); const month = new Date(y, m - 1, 1).toLocaleString('default', { month: 'long' }); const cutoff = day <= 14 ? 'First Cutoff' : 'Second Cutoff'; return `${month} ${y} — ${cutoff}`; })()}</div>
                               <div className="text-[10px] text-zinc-500">Requested {new Date(r.requested_at).toLocaleDateString()}</div>
                             </div>
                             <span className={`text-[10px] uppercase tracking-wider font-bold px-2.5 py-0.5 rounded-full ${
@@ -3535,7 +3537,7 @@ export default function DashboardPage() {
                           )}
                         </div>
                         {r.worker_email && <div className="text-xs text-zinc-500">{r.worker_email}</div>}
-                        <div className="text-xs text-zinc-500">{(() => { const d = new Date(r.cutoff_start + 'T00:00:00'); const month = d.toLocaleString('default', { month: 'long' }); const year = d.getFullYear(); const cutoff = d.getDate() <= 15 ? 'First Cutoff' : 'Second Cutoff'; return `${month} ${year} — ${cutoff}`; })()}</div>
+                        <div className="text-xs text-zinc-500">{(() => { const [y, m, day] = r.cutoff_start.split('-').map(Number); const month = new Date(y, m - 1, 1).toLocaleString('default', { month: 'long' }); const cutoff = day <= 14 ? 'First Cutoff' : 'Second Cutoff'; return `${month} ${y} — ${cutoff}`; })()}</div>
                         <div className="text-xs text-zinc-400 mt-1">Status: {r.status}</div>
                         {r.payslip_url && (
                           <div className="mt-1 text-xs">
