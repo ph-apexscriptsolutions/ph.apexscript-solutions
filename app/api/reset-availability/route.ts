@@ -28,10 +28,6 @@ function buildReminderEmailHtml(workerName: string): string {
             &#9888; Please submit your availability promptly to ensure accurate workforce planning and assignment scheduling.
           </p>
         </div>
-        <a href="${process.env.NEXT_PUBLIC_SITE_URL || 'https://apexscript.vercel.app'}/dashboard"
-           style="display: inline-block; background: linear-gradient(135deg, #059669, #0d9488); color: #ffffff; font-size: 14px; font-weight: 700; padding: 12px 28px; border-radius: 8px; text-decoration: none; margin: 8px 0;">
-          Update My Availability
-        </a>
         <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;">
         <p style="margin: 0; font-size: 12px; color: #9ca3af;">This is an automated weekly reminder from the ApexScript Worker Portal. Do not reply to this email.</p>
       </div>
