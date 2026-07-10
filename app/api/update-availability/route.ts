@@ -43,6 +43,38 @@ function formatAvailabilityHtml(availability: WeeklyAvailability): string {
     </table>`
 }
 
+function buildAvailabilityEmailHtml(workerName: string, now: string, availability: WeeklyAvailability, isWorkerCopy: boolean): string {
+  const headerNote = isWorkerCopy
+    ? `<p style="margin: 6px 0 0; color: #d1fae5; font-size: 13px;">This is your copy — submitted on ${now}</p>`
+    : `<p style="margin: 6px 0 0; color: #d1fae5; font-size: 13px;">Submitted on ${now}</p>`
+
+  const workerSection = isWorkerCopy
+    ? `<p style="margin: 0 0 4px; font-size: 13px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600;">Your Name</p>
+       <p style="margin: 0 0 20px; font-size: 18px; font-weight: 700; color: #111827;">${workerName}</p>`
+    : `<p style="margin: 0 0 4px; font-size: 13px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600;">Worker</p>
+       <p style="margin: 0 0 20px; font-size: 18px; font-weight: 700; color: #111827;">${workerName}</p>`
+
+  const footerNote = isWorkerCopy
+    ? `<p style="margin: 0; font-size: 12px; color: #9ca3af;">This is your personal confirmation copy. Your availability has been received and recorded. Do not reply to this email.</p>`
+    : `<p style="margin: 0; font-size: 12px; color: #9ca3af;">This is an automated notification from the ApexScript Worker Portal. Do not reply to this email.</p>`
+
+  return `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #111827;">
+      <div style="background: linear-gradient(135deg, #059669, #0d9488); padding: 28px 32px; border-radius: 12px 12px 0 0;">
+        <h2 style="margin: 0; color: #ffffff; font-size: 20px;">&#128197; Weekly Availability ${isWorkerCopy ? 'Confirmation' : 'Update'}</h2>
+        ${headerNote}
+      </div>
+      <div style="background: #ffffff; padding: 28px 32px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 12px 12px;">
+        ${workerSection}
+        <p style="margin: 0 0 8px; font-size: 13px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600;">Schedule for the Upcoming Week</p>
+        ${formatAvailabilityHtml(availability)}
+        <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;">
+        ${footerNote}
+      </div>
+    </div>
+  `
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json()
@@ -58,6 +90,16 @@ export async function POST(request: Request) {
 
     const supabase = getSupabaseServerClient()
 
+    // Fetch worker email for confirmation copy
+    const { data: workerData } = await supabase
+      .from('worker_profiles')
+      .select('email')
+      .eq('id', workerId)
+      .single()
+
+    const workerEmail: string | null = workerData?.email ?? null
+
+    // Save to DB with submitted timestamp
     const { error } = await supabase
       .from('worker_profiles')
       .update({
@@ -77,27 +119,31 @@ export async function POST(request: Request) {
         timeStyle: 'short',
       })
 
-      await transporter.sendMail({
-        from: `"ApexScript — Availability Update" <${process.env.EMAIL_USER}>`,
-        to: 'ph.apexscriptsolutions@gmail.com',
-        subject: `[AVAILABILITY UPDATE] ${workerName} has submitted their weekly schedule`,
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #111827;">
-            <div style="background: linear-gradient(135deg, #059669, #0d9488); padding: 28px 32px; border-radius: 12px 12px 0 0;">
-              <h2 style="margin: 0; color: #ffffff; font-size: 20px;">&#128197; Weekly Availability Update</h2>
-              <p style="margin: 6px 0 0; color: #d1fae5; font-size: 13px;">Submitted on ${now}</p>
-            </div>
-            <div style="background: #ffffff; padding: 28px 32px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 12px 12px;">
-              <p style="margin: 0 0 4px; font-size: 13px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600;">Worker</p>
-              <p style="margin: 0 0 20px; font-size: 18px; font-weight: 700; color: #111827;">${workerName}</p>
-              <p style="margin: 0 0 8px; font-size: 13px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600;">Schedule for the Upcoming Week</p>
-              ${formatAvailabilityHtml(availability)}
-              <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;">
-              <p style="margin: 0; font-size: 12px; color: #9ca3af;">This is an automated notification from the ApexScript Worker Portal. Do not reply to this email.</p>
-            </div>
-          </div>
-        `,
-      })
+      const emailPromises: Promise<any>[] = []
+
+      // Admin notification
+      emailPromises.push(
+        transporter.sendMail({
+          from: `"ApexScript — Availability Update" <${process.env.EMAIL_USER}>`,
+          to: 'ph.apexscriptsolutions@gmail.com',
+          subject: `[AVAILABILITY UPDATE] ${workerName} has submitted their weekly schedule`,
+          html: buildAvailabilityEmailHtml(workerName, now, availability, false),
+        })
+      )
+
+      // Worker confirmation copy
+      if (workerEmail) {
+        emailPromises.push(
+          transporter.sendMail({
+            from: `"ApexScript Worker Portal" <${process.env.EMAIL_USER}>`,
+            to: workerEmail,
+            subject: `[CONFIRMATION] Your weekly availability has been submitted`,
+            html: buildAvailabilityEmailHtml(workerName, now, availability, true),
+          })
+        )
+      }
+
+      await Promise.all(emailPromises)
     }
 
     return NextResponse.json({ success: true })
