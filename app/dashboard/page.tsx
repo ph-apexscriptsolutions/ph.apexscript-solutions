@@ -154,6 +154,7 @@ export default function DashboardPage() {
   const [payslipSelectedCutoff, setPayslipSelectedCutoff] = useState("first")
   const [isRequestingPayslip, setIsRequestingPayslip] = useState(false)
   const [payslipRequests, setPayslipRequests] = useState<any[]>([])
+  const [payslipActiveTab, setPayslipActiveTab] = useState<'request' | 'history'>('request')
   const [isPaymentHistoryModalOpen, setIsPaymentHistoryModalOpen] = useState(false)
   const [paymentHistory, setPaymentHistory] = useState<any[]>([])
   const [isLoadingPaymentHistory, setIsLoadingPaymentHistory] = useState(false)
@@ -2720,7 +2721,7 @@ export default function DashboardPage() {
                       {/* Request Payslip */}
                       <button
                         type="button"
-                        onClick={() => setIsPayslipModalOpen(true)}
+                        onClick={() => { setIsPayslipModalOpen(true); setPayslipActiveTab('request'); if (activeWorker?.id) fetchWorkerPayslipRequests(activeWorker.id); }}
                         className="group relative flex flex-col items-start gap-2.5 rounded-xl border border-white/10 bg-white/5 p-4 text-left backdrop-blur-sm hover:bg-white/10 hover:border-blue-400/40 transition-all duration-200 hover:shadow-xl hover:shadow-blue-600/20"
                       >
                         <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg shadow-blue-500/30 group-hover:scale-110 transition-transform duration-200">
@@ -2773,42 +2774,6 @@ export default function DashboardPage() {
 
                     </div>
                   )}
-
-                  {/* Payslip Request History */}
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-2">Payslip Request History</p>
-                    {payslipRequests.length === 0 ? (
-                      <p className="text-center text-sm text-zinc-500 font-medium py-4">No payslip requests yet for this worker.</p>
-                    ) : (
-                      <div className="space-y-2 max-h-[240px] overflow-y-auto pr-1">
-                        {payslipRequests.map((r: any) => (
-                          <div key={r.id} className="rounded-xl border border-white/10 bg-white/5 p-3 hover:bg-white/10 transition-all">
-                            <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                              <div>
-                                <div className="text-xs font-bold text-white">{r.cutoff_start} → {r.cutoff_end}</div>
-                                <div className="text-xs text-zinc-400">Requested {new Date(r.requested_at).toLocaleDateString()}</div>
-                              </div>
-                              <div className="text-xs uppercase tracking-tight font-semibold text-zinc-300">{r.status}</div>
-                            </div>
-                            <div className="mt-2 flex flex-wrap items-center gap-1">
-                              {r.payslip_url ? (
-                                <a href={r.payslip_url} target="_blank" rel="noreferrer" className="inline-flex items-center rounded-xl bg-gradient-to-r from-cyan-600 to-sky-600 px-3 py-1 text-xs font-semibold text-white hover:from-cyan-700 hover:to-sky-700 transition-all shadow-sm hover:shadow-md">
-                                  Download payslip
-                                </a>
-                              ) : r.status === 'approved' ? (
-                                <span className="rounded-xl bg-blue-900/60 border border-blue-500/30 px-2 py-1 text-xs font-semibold text-blue-300">Approved - waiting for upload</span>
-                              ) : (
-                                <span className="rounded-xl bg-amber-900/60 border border-amber-500/30 px-2 py-1 text-xs font-semibold text-amber-300">Waiting for approval</span>
-                              )}
-                              {r.status === 'paid' && (
-                                <span className="rounded-xl bg-emerald-900/60 border border-emerald-500/30 px-2 py-1 text-xs font-semibold text-emerald-300">Paid</span>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
                 </div>
               </div>
             </div>
@@ -3183,37 +3148,88 @@ export default function DashboardPage() {
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-400 via-blue-500 to-sky-400 text-white shadow-xl shadow-blue-500/30 mb-4">
               <CreditCard className="h-6 w-6" />
             </div>
-            <h3 className="text-xl font-bold text-zinc-900 mb-1">Request Payslip</h3>
-            <p className="text-xs text-zinc-600 mb-4">Select the month and payroll cutoff period.</p>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-zinc-700 mb-1.5">Select Month</label>
-                <input type="month" value={payslipSelectedMonth} onChange={(e) => setPayslipSelectedMonth(e.target.value)} className="w-full rounded-xl border-2 border-blue-200 px-3 py-2 text-sm text-zinc-900 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all" />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-zinc-700 mb-2">Select Payroll Cutoff</label>
-                <div className="space-y-2">
-                  <label className="flex items-center p-3 border-2 border-blue-200 rounded-xl cursor-pointer hover:border-blue-400 hover:bg-blue-100/50 transition-all" htmlFor="cutoff-first">
-                    <input type="radio" id="cutoff-first" name="payslip-cutoff" value="first" checked={payslipSelectedCutoff === 'first'} onChange={(e) => setPayslipSelectedCutoff(e.target.value)} className="h-4 w-4 rounded border-zinc-300 text-blue-600 focus:ring-blue-500" />
-                    <span className="ml-3 flex flex-col">
-                      <span className="text-xs font-semibold text-zinc-900">First Cutoff</span>
-                      <span className="text-xs text-zinc-500">1st - 14th of the month</span>
-                    </span>
-                  </label>
-                  <label className="flex items-center p-3 border-2 border-blue-200 rounded-xl cursor-pointer hover:border-blue-400 hover:bg-blue-100/50 transition-all" htmlFor="cutoff-second">
-                    <input type="radio" id="cutoff-second" name="payslip-cutoff" value="second" checked={payslipSelectedCutoff === 'second'} onChange={(e) => setPayslipSelectedCutoff(e.target.value)} className="h-4 w-4 rounded border-zinc-300 text-blue-600 focus:ring-blue-500" />
-                    <span className="ml-3 flex flex-col">
-                      <span className="text-xs font-semibold text-zinc-900">Second Cutoff</span>
-                      <span className="text-xs text-zinc-500">15th - end of month</span>
-                    </span>
-                  </label>
+
+            {payslipActiveTab === 'request' ? (
+              <>
+                <h3 className="text-xl font-bold text-zinc-900 mb-1">Request Payslip</h3>
+                <p className="text-xs text-zinc-600 mb-4">Select the month and payroll cutoff period.</p>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-zinc-700 mb-1.5">Select Month</label>
+                    <input type="month" value={payslipSelectedMonth} onChange={(e) => setPayslipSelectedMonth(e.target.value)} className="w-full rounded-xl border-2 border-blue-200 px-3 py-2 text-sm text-zinc-900 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-zinc-700 mb-2">Select Payroll Cutoff</label>
+                    <div className="space-y-2">
+                      <label className="flex items-center p-3 border-2 border-blue-200 rounded-xl cursor-pointer hover:border-blue-400 hover:bg-blue-100/50 transition-all" htmlFor="cutoff-first">
+                        <input type="radio" id="cutoff-first" name="payslip-cutoff" value="first" checked={payslipSelectedCutoff === 'first'} onChange={(e) => setPayslipSelectedCutoff(e.target.value)} className="h-4 w-4 rounded border-zinc-300 text-blue-600 focus:ring-blue-500" />
+                        <span className="ml-3 flex flex-col">
+                          <span className="text-xs font-semibold text-zinc-900">First Cutoff</span>
+                          <span className="text-xs text-zinc-500">1st - 14th of the month</span>
+                        </span>
+                      </label>
+                      <label className="flex items-center p-3 border-2 border-blue-200 rounded-xl cursor-pointer hover:border-blue-400 hover:bg-blue-100/50 transition-all" htmlFor="cutoff-second">
+                        <input type="radio" id="cutoff-second" name="payslip-cutoff" value="second" checked={payslipSelectedCutoff === 'second'} onChange={(e) => setPayslipSelectedCutoff(e.target.value)} className="h-4 w-4 rounded border-zinc-300 text-blue-600 focus:ring-blue-500" />
+                        <span className="ml-3 flex flex-col">
+                          <span className="text-xs font-semibold text-zinc-900">Second Cutoff</span>
+                          <span className="text-xs text-zinc-500">15th - end of month</span>
+                        </span>
+                      </label>
+                    </div>
+                  </div>
+                  <div className="flex gap-3 mt-4">
+                    <button type="button" onClick={() => setPayslipActiveTab('history')} className="flex-1 rounded-xl border border-zinc-300 bg-white px-4 py-2.5 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 hover:border-blue-300 transition-all shadow-sm">View Status</button>
+                    <button type="button" disabled={isRequestingPayslip} onClick={requestPayslip} className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-700 to-sky-700 px-4 py-2.5 text-xs font-semibold text-white shadow-xl shadow-blue-600/30 hover:from-blue-800 hover:to-sky-800 hover:shadow-xl hover:shadow-blue-600/40 disabled:opacity-50 transition-all">{isRequestingPayslip ? 'Requesting...' : 'Request Payslip'}</button>
+                  </div>
                 </div>
-              </div>
-              <div className="flex gap-3 mt-4">
-                <button type="button" onClick={() => { setIsPayslipModalOpen(false); const currentMonth = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`; setPayslipSelectedMonth(currentMonth); setPayslipSelectedCutoff('first') }} className="flex-1 rounded-xl border-2 border-blue-200 bg-white px-4 py-2.5 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 hover:border-blue-300 transition-all shadow-sm hover:shadow-md">Cancel</button>
-                <button type="button" disabled={isRequestingPayslip} onClick={requestPayslip} className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-700 to-sky-700 px-4 py-2.5 text-xs font-semibold text-white shadow-xl shadow-blue-600/30 hover:from-blue-800 hover:to-sky-800 hover:shadow-xl hover:shadow-blue-600/40 disabled:opacity-50 transition-all">{isRequestingPayslip ? 'Requesting...' : 'Request Payslip'}</button>
-              </div>
-            </div>
+              </>
+            ) : (
+              <>
+                <h3 className="text-xl font-bold text-zinc-900 mb-1">Payslip Requests</h3>
+                <p className="text-xs text-zinc-600 mb-4">View the status of your past requests.</p>
+                <div className="space-y-4">
+                  {payslipRequests.length === 0 ? (
+                    <p className="text-center text-sm text-zinc-500 py-6">No payslip requests yet.</p>
+                  ) : (
+                    <div className="space-y-2.5 max-h-[260px] overflow-y-auto pr-1">
+                      {payslipRequests.map((r: any) => (
+                        <div key={r.id} className="rounded-2xl border border-blue-100 bg-white/60 p-3.5 hover:bg-white transition-all">
+                          <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                              <div className="text-xs font-bold text-zinc-800">{r.cutoff_start} → {r.cutoff_end}</div>
+                              <div className="text-[10px] text-zinc-500">Requested {new Date(r.requested_at).toLocaleDateString()}</div>
+                            </div>
+                            <span className={`text-[10px] uppercase tracking-wider font-bold px-2.5 py-0.5 rounded-full ${
+                              r.status === 'paid' ? 'bg-emerald-100 text-emerald-800' :
+                              r.status === 'approved' ? 'bg-blue-100 text-blue-800' :
+                              'bg-amber-100 text-amber-800'
+                            }`}>
+                              {r.status}
+                            </span>
+                          </div>
+                          <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+                            {r.payslip_url ? (
+                              <a href={r.payslip_url} target="_blank" rel="noreferrer" className="inline-flex items-center rounded-lg bg-gradient-to-r from-cyan-600 to-sky-600 px-3 py-1 text-[11px] font-bold text-white hover:from-cyan-700 hover:to-sky-700 transition-all shadow-sm">
+                                Download payslip
+                              </a>
+                            ) : r.status === 'approved' ? (
+                              <span className="text-[11px] text-blue-700 font-medium">Approved - waiting for upload</span>
+                            ) : (
+                              <span className="text-[11px] text-amber-700 font-medium">Waiting for approval</span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div className="flex mt-4">
+                    <button type="button" onClick={() => setPayslipActiveTab('request')} className="w-full rounded-xl border-2 border-blue-200 bg-white px-4 py-2.5 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 hover:border-blue-300 transition-all shadow-sm hover:shadow-md">
+                      Back to Request Form
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
