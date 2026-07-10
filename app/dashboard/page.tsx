@@ -1855,7 +1855,7 @@ export default function DashboardPage() {
             )}
           </div>
 
-          <button onClick={handleLogout} className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-600 via-cyan-700 to-sky-600 px-5 py-2.5 text-sm font-semibold text-white shadow-xl shadow-cyan-600/30 hover:from-cyan-700 hover:via-cyan-800 hover:to-sky-700 hover:shadow-xl hover:shadow-cyan-600/40 transition-all"><LogOut className="h-4 w-4" /> Log Out</button>
+          <button onClick={handleLogout} className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-red-600 to-rose-600 px-3 py-1.5 text-xs font-semibold text-white shadow-lg shadow-red-600/40 ring-1 ring-white/10 hover:from-red-700 hover:to-rose-700 hover:shadow-red-600/60 hover:shadow-xl transition-all"><LogOut className="h-3.5 w-3.5" /> Log Out</button>
         </div>
       </header>
 
