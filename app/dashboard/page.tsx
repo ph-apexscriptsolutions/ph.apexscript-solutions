@@ -3988,7 +3988,7 @@ export default function DashboardPage() {
               <CreditCard className="h-6 w-6" />
             </div>
             
-            <h3 className="text-xl font-bold text-zinc-900 mb-1 flex-shrink-0">Worker Hub</h3>
+            <h3 className="text-xl font-bold text-zinc-900 mb-1 flex-shrink-0">Payment History</h3>
             <p className="text-xs text-zinc-600 mb-4 flex-shrink-0">
               {isAdmin ? "Add and view payments for this worker." : "View all your past payments received."}
             </p>
