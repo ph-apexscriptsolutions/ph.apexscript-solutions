@@ -232,6 +232,7 @@ export default function DashboardPage() {
   const [isAvailabilityModalOpen, setIsAvailabilityModalOpen] = useState(false)
   const [availabilityForm, setAvailabilityForm] = useState<Record<string, { sameday: boolean; overnight: boolean }>>(defaultAvailability)
   const [isSavingAvailability, setIsSavingAvailability] = useState(false)
+  const [availabilitySubmittedAt, setAvailabilitySubmittedAt] = useState<string | null>(null)
 
   // Check for updated descriptions based on database column
   useEffect(() => {
@@ -534,9 +535,10 @@ export default function DashboardPage() {
   const performLogout = async () => { await supabase.auth.signOut(); router.push("/") }
 
   const fetchAvailability = async (workerId: string) => {
-    const { data } = await supabase.from('worker_profiles').select('weekly_availability').eq('id', workerId).single()
+    const { data } = await supabase.from('worker_profiles').select('weekly_availability, availability_submitted_at').eq('id', workerId).single()
     const avail = data?.weekly_availability
-    
+    setAvailabilitySubmittedAt(data?.availability_submitted_at ?? null)
+
     if (avail && typeof avail === 'object') {
       if ('monday' in avail && typeof (avail as any).monday === 'object') {
         setAvailabilityForm({
@@ -576,12 +578,26 @@ export default function DashboardPage() {
   const saveAvailability = async () => {
     if (!activeWorker?.id) return
     setIsSavingAvailability(true)
-    await supabase.from('worker_profiles').update({ weekly_availability: availabilityForm }).eq('id', activeWorker.id)
-    setIsSavingAvailability(false)
-    setIsAvailabilityModalOpen(false)
-    setToastMessage('✅ Weekly availability saved!')
-    setShowToast(true)
-    setTimeout(() => { setShowToast(false); setToastMessage(null) }, 3000)
+    try {
+      const workerName = activeWorker.full_name || activeWorker.name || activeWorker.email || 'Unknown Worker'
+      const res = await fetch('/api/update-availability', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ workerId: activeWorker.id, workerName, availability: availabilityForm }),
+      })
+      if (res.ok) {
+        setAvailabilitySubmittedAt(new Date().toISOString())
+        setIsAvailabilityModalOpen(false)
+        setToastMessage('✅ Weekly availability saved!')
+        setShowToast(true)
+        setTimeout(() => { setShowToast(false); setToastMessage(null) }, 3000)
+      } else {
+        const err = await res.json()
+        alert('Failed to save: ' + (err.error || 'Unknown error'))
+      }
+    } finally {
+      setIsSavingAvailability(false)
+    }
   }
   const handleViewWorker = (w: any) => { setActiveWorker(w); setView("detail") }
   const handleBackToList = () => { setActiveWorker(null); setRecords([]); setView("list"); setStartDate(""); setEndDate(""); setFilterApplied(false); setFilterTrigger(prev => prev + 1) }
@@ -1027,6 +1043,25 @@ export default function DashboardPage() {
   // loading check moved below so all hooks run consistently
 
   const isAdmin = profile?.role === "admin"
+
+  // Returns true if a non-admin worker already submitted availability this ISO week (locks the form)
+  const isAvailabilityLockedThisWeek = (() => {
+    if (isAdmin) return false
+    if (!availabilitySubmittedAt) return false
+    const getISOWeek = (d: Date) => {
+      const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()))
+      const day = date.getUTCDay() || 7
+      date.setUTCDate(date.getUTCDate() + 4 - day)
+      const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1))
+      return Math.ceil((((date.getTime() - yearStart.getTime()) / 86400000) + 1) / 7)
+    }
+    const submittedDate = new Date(availabilitySubmittedAt)
+    const now = new Date()
+    return (
+      submittedDate.getUTCFullYear() === now.getUTCFullYear() &&
+      getISOWeek(submittedDate) === getISOWeek(now)
+    )
+  })()
 
   // Real-time subscription for worker_profiles changes (for admins to see online status updates)
   useEffect(() => {
@@ -3156,12 +3191,12 @@ export default function DashboardPage() {
       {/* ── Weekly Availability Modal ── */}
       {isAvailabilityModalOpen && activeWorker && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
-          <div className="bg-white rounded-3xl shadow-2xl shadow-emerald-950/20 w-full max-w-lg p-6 relative border border-zinc-200">
+          <div className="bg-white rounded-3xl shadow-2xl shadow-emerald-950/20 w-full max-w-lg p-6 relative border border-zinc-200 max-h-[90vh] flex flex-col">
             <button onClick={() => setIsAvailabilityModalOpen(false)} className="absolute right-4 top-4 text-zinc-400 hover:text-zinc-700 transition-colors"><X className="h-5 w-5" /></button>
 
             {/* Header */}
-            <div className="flex items-center gap-3 mb-5">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-xl shadow-emerald-500/30">
+            <div className="flex items-center gap-3 mb-4 flex-shrink-0">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-xl shadow-emerald-500/30 flex-shrink-0">
                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
               </div>
               <div>
@@ -3170,10 +3205,40 @@ export default function DashboardPage() {
               </div>
             </div>
 
+            {/* Instruction Banner */}
+            <div className="flex-shrink-0 mb-4 rounded-2xl bg-amber-50 border border-amber-200 p-4">
+              <div className="flex gap-2.5 items-start">
+                <span className="text-amber-500 mt-0.5 flex-shrink-0 text-base">⚠️</span>
+                <p className="text-xs text-amber-800 leading-relaxed">
+                  <span className="font-bold">Weekly Availability is automatically reset every Saturday.</span>{' '}
+                  To ensure accurate workforce planning and assignment scheduling, all workers are required to update their availability for the upcoming week. Please submit your updated availability promptly to remain eligible for work assignments.
+                </p>
+              </div>
+            </div>
+
+            {/* Locked badge (workers who already submitted this week) */}
+            {isAvailabilityLockedThisWeek && (
+              <div className="flex-shrink-0 mb-4 rounded-2xl bg-emerald-50 border border-emerald-200 p-3.5 flex items-center gap-3">
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500 text-white text-sm flex-shrink-0">✓</span>
+                <div>
+                  <p className="text-sm font-bold text-emerald-800">Availability submitted for this week</p>
+                  <p className="text-xs text-emerald-700 mt-0.5">Your schedule has been recorded. You may update it again next week.</p>
+                </div>
+              </div>
+            )}
+
+            {/* Admin override notice */}
+            {isAdmin && availabilitySubmittedAt && (
+              <div className="flex-shrink-0 mb-4 rounded-2xl bg-sky-50 border border-sky-200 p-3 flex items-center gap-2">
+                <span className="text-sky-500 text-sm">🔓</span>
+                <p className="text-xs text-sky-800 font-medium">Admin override — you can edit this worker's availability at any time.</p>
+              </div>
+            )}
+
             {/* Day-by-Day Availability Grid */}
-            <div className="space-y-3 mb-6 max-h-[350px] overflow-y-auto pr-1">
+            <div className="flex-1 overflow-y-auto min-h-0 space-y-3 mb-5 pr-1">
               {(['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] as const).map(day => (
-                <div key={day} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3.5 rounded-2xl border border-zinc-100 bg-zinc-50/50 hover:bg-zinc-50 transition-all duration-150">
+                <div key={day} className={`flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3.5 rounded-2xl border transition-all duration-150 ${isAvailabilityLockedThisWeek ? 'bg-zinc-50 border-zinc-100 opacity-80' : 'bg-zinc-50/50 border-zinc-100 hover:bg-zinc-50'}`}>
                   <span className="text-sm font-bold text-zinc-800 capitalize flex items-center gap-2">
                     <span className={`h-2 w-2 rounded-full ${(availabilityForm[day]?.sameday || availabilityForm[day]?.overnight) ? 'bg-emerald-500' : 'bg-zinc-300'}`} />
                     {day}
@@ -3181,22 +3246,24 @@ export default function DashboardPage() {
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
+                      disabled={isAvailabilityLockedThisWeek}
                       onClick={() => toggleDayAvailability(day, 'sameday')}
-                      className={`flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 rounded-xl px-4 py-2 text-xs font-semibold border transition-all duration-200 ${
+                      className={`flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 rounded-xl px-4 py-2 text-xs font-semibold border transition-all duration-200 disabled:cursor-not-allowed ${
                         availabilityForm[day]?.sameday
                           ? 'bg-sky-600 border-sky-600 text-white shadow-md shadow-sky-500/25'
-                          : 'bg-white border-zinc-200 text-zinc-700 hover:bg-zinc-100 hover:border-zinc-300'
+                          : 'bg-white border-zinc-200 text-zinc-700 hover:enabled:bg-zinc-100 hover:enabled:border-zinc-300'
                       }`}
                     >
                       {availabilityForm[day]?.sameday ? '✓ Sameday' : 'Sameday'}
                     </button>
                     <button
                       type="button"
+                      disabled={isAvailabilityLockedThisWeek}
                       onClick={() => toggleDayAvailability(day, 'overnight')}
-                      className={`flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 rounded-xl px-4 py-2 text-xs font-semibold border transition-all duration-200 ${
+                      className={`flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 rounded-xl px-4 py-2 text-xs font-semibold border transition-all duration-200 disabled:cursor-not-allowed ${
                         availabilityForm[day]?.overnight
                           ? 'bg-indigo-600 border-indigo-600 text-white shadow-md shadow-indigo-500/25'
-                          : 'bg-white border-zinc-200 text-zinc-700 hover:bg-zinc-100 hover:border-zinc-300'
+                          : 'bg-white border-zinc-200 text-zinc-700 hover:enabled:bg-zinc-100 hover:enabled:border-zinc-300'
                       }`}
                     >
                       {availabilityForm[day]?.overnight ? '✓ Overnight' : 'Overnight'}
@@ -3207,13 +3274,15 @@ export default function DashboardPage() {
             </div>
 
             {/* Actions */}
-            <div className="flex gap-3">
+            <div className="flex gap-3 flex-shrink-0">
               <button type="button" onClick={() => setIsAvailabilityModalOpen(false)} className="flex-1 rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-xs font-bold text-zinc-700 hover:bg-zinc-50 transition-all shadow-sm">
-                Cancel
+                {isAvailabilityLockedThisWeek ? 'Close' : 'Cancel'}
               </button>
-              <button type="button" onClick={saveAvailability} disabled={isSavingAvailability} className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-4 py-2.5 text-xs font-bold text-white shadow-lg shadow-emerald-500/30 hover:from-emerald-700 hover:to-teal-700 hover:shadow-emerald-500/50 hover:shadow-xl disabled:opacity-50 transition-all">
-                {isSavingAvailability ? 'Saving...' : 'Save Availability'}
-              </button>
+              {!isAvailabilityLockedThisWeek && (
+                <button type="button" onClick={saveAvailability} disabled={isSavingAvailability} className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-4 py-2.5 text-xs font-bold text-white shadow-lg shadow-emerald-500/30 hover:from-emerald-700 hover:to-teal-700 hover:shadow-emerald-500/50 hover:shadow-xl disabled:opacity-50 transition-all">
+                  {isSavingAvailability ? 'Saving...' : 'Save Availability'}
+                </button>
+              )}
             </div>
           </div>
         </div>
