@@ -2426,12 +2426,12 @@ export default function DashboardPage() {
                         <label className="text-xs font-semibold text-zinc-600 mb-1.5">End Date</label>
                         <input type="date" value={endDate} onChange={(e) => { setEndDate(e.target.value); setFilterApplied(false); }} className="border border-zinc-300 rounded-lg px-3 py-2 text-sm text-zinc-700 outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all" placeholder="mm/dd/yyyy" />
                       </div>
-                      <button onClick={applyFilters} className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-cyan-700 to-sky-700 px-4 py-2 text-sm font-semibold text-white shadow-xl shadow-cyan-600/30 hover:from-cyan-800 hover:to-sky-800 hover:shadow-xl hover:shadow-cyan-600/40 transition-all">
+                      <button onClick={applyFilters} className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-zinc-900 to-slate-900 px-3 py-1.5 text-xs font-semibold text-white shadow-lg shadow-black/40 ring-1 ring-white/10 hover:from-black hover:to-zinc-900 hover:shadow-black/60 hover:shadow-xl transition-all">
                         <span>⊡</span> Filter
                       </button>
                       {(startDate || endDate) && (
-                        <button onClick={clearFilters} className="inline-flex items-center gap-1 px-4 py-2 rounded-xl bg-zinc-700 text-white text-sm font-semibold hover:bg-zinc-800 active:bg-zinc-900 shadow-lg shadow-zinc-600/20 transition-all">
-                          <X className="h-3.5 w-3.5" /> Clear
+                        <button onClick={clearFilters} className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-gradient-to-r from-zinc-800 to-zinc-900 text-white text-xs font-semibold ring-1 ring-white/10 shadow-lg shadow-black/30 hover:from-zinc-900 hover:to-black hover:shadow-black/50 transition-all">
+                          <X className="h-3 w-3" /> Clear
                         </button>
                       )}
                     </div>
@@ -2480,8 +2480,8 @@ export default function DashboardPage() {
                       <FileText className="h-4 w-4" /> Add File Manually
                     </button>
                   )}
-                  <button onClick={() => setIsUploadModalOpen(true)} className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-700 to-sky-700 px-5 py-2.5 text-sm font-semibold text-white shadow-xl shadow-cyan-600/30 hover:from-cyan-800 hover:to-sky-800 hover:shadow-xl hover:shadow-cyan-600/40 transition-all">
-                    <Upload className="h-5 w-5" /> Upload File
+                  <button onClick={() => setIsUploadModalOpen(true)} className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-zinc-900 to-slate-900 px-4 py-2 text-xs font-semibold text-white shadow-lg shadow-black/40 ring-1 ring-white/10 hover:from-black hover:to-zinc-900 hover:shadow-black/60 hover:shadow-xl transition-all">
+                    <Upload className="h-3.5 w-3.5" /> Upload File
                   </button>
                 </div>
               </Card>
