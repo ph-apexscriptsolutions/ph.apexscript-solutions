@@ -3,10 +3,23 @@ export const dynamic = 'force-dynamic'
 import { useEffect, useState, FormEvent } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/utils/supabase/client"
-import { FileText, HardDrive, LogOut, Calendar, X, Pencil, Save, User, ArrowLeft, Upload, UserPlus, CreditCard, Trash2, Check, Bell, AlertCircle } from "lucide-react"
+import { FileText, HardDrive, LogOut, Calendar, X, Pencil, Save, User, ArrowLeft, Upload, UserPlus, CreditCard, Trash2, Check, Bell, AlertCircle, Tv, Mic, Headphones, FileEdit, Newspaper, Radio, Video } from "lucide-react"
 import AdminChat from '@/components/admin-chat'
 import WorkerRealtimeChat from '@/components/worker-realtime-chat'
 import { FlagIcon } from "@/components/flag-icon"
+
+const getDepartmentIcon = (department: string) => {
+  const dept = department.toLowerCase()
+  if (dept.includes('broadcast') || dept.includes('tv')) return { icon: Tv, color: 'text-orange-500', bg: 'from-orange-100 to-amber-100' }
+  if (dept.includes('podcast') || dept.includes('audio') || dept.includes('radio')) return { icon: Radio, color: 'text-orange-500', bg: 'from-orange-100 to-amber-100' }
+  if (dept.includes('video') || dept.includes('youtube')) return { icon: Video, color: 'text-orange-500', bg: 'from-orange-100 to-amber-100' }
+  if (dept.includes('transcription') || dept.includes('transcriber')) return { icon: FileText, color: 'text-orange-500', bg: 'from-orange-100 to-amber-100' }
+  if (dept.includes('editing') || dept.includes('editor')) return { icon: FileEdit, color: 'text-orange-500', bg: 'from-orange-100 to-amber-100' }
+  if (dept.includes('news') || dept.includes('journalism')) return { icon: Newspaper, color: 'text-orange-500', bg: 'from-orange-100 to-amber-100' }
+  if (dept.includes('voice') || dept.includes('recording')) return { icon: Mic, color: 'text-orange-500', bg: 'from-orange-100 to-amber-100' }
+  if (dept.includes('review') || dept.includes('quality')) return { icon: Headphones, color: 'text-orange-500', bg: 'from-orange-100 to-amber-100' }
+  return { icon: FileText, color: 'text-orange-500', bg: 'from-orange-100 to-amber-100' }
+}
 
 const Card = ({ children, className }: { children: React.ReactNode; className?: string }) => <div className={`rounded-2xl border border-zinc-200/80 bg-gradient-to-br from-white to-zinc-50/50 backdrop-blur-sm shadow-xl shadow-zinc-200/60 hover:shadow-2xl hover:shadow-zinc-200/80 transition-all duration-300 ${className}`}>{children}</div>
 const CardHeader = ({ children, className }: { children: React.ReactNode; className?: string }) => <div className={`flex flex-col space-y-1.5 p-6 border-b border-zinc-100/80 ${className}`}>{children}</div>
@@ -3564,31 +3577,34 @@ export default function DashboardPage() {
                 </div>
               ) : (
                 <div className="grid grid-cols-2 gap-3">
-                  {styleGuides.map((guide: any) => (
-                    <div key={guide.id} className="group relative flex flex-col items-center text-center rounded-2xl border border-orange-100 bg-white hover:bg-orange-50 hover:border-orange-300/60 p-5 transition-all duration-300 shadow-sm hover:shadow-md hover:-translate-y-0.5">
-                      {/* Icon */}
-                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-orange-100 to-amber-100 text-orange-500 group-hover:from-orange-200 group-hover:to-amber-200 group-hover:scale-110 transition-all duration-300 mb-3">
-                        <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
+                  {styleGuides.map((guide: any) => {
+                    const { icon: Icon, color, bg } = getDepartmentIcon(guide.department)
+                    return (
+                      <div key={guide.id} className="group relative flex flex-col items-center text-center rounded-2xl border border-orange-100 bg-white hover:bg-orange-50 hover:border-orange-300/60 p-5 transition-all duration-300 shadow-sm hover:shadow-md hover:-translate-y-0.5">
+                        {/* Icon */}
+                        <div className={`flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br ${bg} ${color} group-hover:scale-110 transition-all duration-300 mb-3`}>
+                          <Icon className="h-6 w-6" />
+                        </div>
+                        {/* Title */}
+                        <p className="text-sm font-bold text-zinc-800 group-hover:text-orange-600 transition-colors mb-1 line-clamp-2 leading-tight">{guide.department}</p>
+                        {guide.file_name && <p className="text-[10px] text-zinc-400 truncate max-w-full mb-2">{guide.file_name}</p>}
+                        {/* Action */}
+                        {guide.file_url ? (
+                          <a
+                            href={guide.file_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="mt-auto inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 px-4 py-2 text-xs font-bold text-white hover:from-orange-600 hover:to-amber-600 transition-all duration-300 shadow-md shadow-orange-500/25 hover:shadow-orange-500/35"
+                          >
+                            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                            Download
+                          </a>
+                        ) : (
+                          <p className="mt-auto text-[11px] text-zinc-400 italic">{guide.note || 'No file uploaded.'}</p>
+                        )}
                       </div>
-                      {/* Title */}
-                      <p className="text-sm font-bold text-zinc-800 group-hover:text-orange-600 transition-colors mb-1 line-clamp-2 leading-tight">{guide.department}</p>
-                      {guide.file_name && <p className="text-[10px] text-zinc-400 truncate max-w-full mb-2">{guide.file_name}</p>}
-                      {/* Action */}
-                      {guide.file_url ? (
-                        <a
-                          href={guide.file_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="mt-auto inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 px-4 py-2 text-xs font-bold text-white hover:from-orange-600 hover:to-amber-600 transition-all duration-300 shadow-md shadow-orange-500/25 hover:shadow-orange-500/35"
-                        >
-                          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                          Download
-                        </a>
-                      ) : (
-                        <p className="mt-auto text-[11px] text-zinc-400 italic">{guide.note || 'No file uploaded.'}</p>
-                      )}
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               )}
             </div>
@@ -3668,27 +3684,29 @@ export default function DashboardPage() {
                 </div>
               ) : (
                 <div className="grid grid-cols-2 gap-3">
-                  {styleGuides.map((guide: any) => (
-                    <div key={guide.id} className="group relative flex flex-col items-center text-center rounded-2xl border border-orange-100 bg-white hover:bg-orange-50 hover:border-orange-300/60 p-5 transition-all duration-300 shadow-sm hover:shadow-md">
-                      
-                      {/* Delete department button */}
-                      <button
-                        onClick={() => handleDeleteStyleGuideDept(guide.id, guide.department)}
-                        disabled={isDeletingDeptId === guide.id}
-                        className="absolute right-2.5 top-2.5 text-zinc-300 hover:text-red-500 hover:scale-110 transition-all duration-200 p-1 cursor-pointer"
-                        title="Delete Department"
-                      >
-                        {isDeletingDeptId === guide.id ? (
-                          <svg className="h-3.5 w-3.5 animate-spin text-red-500" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
-                        ) : (
-                          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                        )}
-                      </button>
+                  {styleGuides.map((guide: any) => {
+                    const { icon: Icon, color, bg } = getDepartmentIcon(guide.department)
+                    return (
+                      <div key={guide.id} className="group relative flex flex-col items-center text-center rounded-2xl border border-orange-100 bg-white hover:bg-orange-50 hover:border-orange-300/60 p-5 transition-all duration-300 shadow-sm hover:shadow-md">
+                        
+                        {/* Delete department button */}
+                        <button
+                          onClick={() => handleDeleteStyleGuideDept(guide.id, guide.department)}
+                          disabled={isDeletingDeptId === guide.id}
+                          className="absolute right-2.5 top-2.5 text-zinc-300 hover:text-red-500 hover:scale-110 transition-all duration-200 p-1 cursor-pointer"
+                          title="Delete Department"
+                        >
+                          {isDeletingDeptId === guide.id ? (
+                            <svg className="h-3.5 w-3.5 animate-spin text-red-500" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+                          ) : (
+                            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                          )}
+                        </button>
 
-                      {/* Icon */}
-                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-orange-100 to-amber-100 text-orange-500 group-hover:from-orange-200 group-hover:to-amber-200 group-hover:scale-110 transition-all duration-300 mb-3">
-                        <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
-                      </div>
+                        {/* Icon */}
+                        <div className={`flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br ${bg} ${color} group-hover:scale-110 transition-all duration-300 mb-3`}>
+                          <Icon className="h-6 w-6" />
+                        </div>
 
                       {/* Title / Rename */}
                       {renamingDepartmentId === guide.id ? (
@@ -3829,7 +3847,8 @@ export default function DashboardPage() {
                         />
                       </label>
                     </div>
-                  ))}
+                    )
+                  })}
                 </div>
               )}
             </div>
