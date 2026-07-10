@@ -2534,7 +2534,7 @@ export default function DashboardPage() {
                   <div className="relative">
                     {/* Hub Header */}
                     <div className="mb-3 flex items-center gap-2">
-                      <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-cyan-500 to-sky-600 shadow-lg shadow-cyan-600/30">
+                      <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg shadow-blue-600/30">
                         <svg className="h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
                       </div>
                       <div>
@@ -2551,7 +2551,7 @@ export default function DashboardPage() {
                         onClick={() => setIsAddWorkerModalOpen(true)}
                         className="group relative flex flex-col items-start gap-1 rounded-md border border-white/10 bg-white/5 p-2 text-left backdrop-blur-sm hover:bg-white/10 hover:border-cyan-400/40 transition-all duration-200 hover:shadow-xl hover:shadow-cyan-600/20"
                       >
-                        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br from-cyan-500 to-sky-600 shadow-lg shadow-cyan-500/30 group-hover:scale-110 transition-transform duration-200">
+                        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br from-slate-900 to-zinc-900 shadow-lg shadow-slate-500/30 group-hover:scale-110 transition-transform duration-200">
                           <UserPlus className="h-3 w-3 text-white" />
                         </div>
                         <div>
@@ -2717,19 +2717,19 @@ export default function DashboardPage() {
             </div>
 
             <div className="grid gap-6 xl:grid-cols-[2fr_1fr] xl:items-stretch mt-4">
-              <Card className="bg-gradient-to-br from-white to-zinc-50 border-zinc-200/80">
-                <CardHeader>
-                  <CardTitle className="text-lg font-bold text-zinc-900 tracking-tight">Production Records</CardTitle>
-                </CardHeader>
-                <CardContent>
+              <div className="rounded-2xl border border-cyan-500/30 bg-gradient-to-br from-slate-800 to-slate-900 backdrop-blur-sm shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:shadow-[0_0_30px_rgba(6,182,212,0.5)] transition-all duration-300">
+                <div className="flex flex-col space-y-1.5 p-6 border-b border-white/10">
+                  <h3 className="font-bold text-lg leading-none tracking-tight text-white">Production Records</h3>
+                </div>
+                <div className="p-6 pt-4">
                   <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:gap-2">
                     <div className="flex flex-wrap items-end gap-2">
                       <div className="flex flex-col">
-                        <label className="text-xs font-semibold text-zinc-600 mb-1.5">Start Date</label>
+                        <label className="text-xs font-semibold text-white mb-1.5">Start Date</label>
                         <input type="date" value={startDate} onChange={(e) => { setStartDate(e.target.value); setFilterApplied(false); }} className="border border-zinc-300 rounded-lg px-3 py-2 text-sm text-zinc-700 outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all" placeholder="mm/dd/yyyy" />
                       </div>
                       <div className="flex flex-col">
-                        <label className="text-xs font-semibold text-zinc-600 mb-1.5">End Date</label>
+                        <label className="text-xs font-semibold text-white mb-1.5">End Date</label>
                         <input type="date" value={endDate} onChange={(e) => { setEndDate(e.target.value); setFilterApplied(false); }} className="border border-zinc-300 rounded-lg px-3 py-2 text-sm text-zinc-700 outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all" placeholder="mm/dd/yyyy" />
                       </div>
                       <button onClick={applyFilters} className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-zinc-900 to-slate-900 px-3 py-1.5 text-xs font-semibold text-white shadow-lg shadow-black/40 ring-1 ring-white/10 hover:from-black hover:to-zinc-900 hover:shadow-black/60 hover:shadow-xl transition-all">
@@ -2779,66 +2779,66 @@ export default function DashboardPage() {
                       </tbody>
                     </table>
                   </div>
-                </CardContent>
-                <div className="border-t border-zinc-200/80 px-6 py-4 flex flex-col sm:flex-row items-center justify-center gap-2 bg-zinc-50/50">
+                </div>
+                <div className="border-t border-white/10 px-6 py-4 flex flex-col sm:flex-row items-center justify-center gap-2 bg-slate-800/50">
                   {isAdmin && (
-                    <button onClick={() => setIsManualAddModalOpen(true)} className="inline-flex items-center gap-2 rounded-xl border-2 border-zinc-300 bg-white px-4 py-2.5 text-sm font-semibold text-zinc-800 shadow-sm shadow-zinc-200/70 hover:bg-zinc-100 hover:border-zinc-400 hover:shadow-md transition-all">
+                    <button onClick={() => setIsManualAddModalOpen(true)} className="inline-flex items-center gap-2 rounded-xl border-2 border-white/20 bg-white/10 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-white/20 hover:border-white/30 hover:shadow-md transition-all">
                       <FileText className="h-4 w-4" /> Add File Manually
                     </button>
                   )}
-                  <button onClick={() => setIsUploadModalOpen(true)} className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-zinc-900 to-slate-900 px-4 py-2 text-xs font-semibold text-white shadow-lg shadow-black/40 ring-1 ring-white/10 hover:from-black hover:to-zinc-900 hover:shadow-black/60 hover:shadow-xl transition-all">
+                  <button onClick={() => setIsUploadModalOpen(true)} className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-black to-zinc-900 px-4 py-2 text-xs font-semibold text-white shadow-[0_0_15px_rgba(0,0,0,0.5)] hover:shadow-[0_0_25px_rgba(0,0,0,0.7)] transition-all">
                     <Upload className="h-3.5 w-3.5" /> Upload File
                   </button>
                 </div>
-              </Card>
+              </div>
 
               <div className="flex flex-col gap-3 sticky top-4 self-start">
-                <Card className="bg-gradient-to-br from-white to-zinc-50/50 border-zinc-200/80 hover:shadow-md hover:shadow-zinc-200/30 transition-all duration-300 hover:-translate-y-0.5">
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-1">
-                    <CardTitle className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Total Files</CardTitle>
-                    <div className="h-7 w-7 rounded-md bg-gradient-to-br from-cyan-400 to-cyan-500 flex items-center justify-center shadow-md shadow-cyan-500/20">
+                <div className="rounded-2xl border border-cyan-500/30 bg-gradient-to-br from-slate-800 to-slate-900 backdrop-blur-sm shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:shadow-[0_0_30px_rgba(6,182,212,0.5)] transition-all duration-300 hover:-translate-y-0.5">
+                  <div className="flex flex-row items-center justify-between space-y-0 p-3 pb-1 border-b border-white/10">
+                    <h3 className="text-xs font-bold text-white uppercase tracking-wider">Total Files</h3>
+                    <div className="h-7 w-7 rounded-md bg-white/20 flex items-center justify-center shadow-md shadow-white/10">
                       <FileText className="h-3.5 w-3.5 text-white" />
                     </div>
-                  </CardHeader>
-                  <CardContent className="p-3 pt-0">
-                    <div className="text-xl font-extrabold text-zinc-900 tracking-tight">{filteredTotalFiles}</div>
-                    <p className="text-[10px] text-zinc-400 mt-0.5">{filterApplied ? "Selected Period" : "All Time"}</p>
-                  </CardContent>
-                </Card>
-                <Card className="bg-gradient-to-br from-white to-zinc-50/50 border-zinc-200/80 hover:shadow-md hover:shadow-zinc-200/30 transition-all duration-300 hover:-translate-y-0.5">
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-1">
-                    <CardTitle className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Total Kilobytes</CardTitle>
-                    <div className="h-7 w-7 rounded-md bg-gradient-to-br from-purple-400 to-purple-500 flex items-center justify-center shadow-md shadow-purple-500/20">
+                  </div>
+                  <div className="p-3 pt-0">
+                    <div className="text-xl font-extrabold text-white tracking-tight">{filteredTotalFiles}</div>
+                    <p className="text-[10px] text-cyan-100 mt-0.5">{filterApplied ? "Selected Period" : "All Time"}</p>
+                  </div>
+                </div>
+                <div className="rounded-2xl border border-cyan-500/30 bg-gradient-to-br from-slate-800 to-slate-900 backdrop-blur-sm shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:shadow-[0_0_30px_rgba(6,182,212,0.5)] transition-all duration-300 hover:-translate-y-0.5">
+                  <div className="flex flex-row items-center justify-between space-y-0 p-3 pb-1 border-b border-white/10">
+                    <h3 className="text-xs font-bold text-white uppercase tracking-wider">Total Kilobytes</h3>
+                    <div className="h-7 w-7 rounded-md bg-white/20 flex items-center justify-center shadow-md shadow-white/10">
                       <HardDrive className="h-3.5 w-3.5 text-white" />
                     </div>
-                  </CardHeader>
-                  <CardContent className="p-3 pt-0">
-                    <div className="text-xl font-extrabold text-zinc-900 tracking-tight">{filteredTotalKB}</div>
-                    <p className="text-[10px] text-zinc-400 mt-0.5">{filterApplied ? "Selected Period" : "All Time"}</p>
-                  </CardContent>
-                </Card>
-                <Card className="bg-gradient-to-br from-white to-zinc-50/50 border-zinc-200/80 hover:shadow-md hover:shadow-zinc-200/30 transition-all duration-300 hover:-translate-y-0.5">
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-1">
-                    <CardTitle className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Total Earnings</CardTitle>
-                    <div className="h-7 w-7 rounded-md bg-gradient-to-br from-emerald-400 to-emerald-500 flex items-center justify-center shadow-md shadow-emerald-500/20">
+                  </div>
+                  <div className="p-3 pt-0">
+                    <div className="text-xl font-extrabold text-white tracking-tight">{filteredTotalKB}</div>
+                    <p className="text-[10px] text-cyan-100 mt-0.5">{filterApplied ? "Selected Period" : "All Time"}</p>
+                  </div>
+                </div>
+                <div className="rounded-2xl border border-cyan-500/30 bg-gradient-to-br from-slate-800 to-slate-900 backdrop-blur-sm shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:shadow-[0_0_30px_rgba(6,182,212,0.5)] transition-all duration-300 hover:-translate-y-0.5">
+                  <div className="flex flex-row items-center justify-between space-y-0 p-3 pb-1 border-b border-white/10">
+                    <h3 className="text-xs font-bold text-white uppercase tracking-wider">Total Earnings</h3>
+                    <div className="h-7 w-7 rounded-md bg-white/20 flex items-center justify-center shadow-md shadow-white/10">
                       <CreditCard className="h-3.5 w-3.5 text-white" />
                     </div>
-                  </CardHeader>
-                  <CardContent className="p-3 pt-0">
-                    <div className="text-xl font-extrabold text-zinc-900 tracking-tight">{computedEarnings ?? '-'}</div>
-                    <p className="text-[10px] text-zinc-400 mt-0.5">{computedEarnings ? `Based on ${formatCurrency(activeWorker?.base_payment_per_60kb || 700, activeWorker?.location)} per 60KB` : ''}</p>
+                  </div>
+                  <div className="p-3 pt-0">
+                    <div className="text-xl font-extrabold text-white tracking-tight">{computedEarnings ?? '-'}</div>
+                    <p className="text-[10px] text-cyan-100 mt-0.5">{computedEarnings ? `Based on ${formatCurrency(activeWorker?.base_payment_per_60kb || 700, activeWorker?.location)} per 60KB` : ''}</p>
                     <div className="flex gap-1.5 mt-2">
-                      <button type="button" onClick={computeTotalEarnings} className="inline-flex items-center justify-center rounded-md bg-gradient-to-r from-slate-900 to-zinc-900 px-2.5 py-1 text-[10px] font-semibold text-white shadow-sm hover:from-slate-950 hover:to-black hover:shadow transition-all">
+                      <button type="button" onClick={computeTotalEarnings} className="inline-flex items-center justify-center rounded-md bg-white/20 hover:bg-white/30 px-2.5 py-1 text-[10px] font-semibold text-white shadow-sm transition-all">
                         Compute Earnings
                       </button>
                       {isAdmin && (
-                        <button type="button" onClick={() => { setIsPaymentModalOpen(true); setSelectedPaymentRate(activeWorker?.base_payment_per_60kb || 700) }} className="inline-flex items-center gap-1 rounded-md border border-zinc-300 px-2 py-1 text-[10px] font-semibold text-slate-800 hover:bg-slate-50 hover:border-slate-400 transition-all">
+                        <button type="button" onClick={() => { setIsPaymentModalOpen(true); setSelectedPaymentRate(activeWorker?.base_payment_per_60kb || 700) }} className="inline-flex items-center gap-1 rounded-md border border-white/30 px-2 py-1 text-[10px] font-semibold text-white hover:bg-white/20 transition-all">
                           <Pencil className="h-2.5 w-2.5" /> Rate
                         </button>
                       )}
                     </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
               </div>
             </div>
 
