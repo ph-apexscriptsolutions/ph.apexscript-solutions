@@ -3882,20 +3882,10 @@ export default function DashboardPage() {
               </div>
               <div>
                 <h3 className="text-lg font-bold text-zinc-900">Weekly Availability</h3>
-                <p className="text-xs text-zinc-600">Set your schedule per day of the week</p>
+                <p className="text-xs text-zinc-600">Weekly Availability will automatically reset every Saturday.</p>
               </div>
             </div>
 
-            {/* Instruction Banner */}
-            <div className="flex-shrink-0 mb-4 rounded-2xl bg-amber-50 border border-amber-200 p-4">
-              <div className="flex gap-2.5 items-start">
-                <span className="text-amber-500 mt-0.5 flex-shrink-0 text-base">⚠️</span>
-                <p className="text-xs text-amber-800 leading-relaxed">
-                  <span className="font-bold">Weekly Availability is automatically reset every Saturday.</span>{' '}
-                  To ensure accurate workforce planning and assignment scheduling, all workers are required to update their availability for the upcoming week. Please submit your updated availability promptly to remain eligible for work assignments.
-                </p>
-              </div>
-            </div>
 
             {/* Locked badge (workers who already submitted this week) */}
             {isAvailabilityLockedThisWeek && (
