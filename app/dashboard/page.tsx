@@ -3737,12 +3737,12 @@ export default function DashboardPage() {
                                 rows={2}
                                 className="w-full rounded-xl border border-orange-200 bg-orange-50/50 px-3 py-1.5 text-xs text-zinc-700 outline-none resize-none focus:ring-2 focus:ring-orange-200/50 placeholder-zinc-400"
                                 placeholder="Type a note for workers…"
-                                value={editingNote.value}
+                                value={editingNote?.value || ''}
                                 onChange={(e) => setEditingNote({ department: guide.department, value: e.target.value })}
                               />
                               <div className="flex justify-center gap-1.5">
                                 <button
-                                  onClick={() => handleStyleGuideNoteSave(guide.department, editingNote.value)}
+                                  onClick={() => handleStyleGuideNoteSave(guide.department, editingNote?.value || '')}
                                   disabled={isSavingNote === guide.department}
                                   className="rounded-lg bg-orange-500 hover:bg-orange-600 px-3 py-1 text-[11px] font-semibold text-white transition disabled:opacity-50 cursor-pointer"
                                 >
