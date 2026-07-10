@@ -3547,7 +3547,7 @@ export default function DashboardPage() {
       {/* ── Style Guides Worker Modal ── */}
       {isStyleGuidesModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-md animate-fade-in">
-          <div className="bg-gradient-to-b from-orange-50 to-white border border-orange-200/60 backdrop-blur-xl shadow-[0_8px_60px_rgba(249,115,22,0.12)] rounded-3xl w-full max-w-2xl p-6 relative max-h-[90vh] flex flex-col overflow-hidden animate-scale-up">
+          <div className="bg-gradient-to-b from-orange-50 to-white border border-orange-200/60 backdrop-blur-xl shadow-[0_8px_60px_rgba(249,115,22,0.12)] rounded-3xl w-full max-w-xl p-4 relative max-h-[90vh] flex flex-col overflow-hidden animate-scale-up">
 
             <button 
               onClick={() => setIsStyleGuidesModalOpen(false)} 
@@ -3557,13 +3557,13 @@ export default function DashboardPage() {
             </button>
 
             {/* Header */}
-            <div className="flex items-center gap-3 mb-5 flex-shrink-0">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-orange-500 to-amber-600 text-white shadow-lg shadow-orange-500/30 flex-shrink-0">
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+            <div className="flex items-center gap-2.5 mb-3 flex-shrink-0">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-amber-600 text-white shadow-lg shadow-orange-500/30 flex-shrink-0">
+                <svg className="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
               </div>
               <div>
-                <h3 className="text-lg font-bold bg-gradient-to-r from-orange-600 via-amber-500 to-orange-600 bg-clip-text text-transparent">Style Guides & Formatting Rules</h3>
-                <p className="text-xs text-zinc-500 font-medium">Download formatting guidelines for your department</p>
+                <h3 className="text-base font-bold bg-gradient-to-r from-orange-600 via-amber-500 to-orange-600 bg-clip-text text-transparent">Style Guides & Formatting Rules</h3>
+                <p className="text-[10px] text-zinc-500 font-medium">Download formatting guidelines for your department</p>
               </div>
             </div>
 
@@ -3580,31 +3580,31 @@ export default function DashboardPage() {
                   <p className="text-sm font-medium">No style guides available yet.</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-2">
                   {styleGuides.map((guide: any) => {
                     const { icon: Icon, color, bg } = getDepartmentIcon(guide.department)
                     return (
-                      <div key={guide.id} className="group relative flex flex-col items-center text-center rounded-2xl border border-orange-100 bg-white hover:bg-orange-50 hover:border-orange-300/60 p-5 transition-all duration-300 shadow-sm hover:shadow-md hover:-translate-y-0.5">
+                      <div key={guide.id} className="group relative flex flex-col items-center text-center rounded-xl border border-orange-100 bg-white hover:bg-orange-50 hover:border-orange-300/60 p-3 transition-all duration-300 shadow-sm hover:shadow-md hover:-translate-y-0.5">
                         {/* Icon */}
-                        <div className={`flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br ${bg} ${color} group-hover:scale-110 transition-all duration-300 mb-3`}>
-                          <Icon className="h-6 w-6" />
+                        <div className={`flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br ${bg} ${color} group-hover:scale-110 transition-all duration-300 mb-2`}>
+                          <Icon className="h-5 w-5" />
                         </div>
                         {/* Title */}
-                        <p className="text-sm font-bold text-zinc-800 group-hover:text-orange-600 transition-colors mb-1 line-clamp-2 leading-tight">{guide.department}</p>
-                        {guide.file_name && <p className="text-[10px] text-zinc-400 truncate max-w-full mb-2">{guide.file_name}</p>}
+                        <p className="text-xs font-bold text-zinc-800 group-hover:text-orange-600 transition-colors mb-1 line-clamp-2 leading-tight">{guide.department}</p>
+                        {guide.file_name && <p className="text-[9px] text-zinc-400 truncate max-w-full mb-1.5">{guide.file_name}</p>}
                         {/* Action */}
                         {guide.file_url ? (
                           <a
                             href={guide.file_url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="mt-auto inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 px-4 py-2 text-xs font-bold text-white hover:from-orange-600 hover:to-amber-600 transition-all duration-300 shadow-md shadow-orange-500/25 hover:shadow-orange-500/35"
+                            className="mt-auto inline-flex items-center gap-1 rounded-lg bg-gradient-to-r from-orange-500 to-amber-500 px-3 py-1.5 text-[10px] font-bold text-white hover:from-orange-600 hover:to-amber-600 transition-all duration-300 shadow-md shadow-orange-500/25 hover:shadow-orange-500/35"
                           >
-                            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                            <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
                             Download
                           </a>
                         ) : (
-                          <p className="mt-auto text-[11px] text-zinc-400 italic">{guide.note || 'No file uploaded.'}</p>
+                          <p className="mt-auto text-[10px] text-zinc-400 italic">{guide.note || 'No file uploaded.'}</p>
                         )}
                       </div>
                     )
@@ -3613,10 +3613,10 @@ export default function DashboardPage() {
               )}
             </div>
 
-            <div className="flex-shrink-0 pt-4 border-t border-orange-100 mt-4">
+            <div className="flex-shrink-0 pt-3 border-t border-orange-100 mt-3">
               <button 
                 onClick={() => setIsStyleGuidesModalOpen(false)} 
-                className="w-full rounded-xl border border-orange-200 bg-orange-50 px-5 py-2.5 text-sm font-semibold text-zinc-700 hover:bg-orange-100 hover:text-zinc-900 hover:border-orange-300 transition-all duration-300 shadow-sm"
+                className="w-full rounded-lg border border-orange-200 bg-orange-50 px-4 py-2 text-xs font-semibold text-zinc-700 hover:bg-orange-100 hover:text-zinc-900 hover:border-orange-300 transition-all duration-300 shadow-sm"
               >
                 Close
               </button>
@@ -3628,7 +3628,7 @@ export default function DashboardPage() {
       {/* ── Style Guides Admin Modal ── */}
       {isStyleGuidesAdminModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-md animate-fade-in">
-          <div className="bg-gradient-to-b from-orange-50 to-white border border-orange-200/60 backdrop-blur-xl shadow-[0_8px_60px_rgba(249,115,22,0.12)] rounded-3xl w-full max-w-2xl p-6 relative max-h-[90vh] flex flex-col overflow-hidden animate-scale-up">
+          <div className="bg-gradient-to-b from-orange-50 to-white border border-orange-200/60 backdrop-blur-xl shadow-[0_8px_60px_rgba(249,115,22,0.12)] rounded-3xl w-full max-w-xl p-4 relative max-h-[90vh] flex flex-col overflow-hidden animate-scale-up">
 
             <button 
               onClick={() => setIsStyleGuidesAdminModalOpen(false)} 
@@ -3638,24 +3638,24 @@ export default function DashboardPage() {
             </button>
 
             {/* Header */}
-            <div className="flex items-center gap-3 mb-5 flex-shrink-0">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-orange-500 to-amber-600 text-white shadow-lg shadow-orange-500/30 flex-shrink-0">
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+            <div className="flex items-center gap-2.5 mb-3 flex-shrink-0">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-amber-600 text-white shadow-lg shadow-orange-500/30 flex-shrink-0">
+                <svg className="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
               </div>
               <div>
-                <h3 className="text-lg font-bold bg-gradient-to-r from-orange-600 via-amber-500 to-orange-600 bg-clip-text text-transparent">Manage Style Guides</h3>
-                <p className="text-xs text-zinc-500 font-medium">Add, rename, or remove formatting guides per department</p>
+                <h3 className="text-base font-bold bg-gradient-to-r from-orange-600 via-amber-500 to-orange-600 bg-clip-text text-transparent">Manage Style Guides</h3>
+                <p className="text-[10px] text-zinc-500 font-medium">Add, rename, or remove formatting guides per department</p>
               </div>
             </div>
 
             {/* Add Department Form */}
-            <div className="mb-5 bg-orange-50/80 border border-orange-200/50 rounded-2xl p-4 flex-shrink-0">
-              <p className="text-xs font-bold text-orange-600 mb-2">Add New Department</p>
+            <div className="mb-3 bg-orange-50/80 border border-orange-200/50 rounded-xl p-3 flex-shrink-0">
+              <p className="text-[10px] font-bold text-orange-600 mb-1.5">Add New Department</p>
               <div className="flex gap-2">
                 <input
                   type="text"
                   placeholder="e.g. Finance Transcription"
-                  className="flex-1 rounded-xl border border-orange-200 bg-white px-3.5 py-2 text-xs text-zinc-800 placeholder-zinc-400 outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-200/50 transition-all duration-200"
+                  className="flex-1 rounded-lg border border-orange-200 bg-white px-3 py-1.5 text-xs text-zinc-800 placeholder-zinc-400 outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-200/50 transition-all duration-200"
                   value={newDepartmentName}
                   onChange={(e) => setNewDepartmentName(e.target.value)}
                   disabled={isAddingDepartment}
@@ -3668,7 +3668,7 @@ export default function DashboardPage() {
                 <button
                   onClick={() => handleAddStyleGuideDept(newDepartmentName)}
                   disabled={isAddingDepartment || !newDepartmentName.trim()}
-                  className="inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 px-5 py-2 text-xs font-bold text-white transition-all duration-300 shadow-md shadow-orange-500/20 hover:shadow-orange-500/30 hover:-translate-y-0.5 disabled:opacity-50"
+                  className="inline-flex items-center justify-center rounded-lg bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 px-4 py-1.5 text-[10px] font-bold text-white transition-all duration-300 shadow-md shadow-orange-500/20 hover:shadow-orange-500/30 hover:-translate-y-0.5 disabled:opacity-50"
                 >
                   {isAddingDepartment ? 'Adding…' : 'Add'}
                 </button>
@@ -3687,29 +3687,29 @@ export default function DashboardPage() {
                   <p className="text-sm font-medium">No departments found. Add one above to get started.</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-2">
                   {styleGuides.map((guide: any) => {
                     const { icon: Icon, color, bg } = getDepartmentIcon(guide.department)
                     return (
-                      <div key={guide.id} className="group relative flex flex-col items-center text-center rounded-2xl border border-orange-100 bg-white hover:bg-orange-50 hover:border-orange-300/60 p-5 transition-all duration-300 shadow-sm hover:shadow-md">
+                      <div key={guide.id} className="group relative flex flex-col items-center text-center rounded-xl border border-orange-100 bg-white hover:bg-orange-50 hover:border-orange-300/60 p-3 transition-all duration-300 shadow-sm hover:shadow-md">
                         
                         {/* Delete department button */}
                         <button
                           onClick={() => handleDeleteStyleGuideDept(guide.id, guide.department)}
                           disabled={isDeletingDeptId === guide.id}
-                          className="absolute right-2.5 top-2.5 text-zinc-300 hover:text-red-500 hover:scale-110 transition-all duration-200 p-1 cursor-pointer"
+                          className="absolute right-2 top-2 text-zinc-300 hover:text-red-500 hover:scale-110 transition-all duration-200 p-1 cursor-pointer"
                           title="Delete Department"
                         >
                           {isDeletingDeptId === guide.id ? (
-                            <svg className="h-3.5 w-3.5 animate-spin text-red-500" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+                            <svg className="h-3 w-3 animate-spin text-red-500" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
                           ) : (
-                            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                            <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                           )}
                         </button>
 
                         {/* Icon */}
-                        <div className={`flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br ${bg} ${color} group-hover:scale-110 transition-all duration-300 mb-3`}>
-                          <Icon className="h-6 w-6" />
+                        <div className={`flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br ${bg} ${color} group-hover:scale-110 transition-all duration-300 mb-2`}>
+                          <Icon className="h-5 w-5" />
                         </div>
 
                       {/* Title / Rename */}
