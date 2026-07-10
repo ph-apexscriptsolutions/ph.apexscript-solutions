@@ -2716,54 +2716,6 @@ export default function DashboardPage() {
               )}
             </div>
 
-            <div className="grid gap-3 md:grid-cols-3 mt-3">
-              <Card className="bg-gradient-to-br from-white to-zinc-50/50 border-zinc-200/80 hover:shadow-md hover:shadow-zinc-200/30 transition-all duration-300 hover:-translate-y-0.5">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-1">
-                  <CardTitle className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Total Files</CardTitle>
-                  <div className="h-7 w-7 rounded-md bg-gradient-to-br from-cyan-400 to-cyan-500 flex items-center justify-center shadow-md shadow-cyan-500/20">
-                    <FileText className="h-3.5 w-3.5 text-white" />
-                  </div>
-                </CardHeader>
-                <CardContent className="p-3 pt-0">
-                  <div className="text-xl font-extrabold text-zinc-900 tracking-tight">{filteredTotalFiles}</div>
-                  <p className="text-[10px] text-zinc-400 mt-0.5">{filterApplied ? "Selected Period" : "All Time"}</p>
-                </CardContent>
-              </Card>
-              <Card className="bg-gradient-to-br from-white to-zinc-50/50 border-zinc-200/80 hover:shadow-md hover:shadow-zinc-200/30 transition-all duration-300 hover:-translate-y-0.5">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-1">
-                  <CardTitle className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Total Kilobytes</CardTitle>
-                  <div className="h-7 w-7 rounded-md bg-gradient-to-br from-purple-400 to-purple-500 flex items-center justify-center shadow-md shadow-purple-500/20">
-                    <HardDrive className="h-3.5 w-3.5 text-white" />
-                  </div>
-                </CardHeader>
-                <CardContent className="p-3 pt-0">
-                  <div className="text-xl font-extrabold text-zinc-900 tracking-tight">{filteredTotalKB}</div>
-                  <p className="text-[10px] text-zinc-400 mt-0.5">{filterApplied ? "Selected Period" : "All Time"}</p>
-                </CardContent>
-              </Card>
-              <Card className="bg-gradient-to-br from-white to-zinc-50/50 border-zinc-200/80 hover:shadow-md hover:shadow-zinc-200/30 transition-all duration-300 hover:-translate-y-0.5">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-1">
-                  <CardTitle className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Total Earnings</CardTitle>
-                  <div className="h-7 w-7 rounded-md bg-gradient-to-br from-emerald-400 to-emerald-500 flex items-center justify-center shadow-md shadow-emerald-500/20">
-                    <CreditCard className="h-3.5 w-3.5 text-white" />
-                  </div>
-                </CardHeader>
-                <CardContent className="p-3 pt-0">
-                  <div className="text-xl font-extrabold text-zinc-900 tracking-tight">{computedEarnings ?? '-'}</div>
-                  <p className="text-[10px] text-zinc-400 mt-0.5">{computedEarnings ? `Based on ${formatCurrency(activeWorker?.base_payment_per_60kb || 700, activeWorker?.location)} per 60KB` : ''}</p>
-                  <div className="flex gap-1.5 mt-2">
-                    <button type="button" onClick={computeTotalEarnings} className="inline-flex items-center justify-center rounded-md bg-gradient-to-r from-slate-900 to-zinc-900 px-2.5 py-1 text-[10px] font-semibold text-white shadow-sm hover:from-slate-950 hover:to-black hover:shadow transition-all">
-                      Compute Earnings
-                    </button>
-                    {isAdmin && (
-                      <button type="button" onClick={() => { setIsPaymentModalOpen(true); setSelectedPaymentRate(activeWorker?.base_payment_per_60kb || 700) }} className="inline-flex items-center gap-1 rounded-md border border-zinc-300 px-2 py-1 text-[10px] font-semibold text-slate-800 hover:bg-slate-50 hover:border-slate-400 transition-all">
-                        <Pencil className="h-2.5 w-2.5" /> Rate
-                      </button>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
             <div className="grid gap-6 xl:grid-cols-[2fr_1fr] xl:items-stretch mt-4">
               <Card className="bg-gradient-to-br from-white to-zinc-50 border-zinc-200/80">
                 <CardHeader>
@@ -2840,7 +2792,54 @@ export default function DashboardPage() {
                 </div>
               </Card>
 
-              {/* Current Assignments Card - Hidden, now in Worker Hub modal */}
+              <div className="flex flex-col gap-3 sticky top-4 self-start">
+                <Card className="bg-gradient-to-br from-white to-zinc-50/50 border-zinc-200/80 hover:shadow-md hover:shadow-zinc-200/30 transition-all duration-300 hover:-translate-y-0.5">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-1">
+                    <CardTitle className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Total Files</CardTitle>
+                    <div className="h-7 w-7 rounded-md bg-gradient-to-br from-cyan-400 to-cyan-500 flex items-center justify-center shadow-md shadow-cyan-500/20">
+                      <FileText className="h-3.5 w-3.5 text-white" />
+                    </div>
+                  </CardHeader>
+                  <CardContent className="p-3 pt-0">
+                    <div className="text-xl font-extrabold text-zinc-900 tracking-tight">{filteredTotalFiles}</div>
+                    <p className="text-[10px] text-zinc-400 mt-0.5">{filterApplied ? "Selected Period" : "All Time"}</p>
+                  </CardContent>
+                </Card>
+                <Card className="bg-gradient-to-br from-white to-zinc-50/50 border-zinc-200/80 hover:shadow-md hover:shadow-zinc-200/30 transition-all duration-300 hover:-translate-y-0.5">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-1">
+                    <CardTitle className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Total Kilobytes</CardTitle>
+                    <div className="h-7 w-7 rounded-md bg-gradient-to-br from-purple-400 to-purple-500 flex items-center justify-center shadow-md shadow-purple-500/20">
+                      <HardDrive className="h-3.5 w-3.5 text-white" />
+                    </div>
+                  </CardHeader>
+                  <CardContent className="p-3 pt-0">
+                    <div className="text-xl font-extrabold text-zinc-900 tracking-tight">{filteredTotalKB}</div>
+                    <p className="text-[10px] text-zinc-400 mt-0.5">{filterApplied ? "Selected Period" : "All Time"}</p>
+                  </CardContent>
+                </Card>
+                <Card className="bg-gradient-to-br from-white to-zinc-50/50 border-zinc-200/80 hover:shadow-md hover:shadow-zinc-200/30 transition-all duration-300 hover:-translate-y-0.5">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-1">
+                    <CardTitle className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Total Earnings</CardTitle>
+                    <div className="h-7 w-7 rounded-md bg-gradient-to-br from-emerald-400 to-emerald-500 flex items-center justify-center shadow-md shadow-emerald-500/20">
+                      <CreditCard className="h-3.5 w-3.5 text-white" />
+                    </div>
+                  </CardHeader>
+                  <CardContent className="p-3 pt-0">
+                    <div className="text-xl font-extrabold text-zinc-900 tracking-tight">{computedEarnings ?? '-'}</div>
+                    <p className="text-[10px] text-zinc-400 mt-0.5">{computedEarnings ? `Based on ${formatCurrency(activeWorker?.base_payment_per_60kb || 700, activeWorker?.location)} per 60KB` : ''}</p>
+                    <div className="flex gap-1.5 mt-2">
+                      <button type="button" onClick={computeTotalEarnings} className="inline-flex items-center justify-center rounded-md bg-gradient-to-r from-slate-900 to-zinc-900 px-2.5 py-1 text-[10px] font-semibold text-white shadow-sm hover:from-slate-950 hover:to-black hover:shadow transition-all">
+                        Compute Earnings
+                      </button>
+                      {isAdmin && (
+                        <button type="button" onClick={() => { setIsPaymentModalOpen(true); setSelectedPaymentRate(activeWorker?.base_payment_per_60kb || 700) }} className="inline-flex items-center gap-1 rounded-md border border-zinc-300 px-2 py-1 text-[10px] font-semibold text-slate-800 hover:bg-slate-50 hover:border-slate-400 transition-all">
+                          <Pencil className="h-2.5 w-2.5" /> Rate
+                        </button>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             </div>
 
             {/* ── Worker Hub ── */}
