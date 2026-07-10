@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic'
 import { useEffect, useState, FormEvent } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/utils/supabase/client"
-import { FileText, HardDrive, LogOut, Calendar, X, Pencil, Save, User, ArrowLeft, Upload, UserPlus, CreditCard, Trash2, Check, Bell } from "lucide-react"
+import { FileText, HardDrive, LogOut, Calendar, X, Pencil, Save, User, ArrowLeft, Upload, UserPlus, CreditCard, Trash2, Check, Bell, AlertCircle } from "lucide-react"
 import AdminChat from '@/components/admin-chat'
 import WorkerRealtimeChat from '@/components/worker-realtime-chat'
 import { FlagIcon } from "@/components/flag-icon"
@@ -147,6 +147,7 @@ export default function DashboardPage() {
   const [isUpdatingPayment, setIsUpdatingPayment] = useState(false)
 
   const [isPayslipModalOpen, setIsPayslipModalOpen] = useState(false)
+  const [showPayslipConfirm, setShowPayslipConfirm] = useState(false)
   const [payslipSelectedMonth, setPayslipSelectedMonth] = useState(() => {
     const now = new Date()
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
@@ -1261,6 +1262,22 @@ export default function DashboardPage() {
     } finally {
       setIsRequestingPayslip(false)
     }
+  }
+
+  const handleRequestPayslipClick = () => {
+    if (!activeWorker) return
+    const now = new Date()
+    const currentYearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+    if (payslipSelectedMonth > currentYearMonth) {
+      alert('You cannot request a payslip for a future month.')
+      return
+    }
+    setShowPayslipConfirm(true)
+  }
+
+  const handleProceedRequestPayslip = async () => {
+    setShowPayslipConfirm(false)
+    await requestPayslip()
   }
 
   const fetchAnnouncements = async () => {
@@ -3181,7 +3198,7 @@ export default function DashboardPage() {
                   </div>
                   <div className="flex gap-3 mt-4">
                     <button type="button" onClick={() => setPayslipActiveTab('history')} className="flex-1 rounded-xl border border-zinc-300 bg-white px-4 py-2.5 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 hover:border-blue-300 transition-all shadow-sm">View Status</button>
-                    <button type="button" disabled={isRequestingPayslip} onClick={requestPayslip} className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-700 to-sky-700 px-4 py-2.5 text-xs font-semibold text-white shadow-xl shadow-blue-600/30 hover:from-blue-800 hover:to-sky-800 hover:shadow-xl hover:shadow-blue-600/40 disabled:opacity-50 transition-all">{isRequestingPayslip ? 'Requesting...' : 'Request Payslip'}</button>
+                    <button type="button" disabled={isRequestingPayslip} onClick={handleRequestPayslipClick} className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-700 to-sky-700 px-4 py-2.5 text-xs font-semibold text-white shadow-xl shadow-blue-600/30 hover:from-blue-800 hover:to-sky-800 hover:shadow-xl hover:shadow-blue-600/40 disabled:opacity-50 transition-all">{isRequestingPayslip ? 'Requesting...' : 'Request Payslip'}</button>
                   </div>
                 </div>
               </>
@@ -3232,6 +3249,74 @@ export default function DashboardPage() {
                 </div>
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {showPayslipConfirm && activeWorker && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in">
+          <div className="bg-gradient-to-br from-white via-slate-50 to-blue-50/50 rounded-3xl shadow-2xl w-full max-w-sm p-6 relative border-2 border-blue-200/80 animate-scale-up">
+            <button onClick={() => setShowPayslipConfirm(false)} className="absolute right-4 top-4 text-zinc-400 hover:text-zinc-700 transition-colors">
+              <X className="h-5 w-5" />
+            </button>
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-400 via-blue-500 to-sky-400 text-white shadow-xl shadow-blue-500/30 mb-4">
+              <AlertCircle className="h-6 w-6" />
+            </div>
+            <h3 className="text-lg font-bold text-zinc-900 mb-2">Confirm Payslip Request</h3>
+            <p className="text-xs text-zinc-600 leading-relaxed mb-6">
+              To check the status of your request later, please check the <strong className="text-zinc-800">"View Status"</strong> tab in the Payslip menu.<br/><br/>
+              Would you like to proceed with submitting this request?
+            </p>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setShowPayslipConfirm(false)}
+                className="flex-1 rounded-xl border border-zinc-300 bg-white px-4 py-2.5 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 transition-all shadow-sm"
+              >
+                No, Go Back
+              </button>
+              <button
+                type="button"
+                onClick={handleProceedRequestPayslip}
+                className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-700 to-sky-700 px-4 py-2.5 text-xs font-semibold text-white shadow-xl shadow-blue-600/30 hover:from-blue-800 hover:to-sky-800 hover:shadow-xl transition-all"
+              >
+                Yes, Proceed
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showPayslipConfirm && activeWorker && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in">
+          <div className="bg-gradient-to-br from-white via-slate-50 to-blue-50/50 rounded-3xl shadow-2xl w-full max-w-sm p-6 relative border-2 border-blue-200/80 animate-scale-up">
+            <button onClick={() => setShowPayslipConfirm(false)} className="absolute right-4 top-4 text-zinc-400 hover:text-zinc-700 transition-colors">
+              <X className="h-5 w-5" />
+            </button>
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-400 via-blue-500 to-sky-400 text-white shadow-xl shadow-blue-500/30 mb-4">
+              <AlertCircle className="h-6 w-6" />
+            </div>
+            <h3 className="text-lg font-bold text-zinc-900 mb-2">Confirm Payslip Request</h3>
+            <p className="text-xs text-zinc-600 leading-relaxed mb-6">
+              To check the status of your request later, please check the <strong className="text-zinc-800">"View Status"</strong> tab in the Payslip menu.<br/><br/>
+              Would you like to proceed with submitting this request?
+            </p>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setShowPayslipConfirm(false)}
+                className="flex-1 rounded-xl border border-zinc-300 bg-white px-4 py-2.5 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 transition-all shadow-sm"
+              >
+                No, Go Back
+              </button>
+              <button
+                type="button"
+                onClick={handleProceedRequestPayslip}
+                className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-700 to-sky-700 px-4 py-2.5 text-xs font-semibold text-white shadow-xl shadow-blue-600/30 hover:from-blue-800 hover:to-sky-800 hover:shadow-xl transition-all"
+              >
+                Yes, Proceed
+              </button>
+            </div>
           </div>
         </div>
       )}
