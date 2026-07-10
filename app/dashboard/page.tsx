@@ -3530,7 +3530,7 @@ export default function DashboardPage() {
       {/* ── Style Guides Worker Modal ── */}
       {isStyleGuidesModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-md animate-fade-in">
-          <div className="bg-gradient-to-b from-orange-50 to-white border border-orange-200/60 backdrop-blur-xl shadow-[0_8px_60px_rgba(249,115,22,0.12)] rounded-3xl w-full max-w-lg p-6 relative max-h-[90vh] flex flex-col overflow-hidden animate-scale-up">
+          <div className="bg-gradient-to-b from-orange-50 to-white border border-orange-200/60 backdrop-blur-xl shadow-[0_8px_60px_rgba(249,115,22,0.12)] rounded-3xl w-full max-w-2xl p-6 relative max-h-[90vh] flex flex-col overflow-hidden animate-scale-up">
 
             <button 
               onClick={() => setIsStyleGuidesModalOpen(false)} 
@@ -3550,8 +3550,8 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Department List */}
-            <div className="flex-1 overflow-y-auto space-y-3 pr-1 min-h-0">
+            {/* Department Tiles */}
+            <div className="flex-1 overflow-y-auto pr-1 min-h-0">
               {isLoadingStyleGuides ? (
                 <div className="flex flex-col items-center justify-center py-16 text-zinc-400 gap-3">
                   <svg className="h-6 w-6 animate-spin text-orange-500" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
@@ -3563,34 +3563,33 @@ export default function DashboardPage() {
                   <p className="text-sm font-medium">No style guides available yet.</p>
                 </div>
               ) : (
-                styleGuides.map((guide: any) => (
-                  <div key={guide.id} className="flex items-center justify-between rounded-2xl border border-orange-100 bg-white hover:bg-orange-50 hover:border-orange-300/60 p-4 gap-4 transition-all duration-300 group shadow-sm">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-orange-100 text-orange-500 group-hover:bg-orange-200 group-hover:scale-105 transition-all duration-300 flex-shrink-0">
-                        <svg className="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
+                <div className="grid grid-cols-2 gap-3">
+                  {styleGuides.map((guide: any) => (
+                    <div key={guide.id} className="group relative flex flex-col items-center text-center rounded-2xl border border-orange-100 bg-white hover:bg-orange-50 hover:border-orange-300/60 p-5 transition-all duration-300 shadow-sm hover:shadow-md hover:-translate-y-0.5">
+                      {/* Icon */}
+                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-orange-100 to-amber-100 text-orange-500 group-hover:from-orange-200 group-hover:to-amber-200 group-hover:scale-110 transition-all duration-300 mb-3">
+                        <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
                       </div>
-                      <div className="min-w-0">
-                        <p className="text-sm font-semibold text-zinc-800 group-hover:text-orange-600 transition-colors truncate">{guide.department}</p>
-                        {guide.file_name && <p className="text-[10px] text-zinc-400 truncate mt-0.5">{guide.file_name}</p>}
-                      </div>
+                      {/* Title */}
+                      <p className="text-sm font-bold text-zinc-800 group-hover:text-orange-600 transition-colors mb-1 line-clamp-2 leading-tight">{guide.department}</p>
+                      {guide.file_name && <p className="text-[10px] text-zinc-400 truncate max-w-full mb-2">{guide.file_name}</p>}
+                      {/* Action */}
+                      {guide.file_url ? (
+                        <a
+                          href={guide.file_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-auto inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 px-4 py-2 text-xs font-bold text-white hover:from-orange-600 hover:to-amber-600 transition-all duration-300 shadow-md shadow-orange-500/25 hover:shadow-orange-500/35"
+                        >
+                          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                          Download
+                        </a>
+                      ) : (
+                        <p className="mt-auto text-[11px] text-zinc-400 italic">{guide.note || 'No file uploaded.'}</p>
+                      )}
                     </div>
-                    {guide.file_url ? (
-                      <a
-                        href={guide.file_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex-shrink-0 inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 px-4 py-2 text-xs font-bold text-white hover:from-orange-600 hover:to-amber-600 transition-all duration-300 shadow-md shadow-orange-500/25 hover:shadow-orange-500/35 hover:-translate-y-0.5"
-                      >
-                        <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                        Download
-                      </a>
-                    ) : (
-                      <div className="text-xs text-zinc-500 pl-2.5 py-0.5 italic border-l-2 border-orange-300">
-                        {guide.note || 'No file uploaded.'}
-                      </div>
-                    )}
-                  </div>
-                ))
+                  ))}
+                </div>
               )}
             </div>
 
@@ -3609,7 +3608,7 @@ export default function DashboardPage() {
       {/* ── Style Guides Admin Modal ── */}
       {isStyleGuidesAdminModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-md animate-fade-in">
-          <div className="bg-gradient-to-b from-orange-50 to-white border border-orange-200/60 backdrop-blur-xl shadow-[0_8px_60px_rgba(249,115,22,0.12)] rounded-3xl w-full max-w-lg p-6 relative max-h-[90vh] flex flex-col overflow-hidden animate-scale-up">
+          <div className="bg-gradient-to-b from-orange-50 to-white border border-orange-200/60 backdrop-blur-xl shadow-[0_8px_60px_rgba(249,115,22,0.12)] rounded-3xl w-full max-w-2xl p-6 relative max-h-[90vh] flex flex-col overflow-hidden animate-scale-up">
 
             <button 
               onClick={() => setIsStyleGuidesAdminModalOpen(false)} 
@@ -3656,8 +3655,8 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Department List */}
-            <div className="flex-1 overflow-y-auto space-y-3.5 pr-1 min-h-0">
+            {/* Department Tiles */}
+            <div className="flex-1 overflow-y-auto pr-1 min-h-0">
               {isLoadingStyleGuides ? (
                 <div className="flex flex-col items-center justify-center py-16 text-zinc-400 gap-3">
                   <svg className="h-6 w-6 animate-spin text-orange-500" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
@@ -3668,34 +3667,36 @@ export default function DashboardPage() {
                   <p className="text-sm font-medium">No departments found. Add one above to get started.</p>
                 </div>
               ) : (
-                styleGuides.map((guide: any) => (
-                  <div key={guide.id} className="relative rounded-2xl border border-orange-100 bg-white p-4 space-y-3.5 hover:border-orange-300/60 hover:bg-orange-50/50 transition-all duration-300 shadow-sm">
-                    
-                    {/* Delete department button */}
-                    <button
-                      onClick={() => handleDeleteStyleGuideDept(guide.id, guide.department)}
-                      disabled={isDeletingDeptId === guide.id}
-                      className="absolute right-4 top-4 text-zinc-300 hover:text-red-500 hover:scale-110 transition-all duration-200 p-1 cursor-pointer"
-                      title="Delete Department"
-                    >
-                      {isDeletingDeptId === guide.id ? (
-                        <svg className="h-4 w-4 animate-spin text-red-500" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
-                      ) : (
-                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                      )}
-                    </button>
+                <div className="grid grid-cols-2 gap-3">
+                  {styleGuides.map((guide: any) => (
+                    <div key={guide.id} className="group relative flex flex-col items-center text-center rounded-2xl border border-orange-100 bg-white hover:bg-orange-50 hover:border-orange-300/60 p-5 transition-all duration-300 shadow-sm hover:shadow-md">
+                      
+                      {/* Delete department button */}
+                      <button
+                        onClick={() => handleDeleteStyleGuideDept(guide.id, guide.department)}
+                        disabled={isDeletingDeptId === guide.id}
+                        className="absolute right-2.5 top-2.5 text-zinc-300 hover:text-red-500 hover:scale-110 transition-all duration-200 p-1 cursor-pointer"
+                        title="Delete Department"
+                      >
+                        {isDeletingDeptId === guide.id ? (
+                          <svg className="h-3.5 w-3.5 animate-spin text-red-500" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+                        ) : (
+                          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                        )}
+                      </button>
 
-                    <div className="flex items-center gap-2.5 pr-6">
-                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-orange-100 text-orange-500 flex-shrink-0">
-                        <svg className="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
+                      {/* Icon */}
+                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-orange-100 to-amber-100 text-orange-500 group-hover:from-orange-200 group-hover:to-amber-200 group-hover:scale-110 transition-all duration-300 mb-3">
+                        <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
                       </div>
 
+                      {/* Title / Rename */}
                       {renamingDepartmentId === guide.id ? (
-                        <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                        <div className="w-full space-y-2 mb-3">
                           <input
                             type="text"
                             autoFocus
-                            className="flex-1 rounded-xl border border-orange-300 bg-orange-50 px-3 py-1.5 text-xs text-zinc-800 outline-none focus:ring-2 focus:ring-orange-200/50"
+                            className="w-full rounded-xl border border-orange-300 bg-orange-50 px-3 py-1.5 text-xs text-zinc-800 text-center outline-none focus:ring-2 focus:ring-orange-200/50"
                             value={renamingValue}
                             onChange={(e) => setRenamingValue(e.target.value)}
                             disabled={isRenamingDept === guide.id}
@@ -3707,127 +3708,129 @@ export default function DashboardPage() {
                               }
                             }}
                           />
-                          <button
-                            onClick={() => handleRenameStyleGuideDept(guide.id, guide.department, renamingValue)}
-                            disabled={isRenamingDept === guide.id || !renamingValue.trim()}
-                            className="rounded-lg bg-orange-500 px-3 py-1.5 text-xs font-bold text-white hover:bg-orange-600 transition shadow-md shadow-orange-500/25"
-                          >
-                            {isRenamingDept === guide.id ? 'Saving…' : 'Save'}
-                          </button>
-                          <button
-                            onClick={() => setRenamingDepartmentId(null)}
-                            className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-xs text-zinc-600 hover:bg-zinc-100 hover:text-zinc-800 transition"
-                          >
-                            Cancel
-                          </button>
+                          <div className="flex justify-center gap-1.5">
+                            <button
+                              onClick={() => handleRenameStyleGuideDept(guide.id, guide.department, renamingValue)}
+                              disabled={isRenamingDept === guide.id || !renamingValue.trim()}
+                              className="rounded-lg bg-orange-500 px-3 py-1 text-[11px] font-bold text-white hover:bg-orange-600 transition shadow-md shadow-orange-500/25"
+                            >
+                              {isRenamingDept === guide.id ? 'Saving…' : 'Save'}
+                            </button>
+                            <button
+                              onClick={() => setRenamingDepartmentId(null)}
+                              className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-1 text-[11px] text-zinc-600 hover:bg-zinc-100 transition"
+                            >
+                              Cancel
+                            </button>
+                          </div>
                         </div>
                       ) : (
-                        <div className="flex items-center gap-2 group/title min-w-0">
-                          <p className="text-sm font-semibold text-zinc-800 truncate">{guide.department}</p>
+                        <div className="flex items-center justify-center gap-1.5 group/title mb-1">
+                          <p className="text-sm font-bold text-zinc-800 group-hover:text-orange-600 transition-colors line-clamp-2 leading-tight">{guide.department}</p>
                           <button
                             onClick={() => {
                               setRenamingDepartmentId(guide.id)
                               setRenamingValue(guide.department)
                             }}
-                            className="opacity-0 group-hover/title:opacity-100 text-zinc-400 hover:text-orange-500 p-0.5 transition-opacity cursor-pointer"
+                            className="opacity-0 group-hover/title:opacity-100 text-zinc-400 hover:text-orange-500 p-0.5 transition-opacity cursor-pointer flex-shrink-0"
                             title="Rename Department"
                           >
-                            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                            <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
                           </button>
                         </div>
                       )}
-                    </div>
 
-                    {guide.file_url ? (
-                      <div className="flex items-center gap-2 flex-wrap bg-orange-50/50 border border-orange-100 p-2 rounded-xl">
-                        <a 
-                          href={guide.file_url} 
-                          target="_blank" 
-                          rel="noopener noreferrer" 
-                          className="flex-1 min-w-0 text-xs text-orange-600 font-semibold underline truncate hover:text-orange-700 transition-colors pl-2"
-                        >
-                          {guide.file_name || 'View file'}
-                        </a>
-                        <button
-                          onClick={() => handleStyleGuideDelete(guide.department)}
-                          disabled={isDeletingStyleGuide === guide.department}
-                          className="inline-flex items-center gap-1.5 rounded-xl bg-red-50 border border-red-200 hover:bg-red-100 px-3.5 py-1.5 text-xs font-semibold text-red-600 hover:text-red-700 transition-all disabled:opacity-50 cursor-pointer"
-                        >
-                          {isDeletingStyleGuide === guide.department ? (
-                            <svg className="h-3.5 w-3.5 animate-spin text-red-500" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
-                          ) : (
-                            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                          )}
-                          Remove File
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="pl-1">
-                        {editingNote?.department === guide.department ? (
-                          <div className="space-y-2">
-                            <textarea
-                              autoFocus
-                              rows={2}
-                              className="w-full rounded-xl border border-orange-200 bg-orange-50/50 px-3.5 py-2 text-xs text-zinc-700 outline-none resize-none focus:ring-2 focus:ring-orange-200/50 placeholder-zinc-400"
-                              placeholder="Type a note for workers e.g. 'Coming soon — check back next week'"
-                              value={editingNote.value}
-                              onChange={(e) => setEditingNote({ department: guide.department, value: e.target.value })}
-                            />
-                            <div className="flex gap-2">
-                              <button
-                                onClick={() => handleStyleGuideNoteSave(guide.department, editingNote.value)}
-                                disabled={isSavingNote === guide.department}
-                                className="inline-flex items-center gap-1 rounded-lg bg-orange-500 hover:bg-orange-600 px-3 py-1.5 text-xs font-semibold text-white transition disabled:opacity-50 cursor-pointer"
-                              >
-                                {isSavingNote === guide.department ? 'Saving…' : 'Save'}
-                              </button>
-                              <button
-                                onClick={() => setEditingNote(null)}
-                                className="inline-flex items-center gap-1 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-xs font-medium text-zinc-600 hover:bg-zinc-100 hover:text-zinc-800 transition cursor-pointer"
-                              >
-                                Cancel
-                              </button>
-                            </div>
-                          </div>
-                        ) : (
-                          <button
-                            onClick={() => setEditingNote({ department: guide.department, value: guide.note || '' })}
-                            className="group flex items-center gap-1.5 text-xs text-zinc-400 hover:text-orange-500 transition-colors cursor-pointer"
+                      {/* File info / Note */}
+                      {guide.file_url ? (
+                        <div className="w-full space-y-2 mt-auto">
+                          <a 
+                            href={guide.file_url} 
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                            className="block text-[11px] text-orange-600 font-semibold underline truncate hover:text-orange-700 transition-colors"
                           >
-                            <svg className="h-3.5 w-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
-                            <span className="italic">{guide.note || 'Add a note for workers…'}</span>
+                            {guide.file_name || 'View file'}
+                          </a>
+                          <button
+                            onClick={() => handleStyleGuideDelete(guide.department)}
+                            disabled={isDeletingStyleGuide === guide.department}
+                            className="inline-flex items-center gap-1 rounded-lg bg-red-50 border border-red-200 hover:bg-red-100 px-2.5 py-1 text-[11px] font-semibold text-red-600 hover:text-red-700 transition-all disabled:opacity-50 cursor-pointer"
+                          >
+                            {isDeletingStyleGuide === guide.department ? (
+                              <svg className="h-3 w-3 animate-spin text-red-500" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+                            ) : (
+                              <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                            )}
+                            Remove
                           </button>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Upload control */}
-                    <label className={`flex items-center justify-center gap-2 rounded-xl border border-dashed px-4 py-3 cursor-pointer transition-all duration-250 ${isUploadingStyleGuide === guide.department ? 'border-orange-400 bg-orange-100' : 'border-orange-200 hover:border-orange-400 bg-orange-50/30 hover:bg-orange-50'}`}>
-                      {isUploadingStyleGuide === guide.department ? (
-                        <>
-                          <svg className="h-4 w-4 animate-spin text-orange-500 flex-shrink-0" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
-                          <span className="text-xs text-orange-600 font-semibold">Uploading…</span>
-                        </>
+                        </div>
                       ) : (
-                        <>
-                          <svg className="h-4 w-4 text-zinc-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
-                          <span className="text-xs text-zinc-500 font-medium">{guide.file_url ? 'Replace file' : 'Upload guide'} <span className="text-zinc-400">(PDF, DOC, DOCX, TXT)</span></span>
-                        </>
+                        <div className="w-full mt-auto">
+                          {editingNote?.department === guide.department ? (
+                            <div className="space-y-2 text-left">
+                              <textarea
+                                autoFocus
+                                rows={2}
+                                className="w-full rounded-xl border border-orange-200 bg-orange-50/50 px-3 py-1.5 text-xs text-zinc-700 outline-none resize-none focus:ring-2 focus:ring-orange-200/50 placeholder-zinc-400"
+                                placeholder="Type a note for workers…"
+                                value={editingNote.value}
+                                onChange={(e) => setEditingNote({ department: guide.department, value: e.target.value })}
+                              />
+                              <div className="flex justify-center gap-1.5">
+                                <button
+                                  onClick={() => handleStyleGuideNoteSave(guide.department, editingNote.value)}
+                                  disabled={isSavingNote === guide.department}
+                                  className="rounded-lg bg-orange-500 hover:bg-orange-600 px-3 py-1 text-[11px] font-semibold text-white transition disabled:opacity-50 cursor-pointer"
+                                >
+                                  {isSavingNote === guide.department ? 'Saving…' : 'Save'}
+                                </button>
+                                <button
+                                  onClick={() => setEditingNote(null)}
+                                  className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-1 text-[11px] text-zinc-600 hover:bg-zinc-100 transition cursor-pointer"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => setEditingNote({ department: guide.department, value: guide.note || '' })}
+                              className="text-[11px] text-zinc-400 hover:text-orange-500 transition-colors cursor-pointer italic"
+                            >
+                              {guide.note || 'Add a note…'}
+                            </button>
+                          )}
+                        </div>
                       )}
-                      <input
-                        type="file"
-                        className="sr-only"
-                        accept=".pdf,.doc,.docx,.txt"
-                        disabled={isUploadingStyleGuide !== null}
-                        onChange={(e) => {
-                          const file = e.target.files?.[0]
-                          if (file) handleStyleGuideUpload(guide.department, file)
-                          e.target.value = ''
-                        }}
-                      />
-                    </label>
-                  </div>
-                ))
+
+                      {/* Upload control */}
+                      <label className={`w-full mt-3 flex items-center justify-center gap-1.5 rounded-xl border border-dashed px-3 py-2.5 cursor-pointer transition-all duration-250 ${isUploadingStyleGuide === guide.department ? 'border-orange-400 bg-orange-100' : 'border-orange-200 hover:border-orange-400 bg-orange-50/30 hover:bg-orange-50'}`}>
+                        {isUploadingStyleGuide === guide.department ? (
+                          <>
+                            <svg className="h-3.5 w-3.5 animate-spin text-orange-500 flex-shrink-0" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+                            <span className="text-[11px] text-orange-600 font-semibold">Uploading…</span>
+                          </>
+                        ) : (
+                          <>
+                            <svg className="h-3.5 w-3.5 text-zinc-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                            <span className="text-[11px] text-zinc-500 font-medium">{guide.file_url ? 'Replace' : 'Upload'}</span>
+                          </>
+                        )}
+                        <input
+                          type="file"
+                          className="sr-only"
+                          accept=".pdf,.doc,.docx,.txt"
+                          disabled={isUploadingStyleGuide !== null}
+                          onChange={(e) => {
+                            const file = e.target.files?.[0]
+                            if (file) handleStyleGuideUpload(guide.department, file)
+                            e.target.value = ''
+                          }}
+                        />
+                      </label>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
 
