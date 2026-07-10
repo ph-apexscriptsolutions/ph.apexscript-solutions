@@ -2740,9 +2740,9 @@ export default function DashboardPage() {
                       <button
                         type="button"
                         onClick={() => { setPaymentHistory([]); setIsPaymentHistoryModalOpen(true); if (activeWorker?.id) fetchPaymentHistory(activeWorker.id) }}
-                        className="group relative flex flex-col items-start gap-2.5 rounded-xl border border-white/10 bg-white/5 p-4 text-left backdrop-blur-sm hover:bg-white/10 hover:border-indigo-400/40 transition-all duration-200 hover:shadow-xl hover:shadow-indigo-600/20"
+                        className="group relative flex flex-col items-start gap-2.5 rounded-xl border border-white/10 bg-white/5 p-4 text-left backdrop-blur-sm hover:bg-white/10 hover:border-violet-400/40 transition-all duration-200 hover:shadow-xl hover:shadow-violet-600/20"
                       >
-                        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-blue-600 shadow-lg shadow-indigo-500/30 group-hover:scale-110 transition-transform duration-200">
+                        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 shadow-lg shadow-violet-500/30 group-hover:scale-110 transition-transform duration-200">
                           <CreditCard className="h-4.5 w-4.5 text-white" />
                         </div>
                         <div>
@@ -2750,7 +2750,7 @@ export default function DashboardPage() {
                           <p className="mt-0.5 text-[11px] leading-relaxed text-zinc-400">View all past payments &amp; transactions</p>
                         </div>
                         <div className="absolute right-3 top-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <svg className="h-3.5 w-3.5 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                          <svg className="h-3.5 w-3.5 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
                         </div>
                       </button>
 
@@ -3346,10 +3346,10 @@ export default function DashboardPage() {
 
       {isPaymentHistoryModalOpen && activeWorker && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
-          <div className={`bg-gradient-to-br from-slate-50 via-indigo-50 to-blue-50 rounded-3xl shadow-2xl shadow-indigo-500/20 w-full ${isAdmin ? 'max-w-2xl' : 'max-w-md'} p-6 relative border-2 border-indigo-200/80 max-h-[90vh] flex flex-col`}>
-            <button onClick={() => setIsPaymentHistoryModalOpen(false)} className="absolute right-4 top-4 text-indigo-400 hover:text-indigo-700 transition-colors"><X className="h-5 w-5" /></button>
+          <div className={`bg-gradient-to-br from-slate-50 via-violet-50 to-purple-50 rounded-3xl shadow-2xl shadow-violet-500/20 w-full ${isAdmin ? 'max-w-2xl' : 'max-w-md'} p-6 relative border-2 border-violet-200/80 max-h-[90vh] flex flex-col`}>
+            <button onClick={() => setIsPaymentHistoryModalOpen(false)} className="absolute right-4 top-4 text-violet-400 hover:text-violet-700 transition-colors"><X className="h-5 w-5" /></button>
             
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-blue-600 text-white shadow-xl shadow-indigo-500/30 mb-4 flex-shrink-0">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500 to-purple-600 text-white shadow-xl shadow-violet-500/30 mb-4 flex-shrink-0">
               <CreditCard className="h-6 w-6" />
             </div>
             
@@ -3360,8 +3360,8 @@ export default function DashboardPage() {
 
             <div className="flex-1 overflow-y-auto min-h-0 space-y-6 pr-1">
               {isAdmin && (
-                <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-4 border border-indigo-100 shadow-sm">
-                  <h4 className="text-xs font-bold text-indigo-900 uppercase tracking-wider mb-3">Add Payment (Admin Only)</h4>
+                <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-4 border border-violet-100 shadow-sm">
+                  <h4 className="text-xs font-bold text-violet-900 uppercase tracking-wider mb-3">Add Payment (Admin Only)</h4>
                   <form onSubmit={addPaymentRecord} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <label className="block text-[11px] font-semibold text-zinc-700 mb-1">Sender's Bank</label>
@@ -3370,7 +3370,7 @@ export default function DashboardPage() {
                         placeholder="e.g. GCash, BDO, PayPal" 
                         value={paymentHistoryForm.senderBank} 
                         onChange={(e) => setPaymentHistoryForm({ ...paymentHistoryForm, senderBank: e.target.value })} 
-                        className="w-full rounded-xl border border-zinc-200 px-3 py-1.5 text-xs text-zinc-900 outline-none focus:border-indigo-500 transition-all bg-white" 
+                        className="w-full rounded-xl border border-zinc-200 px-3 py-1.5 text-xs text-zinc-900 outline-none focus:border-violet-500 transition-all bg-white" 
                       />
                     </div>
                     <div>
@@ -3380,7 +3380,7 @@ export default function DashboardPage() {
                         placeholder="Transaction ID / Receipt #" 
                         value={paymentHistoryForm.referenceNumber} 
                         onChange={(e) => setPaymentHistoryForm({ ...paymentHistoryForm, referenceNumber: e.target.value })} 
-                        className="w-full rounded-xl border border-zinc-200 px-3 py-1.5 text-xs text-zinc-900 outline-none focus:border-indigo-500 transition-all bg-white" 
+                        className="w-full rounded-xl border border-zinc-200 px-3 py-1.5 text-xs text-zinc-900 outline-none focus:border-violet-500 transition-all bg-white" 
                       />
                     </div>
                     <div>
@@ -3390,7 +3390,7 @@ export default function DashboardPage() {
                         placeholder="e.g. BPI, Metrobank, GCash" 
                         value={paymentHistoryForm.recipientBank} 
                         onChange={(e) => setPaymentHistoryForm({ ...paymentHistoryForm, recipientBank: e.target.value })} 
-                        className="w-full rounded-xl border border-zinc-200 px-3 py-1.5 text-xs text-zinc-900 outline-none focus:border-indigo-500 transition-all bg-white" 
+                        className="w-full rounded-xl border border-zinc-200 px-3 py-1.5 text-xs text-zinc-900 outline-none focus:border-violet-500 transition-all bg-white" 
                       />
                     </div>
                     <div>
@@ -3401,7 +3401,7 @@ export default function DashboardPage() {
                         placeholder="e.g. 150.00" 
                         value={paymentHistoryForm.amount} 
                         onChange={(e) => setPaymentHistoryForm({ ...paymentHistoryForm, amount: e.target.value })} 
-                        className="w-full rounded-xl border border-zinc-200 px-3 py-1.5 text-xs text-zinc-900 outline-none focus:border-indigo-500 transition-all bg-white" 
+                        className="w-full rounded-xl border border-zinc-200 px-3 py-1.5 text-xs text-zinc-900 outline-none focus:border-violet-500 transition-all bg-white" 
                         required 
                       />
                     </div>
@@ -3411,7 +3411,7 @@ export default function DashboardPage() {
                         type="date" 
                         value={paymentHistoryForm.dateSent} 
                         onChange={(e) => setPaymentHistoryForm({ ...paymentHistoryForm, dateSent: e.target.value })} 
-                        className="w-full rounded-xl border border-zinc-200 px-3 py-1.5 text-xs text-zinc-900 outline-none focus:border-indigo-500 transition-all bg-white" 
+                        className="w-full rounded-xl border border-zinc-200 px-3 py-1.5 text-xs text-zinc-900 outline-none focus:border-violet-500 transition-all bg-white" 
                         required 
                       />
                     </div>
@@ -3422,14 +3422,14 @@ export default function DashboardPage() {
                         placeholder="e.g. June First Cutoff Payment" 
                         value={paymentHistoryForm.notes} 
                         onChange={(e) => setPaymentHistoryForm({ ...paymentHistoryForm, notes: e.target.value })} 
-                        className="w-full rounded-xl border border-zinc-200 px-3 py-1.5 text-xs text-zinc-900 outline-none focus:border-indigo-500 transition-all bg-white" 
+                        className="w-full rounded-xl border border-zinc-200 px-3 py-1.5 text-xs text-zinc-900 outline-none focus:border-violet-500 transition-all bg-white" 
                       />
                     </div>
                     <div className="sm:col-span-2 flex justify-end mt-2">
                       <button 
                         type="submit" 
                         disabled={isAddingPaymentRecord} 
-                        className="rounded-xl bg-gradient-to-r from-indigo-600 to-blue-600 px-5 py-2 text-xs font-semibold text-white shadow-md shadow-indigo-500/20 hover:from-indigo-700 hover:to-blue-700 disabled:opacity-50 transition-all"
+                        className="rounded-xl bg-gradient-to-r from-violet-600 to-purple-600 px-5 py-2 text-xs font-semibold text-white shadow-md shadow-violet-500/20 hover:from-violet-700 hover:to-purple-700 disabled:opacity-50 transition-all"
                       >
                         {isAddingPaymentRecord ? 'Adding...' : 'Save Payment'}
                       </button>
@@ -3461,7 +3461,7 @@ export default function DashboardPage() {
                           {(r.bank_type || r.reference_number) && (
                             <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[11px] text-zinc-500">
                               {r.bank_type && (
-                                <span className="bg-indigo-50 text-indigo-700 border border-indigo-100 px-2 py-0.5 rounded-lg text-[10px] font-semibold uppercase tracking-wider">{r.bank_type}</span>
+                                <span className="bg-violet-50 text-violet-700 border border-violet-100 px-2 py-0.5 rounded-lg text-[10px] font-semibold uppercase tracking-wider">{r.bank_type}</span>
                               )}
                               {r.bank_type && r.reference_number && <span className="text-zinc-300">→</span>}
                               {r.reference_number && (
