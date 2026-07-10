@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic'
 import { useEffect, useState, FormEvent } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/utils/supabase/client"
-import { FileText, HardDrive, LogOut, Calendar, X, Pencil, Save, User, ArrowLeft, Upload, UserPlus, CreditCard, Trash2, Check, Bell, AlertCircle, Tv, Mic, Headphones, FileEdit, Newspaper, Radio, Video } from "lucide-react"
+import { FileText, HardDrive, LogOut, Calendar, X, Pencil, Save, User, ArrowLeft, Upload, UserPlus, CreditCard, Trash2, Check, Bell, AlertCircle, Tv, Mic, Headphones, FileEdit, Newspaper, Radio, Video, BookOpen, Gavel, TrendingUp, Activity } from "lucide-react"
 import AdminChat from '@/components/admin-chat'
 import WorkerRealtimeChat from '@/components/worker-realtime-chat'
 import { FlagIcon } from "@/components/flag-icon"
@@ -13,6 +13,10 @@ const getDepartmentIcon = (department: string) => {
   if (dept.includes('broadcast') || dept.includes('tv')) return { icon: Tv, color: 'text-orange-500', bg: 'from-orange-100 to-amber-100' }
   if (dept.includes('podcast') || dept.includes('audio') || dept.includes('radio')) return { icon: Radio, color: 'text-orange-500', bg: 'from-orange-100 to-amber-100' }
   if (dept.includes('video') || dept.includes('youtube')) return { icon: Video, color: 'text-orange-500', bg: 'from-orange-100 to-amber-100' }
+  if (dept.includes('academics') || dept.includes('academic') || dept.includes('education') || dept.includes('university')) return { icon: BookOpen, color: 'text-orange-500', bg: 'from-orange-100 to-amber-100' }
+  if (dept.includes('senate') || dept.includes('political') || dept.includes('politics') || dept.includes('government') || dept.includes('legal')) return { icon: Gavel, color: 'text-orange-500', bg: 'from-orange-100 to-amber-100' }
+  if (dept.includes('conference') || dept.includes('earning') || dept.includes('call') || dept.includes('investment') || dept.includes('business')) return { icon: TrendingUp, color: 'text-orange-500', bg: 'from-orange-100 to-amber-100' }
+  if (dept.includes('medical') || dept.includes('health') || dept.includes('healthcare') || dept.includes('hospital') || dept.includes('clinic')) return { icon: Activity, color: 'text-orange-500', bg: 'from-orange-100 to-amber-100' }
   if (dept.includes('transcription') || dept.includes('transcriber')) return { icon: FileText, color: 'text-orange-500', bg: 'from-orange-100 to-amber-100' }
   if (dept.includes('editing') || dept.includes('editor')) return { icon: FileEdit, color: 'text-orange-500', bg: 'from-orange-100 to-amber-100' }
   if (dept.includes('news') || dept.includes('journalism')) return { icon: Newspaper, color: 'text-orange-500', bg: 'from-orange-100 to-amber-100' }
