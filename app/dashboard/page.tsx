@@ -2524,92 +2524,92 @@ export default function DashboardPage() {
               </section>
 
               {/* ── Admin Hub ── */}
-              <div className="mt-10">
-                <div className="relative overflow-hidden rounded-3xl border border-zinc-200/60 bg-gradient-to-br from-slate-900 via-zinc-900 to-slate-800 p-8 shadow-2xl">
+              <div className="mt-4">
+                <div className="relative overflow-hidden rounded-3xl border border-zinc-200/60 bg-gradient-to-br from-slate-900 via-zinc-900 to-slate-800 p-4 shadow-2xl">
                   {/* Decorative glow blobs */}
                   <div className="pointer-events-none absolute -top-24 -right-24 h-64 w-64 rounded-full bg-cyan-500/10 blur-3xl" />
                   <div className="pointer-events-none absolute -bottom-20 -left-20 h-56 w-56 rounded-full bg-sky-500/10 blur-3xl" />
 
                   <div className="relative">
                     {/* Hub Header */}
-                    <div className="mb-6 flex items-center gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-500 to-sky-600 shadow-lg shadow-cyan-600/30">
-                        <svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+                    <div className="mb-3 flex items-center gap-2">
+                      <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-cyan-500 to-sky-600 shadow-lg shadow-cyan-600/30">
+                        <svg className="h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
                       </div>
                       <div>
-                        <h3 className="text-xl font-bold text-white tracking-tight">Admin Hub</h3>
-                        <p className="text-sm text-zinc-400">Quick access to administrative actions</p>
+                        <h3 className="text-base font-bold text-white tracking-tight">Admin Hub</h3>
+                        <p className="text-[10px] text-zinc-400">Quick access to administrative actions</p>
                       </div>
                     </div>
 
                     {/* Hub Action Cards */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1.5">
 
                       {/* Add New Worker */}
                       <button
                         onClick={() => setIsAddWorkerModalOpen(true)}
-                        className="group relative flex flex-col items-start gap-3 rounded-2xl border border-white/10 bg-white/5 p-5 text-left backdrop-blur-sm hover:bg-white/10 hover:border-cyan-400/40 transition-all duration-200 hover:shadow-xl hover:shadow-cyan-600/20"
+                        className="group relative flex flex-col items-start gap-1 rounded-md border border-white/10 bg-white/5 p-2 text-left backdrop-blur-sm hover:bg-white/10 hover:border-cyan-400/40 transition-all duration-200 hover:shadow-xl hover:shadow-cyan-600/20"
                       >
-                        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-500 to-sky-600 shadow-lg shadow-cyan-500/30 group-hover:scale-110 transition-transform duration-200">
-                          <UserPlus className="h-5 w-5 text-white" />
+                        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br from-cyan-500 to-sky-600 shadow-lg shadow-cyan-500/30 group-hover:scale-110 transition-transform duration-200">
+                          <UserPlus className="h-3 w-3 text-white" />
                         </div>
                         <div>
-                          <p className="font-semibold text-white">Add New Worker</p>
-                          <p className="mt-0.5 text-xs text-zinc-400">Register a new team member</p>
+                          <p className="text-[11px] font-semibold text-white">Add New Worker</p>
+                          <p className="mt-0.5 text-[8px] text-zinc-400">Register a new team member</p>
                         </div>
-                        <div className="absolute right-4 top-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <svg className="h-4 w-4 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                        <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <svg className="h-2.5 w-2.5 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
                         </div>
                       </button>
 
                       {/* Announcement */}
                       <button
                         onClick={() => { setAnnouncementSchemaHint(null); setIsAnnouncementModalOpen(true) }}
-                        className="group relative flex flex-col items-start gap-3 rounded-2xl border border-white/10 bg-white/5 p-5 text-left backdrop-blur-sm hover:bg-white/10 hover:border-amber-400/40 transition-all duration-200 hover:shadow-xl hover:shadow-amber-600/20"
+                        className="group relative flex flex-col items-start gap-1 rounded-md border border-white/10 bg-white/5 p-2 text-left backdrop-blur-sm hover:bg-white/10 hover:border-amber-400/40 transition-all duration-200 hover:shadow-xl hover:shadow-amber-600/20"
                       >
-                        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 shadow-lg shadow-amber-500/30 group-hover:scale-110 transition-transform duration-200">
-                          <Bell className="h-5 w-5 text-white" />
+                        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br from-amber-500 to-orange-600 shadow-lg shadow-amber-500/30 group-hover:scale-110 transition-transform duration-200">
+                          <Bell className="h-3 w-3 text-white" />
                         </div>
                         <div>
-                          <p className="font-semibold text-white">Announcement</p>
-                          <p className="mt-0.5 text-xs text-zinc-400">Broadcast a message to all workers</p>
+                          <p className="text-[11px] font-semibold text-white">Announcement</p>
+                          <p className="mt-0.5 text-[8px] text-zinc-400">Broadcast a message to all workers</p>
                         </div>
-                        <div className="absolute right-4 top-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <svg className="h-4 w-4 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                        <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <svg className="h-2.5 w-2.5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
                         </div>
                       </button>
 
                       {/* Payslip Requests */}
                       <button
                         onClick={() => { setIsPayslipAdminModalOpen(true); fetchPayslipRequests() }}
-                        className="group relative flex flex-col items-start gap-3 rounded-2xl border border-white/10 bg-white/5 p-5 text-left backdrop-blur-sm hover:bg-white/10 hover:border-emerald-400/40 transition-all duration-200 hover:shadow-xl hover:shadow-emerald-600/20"
+                        className="group relative flex flex-col items-start gap-1 rounded-md border border-white/10 bg-white/5 p-2 text-left backdrop-blur-sm hover:bg-white/10 hover:border-emerald-400/40 transition-all duration-200 hover:shadow-xl hover:shadow-emerald-600/20"
                       >
-                        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-green-600 shadow-lg shadow-emerald-500/30 group-hover:scale-110 transition-transform duration-200">
-                          <FileText className="h-5 w-5 text-white" />
+                        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br from-emerald-500 to-green-600 shadow-lg shadow-emerald-500/30 group-hover:scale-110 transition-transform duration-200">
+                          <FileText className="h-3 w-3 text-white" />
                         </div>
                         <div>
-                          <p className="font-semibold text-white">Payslip Requests</p>
-                          <p className="mt-0.5 text-xs text-zinc-400">Review &amp; manage payslip requests</p>
+                          <p className="text-[11px] font-semibold text-white">Payslip Requests</p>
+                          <p className="mt-0.5 text-[8px] text-zinc-400">Review &amp; manage payslip requests</p>
                         </div>
-                        <div className="absolute right-4 top-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <svg className="h-4 w-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                        <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <svg className="h-2.5 w-2.5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
                         </div>
                       </button>
 
                       {/* Manage Style Guides */}
                       <button
                         onClick={() => { setIsStyleGuidesAdminModalOpen(true); fetchStyleGuides() }}
-                        className="group relative flex flex-col items-start gap-3 rounded-2xl border border-white/10 bg-white/5 p-5 text-left backdrop-blur-sm hover:bg-white/10 hover:border-amber-400/40 transition-all duration-200 hover:shadow-xl hover:shadow-amber-600/20"
+                        className="group relative flex flex-col items-start gap-1 rounded-md border border-white/10 bg-white/5 p-2 text-left backdrop-blur-sm hover:bg-white/10 hover:border-amber-400/40 transition-all duration-200 hover:shadow-xl hover:shadow-amber-600/20"
                       >
-                        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 shadow-lg shadow-amber-500/30 group-hover:scale-110 transition-transform duration-200">
-                          <svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+                        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br from-amber-500 to-orange-600 shadow-lg shadow-amber-500/30 group-hover:scale-110 transition-transform duration-200">
+                          <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
                         </div>
                         <div>
-                          <p className="font-semibold text-white">Style Guides</p>
-                          <p className="mt-0.5 text-xs text-zinc-400">Upload formatting rules by department</p>
+                          <p className="text-[11px] font-semibold text-white">Style Guides</p>
+                          <p className="mt-0.5 text-[8px] text-zinc-400">Upload formatting rules by department</p>
                         </div>
-                        <div className="absolute right-4 top-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <svg className="h-4 w-4 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                        <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <svg className="h-2.5 w-2.5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
                         </div>
                       </button>
 
@@ -2920,43 +2920,43 @@ export default function DashboardPage() {
             </div>
 
             {/* ── Worker Hub ── */}
-            <div className="mt-6">
-              <div className="relative overflow-hidden rounded-2xl border border-zinc-200/60 bg-gradient-to-br from-slate-900 via-zinc-900 to-slate-800 p-6 shadow-2xl">
+            <div className="mt-4">
+              <div className="relative overflow-hidden rounded-2xl border border-zinc-200/60 bg-gradient-to-br from-slate-900 via-zinc-900 to-slate-800 p-4 shadow-2xl">
                 {/* Decorative glow blobs */}
                 <div className="pointer-events-none absolute -top-24 -right-24 h-64 w-64 rounded-full bg-blue-500/10 blur-3xl" />
                 <div className="pointer-events-none absolute -bottom-20 -left-20 h-56 w-56 rounded-full bg-indigo-500/10 blur-3xl" />
 
                 <div className="relative">
                   {/* Hub Header */}
-                  <div className="mb-4 flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg shadow-blue-600/30">
-                      <CreditCard className="h-4.5 w-4.5 text-white" />
+                  <div className="mb-3 flex items-center gap-2">
+                    <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg shadow-blue-600/30">
+                      <CreditCard className="h-3.5 w-3.5 text-white" />
                     </div>
                     <div>
-                      <h3 className="text-lg font-bold text-white tracking-tight">Worker Hub</h3>
-                      <p className="text-xs text-zinc-400">Quick access to payment &amp; payslip actions</p>
+                      <h3 className="text-base font-bold text-white tracking-tight">Worker Hub</h3>
+                      <p className="text-[10px] text-zinc-400">Quick access to payment &amp; payslip actions</p>
                     </div>
                   </div>
 
                   {/* Hub Action Cards */}
                   {(user?.id === activeWorker?.id || isAdmin) && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3.5 mb-5">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1.5 mb-4">
 
                       {/* Request Payslip */}
                       <button
                         type="button"
                         onClick={() => { setIsPayslipModalOpen(true); setPayslipActiveTab('request'); if (activeWorker?.id) fetchWorkerPayslipRequests(activeWorker.id); }}
-                        className="group relative flex flex-col items-start gap-2.5 rounded-xl border border-white/10 bg-white/5 p-4 text-left backdrop-blur-sm hover:bg-white/10 hover:border-blue-400/40 transition-all duration-200 hover:shadow-xl hover:shadow-blue-600/20"
+                        className="group relative flex flex-col items-start gap-1 rounded-md border border-white/10 bg-white/5 p-2 text-left backdrop-blur-sm hover:bg-white/10 hover:border-blue-400/40 transition-all duration-200 hover:shadow-xl hover:shadow-blue-600/20"
                       >
-                        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg shadow-blue-500/30 group-hover:scale-110 transition-transform duration-200">
-                          <FileText className="h-4.5 w-4.5 text-white" />
+                        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg shadow-blue-500/30 group-hover:scale-110 transition-transform duration-200">
+                          <FileText className="h-3 w-3 text-white" />
                         </div>
                         <div>
-                          <p className="text-sm font-semibold text-white">Request Payslip</p>
-                          <p className="mt-0.5 text-[11px] leading-relaxed text-zinc-400">Submit a payslip request for a cutoff period</p>
+                          <p className="text-[11px] font-semibold text-white">Request Payslip</p>
+                          <p className="mt-0.5 text-[8px] leading-relaxed text-zinc-400">Submit a payslip request for a cutoff period</p>
                         </div>
-                        <div className="absolute right-3 top-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <svg className="h-3.5 w-3.5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                        <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <svg className="h-2.5 w-2.5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
                         </div>
                       </button>
 
@@ -2964,17 +2964,17 @@ export default function DashboardPage() {
                       <button
                         type="button"
                         onClick={() => { setPaymentHistory([]); setIsPaymentHistoryModalOpen(true); if (activeWorker?.id) fetchPaymentHistory(activeWorker.id) }}
-                        className="group relative flex flex-col items-start gap-2.5 rounded-xl border border-white/10 bg-white/5 p-4 text-left backdrop-blur-sm hover:bg-white/10 hover:border-violet-400/40 transition-all duration-200 hover:shadow-xl hover:shadow-violet-600/20"
+                        className="group relative flex flex-col items-start gap-1 rounded-md border border-white/10 bg-white/5 p-2 text-left backdrop-blur-sm hover:bg-white/10 hover:border-violet-400/40 transition-all duration-200 hover:shadow-xl hover:shadow-violet-600/20"
                       >
-                        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 shadow-lg shadow-violet-500/30 group-hover:scale-110 transition-transform duration-200">
-                          <CreditCard className="h-4.5 w-4.5 text-white" />
+                        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br from-violet-500 to-purple-600 shadow-lg shadow-violet-500/30 group-hover:scale-110 transition-transform duration-200">
+                          <CreditCard className="h-3 w-3 text-white" />
                         </div>
                         <div>
-                          <p className="text-sm font-semibold text-white">Payment History</p>
-                          <p className="mt-0.5 text-[11px] leading-relaxed text-zinc-400">View all past payments &amp; transactions</p>
+                          <p className="text-[11px] font-semibold text-white">Payment History</p>
+                          <p className="mt-0.5 text-[8px] leading-relaxed text-zinc-400">View all past payments &amp; transactions</p>
                         </div>
-                        <div className="absolute right-3 top-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <svg className="h-3.5 w-3.5 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                        <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <svg className="h-2.5 w-2.5 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
                         </div>
                       </button>
 
@@ -2982,17 +2982,17 @@ export default function DashboardPage() {
                       <button
                         type="button"
                         onClick={() => { if (activeWorker?.id) fetchAvailability(activeWorker.id); setIsAvailabilityModalOpen(true) }}
-                        className="group relative flex flex-col items-start gap-2.5 rounded-xl border border-white/10 bg-white/5 p-4 text-left backdrop-blur-sm hover:bg-white/10 hover:border-emerald-400/40 transition-all duration-200 hover:shadow-xl hover:shadow-emerald-600/20"
+                        className="group relative flex flex-col items-start gap-1 rounded-md border border-white/10 bg-white/5 p-2 text-left backdrop-blur-sm hover:bg-white/10 hover:border-emerald-400/40 transition-all duration-200 hover:shadow-xl hover:shadow-emerald-600/20"
                       >
-                        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 shadow-lg shadow-emerald-500/30 group-hover:scale-110 transition-transform duration-200">
-                          <svg className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br from-emerald-500 to-teal-600 shadow-lg shadow-emerald-500/30 group-hover:scale-110 transition-transform duration-200">
+                          <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                         </div>
                         <div>
-                          <p className="text-sm font-semibold text-white">Weekly Availability</p>
-                          <p className="mt-0.5 text-[11px] leading-relaxed text-zinc-400">Set your sameday, overnight &amp; daily schedule</p>
+                          <p className="text-[11px] font-semibold text-white">Weekly Availability</p>
+                          <p className="mt-0.5 text-[8px] leading-relaxed text-zinc-400">Set your sameday, overnight &amp; daily schedule</p>
                         </div>
-                        <div className="absolute right-3 top-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <svg className="h-3.5 w-3.5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                        <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <svg className="h-2.5 w-2.5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
                         </div>
                       </button>
 
@@ -3000,17 +3000,17 @@ export default function DashboardPage() {
                       <button
                         type="button"
                         onClick={() => { setIsStyleGuidesModalOpen(true); fetchStyleGuides() }}
-                        className="group relative flex flex-col items-start gap-2.5 rounded-xl border border-white/10 bg-white/5 p-4 text-left backdrop-blur-sm hover:bg-white/10 hover:border-amber-400/40 transition-all duration-200 hover:shadow-xl hover:shadow-amber-600/20"
+                        className="group relative flex flex-col items-start gap-1 rounded-md border border-white/10 bg-white/5 p-2 text-left backdrop-blur-sm hover:bg-white/10 hover:border-amber-400/40 transition-all duration-200 hover:shadow-xl hover:shadow-amber-600/20"
                       >
-                        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 shadow-lg shadow-amber-500/30 group-hover:scale-110 transition-transform duration-200">
-                          <svg className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+                        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br from-amber-500 to-orange-600 shadow-lg shadow-amber-500/30 group-hover:scale-110 transition-transform duration-200">
+                          <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
                         </div>
                         <div>
-                          <p className="text-sm font-semibold text-white">Style Guides</p>
-                          <p className="mt-0.5 text-[11px] leading-relaxed text-zinc-400">Download formatting rules by department</p>
+                          <p className="text-[11px] font-semibold text-white">Style Guides</p>
+                          <p className="mt-0.5 text-[8px] leading-relaxed text-zinc-400">Download formatting rules by department</p>
                         </div>
-                        <div className="absolute right-3 top-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <svg className="h-3.5 w-3.5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                        <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <svg className="h-2.5 w-2.5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
                         </div>
                       </button>
 
