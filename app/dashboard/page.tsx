@@ -2632,33 +2632,33 @@ export default function DashboardPage() {
         ) : (
           <div>
             <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
-              <Card className="mb-0">
-                <CardContent className="pt-6">
+              <div className="rounded-2xl border border-[#334155] bg-[#172033] backdrop-blur-sm transition-all duration-300">
+                <div className="p-6">
                   <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
                     <div className="flex flex-col items-center gap-4 sm:items-start">
-                      <div className="flex h-20 w-20 flex-shrink-0 overflow-hidden rounded-full bg-zinc-200 text-zinc-500">
+                      <div className="flex h-20 w-20 flex-shrink-0 overflow-hidden rounded-full bg-[#1E293B] text-cyan-400 border border-[#334155]">
                         <div className="flex h-full w-full items-center justify-center"><User className="h-10 w-10" /></div>
                       </div>
                     </div>
                     <div className="flex-1">
                       <div className="flex flex-wrap items-center gap-3">
-                        <h2 className="text-2xl md:text-4xl font-semibold tracking-tight text-zinc-900">{activeWorker?.full_name || "Worker Details"}</h2>
+                        <h2 className="text-2xl md:text-4xl font-semibold tracking-tight text-white">{activeWorker?.full_name || "Worker Details"}</h2>
                         {activeWorker?.role && (
-                          <span className="inline-flex items-center rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.15em] text-blue-800">
+                          <span className="inline-flex items-center rounded-full bg-cyan-500/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.15em] text-cyan-300 border border-cyan-500/30">
                             {activeWorker.role}
                           </span>
                         )}
                         {activeWorker && (
                           <div className="ml-auto flex items-center gap-2">
                             {isAdmin && (
-                              <button onClick={openEditWorkerModal} className="inline-flex items-center gap-1 rounded-md border border-zinc-200 bg-white px-3 py-1 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 transition">
+                              <button onClick={openEditWorkerModal} className="inline-flex items-center gap-1 rounded-md border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold text-white hover:bg-white/20 transition">
                                 <Pencil className="h-3.5 w-3.5" /> Edit
                               </button>
                             )}
                           </div>
                         )}
                       </div>
-                      <div className="mt-4 space-y-2 text-sm text-zinc-700">
+                      <div className="mt-4 space-y-2 text-sm text-gray-300">
                         <div className="flex items-center gap-2">
                           <span className="font-medium">📋</span>
                           <span>{activeWorker?.job_title || "Transcriber"}</span>
@@ -2681,47 +2681,47 @@ export default function DashboardPage() {
                       </div>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
 
               {hasBankColumns && (
-              <Card className="border-l-4 border-cyan-500 mb-0 relative">
-                <CardHeader className="flex items-start justify-between gap-4">
+              <div className="rounded-2xl border-l-4 border-cyan-500 border border-[#334155] bg-[#172033] backdrop-blur-sm transition-all duration-300 relative">
+                <div className="flex items-start justify-between gap-4 p-6 border-b border-[#334155]">
                   <div>
-                    <CardTitle className="text-sm font-medium text-zinc-500">Bank Details</CardTitle>
-                    <p className="text-xs text-zinc-400">Editable by authorized users.</p>
+                    <h3 className="text-sm font-medium text-gray-300">Bank Details</h3>
+                    <p className="text-xs text-gray-400">Editable by authorized users.</p>
                   </div>
-                </CardHeader>
+                </div>
                 {canEditBank && (
-                  <button onClick={() => setIsBankModalOpen(true)} className="absolute top-4 right-4 inline-flex items-center gap-1 rounded-md border border-zinc-200 bg-white px-2 py-1 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 transition">
+                  <button onClick={() => setIsBankModalOpen(true)} className="absolute top-4 right-4 inline-flex items-center gap-1 rounded-md border border-white/20 bg-white/10 px-2 py-1 text-xs font-semibold text-white hover:bg-white/20 transition">
                     <CreditCard className="h-3.5 w-3.5" /> Edit
                   </button>
                 )}
-                <CardContent>
-                  <div className="space-y-1.5 text-sm text-zinc-700">
+                <div className="p-6 pt-4">
+                  <div className="space-y-1.5 text-sm text-gray-300">
                     <div className="flex items-center justify-between gap-2">
-                      <span className="font-medium text-zinc-600">Bank Name</span>
-                      <span>{activeWorker?.bank_name || "No bank name set"}</span>
+                      <span className="font-medium text-gray-400">Bank Name</span>
+                      <span className="text-white">{activeWorker?.bank_name || "No bank name set"}</span>
                     </div>
                     <div className="flex items-center justify-between gap-2">
-                      <span className="font-medium text-zinc-600">Account Number</span>
-                      <span>{activeWorker?.account_number || "Not provided"}</span>
+                      <span className="font-medium text-gray-400">Account Number</span>
+                      <span className="text-white">{activeWorker?.account_number || "Not provided"}</span>
                     </div>
                     <div className="flex items-center justify-between gap-2">
-                      <span className="font-medium text-zinc-600">Account Type</span>
-                      <span>{activeWorker?.account_type || "Not provided"}</span>
+                      <span className="font-medium text-gray-400">Account Type</span>
+                      <span className="text-white">{activeWorker?.account_type || "Not provided"}</span>
                     </div>
                     <div className="flex items-center justify-between gap-2">
-                      <span className="font-medium text-zinc-600">Routing Number</span>
-                      <span>{activeWorker?.routing_number || "Not provided"}</span>
+                      <span className="font-medium text-gray-400">Routing Number</span>
+                      <span className="text-white">{activeWorker?.routing_number || "Not provided"}</span>
                     </div>
                     <div className="flex items-center justify-between gap-2">
-                      <span className="font-medium text-zinc-600">Employee ID</span>
-                      <span>{activeWorker?.employee_id || "Not provided"}</span>
+                      <span className="font-medium text-gray-400">Employee ID</span>
+                      <span className="text-white">{activeWorker?.employee_id || "Not provided"}</span>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
               )}
             </div>
 
