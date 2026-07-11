@@ -2726,11 +2726,11 @@ export default function DashboardPage() {
                     <div className="flex flex-wrap items-end gap-2">
                       <div className="flex flex-col">
                         <label className="text-xs font-semibold text-white mb-1.5">Start Date</label>
-                        <input type="date" value={startDate} onChange={(e) => { setStartDate(e.target.value); setFilterApplied(false); }} className="border border-zinc-300 rounded-lg px-3 py-2 text-sm text-zinc-700 outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all" placeholder="mm/dd/yyyy" />
+                        <input type="date" value={startDate} onChange={(e) => { setStartDate(e.target.value); setFilterApplied(false); }} className="border border-white/20 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all bg-white/5" placeholder="mm/dd/yyyy" />
                       </div>
                       <div className="flex flex-col">
                         <label className="text-xs font-semibold text-white mb-1.5">End Date</label>
-                        <input type="date" value={endDate} onChange={(e) => { setEndDate(e.target.value); setFilterApplied(false); }} className="border border-zinc-300 rounded-lg px-3 py-2 text-sm text-zinc-700 outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all" placeholder="mm/dd/yyyy" />
+                        <input type="date" value={endDate} onChange={(e) => { setEndDate(e.target.value); setFilterApplied(false); }} className="border border-white/20 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all bg-white/5" placeholder="mm/dd/yyyy" />
                       </div>
                       <button onClick={applyFilters} className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-zinc-900 to-slate-900 px-3 py-1.5 text-xs font-semibold text-white shadow-lg shadow-black/40 ring-1 ring-white/10 hover:from-black hover:to-zinc-900 hover:shadow-black/60 hover:shadow-xl transition-all">
                         <span>⊡</span> Filter
