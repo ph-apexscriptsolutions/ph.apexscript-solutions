@@ -2717,11 +2717,11 @@ export default function DashboardPage() {
             </div>
 
             <div className="grid gap-6 xl:grid-cols-[2fr_1fr] xl:items-stretch mt-4">
-              <div className="rounded-2xl border border-cyan-500/30 bg-gradient-to-br from-slate-800 to-slate-900 backdrop-blur-sm shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:shadow-[0_0_30px_rgba(6,182,212,0.5)] transition-all duration-300">
-                <div className="flex flex-col space-y-1.5 p-6 border-b border-white/10">
+              <div className="rounded-2xl border border-[#334155] bg-[#172033] backdrop-blur-sm transition-all duration-300">
+                <div className="flex flex-col space-y-1.5 p-6 border-b border-[#334155]">
                   <h3 className="font-bold text-lg leading-none tracking-tight text-white">Production Records</h3>
                 </div>
-                <div className="p-6 pt-4">
+                <div className="p-6 pt-4 bg-[#1E293B]">
                   <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:gap-2">
                     <div className="flex flex-wrap items-end gap-2">
                       <div className="flex flex-col">
@@ -2742,30 +2742,30 @@ export default function DashboardPage() {
                       )}
                     </div>
                   </div>
-                  <div className="overflow-x-auto rounded-xl border border-zinc-200">
-                    <table className="w-full text-sm text-left">
-                      <thead className="bg-zinc-100/80 text-zinc-700 uppercase text-[11px] font-semibold tracking-wider">
+                  <div className="overflow-x-auto rounded-xl border border-[#334155]">
+                    <table className="w-full text-xs text-left">
+                      <thead className="bg-[#293548] text-white uppercase text-[10px] font-semibold tracking-wider">
                         <tr>
-                          <th className="px-4 py-3 text-left rounded-tl-lg">File Name</th>
-                          <th className="px-4 py-3 text-left">Date Completed</th>
-                          <th className="px-4 py-3 text-left">Size (KB)</th>
-                          {isAdmin && <th className="px-4 py-3 text-left rounded-tr-lg">Actions</th>}
+                          <th className="px-3 py-2 text-left rounded-tl-lg">File Name</th>
+                          <th className="px-3 py-2 text-left">Date Completed</th>
+                          <th className="px-3 py-2 text-left">Size (KB)</th>
+                          {isAdmin && <th className="px-3 py-2 text-left rounded-tr-lg">Actions</th>}
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-zinc-200/60 bg-white">
+                      <tbody className="divide-y divide-[#334155] bg-[#1E293B]">
                         {records.length > 0 ? records.map((r: any) => (
-                          <tr key={r.id} className="hover:bg-zinc-50/80 transition-colors">
-                            <td className="px-4 py-3 font-semibold text-zinc-900">{getDisplayFileName(r.file_name)}</td>
-                            <td className="px-4 py-3 text-zinc-600">{formatDateDMY(r.date_completed)}</td>
-                            <td className="px-4 py-3 font-bold text-cyan-600">{formatKB(r.byte_size)}</td>
+                          <tr key={r.id} className="hover:bg-[#293548] transition-colors">
+                            <td className="px-3 py-2 font-semibold text-white">{getDisplayFileName(r.file_name)}</td>
+                            <td className="px-3 py-2 text-gray-300">{formatDateDMY(r.date_completed)}</td>
+                            <td className="px-3 py-2 font-bold text-cyan-400">{formatKB(r.byte_size)}</td>
                             {isAdmin && (
-                              <td className="px-4 py-3">
+                              <td className="px-3 py-2">
                                 <div className="flex items-center gap-1">
-                                  <button onClick={() => openEditModal(r)} className="inline-flex items-center gap-1 rounded-xl border-2 border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-800 shadow-sm shadow-slate-300/80 hover:border-slate-400 hover:text-zinc-900 hover:shadow-md transition-all">
-                                    <Pencil className="h-4 w-4" /> Edit
+                                  <button onClick={() => openEditModal(r)} className="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs font-medium text-slate-800 shadow-sm shadow-slate-300/80 hover:border-slate-400 hover:text-zinc-900 hover:shadow-md transition-all">
+                                    <Pencil className="h-3 w-3" /> Edit
                                   </button>
-                                  <button onClick={() => handleDeleteRecord(r.id)} className="inline-flex items-center gap-1 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 px-3 py-1.5 text-sm font-semibold text-white shadow-xl shadow-red-600/30 hover:from-red-700 hover:to-rose-700 hover:shadow-xl hover:shadow-red-600/40 transition-all">
-                                    <Trash2 className="h-4 w-4" /> Delete
+                                  <button onClick={() => handleDeleteRecord(r.id)} className="inline-flex items-center gap-1 rounded-lg bg-gradient-to-r from-red-600 to-rose-600 px-2 py-1 text-xs font-semibold text-white shadow-xl shadow-red-600/30 hover:from-red-700 hover:to-rose-700 hover:shadow-xl hover:shadow-red-600/40 transition-all">
+                                    <Trash2 className="h-3 w-3" /> Delete
                                   </button>
                                 </div>
                               </td>
@@ -2773,14 +2773,14 @@ export default function DashboardPage() {
                           </tr>
                         )) : (
                           <tr>
-                            <td colSpan={isAdmin ? 4 : 3} className="px-4 py-8 text-center text-zinc-500 font-medium">No production records found.</td>
+                            <td colSpan={isAdmin ? 4 : 3} className="px-3 py-6 text-center text-gray-400 font-medium">No production records found.</td>
                           </tr>
                         )}
                       </tbody>
                     </table>
                   </div>
                 </div>
-                <div className="border-t border-white/10 px-6 py-4 flex flex-col sm:flex-row items-center justify-center gap-2 bg-slate-800/50">
+                <div className="border-t border-[#334155] px-6 py-4 flex flex-col sm:flex-row items-center justify-center gap-2 bg-[#172033]">
                   {isAdmin && (
                     <button onClick={() => setIsManualAddModalOpen(true)} className="inline-flex items-center gap-2 rounded-xl border-2 border-white/20 bg-white/10 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-white/20 hover:border-white/30 hover:shadow-md transition-all">
                       <FileText className="h-4 w-4" /> Add File Manually
