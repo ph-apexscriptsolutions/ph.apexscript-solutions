@@ -142,6 +142,7 @@ export default function DashboardPage() {
   const [filterTrigger, setFilterTrigger] = useState(0)
   const [startDate, setStartDate] = useState("")
   const [endDate, setEndDate] = useState("")
+  const [searchQuery, setSearchQuery] = useState("")
   const [records, setRecords] = useState<any[]>([])
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false)
@@ -320,7 +321,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (!activeWorker) return
-    if (!filterApplied) {
+    if (!filterApplied && !searchQuery) {
       setRecords([])
       return
     }
@@ -329,10 +330,18 @@ export default function DashboardPage() {
       if (startDate) q = q.gte("date_completed", startDate)
       if (endDate) q = q.lte("date_completed", endDate)
       const { data } = await q.order("date_completed", { ascending: false })
-      if (data) setRecords(data)
+      if (data) {
+        let filteredData = data
+        if (searchQuery) {
+          filteredData = data.filter((r: any) => 
+            r.file_name?.toLowerCase().includes(searchQuery.toLowerCase())
+          )
+        }
+        setRecords(filteredData)
+      }
     }
     fetch()
-  }, [activeWorker, filterTrigger])
+  }, [activeWorker, filterTrigger, searchQuery])
 
   useEffect(() => {
     if (!activeWorker) return
@@ -666,8 +675,8 @@ export default function DashboardPage() {
     }
   }
   const handleViewWorker = (w: any) => { setActiveWorker(w); setView("detail") }
-  const handleBackToList = () => { setActiveWorker(null); setRecords([]); setView("list"); setStartDate(""); setEndDate(""); setFilterApplied(false); setFilterTrigger(prev => prev + 1) }
-  const clearFilters = () => { setStartDate(""); setEndDate(""); setFilterApplied(false); setFilterTrigger(prev => prev + 1) }
+  const handleBackToList = () => { setActiveWorker(null); setRecords([]); setView("list"); setStartDate(""); setEndDate(""); setSearchQuery(""); setFilterApplied(false); setFilterTrigger(prev => prev + 1) }
+  const clearFilters = () => { setStartDate(""); setEndDate(""); setSearchQuery(""); setFilterApplied(false); setFilterTrigger(prev => prev + 1) }
   const applyFilters = () => {
     if (!startDate || !endDate) {
       alert('Please select both start and end dates before filtering.')
@@ -2725,17 +2734,21 @@ export default function DashboardPage() {
                   <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:gap-2">
                     <div className="flex flex-wrap items-end gap-2">
                       <div className="flex flex-col">
-                        <label className="text-xs font-semibold text-white mb-1.5">Start Date</label>
-                        <input type="date" value={startDate} onChange={(e) => { setStartDate(e.target.value); setFilterApplied(false); }} className="border border-white/20 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all bg-white/5" placeholder="mm/dd/yyyy" />
+                        <label className="text-[10px] font-semibold text-white mb-1.5">Start Date</label>
+                        <input type="date" value={startDate} onChange={(e) => { setStartDate(e.target.value); setFilterApplied(false); }} className="border border-white/20 rounded-lg px-2 py-1.5 text-xs text-white outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all bg-white/5" placeholder="mm/dd/yyyy" />
                       </div>
                       <div className="flex flex-col">
-                        <label className="text-xs font-semibold text-white mb-1.5">End Date</label>
-                        <input type="date" value={endDate} onChange={(e) => { setEndDate(e.target.value); setFilterApplied(false); }} className="border border-white/20 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all bg-white/5" placeholder="mm/dd/yyyy" />
+                        <label className="text-[10px] font-semibold text-white mb-1.5">End Date</label>
+                        <input type="date" value={endDate} onChange={(e) => { setEndDate(e.target.value); setFilterApplied(false); }} className="border border-white/20 rounded-lg px-2 py-1.5 text-xs text-white outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all bg-white/5" placeholder="mm/dd/yyyy" />
+                      </div>
+                      <div className="flex flex-col">
+                        <label className="text-[10px] font-semibold text-white mb-1.5">Search Files</label>
+                        <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="border border-white/20 rounded-lg px-2 py-1.5 text-xs text-white outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all bg-white/5" placeholder="Search by file name..." />
                       </div>
                       <button onClick={applyFilters} className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-zinc-900 to-slate-900 px-3 py-1.5 text-xs font-semibold text-white shadow-lg shadow-black/40 ring-1 ring-white/10 hover:from-black hover:to-zinc-900 hover:shadow-black/60 hover:shadow-xl transition-all">
                         <span>⊡</span> Filter
                       </button>
-                      {(startDate || endDate) && (
+                      {(startDate || endDate || searchQuery) && (
                         <button onClick={clearFilters} className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-gradient-to-r from-zinc-800 to-zinc-900 text-white text-xs font-semibold ring-1 ring-white/10 shadow-lg shadow-black/30 hover:from-zinc-900 hover:to-black hover:shadow-black/50 transition-all">
                           <X className="h-3 w-3" /> Clear
                         </button>
