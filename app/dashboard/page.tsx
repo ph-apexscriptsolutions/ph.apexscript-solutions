@@ -160,6 +160,13 @@ export default function DashboardPage() {
   const [bankForm, setBankForm] = useState({ bankName: "", accountNumber: "", accountType: "", routingNumber: "", employeeId: "" })
   const [isUpdatingBank, setIsUpdatingBank] = useState(false)
 
+  const [isTranscriptCheckerOpen, setIsTranscriptCheckerOpen] = useState(false)
+  const [transcriptText, setTranscriptText] = useState("")
+  const [companyName, setCompanyName] = useState("")
+  const [boardDirectors, setBoardDirectors] = useState("")
+  const [transcriptErrors, setTranscriptErrors] = useState<any[]>([])
+  const [isCheckingTranscript, setIsCheckingTranscript] = useState(false)
+
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
   const [selectedPaymentRate, setSelectedPaymentRate] = useState<number | null>(null)
   const [isUpdatingPayment, setIsUpdatingPayment] = useState(false)
@@ -261,6 +268,12 @@ export default function DashboardPage() {
   const [isStyleGuidesAdminModalOpen, setIsStyleGuidesAdminModalOpen] = useState(false)
   const [styleGuides, setStyleGuides] = useState<any[]>([])
   const [isLoadingStyleGuides, setIsLoadingStyleGuides] = useState(false)
+
+  // Formatting Rules
+  const [isFormattingRulesAdminModalOpen, setIsFormattingRulesAdminModalOpen] = useState(false)
+  const [formattingRules, setFormattingRules] = useState<any[]>([])
+  const [isLoadingFormattingRules, setIsLoadingFormattingRules] = useState(false)
+  const [newFormattingRule, setNewFormattingRule] = useState({ name: "", description: "", pattern: "" })
   const [isUploadingStyleGuide, setIsUploadingStyleGuide] = useState<string | null>(null)
   const [isDeletingStyleGuide, setIsDeletingStyleGuide] = useState<string | null>(null)
   const [editingNote, setEditingNote] = useState<{ department: string; value: string } | null>(null)
@@ -1334,6 +1347,20 @@ export default function DashboardPage() {
       console.error('Fetch style guides error:', err)
     } finally {
       setIsLoadingStyleGuides(false)
+    }
+  }
+
+  const fetchFormattingRules = async () => {
+    setIsLoadingFormattingRules(true)
+    try {
+      const res = await fetch('/api/formatting-rules')
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to fetch formatting rules')
+      setFormattingRules(data.rules || [])
+    } catch (err: any) {
+      console.error('Fetch formatting rules error:', err)
+    } finally {
+      setIsLoadingFormattingRules(false)
     }
   }
 
@@ -2623,6 +2650,23 @@ export default function DashboardPage() {
                         </div>
                       </button>
 
+                      {/* Manage Formatting Rules */}
+                      <button
+                        onClick={() => { setIsFormattingRulesAdminModalOpen(true); fetchFormattingRules() }}
+                        className="group relative flex flex-col items-start gap-1 rounded-md border border-white/10 bg-white/5 p-2 text-left backdrop-blur-sm hover:bg-white/10 hover:border-rose-400/40 transition-all duration-200 hover:shadow-xl hover:shadow-rose-600/20"
+                      >
+                        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br from-rose-500 to-pink-600 shadow-lg shadow-rose-500/30 group-hover:scale-110 transition-transform duration-200">
+                          <FileEdit className="h-3 w-3 text-white" />
+                        </div>
+                        <div>
+                          <p className="text-[11px] font-semibold text-white">Format Rules</p>
+                          <p className="mt-0.5 text-[8px] text-zinc-400">Manage transcript format rules</p>
+                        </div>
+                        <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <svg className="h-2.5 w-2.5 text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                        </div>
+                      </button>
+
                     </div>
                   </div>
                 </div>
@@ -2965,6 +3009,24 @@ export default function DashboardPage() {
                         </div>
                         <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
                           <svg className="h-2.5 w-2.5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                        </div>
+                      </button>
+
+                      {/* Transcript Checker */}
+                      <button
+                        type="button"
+                        onClick={() => setIsTranscriptCheckerOpen(true)}
+                        className="group relative flex flex-col items-start gap-1 rounded-md border border-white/10 bg-white/5 p-2 text-left backdrop-blur-sm hover:bg-white/10 hover:border-rose-400/40 transition-all duration-200 hover:shadow-xl hover:shadow-rose-600/20"
+                      >
+                        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br from-rose-500 to-pink-600 shadow-lg shadow-rose-500/30 group-hover:scale-110 transition-transform duration-200">
+                          <FileEdit className="h-3 w-3 text-white" />
+                        </div>
+                        <div>
+                          <p className="text-[11px] font-semibold text-white">Transcript Checker</p>
+                          <p className="mt-0.5 text-[8px] leading-relaxed text-zinc-400">Check spelling, format & board names</p>
+                        </div>
+                        <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <svg className="h-2.5 w-2.5 text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
                         </div>
                       </button>
 
@@ -3579,6 +3641,179 @@ export default function DashboardPage() {
         </div>
       )}
 
+      {/* ── Transcript Checker Modal ── */}
+      {isTranscriptCheckerOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-md animate-fade-in">
+          <div className="bg-gradient-to-b from-rose-50 to-white border border-rose-200/60 backdrop-blur-xl shadow-[0_8px_60px_rgba(244,63,94,0.12)] rounded-3xl w-full max-w-3xl p-4 relative max-h-[90vh] flex flex-col overflow-hidden animate-scale-up">
+
+            <button 
+              onClick={() => setIsTranscriptCheckerOpen(false)} 
+              className="absolute right-4 top-4 z-10 cursor-pointer text-zinc-400 hover:text-rose-500 hover:rotate-90 transition-all duration-300"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            {/* Header */}
+            <div className="flex items-center gap-2.5 mb-3 flex-shrink-0">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-rose-500 to-pink-600 text-white shadow-lg shadow-rose-500/30 flex-shrink-0">
+                <FileEdit className="h-4.5 w-4.5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold bg-gradient-to-r from-rose-600 via-pink-500 to-rose-600 bg-clip-text text-transparent">Transcript Checker</h3>
+                <p className="text-[10px] text-zinc-500">Validate spelling, format & board of directors names</p>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto space-y-3">
+              {/* Company Name Input */}
+              <div>
+                <label className="text-[10px] font-semibold text-zinc-700 mb-1.5 block">Company Name (Optional)</label>
+                <input 
+                  type="text" 
+                  value={companyName}
+                  onChange={(e) => setCompanyName(e.target.value)}
+                  className="w-full border border-rose-200 rounded-lg px-3 py-2 text-sm text-zinc-800 outline-none focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20 transition-all bg-white"
+                  placeholder="Enter company name to check spelling..."
+                />
+              </div>
+
+              {/* Board of Directors Input */}
+              <div>
+                <label className="text-[10px] font-semibold text-zinc-700 mb-1.5 block">Board of Directors Names (Optional)</label>
+                <textarea
+                  value={boardDirectors}
+                  onChange={(e) => setBoardDirectors(e.target.value)}
+                  className="w-full border border-rose-200 rounded-lg px-3 py-2 text-sm text-zinc-800 outline-none focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20 transition-all bg-white min-h-[80px] resize-y"
+                  placeholder="Enter board of directors names (one per line) to check spelling in transcript..."
+                />
+              </div>
+
+              {/* Transcript Text Area */}
+              <div>
+                <label className="text-[10px] font-semibold text-zinc-700 mb-1.5 block">Transcript Text</label>
+                <textarea
+                  value={transcriptText}
+                  onChange={(e) => setTranscriptText(e.target.value)}
+                  className="w-full border border-rose-200 rounded-lg px-3 py-2 text-sm text-zinc-800 outline-none focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20 transition-all bg-white min-h-[200px] resize-y"
+                  placeholder="Paste your transcript here to check for errors..."
+                />
+              </div>
+
+              {/* Error Display */}
+              {transcriptErrors.length > 0 && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <AlertCircle className="h-4 w-4 text-red-600" />
+                    <span className="text-sm font-semibold text-red-800">{transcriptErrors.length} Error(s) Found</span>
+                  </div>
+                  <div className="space-y-1 max-h-[150px] overflow-y-auto">
+                    {transcriptErrors.map((error, index) => (
+                      <div key={index} className="text-xs text-red-700 bg-red-100/50 px-2 py-1 rounded">
+                        {error.message}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="flex-shrink-0 pt-3 border-t border-rose-100 mt-3 flex gap-2">
+              <button 
+                onClick={() => setIsTranscriptCheckerOpen(false)} 
+                className="flex-1 rounded-lg border border-rose-200 bg-rose-50 px-4 py-2 text-xs font-semibold text-zinc-700 hover:bg-rose-100 hover:text-zinc-900 hover:border-rose-300 transition-all duration-300 shadow-sm"
+              >
+                Close
+              </button>
+              <button 
+                onClick={async () => {
+                  setIsCheckingTranscript(true)
+                  const errors = []
+                  const words = transcriptText.split(/\s+/)
+                  
+                  // Check for common spelling errors (basic implementation)
+                  const commonMisspellings = ['teh', 'recieve', 'occured', 'seperate', 'definately', 'occassion', 'accomodate', 'neccessary', 'maintainance', 'pronounciation', 'untill', 'accomodation', 'begining', 'beleive', 'calender', 'catagory', 'cemetary', 'collegue', 'comming', 'completly', 'concious', 'curiousity', 'definately', 'desparate', 'diffrent', 'disapear', 'disapoint', 'embarass', 'enviroment', 'exagerate', 'existance', 'familar', 'finaly', 'foriegn', 'fourty', 'freind', 'goverment', 'grammer', 'happend', 'harrass', 'heighth', 'humorous', 'immediatly', 'independant', 'intresting', 'knowlege', 'liason', 'libary', 'liscence', 'maintainance', 'millenium', 'necesary', 'neccessary', 'noticable', 'ocassion', 'occassionally', 'occured', 'occurence', 'officialy', 'paralel', 'particulary', 'pavillion', 'percieve', 'performence', 'perseverence', 'personel', 'posession', 'potatos', 'preceed', 'predjudice', 'previlege', 'privelege', 'profesion', 'publically', 'realy', 'reccomend', 'recomend', 'refered', 'relevent', 'religous', 'remeber', 'repetition', 'resistence', 'responsability', 'rythm', 'sacrilegious', 'scedule', 'seperate', 'sieze', 'similiar', 'sincerly', 'speach', 'sucessful', 'supercede', 'suprise', 'temperture', 'tendancy', 'therfor', 'thier', 'tomatos', 'tommorrow', 'tounge', 'truely', 'unfortunatly', 'untill', 'unusuall', 'upholstry', 'usible', 'vaccuum', 'vehical', 'visious', 'wierd', 'wierdly', 'withought']
+                  
+                  words.forEach((word, index) => {
+                    const cleanWord = word.toLowerCase().replace(/[^a-z]/g, '')
+                    if (commonMisspellings.includes(cleanWord)) {
+                      errors.push({
+                        type: 'spelling',
+                        word: word,
+                        position: index,
+                        message: `Possible spelling error: "${word}"`
+                      })
+                    }
+                  })
+                  
+                  // Check for basic format issues
+                  if (transcriptText.includes('  ')) {
+                    errors.push({
+                      type: 'format',
+                      message: 'Double spaces detected in transcript'
+                    })
+                  }
+                  
+                  if (transcriptText.includes('..')) {
+                    errors.push({
+                      type: 'format',
+                      message: 'Multiple consecutive dots detected'
+                    })
+                  }
+                  
+                  // Check against admin-configured formatting rules
+                  if (formattingRules.length > 0) {
+                    formattingRules.forEach((rule: any) => {
+                      try {
+                        const regex = new RegExp(rule.pattern, 'g')
+                        if (!regex.test(transcriptText)) {
+                          errors.push({
+                            type: 'format',
+                            message: `Format rule not met: ${rule.name} - ${rule.description}`
+                          })
+                        }
+                      } catch (err) {
+                        // Invalid regex, skip this rule
+                        console.error('Invalid regex pattern:', rule.pattern)
+                      }
+                    })
+                  }
+                  
+                  // Check for company name presence
+                  if (companyName && !transcriptText.toLowerCase().includes(companyName.toLowerCase())) {
+                    errors.push({
+                      type: 'company',
+                      message: `Company name "${companyName}" not found in transcript`
+                    })
+                  }
+                  
+                  // Check for board of directors names
+                  if (boardDirectors.trim()) {
+                    const directorNames = boardDirectors.split('\n').map(name => name.trim()).filter(name => name.length > 0)
+                    directorNames.forEach(directorName => {
+                      if (!transcriptText.toLowerCase().includes(directorName.toLowerCase())) {
+                        errors.push({
+                          type: 'board',
+                          message: `Board director name "${directorName}" not found in transcript`
+                        })
+                      }
+                    })
+                  }
+                  
+                  setTranscriptErrors(errors)
+                  setIsCheckingTranscript(false)
+                }}
+                disabled={isCheckingTranscript || !transcriptText.trim()}
+                className="flex-1 rounded-lg bg-gradient-to-r from-rose-500 to-pink-600 px-4 py-2 text-xs font-semibold text-white shadow-lg shadow-rose-500/30 hover:from-rose-600 hover:to-pink-700 hover:shadow-xl hover:shadow-rose-600/40 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isCheckingTranscript ? 'Checking...' : 'Check Transcript'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Style Guides Admin Modal ── */}
       {isStyleGuidesAdminModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-md animate-fade-in">
@@ -3815,6 +4050,137 @@ export default function DashboardPage() {
               <button 
                 onClick={() => setIsStyleGuidesAdminModalOpen(false)} 
                 className="w-full rounded-xl border border-orange-200 bg-orange-50 px-5 py-2.5 text-sm font-semibold text-zinc-700 hover:bg-orange-100 hover:text-zinc-900 hover:border-orange-300 transition-all duration-300 shadow-sm"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Formatting Rules Admin Modal ── */}
+      {isFormattingRulesAdminModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-md animate-fade-in">
+          <div className="bg-gradient-to-b from-rose-50 to-white border border-rose-200/60 backdrop-blur-xl shadow-[0_8px_60px_rgba(244,63,94,0.12)] rounded-3xl w-full max-w-xl p-4 relative max-h-[90vh] flex flex-col overflow-hidden animate-scale-up">
+
+            <button 
+              onClick={() => setIsFormattingRulesAdminModalOpen(false)} 
+              className="absolute right-4 top-4 z-10 cursor-pointer text-zinc-400 hover:text-rose-500 hover:rotate-90 transition-all duration-300"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            {/* Header */}
+            <div className="flex items-center gap-2.5 mb-3 flex-shrink-0">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-rose-500 to-pink-600 text-white shadow-lg shadow-rose-500/30 flex-shrink-0">
+                <FileEdit className="h-4.5 w-4.5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold bg-gradient-to-r from-rose-600 via-pink-500 to-rose-600 bg-clip-text text-transparent">Manage Format Rules</h3>
+                <p className="text-[10px] text-zinc-500">Add, edit, or remove transcript formatting rules</p>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto space-y-3">
+              {/* Add New Rule */}
+              <div className="bg-white border border-rose-200 rounded-xl p-3">
+                <h4 className="text-xs font-semibold text-zinc-700 mb-2">Add New Format Rule</h4>
+                <div className="space-y-2">
+                  <input
+                    type="text"
+                    value={newFormattingRule.name}
+                    onChange={(e) => setNewFormattingRule({...newFormattingRule, name: e.target.value})}
+                    className="w-full border border-rose-200 rounded-lg px-3 py-2 text-sm text-zinc-800 outline-none focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20 transition-all bg-white"
+                    placeholder="Rule name (e.g., Speaker Labels)"
+                  />
+                  <textarea
+                    value={newFormattingRule.description}
+                    onChange={(e) => setNewFormattingRule({...newFormattingRule, description: e.target.value})}
+                    className="w-full border border-rose-200 rounded-lg px-3 py-2 text-sm text-zinc-800 outline-none focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20 transition-all bg-white min-h-[60px] resize-y"
+                    placeholder="Description (e.g., Speaker labels must be in uppercase)"
+                  />
+                  <input
+                    type="text"
+                    value={newFormattingRule.pattern}
+                    onChange={(e) => setNewFormattingRule({...newFormattingRule, pattern: e.target.value})}
+                    className="w-full border border-rose-200 rounded-lg px-3 py-2 text-sm text-zinc-800 outline-none focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20 transition-all bg-white"
+                    placeholder="Pattern/regex to check (e.g., ^[A-Z]+:)"
+                  />
+                  <button
+                    onClick={async () => {
+                      if (!newFormattingRule.name || !newFormattingRule.pattern) return
+                      try {
+                        const res = await fetch('/api/formatting-rules', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify(newFormattingRule)
+                        })
+                        const data = await res.json()
+                        if (!res.ok) throw new Error(data.error || 'Failed to add rule')
+                        await fetchFormattingRules()
+                        setNewFormattingRule({ name: "", description: "", pattern: "" })
+                        setToastMessage('✅ Format rule added successfully')
+                        setShowToast(true)
+                        setTimeout(() => { setShowToast(false); setToastMessage(null) }, 3000)
+                      } catch (err: any) {
+                        console.error('Add rule error:', err)
+                        alert('Failed to add rule: ' + (err.message || 'Unknown error'))
+                      }
+                    }}
+                    className="w-full rounded-lg bg-gradient-to-r from-rose-500 to-pink-600 px-4 py-2 text-xs font-semibold text-white shadow-lg shadow-rose-500/30 hover:from-rose-600 hover:to-pink-700 hover:shadow-xl hover:shadow-rose-600/40 transition-all duration-300"
+                  >
+                    Add Rule
+                  </button>
+                </div>
+              </div>
+
+              {/* Existing Rules */}
+              <div className="space-y-2">
+                <h4 className="text-xs font-semibold text-zinc-700">Existing Rules</h4>
+                {isLoadingFormattingRules ? (
+                  <div className="text-center text-zinc-500 text-xs py-4">Loading...</div>
+                ) : formattingRules.length === 0 ? (
+                  <div className="text-center text-zinc-500 text-xs py-4">No formatting rules yet</div>
+                ) : (
+                  formattingRules.map((rule: any) => (
+                    <div key={rule.id} className="bg-white border border-rose-200 rounded-lg p-3 flex items-start justify-between gap-2">
+                      <div className="flex-1">
+                        <h5 className="text-xs font-semibold text-zinc-800">{rule.name}</h5>
+                        <p className="text-[10px] text-zinc-600 mt-1">{rule.description}</p>
+                        <code className="text-[10px] text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded mt-1 inline-block">{rule.pattern}</code>
+                      </div>
+                      <button
+                        onClick={async () => {
+                          if (!confirm('Are you sure you want to delete this rule?')) return
+                          try {
+                            const res = await fetch(`/api/formatting-rules/${rule.id}`, { method: 'DELETE' })
+                            const data = await res.json()
+                            if (!res.ok) throw new Error(data.error || 'Failed to delete rule')
+                            await fetchFormattingRules()
+                            setToastMessage('✅ Format rule deleted')
+                            setShowToast(true)
+                            setTimeout(() => { setShowToast(false); setToastMessage(null) }, 3000)
+                          } catch (err: any) {
+                            console.error('Delete rule error:', err)
+                            alert('Failed to delete rule: ' + (err.message || 'Unknown error'))
+                          }
+                        }}
+                        className="text-zinc-400 hover:text-red-600 transition-colors"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="flex-shrink-0 pt-4 border-t border-rose-100 mt-4">
+              <button 
+                onClick={() => setIsFormattingRulesAdminModalOpen(false)} 
+                className="w-full rounded-xl border border-rose-200 bg-rose-50 px-5 py-2.5 text-sm font-semibold text-zinc-700 hover:bg-rose-100 hover:text-zinc-900 hover:border-rose-300 transition-all duration-300 shadow-sm"
               >
                 Done
               </button>
