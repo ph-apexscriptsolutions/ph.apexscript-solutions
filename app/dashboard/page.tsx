@@ -3,10 +3,11 @@ export const dynamic = 'force-dynamic'
 import { useEffect, useState, FormEvent } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/utils/supabase/client"
-import { FileText, HardDrive, LogOut, Calendar, X, Pencil, Save, User, ArrowLeft, Upload, UserPlus, CreditCard, Trash2, Check, Bell, AlertCircle, Tv, Mic, Headphones, FileEdit, Newspaper, Radio, Video, BookOpen, Gavel, TrendingUp, Activity } from "lucide-react"
+import { FileText, HardDrive, LogOut, Calendar, X, Pencil, Save, User, ArrowLeft, Upload, UserPlus, CreditCard, Trash2, Check, Bell, AlertCircle, Tv, Mic, Headphones, FileEdit, Newspaper, Radio, Video, BookOpen, Gavel, TrendingUp, Activity, Search, Loader2, Copy, ChevronDown, ChevronUp } from "lucide-react"
 import AdminChat from '@/components/admin-chat'
 import WorkerRealtimeChat from '@/components/worker-realtime-chat'
 import { FlagIcon } from "@/components/flag-icon"
+import { validateTranscript, replaceInTranscript, getHighlightClass, validationHighlightStyles, ValidationIssue, ValidationRule, Participant, extractParticipants } from '@/utils/transcript-validation'
 
 const getDepartmentIcon = (department: string) => {
   const dept = department.toLowerCase()
@@ -219,6 +220,22 @@ export default function DashboardPage() {
   const [showToast, setShowToast] = useState(false)
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false)
 
+  // Transcript Validation Engine state
+  const [validationRules, setValidationRules] = useState<ValidationRule[]>([])
+  const [validationIssues, setValidationIssues] = useState<ValidationIssue[]>([])
+  const [extractedParticipants, setExtractedParticipants] = useState<Participant[]>([])
+  const [extractedCompanies, setExtractedCompanies] = useState<string[]>([])
+  const [selectedDepartment, setSelectedDepartment] = useState("all")
+  const [isRunningValidation, setIsRunningValidation] = useState(false)
+  const [issueSearchQuery, setIssueSearchQuery] = useState("")
+  const [showValidationPanel, setShowValidationPanel] = useState(false)
+  const [transcriptContent, setTranscriptContent] = useState("")
+  const [highlightedTranscript, setHighlightedTranscript] = useState("")
+  const [selectedIssue, setSelectedIssue] = useState<ValidationIssue | null>(null)
+  const [debouncedTranscript, setDebouncedTranscript] = useState("")
+  const [isReferencesExpanded, setIsReferencesExpanded] = useState(true)
+  const [copySuccess, setCopySuccess] = useState(false)
+
   const [isEditWorkerModalOpen, setIsEditWorkerModalOpen] = useState(false)
   const [editWorkerForm, setEditWorkerForm] = useState({ fullName: "", jobTitle: "", department: "", email: "", location: "United States" })
   const [isUpdatingWorkerDetails, setIsUpdatingWorkerDetails] = useState(false)
@@ -279,6 +296,141 @@ export default function DashboardPage() {
   const [renamingValue, setRenamingValue] = useState('')
   const [isRenamingDept, setIsRenamingDept] = useState<number | null>(null)
   const [isDeletingDeptId, setIsDeletingDeptId] = useState<number | null>(null)
+
+  // Load validation rules
+  useEffect(() => {
+    const loadValidationRules = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('transcript_validation_rules')
+          .select('*')
+          .eq('enabled', true)
+        
+        if (error) {
+          // Table might not exist yet, that's okay
+          console.log('Validation rules table not yet created or error loading:', error.message)
+          setValidationRules(!error.message.includes('does not exist') ? (data || []) : [])
+        } else {
+          setValidationRules(data || [])
+        }
+      } catch (error) {
+        console.log('Error loading validation rules:', error)
+        setValidationRules([])
+      }
+    }
+    
+    loadValidationRules()
+  }, [])
+
+  // Inject validation highlight styles
+  useEffect(() => {
+    const style = document.createElement('style')
+    style.textContent = validationHighlightStyles
+    document.head.appendChild(style)
+    return () => {
+      document.head.removeChild(style)
+    }
+  }, [])
+
+  // Debounce transcript input to improve performance
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedTranscript(transcriptContent)
+    }, 500) // 500ms debounce
+
+    return () => clearTimeout(timer)
+  }, [transcriptContent])
+
+  // Run validation when debounced transcript content changes
+  useEffect(() => {
+    if (debouncedTranscript) {
+      runValidation()
+    }
+  }, [debouncedTranscript, validationRules, selectedDepartment])
+
+  const runValidation = async () => {
+    setIsRunningValidation(true)
+    try {
+      // Extract participants and companies from transcript
+      const { participants, companyNames } = extractParticipants(debouncedTranscript)
+      setExtractedParticipants(participants)
+      setExtractedCompanies(companyNames)
+      
+      // Filter rules by selected department
+      const filteredRules = selectedDepartment === 'all' 
+        ? validationRules 
+        : validationRules.filter(rule => rule.department === 'all' || rule.department === selectedDepartment)
+      
+      // Run validation
+      const issues = await validateTranscript(debouncedTranscript, filteredRules)
+      setValidationIssues(issues)
+      updateHighlightedTranscript(issues)
+    } catch (error) {
+      console.error('Validation error:', error)
+    }
+    setIsRunningValidation(false)
+  }
+
+  const updateHighlightedTranscript = (issues?: ValidationIssue[]) => {
+    let highlighted = debouncedTranscript
+    
+    // Use passed issues or fall back to state
+    const issuesToUse = issues || validationIssues
+    
+    // Sort issues by position (reverse order to avoid offset issues)
+    const sortedIssues = [...issuesToUse].sort((a, b) => {
+      const aPos = a.line * 1000 + a.column
+      const bPos = b.line * 1000 + b.column
+      return bPos - aPos
+    })
+    
+    console.log('[updateHighlightedTranscript] Total issues:', sortedIssues.length)
+    
+    sortedIssues.forEach(issue => {
+      if (issue.ignored) return
+      
+      const className = getHighlightClass(issue.category)
+      const escapedText = issue.foundText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+      const regex = new RegExp(escapedText, 'gi')
+      const replacement = `<span class="${className}" data-issue-id="${issue.id}">${issue.foundText}</span>`
+      
+      const beforeLength = highlighted.length
+      highlighted = highlighted.replace(regex, replacement)
+      const afterLength = highlighted.length
+      
+      if (beforeLength !== afterLength) {
+        console.log(`[updateHighlightedTranscript] Highlighted: "${issue.foundText}" -> "${className}"`)
+      }
+    })
+    
+    console.log('[updateHighlightedTranscript] Final highlighted length:', highlighted.length)
+    setHighlightedTranscript(highlighted)
+  }
+
+  const handleReplaceIssue = (issue: ValidationIssue) => {
+    const newTranscript = replaceInTranscript(transcriptContent, issue)
+    setTranscriptContent(newTranscript)
+    
+    // Remove the issue from the list
+    setValidationIssues(prev => prev.filter(i => i.id !== issue.id))
+    updateHighlightedTranscript()
+  }
+
+  const handleIgnoreIssue = (issue: ValidationIssue) => {
+    setValidationIssues(prev => 
+      prev.map(i => i.id === issue.id ? { ...i, ignored: true } : i)
+    )
+    updateHighlightedTranscript()
+  }
+
+  const handleIssueClick = (issue: ValidationIssue) => {
+    setSelectedIssue(issue)
+    // Scroll to the issue in the transcript
+    const element = document.querySelector(`[data-issue-id="${issue.id}"]`)
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
+  }
 
   // Check for updated descriptions based on database column
   useEffect(() => {
@@ -2662,6 +2814,23 @@ export default function DashboardPage() {
                         </div>
                       </button>
 
+                      {/* Transcript Validation Rules */}
+                      <button
+                        onClick={() => window.location.href = '/dashboard/validation-rules'}
+                        className="group relative flex flex-col items-start gap-1 rounded-md border border-white/10 bg-white/5 p-2 text-left backdrop-blur-sm hover:bg-white/10 hover:border-purple-400/40 transition-all duration-200 hover:shadow-xl hover:shadow-purple-600/20"
+                      >
+                        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br from-purple-500 to-violet-600 shadow-lg shadow-purple-500/30 group-hover:scale-110 transition-transform duration-200">
+                          <Check className="h-3 w-3 text-white" />
+                        </div>
+                        <div>
+                          <p className="text-[11px] font-semibold text-white">Validation Rules</p>
+                          <p className="mt-0.5 text-[8px] text-zinc-400">Manage transcript validation rules</p>
+                        </div>
+                        <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <svg className="h-2.5 w-2.5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                        </div>
+                      </button>
+
                     </div>
                   </div>
                 </div>
@@ -3004,6 +3173,24 @@ export default function DashboardPage() {
                         </div>
                         <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
                           <svg className="h-2.5 w-2.5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                        </div>
+                      </button>
+
+                      {/* Transcript Validation */}
+                      <button
+                        type="button"
+                        onClick={() => setShowValidationPanel(true)}
+                        className="group relative flex flex-col items-start gap-1 rounded-md border border-white/10 bg-white/5 p-2 text-left backdrop-blur-sm hover:bg-white/10 hover:border-purple-400/40 transition-all duration-200 hover:shadow-xl hover:shadow-purple-600/20"
+                      >
+                        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br from-purple-500 to-violet-600 shadow-lg shadow-purple-500/30 group-hover:scale-110 transition-transform duration-200">
+                          <Check className="h-3 w-3 text-white" />
+                        </div>
+                        <div>
+                          <p className="text-[11px] font-semibold text-white">Transcript Validation</p>
+                          <p className="mt-0.5 text-[8px] leading-relaxed text-zinc-400">Check transcript for errors & issues</p>
+                        </div>
+                        <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <svg className="h-2.5 w-2.5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
                         </div>
                       </button>
 
@@ -3610,6 +3797,405 @@ export default function DashboardPage() {
               <button 
                 onClick={() => setIsStyleGuidesModalOpen(false)} 
                 className="w-full rounded-lg border border-orange-200 bg-orange-50 px-4 py-2 text-xs font-semibold text-zinc-700 hover:bg-orange-100 hover:text-zinc-900 hover:border-orange-300 transition-all duration-300 shadow-sm"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Transcript Validation Panel ── */}
+      {showValidationPanel && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-md animate-fade-in">
+          <div className="bg-gradient-to-b from-purple-50 to-white border border-purple-200/60 backdrop-blur-xl shadow-[0_8px_60px_rgba(168,85,247,0.12)] rounded-3xl w-full max-w-4xl p-4 relative max-h-[90vh] flex flex-col overflow-hidden animate-scale-up">
+
+            <button 
+              onClick={() => setShowValidationPanel(false)} 
+              className="absolute right-4 top-4 z-10 cursor-pointer text-zinc-400 hover:text-purple-500 hover:rotate-90 transition-all duration-300"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            {/* Header */}
+            <div className="flex items-center gap-2.5 mb-3 flex-shrink-0">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-violet-600 text-white shadow-lg shadow-purple-500/30 flex-shrink-0">
+                <Check className="h-4.5 w-4.5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold bg-gradient-to-r from-purple-600 via-violet-500 to-purple-600 bg-clip-text text-transparent">Transcript Validation Engine</h3>
+                <p className="text-[10px] text-zinc-500">Check transcript for style rules, name validation & company validation</p>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto space-y-3">
+              {/* Transcript Input */}
+              <div>
+                <label className="text-[10px] font-semibold text-zinc-700 mb-1.5 block">Transcript Text</label>
+                <textarea
+                  value={transcriptContent}
+                  onChange={(e) => setTranscriptContent(e.target.value)}
+                  className="w-full border border-purple-200 rounded-lg px-3 py-2 text-sm text-zinc-800 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all bg-white min-h-[150px] resize-y font-mono"
+                  placeholder="Paste your transcript here to validate..."
+                />
+              </div>
+
+              {/* Department Selector */}
+              <div>
+                <label className="text-[10px] font-semibold text-zinc-700 mb-1.5 block">Department</label>
+                <select
+                  value={selectedDepartment}
+                  onChange={(e) => setSelectedDepartment(e.target.value)}
+                  className="w-full border border-purple-200 rounded-lg px-3 py-2 text-sm text-zinc-800 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all bg-white"
+                >
+                  <option value="all">All Departments</option>
+                  <option value="conference">Conference / Earnings Call</option>
+                  <option value="senate">Senate Hearing / Political</option>
+                  <option value="academics">Academics</option>
+                  <option value="broadcast">Broadcast</option>
+                  <option value="podcast">Podcast</option>
+                  <option value="medical">Medical</option>
+                </select>
+              </div>
+
+              {/* Validation Status */}
+              {isRunningValidation && (
+                <div className="flex items-center gap-2 text-purple-600 text-sm">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>Running validation...</span>
+                </div>
+              )}
+
+              {/* Extracted References Panel */}
+              {(extractedParticipants.length > 0 || extractedCompanies.length > 0) && (
+                <div className="bg-white border border-purple-200 rounded-xl p-3">
+                  <div 
+                    className="flex items-center justify-between gap-2 mb-3 cursor-pointer"
+                    onClick={() => setIsReferencesExpanded(!isReferencesExpanded)}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Check className="h-4 w-4 text-purple-600" />
+                      <span className="text-sm font-semibold text-purple-800">Extracted References</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      {/* Live Counters */}
+                      <div className="flex gap-3 text-[10px] text-zinc-600">
+                        <span>Companies: <span className="font-bold text-purple-600">{extractedCompanies.length}</span></span>
+                        <span>Corporate Participants: <span className="font-bold text-purple-600">{extractedParticipants.filter(p => p.type === 'board').length}</span></span>
+                        <span>Analysts: <span className="font-bold text-purple-600">{extractedParticipants.filter(p => p.type === 'analyst').length}</span></span>
+                        <span>Validation Issues: <span className="font-bold text-purple-600">{validationIssues.filter(i => !i.ignored).length}</span></span>
+                      </div>
+                      {isReferencesExpanded ? (
+                        <ChevronUp className="h-4 w-4 text-zinc-400" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4 text-zinc-400" />
+                      )}
+                    </div>
+                  </div>
+                  
+                  {isReferencesExpanded && (
+                    <>
+                  {/* Company */}
+                  {extractedCompanies.length > 0 && (
+                    <div className="mb-3">
+                      <div className="text-[10px] font-semibold text-zinc-600 mb-1.5 flex items-center gap-1">
+                        🏢 Company
+                      </div>
+                      <div className="space-y-1">
+                        {extractedCompanies.map((company, index) => {
+                          const companyIssues = validationIssues.filter(i => i.category === 'company' && i.suggestedCorrection === company)
+                          const statusColor = companyIssues.length === 0 ? 'text-green-500' : 'text-orange-500'
+                          const statusIcon = companyIssues.length === 0 ? '🟢' : '🟠'
+                          
+                          return (
+                            <div 
+                              key={index}
+                              onClick={() => {
+                                // Find all occurrences of this company in the transcript
+                                const regex = new RegExp(company.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi')
+                                const matches = transcriptContent.match(regex)
+                                if (matches && matches.length > 0) {
+                                  // Scroll to first occurrence
+                                  const firstMatchIndex = transcriptContent.search(regex)
+                                  const line = transcriptContent.substring(0, firstMatchIndex).split('\n').length
+                                  const element = document.querySelector('.validation-issue-orange')
+                                  if (element) {
+                                    element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                                  }
+                                }
+                              }}
+                              className="text-xs text-zinc-700 cursor-pointer hover:bg-purple-50 px-2 py-1 rounded transition-colors"
+                            >
+                              {statusIcon} {company} {companyIssues.length > 0 && `(${companyIssues.length} possible spelling issue${companyIssues.length > 1 ? 's' : ''})`}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Corporate Participants */}
+                  {extractedParticipants.filter(p => p.type === 'board').length > 0 && (
+                    <div className="mb-3">
+                      <div className="text-[10px] font-semibold text-zinc-600 mb-1.5 flex items-center gap-1">
+                        👔 Corporate Participants
+                      </div>
+                      <div className="space-y-1">
+                        {extractedParticipants.filter(p => p.type === 'board').map((participant, index) => {
+                          const nameIssues = validationIssues.filter(i => i.category === 'name' && i.suggestedCorrection === participant.name)
+                          const statusColor = nameIssues.length === 0 ? 'text-green-500' : 'text-yellow-500'
+                          const statusIcon = nameIssues.length === 0 ? '🟢' : '🟡'
+                          
+                          return (
+                            <div 
+                              key={index}
+                              onClick={() => {
+                                // Find all occurrences of this name in the transcript
+                                const regex = new RegExp(participant.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi')
+                                const matches = transcriptContent.match(regex)
+                                if (matches && matches.length > 0) {
+                                  // Scroll to first occurrence
+                                  const firstMatchIndex = transcriptContent.search(regex)
+                                  const line = transcriptContent.substring(0, firstMatchIndex).split('\n').length
+                                  const element = document.querySelector('.validation-issue-red')
+                                  if (element) {
+                                    element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                                  }
+                                }
+                              }}
+                              className="text-xs text-zinc-700 cursor-pointer hover:bg-purple-50 px-2 py-1 rounded transition-colors"
+                            >
+                              {statusIcon} {participant.name} {nameIssues.length > 0 && `(${nameIssues.length} possible spelling issue${nameIssues.length > 1 ? 's' : ''})`}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Analysts */}
+                  {extractedParticipants.filter(p => p.type === 'analyst').length > 0 && (
+                    <div>
+                      <div className="text-[10px] font-semibold text-zinc-600 mb-1.5 flex items-center gap-1">
+                        📊 Analysts / Participants
+                      </div>
+                      <div className="space-y-1">
+                        {extractedParticipants.filter(p => p.type === 'analyst').map((participant, index) => {
+                          const nameIssues = validationIssues.filter(i => i.category === 'name' && i.suggestedCorrection === participant.name)
+                          const statusColor = nameIssues.length === 0 ? 'text-green-500' : 'text-yellow-500'
+                          const statusIcon = nameIssues.length === 0 ? '🟢' : '🟡'
+                          
+                          return (
+                            <div 
+                              key={index}
+                              onClick={() => {
+                                // Find all occurrences of this name in the transcript
+                                const regex = new RegExp(participant.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi')
+                                const matches = transcriptContent.match(regex)
+                                if (matches && matches.length > 0) {
+                                  // Scroll to first occurrence
+                                  const firstMatchIndex = transcriptContent.search(regex)
+                                  const line = transcriptContent.substring(0, firstMatchIndex).split('\n').length
+                                  const element = document.querySelector('.validation-issue-red')
+                                  if (element) {
+                                    element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                                  }
+                                }
+                              }}
+                              className="text-xs text-zinc-700 cursor-pointer hover:bg-purple-50 px-2 py-1 rounded transition-colors"
+                            >
+                              {statusIcon} {participant.name} {nameIssues.length > 0 && `(${nameIssues.length} possible spelling issue${nameIssues.length > 1 ? 's' : ''})`}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
+                    </>
+                  )}
+                </div>
+              )}
+
+              {/* Issues Panel */}
+              {validationIssues.length > 0 ? (
+                <div className="bg-white border border-purple-200 rounded-xl p-3">
+                  {/* Validation Summary */}
+                  <div className="bg-purple-50 rounded-lg p-3 mb-3">
+                    <div className="text-xs font-semibold text-purple-800 mb-2">Validation Summary</div>
+                    <div className="grid grid-cols-3 gap-2 text-xs">
+                      <div className="text-zinc-600">Total Issues: <span className="font-bold text-purple-700">{validationIssues.filter(i => !i.ignored).length}</span></div>
+                      <div className="text-zinc-600">Name Issues: <span className="font-bold text-red-600">{validationIssues.filter(i => !i.ignored && i.category === 'name').length}</span></div>
+                      <div className="text-zinc-600">Company Issues: <span className="font-bold text-orange-600">{validationIssues.filter(i => !i.ignored && i.category === 'company').length}</span></div>
+                      <div className="text-zinc-600">Spelling Issues: <span className="font-bold text-blue-600">{validationIssues.filter(i => !i.ignored && i.category === 'spelling').length}</span></div>
+                      <div className="text-zinc-600">Style Issues: <span className="font-bold text-yellow-600">{validationIssues.filter(i => !i.ignored && i.category === 'style').length}</span></div>
+                      <div className="text-zinc-600">Formatting Issues: <span className="font-bold text-purple-600">{validationIssues.filter(i => !i.ignored && i.category === 'formatting').length}</span></div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-2 mb-3">
+                    <div className="flex items-center gap-2">
+                      <AlertCircle className="h-4 w-4 text-purple-600" />
+                      <span className="text-sm font-semibold text-purple-800">{validationIssues.filter(i => !i.ignored).length} Issue(s) Found</span>
+                    </div>
+                    <div className="relative">
+                      <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-400" />
+                      <input
+                        type="text"
+                        value={issueSearchQuery}
+                        onChange={(e) => setIssueSearchQuery(e.target.value)}
+                        className="pl-8 pr-3 py-1.5 text-xs border border-purple-200 rounded-lg text-zinc-800 outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-200/50 transition-all bg-white w-40"
+                        placeholder="Search issues..."
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                    {validationIssues
+                      .filter(issue => !issue.ignored)
+                      .filter((issue) => 
+                        issueSearchQuery === '' || 
+                        issue.foundText.toLowerCase().includes(issueSearchQuery.toLowerCase()) ||
+                        issue.suggestedCorrection.toLowerCase().includes(issueSearchQuery.toLowerCase()) ||
+                        issue.category.toLowerCase().includes(issueSearchQuery.toLowerCase())
+                      )
+                      .map((issue, index) => (
+                        <div 
+                          key={issue.id}
+                          onClick={() => handleIssueClick(issue)}
+                          className={`p-2 rounded-lg border transition-all cursor-pointer ${
+                            selectedIssue?.id === issue.id
+                              ? 'bg-purple-100 border-purple-400'
+                              : 'bg-zinc-50 border-zinc-200 hover:bg-zinc-100 hover:border-zinc-300'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                                  issue.category === 'style' ? 'bg-yellow-100 text-yellow-800' :
+                                  issue.category === 'name' ? 'bg-red-100 text-red-800' :
+                                  'bg-orange-100 text-orange-800'
+                                }`}>
+                                  {issue.category}
+                                </span>
+                                {issue.line > 0 && (
+                                  <span className="text-[10px] text-zinc-">Line {issue.line}</span>
+                                )}
+                              </div>
+                              <div className="text-xs text-zinc-600 mb-1">
+                                <span className="font-medium">Found:</span> <span className="font-mono bg-zinc-200 px-1 rounded">{issue.foundText}</span>
+                              </div>
+                              <div className="text-xs text-zinc-600">
+                                <span className="font-medium">Suggested:</span> <span className="font-mono bg-green-100 px-1 rounded text-green-800">{issue.suggestedCorrection}</span>
+                              </div>
+                            </div>
+                            <div className="flex gap-1 flex-shrink-0">
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleReplaceIssue(issue) }}
+                                className="p-1.5 text-xs bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+                                title="Replace"
+                              >
+                                Replace
+                              </button>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleIgnoreIssue(issue) }}
+                                className="p-1.5 text-xs bg-zinc-200 text-zinc-700 rounded-lg hover:bg-zinc-300 transition-colors"
+                                title="Ignore"
+                              >
+                                Ignore
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-white border border-purple-200 rounded-xl p-3">
+                  <div className="flex items-center justify-center gap-2 py-8">
+                    <Check className="h-5 w-5 text-green-500" />
+                    <span className="text-sm font-semibold text-green-600">No Issues Found</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Highlighted Transcript Preview */}
+              {highlightedTranscript && (
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-[10px] font-semibold text-zinc-700">Highlighted Transcript</label>
+                    {validationIssues.filter(i => !i.ignored).length === 0 && (
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(transcriptContent)
+                          setCopySuccess(true)
+                          setTimeout(() => setCopySuccess(false), 2000)
+                        }}
+                        className="flex items-center gap-1.5 text-[10px] font-semibold text-green-600 hover:text-green-700 transition-colors"
+                      >
+                        {copySuccess ? (
+                          <>
+                            <Check className="h-3 w-3" />
+                            Copied!
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="h-3 w-3" />
+                            Copy Corrected Transcript
+                          </>
+                        )}
+                      </button>
+                    )}
+                  </div>
+                  <div
+                    dangerouslySetInnerHTML={{ __html: highlightedTranscript }}
+                    className="w-full border border-purple-200 rounded-lg px-3 py-2 text-sm text-zinc-800 bg-white min-h-[150px] overflow-y-auto whitespace-pre-wrap font-mono"
+                  />
+                  <div className="mt-2 flex gap-4 text-xs flex-wrap">
+                    <div className="flex items-center gap-1">
+                      <div className="w-3 h-3 bg-yellow-200 border border-yellow-400 rounded"></div>
+                      <span className="text-zinc-600">Style Rule</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <div className="w-3 h-3 bg-red-200 border border-red-400 rounded"></div>
+                      <span className="text-zinc-600">Name Validation</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <div className="w-3 h-3 bg-orange-200 border border-orange-400 rounded"></div>
+                      <span className="text-zinc-600">Company Validation</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <div className="w-3 h-3 bg-blue-200 border border-blue-400 rounded"></div>
+                      <span className="text-zinc-600">Spelling</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <div className="w-3 h-3 bg-purple-200 border border-purple-400 rounded"></div>
+                      <span className="text-zinc-600">Formatting</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="flex-shrink-0 pt-3 border-t border-purple-100 mt-3 flex gap-2">
+              <button 
+                onClick={() => {
+                  setTranscriptContent("")
+                  setValidationIssues([])
+                  setExtractedParticipants([])
+                  setExtractedCompanies([])
+                  setHighlightedTranscript("")
+                  setIssueSearchQuery("")
+                }}
+                className="flex-1 rounded-lg border border-purple-200 bg-white px-4 py-2 text-xs font-semibold text-zinc-700 hover:bg-purple-50 hover:text-zinc-900 hover:border-purple-300 transition-all duration-300 shadow-sm"
+              >
+                Clear
+              </button>
+              <button 
+                onClick={() => setShowValidationPanel(false)} 
+                className="flex-1 rounded-lg border border-purple-200 bg-purple-50 px-4 py-2 text-xs font-semibold text-zinc-700 hover:bg-purple-100 hover:text-zinc-900 hover:border-purple-300 transition-all duration-300 shadow-sm"
               >
                 Close
               </button>
