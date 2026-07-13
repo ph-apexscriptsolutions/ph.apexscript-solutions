@@ -59,6 +59,9 @@ importers:
       tw-animate-css:
         specifier: ^1.4.0
         version: 1.4.0
+      typo-js:
+        specifier: ^1.3.2
+        version: 1.3.2
     devDependencies:
       '@tailwindcss/postcss':
         specifier: ^4.2.0
@@ -78,6 +81,9 @@ importers:
       '@types/react-dom':
         specifier: ^19
         version: 19.2.3(@types/react@19.2.14)
+      '@types/typo-js':
+        specifier: ^1.2.2
+        version: 1.2.2
       '@typescript-eslint/eslint-plugin':
         specifier: ^8.61.0
         version: 8.61.0(@typescript-eslint/parser@8.61.0(eslint@9.39.4(jiti@2.6.1))(typescript@5.7.3))(eslint@9.39.4(jiti@2.6.1))(typescript@5.7.3)
@@ -847,6 +853,9 @@ packages:
 
   '@types/statuses@2.0.6':
     resolution: {integrity: sha512-xMAgYwceFhRA2zY+XbEA7mxYbA093wdiW8Vu6gZPGWy9cmOyU9XesH1tNcEWsKFd5Vzrqx5T3D38PWx1FIIXkA==}
+
+  '@types/typo-js@1.2.2':
+    resolution: {integrity: sha512-AgN5IwO3EPXv2d+UE9VdoOcueCBa4ZcHHwUvx2/IXlfRvkW4Yt3g+eRHzJbkySfj9pyILRT6Zk7V6Vr4LD5Kvg==}
 
   '@types/validate-npm-package-name@4.0.2':
     resolution: {integrity: sha512-lrpDziQipxCEeK5kWxvljWYhUvOiB2A9izZd9B2AFarYAkqZshb4lPbRs7zKEic6eGtH8V/2qJW+dPp9OtF6bw==}
@@ -2857,6 +2866,9 @@ packages:
     engines: {node: '>=14.17'}
     hasBin: true
 
+  typo-js@1.3.2:
+    resolution: {integrity: sha512-Z1YkJ7IIYNrFeOxAlHUercY4Q2I+PhYD/3VkWpJGy/Oqudy3bFpNcQxnv6Oa9fTSXCHPGz1eDoX1bZYm2Z891A==}
+
   unbox-primitive@1.1.0:
     resolution: {integrity: sha512-nWJ91DjeOkej/TA8pXQ3myruKpKEYgqvpw9lz4OPHj/NWFNluYrjbz9j01CJ8yKQd2g4jFoOkINCTW2I5LEEyw==}
     engines: {node: '>= 0.4'}
@@ -3717,6 +3729,8 @@ snapshots:
       '@types/node': 24.10.4
 
   '@types/statuses@2.0.6': {}
+
+  '@types/typo-js@1.2.2': {}
 
   '@types/validate-npm-package-name@4.0.2': {}
 
@@ -5960,6 +5974,8 @@ snapshots:
       reflect.getprototypeof: 1.0.10
 
   typescript@5.7.3: {}
+
+  typo-js@1.3.2: {}
 
   unbox-primitive@1.1.0:
     dependencies:

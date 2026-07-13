@@ -1,6 +1,38 @@
 // Transcript Validation Engine
 // Rule-based validation without AI/LLMs
 
+import Typo from 'typo-js'
+
+// Initialize spell checker with English dictionary
+let spellChecker: Typo | null = null
+
+export async function initializeSpellChecker() {
+  if (spellChecker) return spellChecker
+  
+  try {
+    // Load dictionary from CDN (browser-compatible)
+    const affResponse = await fetch('https://cdn.jsdelivr.net/npm/typo-js/dictionaries/en_US/en_US.aff')
+    const dicResponse = await fetch('https://cdn.jsdelivr.net/npm/typo-js/dictionaries/en_US/en_US.dic')
+    
+    const affData = await affResponse.text()
+    const dicData = await dicResponse.text()
+    
+    spellChecker = new Typo('en_US', affData, dicData)
+    return spellChecker
+  } catch (error) {
+    console.error('Failed to initialize spell checker:', error)
+    return null
+  }
+}
+
+// Progress callback interface
+export interface ValidationProgress {
+  stage: string
+  current: number
+  total: number
+  message: string
+}
+
 export interface ValidationIssue {
   id: string
   category: 'style' | 'name' | 'company' | 'spelling' | 'formatting'
@@ -242,12 +274,35 @@ export function validateNames(transcript: string, participants: Participant[]): 
   return issues
 }
 
-// Basic English spell checker using common misspellings dictionary
+// Basic English dictionary - common words (simplified for demo purposes)
+const englishDictionary: Set<string> = new Set([
+  // Common words
+  'the', 'be', 'to', 'of', 'and', 'a', 'in', 'that', 'have', 'i', 'it', 'for', 'not', 'on', 'with', 'he', 'as', 'you', 'do', 'at', 'this', 'but', 'his', 'by', 'from', 'they', 'we', 'say', 'her', 'she', 'or', 'an', 'will', 'my', 'one', 'all', 'would', 'there', 'their', 'what', 'so', 'up', 'out', 'if', 'about', 'who', 'get', 'which', 'go', 'me',
+  'when', 'make', 'can', 'like', 'time', 'no', 'just', 'him', 'know', 'take', 'people', 'into', 'year', 'your', 'good', 'some', 'could', 'them', 'see', 'other', 'than', 'then', 'now', 'look', 'only', 'come', 'its', 'over', 'think', 'also', 'back', 'after', 'use', 'two', 'how', 'our', 'work', 'first', 'well', 'way', 'even', 'new', 'want', 'because', 'any', 'these', 'give', 'day', 'most', 'us',
+  // Business/financial terms
+  'company', 'business', 'market', 'stock', 'share', 'price', 'value', 'cost', 'profit', 'revenue', 'income', 'expense', 'growth', 'investment', 'capital', 'asset', 'liability', 'equity', 'dividend', 'portfolio', 'fund', 'bank', 'loan', 'credit', 'debt', 'interest', 'rate', 'tax', 'financial', 'economic', 'economy', 'industry', 'sector', 'trade', 'export', 'import', 'supply', 'demand', 'production', 'manufacturing', 'service', 'customer', 'client', 'sale', 'purchase', 'order', 'contract', 'agreement', 'deal', 'transaction', 'payment', 'cash', 'money', 'currency', 'dollar', 'euro', 'pound', 'yen',
+  // Common verbs
+  'is', 'are', 'was', 'were', 'been', 'being', 'have', 'has', 'had', 'having', 'do', 'does', 'did', 'doing', 'will', 'would', 'shall', 'should', 'can', 'could', 'may', 'might', 'must', 'ought', 'need', 'dare', 'used', 'to', 'get', 'got', 'gotten', 'make', 'made', 'making', 'go', 'goes', 'went', 'gone', 'going', 'come', 'comes', 'came', 'coming', 'see', 'sees', 'saw', 'seen', 'seeing', 'know', 'knows', 'knew', 'known', 'knowing', 'think', 'thinks', 'thought', 'thinking', 'take', 'takes', 'took', 'taken', 'taking', 'give', 'gives', 'gave', 'given', 'giving',
+  // Common adjectives
+  'good', 'bad', 'big', 'small', 'large', 'little', 'great', 'high', 'low', 'long', 'short', 'old', 'new', 'young', 'right', 'wrong', 'true', 'false', 'real', 'fake', 'same', 'different', 'important', 'significant', 'major', 'minor', 'main', 'primary', 'secondary', 'first', 'last', 'early', 'late', 'fast', 'slow', 'hard', 'soft', 'easy', 'difficult', 'simple', 'complex', 'clear', 'unclear', 'sure', 'certain', 'likely', 'unlikely', 'possible', 'impossible',
+  // Common nouns
+  'time', 'year', 'people', 'way', 'day', 'man', 'woman', 'child', 'thing', 'world', 'life', 'hand', 'part', 'place', 'case', 'week', 'system', 'program', 'question', 'work', 'government', 'number', 'night', 'point', 'home', 'water', 'room', 'mother', 'area', 'money', 'story', 'fact', 'month', 'lot', 'right', 'study', 'book', 'eye', 'job', 'word', 'business', 'issue', 'side', 'kind', 'head', 'house', 'service', 'friend', 'father', 'power', 'hour', 'game', 'line', 'end', 'member', 'law', 'car', 'city', 'community', 'name',
+  // Common connectors
+  'and', 'but', 'or', 'nor', 'for', 'yet', 'so', 'although', 'though', 'because', 'since', 'as', 'if', 'unless', 'until', 'while', 'where', 'when', 'before', 'after', 'during', 'through', 'in', 'on', 'at', 'to', 'from', 'by', 'with', 'without', 'about', 'against', 'between', 'among', 'throughout', 'within', 'beyond', 'across', 'behind', 'below', 'above', 'over', 'under'
+])
+
+// Common misspellings dictionary for suggestions
 const commonMisspellings: Record<string, string> = {
+  'evryone': 'everyone',
+  'every1': 'everyone',
+  'everyne': 'everyone',
+  'everybod': 'everybody',
   'thnk': 'think',
   'thnking': 'thinking',
   'togther': 'together',
+  'togethr': 'together',
   'recieve': 'receive',
+  'recive': 'receive',
   'occured': 'occurred',
   'seperate': 'separate',
   'definately': 'definitely',
@@ -461,34 +516,274 @@ const commonMisspellings: Record<string, string> = {
   'luk': 'luke'
 }
 
-// Validate spelling using common misspellings dictionary
-export function validateSpelling(transcript: string): ValidationIssue[] {
+// Check if a word should be skipped from spell checking
+function shouldSkipSpellCheck(word: string): boolean {
+  // Skip ALL CAPS words (acronyms, abbreviations) - but only if length > 1
+  if (word.length > 1 && word === word.toUpperCase()) {
+    return true
+  }
+  
+  // Skip words with numbers
+  if (/\d/.test(word)) {
+    return true
+  }
+  
+  // Skip contractions (we've, don't, I'm, they'll, etc.)
+  if (/'/.test(word)) {
+    return true
+  }
+  
+  // Skip very short words (less than 2 characters)
+  if (word.length < 2) {
+    return true
+  }
+  
+  // Skip single letter words
+  if (word.length === 1) {
+    return true
+  }
+  
+  // Skip words that are mostly punctuation (after removing apostrophes)
+  const withoutApostrophes = word.replace(/'/g, '')
+  if (withoutApostrophes.length === 0 || /[^a-zA-Z]/.test(withoutApostrophes)) {
+    return true
+  }
+  
+  // Skip timestamps (e.g., 10:30, 12:45 PM)
+  if (/^\d{1,2}:\d{2}(\s*(AM|PM|am|pm))?$/.test(word)) {
+    return true
+  }
+  
+  // Skip speaker labels (e.g., OPERATOR:, PARTICIPANT:)
+  if (/^[A-Z][A-Z\s]*:$/.test(word)) {
+    return true
+  }
+  
+  return false
+}
+
+// Validate spelling using English dictionary, extracted references, and custom dictionary
+export async function validateSpelling(
+  transcript: string, 
+  participants: Participant[], 
+  companyNames: string[],
+  customDictionary: string[] = [],
+  onProgress?: (progress: ValidationProgress) => void
+): Promise<ValidationIssue[]> {
+  const startTime = performance.now()
   const issues: ValidationIssue[] = []
   const lines = transcript.split('\n')
   
   console.log('[validateSpelling] Checking transcript for spelling errors')
-  console.log('[validateSpelling] Dictionary size:', Object.keys(commonMisspellings).length)
+  console.log('[validateSpelling] Custom dictionary size:', customDictionary.length)
+  
+  // Initialize spell checker
+  const spell = await initializeSpellChecker()
+  if (!spell) {
+    console.warn('[validateSpelling] Spell checker not available, falling back to manual dictionary')
+  }
+  
+  // Build Set for valid uncommon words (references + custom dictionary) - O(1) lookup
+  const validUncommonWords = new Set<string>()
+  
+  // Add company names
+  companyNames.forEach(name => {
+    const words = name.split(/\s+/)
+    words.forEach(word => validUncommonWords.add(word.toLowerCase()))
+  })
+  
+  // Add participant names
+  participants.forEach(p => {
+    const words = p.name.split(/\s+/)
+    words.forEach(word => validUncommonWords.add(word.toLowerCase()))
+  })
+  
+  // Add custom dictionary words
+  customDictionary.forEach(word => validUncommonWords.add(word.toLowerCase()))
+  
+  console.log('[validateSpelling] Valid uncommon words:', Array.from(validUncommonWords).length)
+  
+  // Cache for spell check results - avoid checking same word multiple times
+  const spellCheckCache = new Map<string, boolean>()
+  const suggestionCache = new Map<string, string>()
+  
+  // Track processed words to avoid duplicates
+  const processedWords = new Set<string>()
+  
+  let totalWords = 0
+  let processedCount = 0
+  
+  onProgress?.({ stage: 'spelling', current: 0, total: lines.length, message: 'Checking English spelling...' })
   
   lines.forEach((line, lineIndex) => {
     const words = line.split(/\s+/)
+    totalWords += words.length
     
     words.forEach((word, wordIndex) => {
       const cleanWord = word.replace(/[^a-zA-Z]/g, '').toLowerCase()
       
+      // DEBUG: Log word processing
+      if (cleanWord === 'evryone' || cleanWord === 'togther' || cleanWord === 'recieve') {
+        console.log(`[DEBUG] Processing word: "${word}" -> cleanWord: "${cleanWord}"`)
+        console.log(`[DEBUG] shouldSkipSpellCheck: ${shouldSkipSpellCheck(word)}`)
+        console.log(`[DEBUG] cleanWord.length: ${cleanWord.length}`)
+        console.log(`[DEBUG] processedWords.has: ${processedWords.has(cleanWord)}`)
+        console.log(`[DEBUG] validUncommonWords.has: ${validUncommonWords.has(cleanWord)}`)
+      }
+      
+      // Check for fuzzy match with custom dictionary (misspelled technical terms)
+      // This must happen BEFORE skip logic to catch ALL CAPS misspellings like EBTDA -> EBITDA
+      for (const customTerm of customDictionary) {
+        const customTermLower = customTerm.toLowerCase()
+        if (cleanWord !== customTermLower) {
+          const similarity = calculateSimilarity(cleanWord, customTerm)
+          if (similarity >= 0.7 && similarity < 1.0) {
+            const lineStart = line.indexOf(word)
+            console.log(`[validateSpelling] Found misspelled custom term: "${cleanWord}" -> "${customTerm}" at line ${lineIndex + 1}`)
+            issues.push({
+              id: `spelling-custom-${lineIndex}-${wordIndex}`,
+              category: 'spelling',
+              foundText: word,
+              suggestedCorrection: customTerm,
+              line: lineIndex + 1,
+              column: lineStart + 1,
+              ignored: false
+            })
+            processedWords.add(cleanWord)
+            processedCount++
+            return // Exit early after finding a match
+          }
+        }
+      }
+      
+      // Skip if word should not be spell checked
+      if (shouldSkipSpellCheck(word)) {
+        if (cleanWord === 'evryone' || cleanWord === 'togther' || cleanWord === 'recieve') {
+          console.log(`[DEBUG] SKIPPED by shouldSkipSpellCheck: "${word}"`)
+        }
+        return
+      }
+      
+      // Skip very short words
+      if (cleanWord.length < 2) {
+        if (cleanWord === 'evryone' || cleanWord === 'togther' || cleanWord === 'recieve') {
+          console.log(`[DEBUG] SKIPPED by length check: "${cleanWord}"`)
+        }
+        return
+      }
+      
+      // Skip if already processed this word
+      if (processedWords.has(cleanWord)) {
+        if (cleanWord === 'evryone' || cleanWord === 'togther' || cleanWord === 'recieve') {
+          console.log(`[DEBUG] SKIPPED by processedWords: "${cleanWord}"`)
+        }
+        return
+      }
+      processedWords.add(cleanWord)
+      
+      processedCount++
+      
+      // Check if it's a valid uncommon word (reference or custom dict) - no action needed
+      if (validUncommonWords.has(cleanWord)) {
+        if (cleanWord === 'evryone' || cleanWord === 'togther' || cleanWord === 'recieve') {
+          console.log(`[DEBUG] SKIPPED by validUncommonWords: "${cleanWord}"`)
+        }
+        return
+      }
+      
+      // Check if it's a common English word using typo-js (with cache)
+      let isCorrect = false
+      if (spellCheckCache.has(cleanWord)) {
+        isCorrect = spellCheckCache.get(cleanWord)!
+        if (cleanWord === 'evryone' || cleanWord === 'togther' || cleanWord === 'recieve') {
+          console.log(`[DEBUG] Cache hit for "${cleanWord}": ${isCorrect}`)
+        }
+      } else if (spell) {
+        isCorrect = spell.check(cleanWord)
+        spellCheckCache.set(cleanWord, isCorrect)
+        if (cleanWord === 'evryone' || cleanWord === 'togther' || cleanWord === 'recieve') {
+          console.log(`[DEBUG] Spell check for "${cleanWord}": ${isCorrect}`)
+        }
+      } else if (englishDictionary.has(cleanWord)) {
+        isCorrect = true
+        spellCheckCache.set(cleanWord, true)
+        if (cleanWord === 'evryone' || cleanWord === 'togther' || cleanWord === 'recieve') {
+          console.log(`[DEBUG] Manual dictionary hit for "${cleanWord}"`)
+        }
+      }
+      
+      if (isCorrect) {
+        if (cleanWord === 'evryone' || cleanWord === 'togther' || cleanWord === 'recieve') {
+          console.log(`[DEBUG] SKIPPED because isCorrect=true: "${cleanWord}"`)
+        }
+        return
+      }
+      
+      if (cleanWord === 'evryone' || cleanWord === 'togther' || cleanWord === 'recieve') {
+        console.log(`[DEBUG] Word "${cleanWord}" passed all checks, checking for suggestions...`)
+      }
+      
+      // Check if it's a common misspelling - add to issues
       if (commonMisspellings[cleanWord]) {
+        const suggestedCorrection = commonMisspellings[cleanWord]
+        
+        // Skip if the only difference is capitalization
+        if (cleanWord === suggestedCorrection.toLowerCase()) {
+          return
+        }
+        
         const lineStart = line.indexOf(word)
-        console.log(`[validateSpelling] Found misspelling: ${cleanWord} -> ${commonMisspellings[cleanWord]} at line ${lineIndex + 1}`)
+        console.log(`[validateSpelling] Found misspelling: ${cleanWord} -> ${suggestedCorrection} at line ${lineIndex + 1}`)
         issues.push({
           id: `spelling-${lineIndex}-${wordIndex}`,
           category: 'spelling',
           foundText: word,
-          suggestedCorrection: commonMisspellings[cleanWord],
+          suggestedCorrection: suggestedCorrection,
           line: lineIndex + 1,
           column: lineStart + 1,
           ignored: false
         })
+      } else if (spell && !spell.check(cleanWord)) {
+        // Use typo-js to get suggestions for misspelled words (with cache)
+        let suggestedCorrection = suggestionCache.get(cleanWord)
+        if (!suggestedCorrection) {
+          const suggestions = spell.suggest(cleanWord)
+          if (cleanWord === 'evryone' || cleanWord === 'togther' || cleanWord === 'recieve') {
+            console.log(`[DEBUG] Suggestions for "${cleanWord}":`, suggestions)
+          }
+          if (suggestions && suggestions.length > 0) {
+            // Only use suggestion if it's reasonably similar (high confidence)
+            const similarity = calculateSimilarity(cleanWord, suggestions[0])
+            if (cleanWord === 'evryone' || cleanWord === 'togther' || cleanWord === 'recieve') {
+              console.log(`[DEBUG] Similarity with "${suggestions[0]}": ${similarity}`)
+            }
+            if (similarity >= 0.7) {
+              suggestedCorrection = suggestions[0]
+              suggestionCache.set(cleanWord, suggestedCorrection)
+            }
+          }
+        }
+        
+        if (suggestedCorrection) {
+          const lineStart = line.indexOf(word)
+          console.log(`[validateSpelling] Found misspelling via typo-js: ${cleanWord} -> ${suggestedCorrection} at line ${lineIndex + 1}`)
+          issues.push({
+            id: `spelling-typo-${lineIndex}-${wordIndex}`,
+            category: 'spelling',
+            foundText: word,
+            suggestedCorrection: suggestedCorrection,
+            line: lineIndex + 1,
+            column: lineStart + 1,
+            ignored: false
+          })
+        }
       }
     })
+    
+    // Update progress
+    if (lineIndex % 10 === 0) {
+      onProgress?.({ stage: 'spelling', current: lineIndex + 1, total: lines.length, message: `Checking English spelling... (${lineIndex + 1}/${lines.length})` })
+    }
   })
   
   // Check for double dash repeated words pattern: word -- word (whole words only)
@@ -512,8 +807,83 @@ export function validateSpelling(transcript: string): ValidationIssue[] {
     })
   }
   
-  console.log('[validateSpelling] Total spelling issues found:', issues.length)
+  const endTime = performance.now()
+  const validationTime = Math.round(endTime - startTime)
+  console.log(`[validateSpelling] Total spelling issues found: ${issues.length}`)
+  console.log(`[validateSpelling] Validation time: ${validationTime}ms`)
+  console.log(`[validateSpelling] Words processed: ${processedCount}/${totalWords}`)
+  console.log(`[validateSpelling] Cache hit rate: ${spellCheckCache.size > 0 ? Math.round((processedCount - spellCheckCache.size) / processedCount * 100) : 0}%`)
+  
   return issues
+}
+
+// Get valid uncommon words for green underlining
+// This should ONLY include unknown uncommon terms (not in English dict, not extracted, not in custom dict)
+export async function getValidUncommonWords(
+  transcript: string,
+  participants: Participant[],
+  companyNames: string[],
+  customDictionary: string[] = []
+): Promise<{ word: string, line: number, column: number }[]> {
+  const uncommonWords: { word: string, line: number, column: number }[] = []
+  const lines = transcript.split('\n')
+  
+  // Build set of words to EXCLUDE from green underlining
+  const excludedWords = new Set<string>()
+  
+  // Add company names
+  companyNames.forEach(name => {
+    const words = name.split(/\s+/)
+    words.forEach(word => excludedWords.add(word.toLowerCase()))
+  })
+  
+  // Add participant names
+  participants.forEach(p => {
+    const words = p.name.split(/\s+/)
+    words.forEach(word => excludedWords.add(word.toLowerCase()))
+  })
+  
+  // Add custom dictionary terms
+  customDictionary.forEach(word => excludedWords.add(word.toLowerCase()))
+  
+  // Initialize spell checker to check if words are valid English
+  const spell = await initializeSpellChecker()
+  
+  lines.forEach((line, lineIndex) => {
+    const words = line.split(/\s+/)
+    
+    words.forEach((word, wordIndex) => {
+      const cleanWord = word.replace(/[^a-zA-Z]/g, '').toLowerCase()
+      if (cleanWord.length < 2) return
+      
+      // Skip if word should not be spell checked (acronyms, ALL CAPS, contractions, etc.)
+      if (shouldSkipSpellCheck(word)) return
+      
+      // Skip company and participant names (they're already in Extracted References)
+      if (excludedWords.has(cleanWord)) return
+      
+      // Check if it's a valid English word using the spell checker
+      let isEnglishWord = false
+      if (spell) {
+        isEnglishWord = spell.check(cleanWord)
+      } else if (englishDictionary.has(cleanWord)) {
+        isEnglishWord = true
+      }
+      
+      // Skip if it's a valid English word
+      if (isEnglishWord) return
+      
+      // Green underline unknown uncommon terms (not in English dict, not extracted, not in custom dict)
+      const lineStart = line.indexOf(word)
+      uncommonWords.push({
+        word: word,
+        line: lineIndex + 1,
+        column: lineStart + 1
+      })
+    })
+  })
+  
+  return uncommonWords
 }
 export function validateCompanyNames(transcript: string, companyNames: string[]): ValidationIssue[] {
   const issues: ValidationIssue[] = []
@@ -531,7 +901,7 @@ export function validateCompanyNames(transcript: string, companyNames: string[])
       for (const companyName of companyNames) {
         const cleanCompany = companyName.replace(/[^a-zA-Z0-9]/g, '')
         
-        // Skip if it's an exact match
+        // Skip if it's an exact match (case-insensitive)
         if (cleanWord.toLowerCase() === cleanCompany.toLowerCase()) {
           continue
         }
@@ -539,7 +909,13 @@ export function validateCompanyNames(transcript: string, companyNames: string[])
         // Check for fuzzy match
         const similarity = calculateSimilarity(cleanWord, cleanCompany)
         
+        // Only suggest if similarity is high enough but not just a capitalization difference
         if (similarity >= 0.7 && similarity < 0.95) {
+          // Skip if the only difference is capitalization
+          if (cleanWord.toLowerCase() === cleanCompany.toLowerCase()) {
+            continue
+          }
+          
           const lineStart = line.indexOf(word)
           issues.push({
             id: `company-${lineIndex}-${wordIndex}`,
@@ -598,28 +974,59 @@ export function applyStyleRules(transcript: string, rules: ValidationRule[]): Va
 // Main validation function
 export async function validateTranscript(
   transcript: string,
-  rules: ValidationRule[]
+  rules: ValidationRule[],
+  customDictionary: string[] = [],
+  onProgress?: (progress: ValidationProgress) => void
 ): Promise<ValidationIssue[]> {
+  const startTime = performance.now()
   const allIssues: ValidationIssue[] = []
   
+  onProgress?.({ stage: 'extracting', current: 0, total: 100, message: 'Extracting references...' })
+  const extractStart = performance.now()
   // Extract participants and company names
   const { participants, companyNames } = extractParticipants(transcript)
+  const extractTime = Math.round(performance.now() - extractStart)
+  console.log(`[PERF] Extract References: ${extractTime}ms`)
   
+  onProgress?.({ stage: 'names', current: 1, total: 100, message: 'Checking participant names...' })
+  const namesStart = performance.now()
   // Validate names
   const nameIssues = validateNames(transcript, participants)
   allIssues.push(...nameIssues)
+  const namesTime = Math.round(performance.now() - namesStart)
+  console.log(`[PERF] Participant Validation: ${namesTime}ms`)
   
+  onProgress?.({ stage: 'companies', current: 2, total: 100, message: 'Checking company names...' })
+  const companiesStart = performance.now()
   // Validate company names
   const companyIssues = validateCompanyNames(transcript, companyNames)
   allIssues.push(...companyIssues)
+  const companiesTime = Math.round(performance.now() - companiesStart)
+  console.log(`[PERF] Company Validation: ${companiesTime}ms`)
   
-  // Validate spelling
-  const spellingIssues = validateSpelling(transcript)
+  onProgress?.({ stage: 'technical', current: 3, total: 100, message: 'Checking technical terms...' })
+  const spellingStart = performance.now()
+  // Validate spelling (now async with progress)
+  const spellingIssues = await validateSpelling(transcript, participants, companyNames, customDictionary, onProgress)
   allIssues.push(...spellingIssues)
+  const spellingTime = Math.round(performance.now() - spellingStart)
+  console.log(`[PERF] English Spell Check: ${spellingTime}ms`)
   
+  onProgress?.({ stage: 'style', current: 4, total: 100, message: 'Applying style rules...' })
+  const styleStart = performance.now()
   // Apply style rules
   const styleIssues = applyStyleRules(transcript, rules)
   allIssues.push(...styleIssues)
+  const styleTime = Math.round(performance.now() - styleStart)
+  console.log(`[PERF] Style Rules: ${styleTime}ms`)
+  
+  const endTime = performance.now()
+  const validationTime = Math.round(endTime - startTime)
+  console.log(`[validateTranscript] Total validation time: ${validationTime}ms`)
+  console.log(`[validateTranscript] Total issues found: ${allIssues.length}`)
+  console.log(`[PERF] Breakdown: Extract=${extractTime}ms, Names=${namesTime}ms, Companies=${companiesTime}ms, Spelling=${spellingTime}ms, Style=${styleTime}ms`)
+  
+  onProgress?.({ stage: 'complete', current: 100, total: 100, message: `Validation complete (${validationTime}ms)` })
   
   return allIssues
 }
@@ -702,5 +1109,12 @@ export const validationHighlightStyles = `
     padding: 1px 3px;
     cursor: pointer;
     border: 1px solid #a855f7;
+  }
+  .validation-issue-green-underline {
+    text-decoration: underline;
+    text-decoration-color: #22c55e;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 2px;
+    cursor: pointer;
   }
 `
