@@ -34,7 +34,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing Supabase server configuration.' }, { status: 500 })
     }
 
-    const { name, description, pattern } = await request.json()
+    const { name, description, pattern, department } = await request.json()
 
     if (!name || !name.trim()) {
       return NextResponse.json({ error: 'Rule name is required.' }, { status: 400 })
@@ -50,7 +50,8 @@ export async function POST(request: Request) {
       .insert([{ 
         name: name.trim(), 
         description: description?.trim() || '',
-        pattern: pattern.trim() 
+        pattern: pattern.trim(),
+        department: department?.trim() || 'all'
       }])
       .select()
       .single()

@@ -286,7 +286,7 @@ export default function DashboardPage() {
   const [isFormattingRulesAdminModalOpen, setIsFormattingRulesAdminModalOpen] = useState(false)
   const [formattingRules, setFormattingRules] = useState<any[]>([])
   const [isLoadingFormattingRules, setIsLoadingFormattingRules] = useState(false)
-  const [newFormattingRule, setNewFormattingRule] = useState({ name: "", description: "", pattern: "" })
+  const [newFormattingRule, setNewFormattingRule] = useState({ name: "", description: "", pattern: "", department: "all" })
   const [sampleTextForDetection, setSampleTextForDetection] = useState("")
   const [detectedFormats, setDetectedFormats] = useState<any[]>([])
   const [isUploadingStyleGuide, setIsUploadingStyleGuide] = useState<string | null>(null)
@@ -4725,6 +4725,22 @@ export default function DashboardPage() {
                     className="w-full border border-rose-200 rounded-lg px-3 py-2 text-sm text-zinc-800 outline-none focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20 transition-all bg-white"
                     placeholder="Rule name (e.g., Speaker Labels)"
                   />
+                  <div>
+                    <label className="text-[10px] font-semibold text-zinc-700 mb-1 block">Department</label>
+                    <select
+                      value={newFormattingRule.department}
+                      onChange={(e) => setNewFormattingRule({...newFormattingRule, department: e.target.value})}
+                      className="w-full border border-rose-200 rounded-lg px-3 py-2 text-sm text-zinc-800 outline-none focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20 transition-all bg-white"
+                    >
+                      <option value="all">All Departments</option>
+                      <option value="conference">Conference / Earnings Call</option>
+                      <option value="senate">Senate Hearing / Political</option>
+                      <option value="academics">Academics</option>
+                      <option value="broadcast">Broadcast</option>
+                      <option value="podcast">Podcast</option>
+                      <option value="medical">Medical</option>
+                    </select>
+                  </div>
                   <textarea
                     value={newFormattingRule.description}
                     onChange={(e) => setNewFormattingRule({...newFormattingRule, description: e.target.value})}
@@ -4750,7 +4766,7 @@ export default function DashboardPage() {
                         const data = await res.json()
                         if (!res.ok) throw new Error(data.error || 'Failed to add rule')
                         await fetchFormattingRules()
-                        setNewFormattingRule({ name: "", description: "", pattern: "" })
+                        setNewFormattingRule({ name: "", description: "", pattern: "", department: "all" })
                         setToastMessage('✅ Format rule added successfully')
                         setShowToast(true)
                         setTimeout(() => { setShowToast(false); setToastMessage(null) }, 3000)
@@ -4777,7 +4793,12 @@ export default function DashboardPage() {
                   formattingRules.map((rule: any) => (
                     <div key={rule.id} className="bg-white border border-rose-200 rounded-lg p-3 flex items-start justify-between gap-2">
                       <div className="flex-1">
-                        <h5 className="text-xs font-semibold text-zinc-800">{rule.name}</h5>
+                        <div className="flex items-center gap-2 mb-1">
+                          <h5 className="text-xs font-semibold text-zinc-800">{rule.name}</h5>
+                          <span className="text-[9px] bg-rose-100 text-rose-700 px-1.5 py-0.5 rounded-full capitalize">
+                            {rule.department === 'all' ? 'All Departments' : rule.department}
+                          </span>
+                        </div>
                         <p className="text-[10px] text-zinc-600 mt-1">{rule.description}</p>
                         <code className="text-[10px] text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded mt-1 inline-block">{rule.pattern}</code>
                       </div>
