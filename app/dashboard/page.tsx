@@ -225,7 +225,7 @@ export default function DashboardPage() {
   const [validationIssues, setValidationIssues] = useState<ValidationIssue[]>([])
   const [extractedParticipants, setExtractedParticipants] = useState<Participant[]>([])
   const [extractedCompanies, setExtractedCompanies] = useState<string[]>([])
-  const [selectedDepartment, setSelectedDepartment] = useState("all")
+  const [selectedDepartment, setSelectedDepartment] = useState("conference")
   const [isRunningValidation, setIsRunningValidation] = useState(false)
   const [customDictionary, setCustomDictionary] = useState<string[]>([])
   const [issueSearchQuery, setIssueSearchQuery] = useState("")
@@ -3953,7 +3953,6 @@ export default function DashboardPage() {
                     onChange={(e) => setSelectedDepartment(e.target.value)}
                     className="w-full border border-purple-200 rounded-lg px-3 py-2 text-sm text-zinc-800 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all bg-white"
                   >
-                    <option value="all">All Departments</option>
                     <option value="conference">Conference / Earnings Call</option>
                     <option value="senate">Senate Hearing / Political</option>
                     <option value="academics">Academics</option>

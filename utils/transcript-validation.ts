@@ -1170,6 +1170,16 @@ export async function validateTranscript(
   console.log(`[DEBUG] Count: ${customDictionary.length}`)
   console.log('[DEBUG] Entries:', customDictionary)
   
+  // Only apply transcript validation for Conference/Earnings call department
+  // Other departments have different format and styleguide requirements
+  const normalizedDepartment = department.toLowerCase().replace(/\s+/g, '')
+  if (normalizedDepartment !== 'conference/earningscall' && normalizedDepartment !== 'conference') {
+    console.log('[DEBUG] Skipping transcript validation - not Conference/Earnings call department')
+    console.log('[DEBUG] Current department:', department)
+    console.log('[DEBUG] Normalized department:', normalizedDepartment)
+    return []
+  }
+  
   // Filter rules by department
   const filteredRules = department === 'all' 
     ? rules 
