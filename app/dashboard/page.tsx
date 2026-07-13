@@ -329,21 +329,30 @@ export default function DashboardPage() {
   useEffect(() => {
     const loadCustomDictionary = async () => {
       try {
+        console.log('[DEBUG] Loading Technical Dictionary from database...')
+        console.log('[DEBUG] Selected department:', selectedDepartment)
         const { data, error } = await supabase
           .from('custom_dictionary')
           .select('term')
           .eq('enabled', true)
           .or(`department.eq.all,department.eq.${selectedDepartment}`)
         
+        console.log('[DEBUG] Supabase query result - error:', error)
+        console.log('[DEBUG] Supabase query result - data:', data)
+        
         if (error) {
           // Table might not exist yet, that's okay
-          console.log('Custom dictionary table not yet created or error loading:', error.message)
+          console.log('[DEBUG] Custom dictionary table not yet created or error loading:', error.message)
           setCustomDictionary(!error.message.includes('does not exist') ? (data?.map(d => d.term) || []) : [])
         } else {
-          setCustomDictionary(data?.map(d => d.term) || [])
+          const terms = data?.map(d => d.term) || []
+          console.log('[DEBUG] Technical Dictionary Loaded:')
+          console.log(`[DEBUG] Count: ${terms.length}`)
+          console.log('[DEBUG] Entries:', terms)
+          setCustomDictionary(terms)
         }
       } catch (error) {
-        console.log('Error loading custom dictionary:', error)
+        console.log('[DEBUG] Error loading custom dictionary:', error)
         setCustomDictionary([])
       }
     }
@@ -398,7 +407,7 @@ export default function DashboardPage() {
       
       // Run validation with custom dictionary and progress callback
       const startTime = performance.now()
-      const issues = await validateTranscript(debouncedTranscript, filteredRules, customDictionary, (progress) => {
+      const issues = await validateTranscript(debouncedTranscript, filteredRules, customDictionary, selectedDepartment, (progress) => {
         setValidationProgress({ stage: progress.stage, message: progress.message })
       })
       const endTime = performance.now()
@@ -4182,16 +4191,33 @@ export default function DashboardPage() {
                           >
                             <div className="flex items-start justify-between gap-2">
                               <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 mb-1">
+                                <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                  {issue.ruleName && (
+                                    <span className="text-[10px] font-semibold text-zinc-700">
+                                      {issue.ruleName}
+                                    </span>
+                                  )}
+                                  {issue.severity && (
+                                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                                      issue.severity === 'critical' ? 'bg-red-100 text-red-800' :
+                                      issue.severity === 'high' ? 'bg-orange-100 text-orange-800' :
+                                      issue.severity === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                                      'bg-zinc-100 text-zinc-800'
+                                    }`}>
+                                      {issue.severity}
+                                    </span>
+                                  )}
                                   <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
                                     issue.category === 'style' ? 'bg-yellow-100 text-yellow-800' :
                                     issue.category === 'name' ? 'bg-red-100 text-red-800' :
+                                    issue.category === 'company' ? 'bg-blue-100 text-blue-800' :
+                                    issue.category === 'formatting' ? 'bg-purple-100 text-purple-800' :
                                     'bg-orange-100 text-orange-800'
                                   }`}>
                                     {issue.category}
                                   </span>
                                   {issue.line > 0 && (
-                                    <span className="text-[10px] text-zinc-">Line {issue.line}</span>
+                                    <span className="text-[10px] text-zinc-500">Line {issue.line}</span>
                                   )}
                                 </div>
                                 <div className="text-xs text-zinc-600 mb-1">

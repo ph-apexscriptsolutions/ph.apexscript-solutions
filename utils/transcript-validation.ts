@@ -36,6 +36,8 @@ export interface ValidationProgress {
 export interface ValidationIssue {
   id: string
   category: 'style' | 'name' | 'company' | 'spelling' | 'formatting'
+  ruleName?: string
+  severity?: 'low' | 'medium' | 'high' | 'critical'
   foundText: string
   suggestedCorrection: string
   line: number
@@ -57,6 +59,8 @@ export interface ValidationRule {
   category: string
   find: string
   replace: string
+  severity?: 'low' | 'medium' | 'high' | 'critical'
+  description?: string
   enabled: boolean
 }
 
@@ -90,6 +94,85 @@ export function calculateSimilarity(a: string, b: string): number {
   const distance = levenshteinDistance(a.toLowerCase(), b.toLowerCase())
   const maxLength = Math.max(a.length, b.length)
   return maxLength === 0 ? 1 : 1 - (distance / maxLength)
+}
+
+// Normalize word by removing common grammatical suffixes for smart matching
+export function normalizeWordForMatching(word: string): string {
+  const lower = word.toLowerCase()
+  // Remove common possessive and plural suffixes
+  const suffixes = ["'s", "s", "'"]
+  for (const suffix of suffixes) {
+    if (lower.endsWith(suffix) && lower.length > suffix.length + 1) {
+      return lower.slice(0, -suffix.length)
+    }
+  }
+  return lower
+}
+
+// Check if a word is a common English word (to avoid false positives)
+const commonEnglishWords = new Set([
+  // Most common English words
+  'the', 'be', 'to', 'of', 'and', 'a', 'in', 'that', 'have', 'i', 'it', 'for', 'not', 'on', 'with', 'he', 'as', 'you', 'do', 'at',
+  'this', 'but', 'his', 'by', 'from', 'they', 'we', 'say', 'her', 'she', 'or', 'an', 'will', 'my', 'one', 'all', 'would', 'there',
+  'their', 'what', 'so', 'up', 'out', 'if', 'about', 'who', 'get', 'which', 'go', 'me', 'when', 'make', 'can', 'like', 'time', 'no',
+  'just', 'him', 'know', 'take', 'people', 'into', 'year', 'your', 'good', 'some', 'could', 'them', 'see', 'other', 'than', 'then',
+  'now', 'look', 'only', 'come', 'its', 'over', 'think', 'also', 'back', 'after', 'use', 'two', 'how', 'our', 'work', 'first', 'well',
+  'way', 'even', 'new', 'want', 'because', 'any', 'these', 'give', 'day', 'most', 'us', 'is', 'are', 'was', 'were', 'been', 'being',
+  'has', 'had', 'having', 'does', 'did', 'doing', 'should', 'would', 'could', 'might', 'must', 'shall', 'may', 'great', 'like', 'luke',
+  'john', 'michael', 'david', 'james', 'robert', 'william', 'richard', 'joseph', 'thomas', 'charles', 'christopher', 'daniel', 'matthew',
+  'anthony', 'mark', 'donald', 'paul', 'steven', 'andrew', 'joshua', 'kenneth', 'kevin', 'brian', 'george', 'edward', 'ronald', 'timothy',
+  'jason', 'jeffrey', 'ryan', 'jacob', 'gary', 'eric', 'jonathan', 'stephen', 'larry', 'justin', 'scott', 'brandon', 'benjamin', 'samuel',
+  'raymond', 'alexander', 'patrick', 'jack', 'dennis', 'jerry', 'tyler', 'jose', 'adam', 'henry', 'nathan', 'douglas', 'peter', 'kyle',
+  'walter', 'ethan', 'jeremy', 'harold', 'keith', 'christian', 'logan', 'alexis', 'colin', 'cody', 'clayton', 'shane', 'cameron', 'felipe',
+  'elijah', 'dylan', 'jordan', 'jackson', 'gavin', 'kennedy', 'braxton', 'carson', 'hunter', 'tristan', 'parker', 'lincoln', 'mason',
+  'jasper', 'connor', 'finley', 'grayson', 'charlie'
+])
+
+// Strict fuzzy matching conditions to reduce false positives
+export function shouldFuzzyMatch(
+  word: string,
+  candidate: string,
+  normalizedWord: string,
+  normalizedCandidate: string,
+  skipCommonEnglishCheck: boolean = false
+): boolean {
+  // DEBUG: Log for specific words
+  const wordLower = word.toLowerCase()
+  const candidateLower = candidate.toLowerCase()
+  if (wordLower === 'lke' || wordLower === 'jhon' || wordLower === 'grg' || wordLower === 'smtih') {
+    console.log(`[shouldFuzzyMatch] Checking "${word}" -> "${candidate}"`)
+    console.log(`[shouldFuzzyMatch] Exact match: ${normalizedWord === normalizedCandidate}`)
+    console.log(`[shouldFuzzyMatch] First letter match: ${word[0].toLowerCase() === candidate[0].toLowerCase()}`)
+    console.log(`[shouldFuzzyMatch] Length diff: ${Math.abs(word.length - candidate.length)}`)
+    console.log(`[shouldFuzzyMatch] Is common English: ${commonEnglishWords.has(normalizedCandidate)}`)
+    console.log(`[shouldFuzzyMatch] Skip common English check: ${skipCommonEnglishCheck}`)
+  }
+  
+  // Condition 1: Exact match must have failed (case-sensitive)
+  if (word === candidate) {
+    return false
+  }
+  
+  // Condition 2: First letter must be the same
+  if (word[0].toLowerCase() !== candidate[0].toLowerCase()) {
+    return false
+  }
+  
+  // Condition 3: Length difference must be <= 2 characters
+  const lengthDiff = Math.abs(word.length - candidate.length)
+  if (lengthDiff > 2) {
+    return false
+  }
+  
+  // Condition 4: Candidate must NOT be a common English word
+  // Skip this check if the candidate is from extracted names (not general dictionary)
+  if (!skipCommonEnglishCheck && commonEnglishWords.has(normalizedCandidate)) {
+    return false
+  }
+  
+  // Note: Similarity check is done AFTER this function returns
+  // to avoid circular dependency
+  return true
 }
 
 // Extract participants from transcript header
@@ -144,14 +227,12 @@ export function extractParticipants(transcript: string): { participants: Partici
   return { participants, companyNames: Array.from(companyNames) }
 }
 
-// Validate names using exact matching against extracted participants
-export function validateNames(transcript: string, participants: Participant[]): ValidationIssue[] {
+// Validate speaker labels after +++presentation marker
+export function validateSpeakerLabels(transcript: string, participants: Participant[]): ValidationIssue[] {
+  const startTime = performance.now()
   const issues: ValidationIssue[] = []
   const lines = transcript.split('\n')
   let presentationStartIndex = -1
-  
-  console.log('[validateNames] Participants:', participants)
-  console.log('[validateNames] Transcript lines:', lines.length)
   
   // Find +++presentation line
   for (let i = 0; i < lines.length; i++) {
@@ -161,116 +242,474 @@ export function validateNames(transcript: string, participants: Participant[]): 
     }
   }
   
-  console.log('[validateNames] Found +++presentation at line:', presentationStartIndex)
+  if (presentationStartIndex < 0) {
+    console.log(`[PERF] Speaker Label Validation: ${Math.round(performance.now() - startTime)}ms (no +++presentation found)`)
+    return issues
+  }
   
-  if (presentationStartIndex < 0) return issues
+  if (participants.length === 0) {
+    console.log(`[PERF] Speaker Label Validation: ${Math.round(performance.now() - startTime)}ms (no participants)`)
+    return issues
+  }
   
-  // Extract all expected names (exact matches only)
+  // Extract all expected names
   const expectedNames = participants.map(p => p.name)
   const expectedNamesLower = expectedNames.map(n => n.toLowerCase())
-  
-  // Extract first names from participant names
-  const firstNames = participants.map(p => p.name.split(' ')[0])
-  const firstNamesLower = firstNames.map(n => n.toLowerCase())
-  
-  console.log('[validateNames] Expected names:', expectedNames)
-  console.log('[validateNames] First names:', firstNames)
   
   // Check speaker labels after +++presentation
   for (let i = presentationStartIndex + 1; i < lines.length; i++) {
     const trimmedLine = lines[i].trim()
     // Match speaker labels: Name^ (anything after the caret)
+    // Allow optional leading spaces and match any characters before the caret
     const speakerLabelRegex = /^([A-Za-z\s]+)\^/
     const match = trimmedLine.match(speakerLabelRegex)
+    
+    // DEBUG: Log lines that look like speaker labels but don't match
+    if (trimmedLine.includes('^') && !match) {
+      console.log(`[validateSpeakerLabels] Line with caret but no match: "${trimmedLine}"`)
+    }
+    
+    // DEBUG: Log specific speaker labels
+    if (match && (trimmedLine.includes('Lster') || trimmedLine.includes('Edmnd'))) {
+      console.log(`[validateSpeakerLabels] Matched speaker label: "${trimmedLine}"`)
+    }
     
     if (match) {
       const speakerName = match[1].trim()
       const speakerNameLower = speakerName.toLowerCase()
+      const nameParts = speakerName.split(/\s+/).filter(p => p.length > 0)
       
-      console.log(`[validateNames] Found speaker label: "${speakerName}" at line ${i + 1}`)
+      // Skip validation for "Operator^" - this is a valid generic label
+      if (speakerNameLower === 'operator') continue
       
-      // Check for exact match with expected names (case-insensitive)
-      const hasExactMatch = expectedNamesLower.includes(speakerNameLower)
+      // Rule: Speaker labels must include first name AND last name
+      // First-name-only labels are invalid (e.g., "Jhon^" is invalid)
+      // Valid examples: "John Cena^", "John S. Cena^"
       
-      console.log(`[validateNames] Exact match for "${speakerName}": ${hasExactMatch}`)
-      
-      // If no exact match, flag as error
-      if (!hasExactMatch) {
-        // Find closest match for suggestion (using fuzzy matching only for suggestion)
-        let bestMatch = ''
-        let bestSimilarity = 0
-        for (const expectedName of expectedNames) {
-          const similarity = calculateSimilarity(speakerName, expectedName)
-          if (similarity > bestSimilarity) {
-            bestSimilarity = similarity
-            bestMatch = expectedName
+      if (nameParts.length < 2) {
+        // First-name-only speaker label - this is invalid
+        // Find the matching participant and suggest their full name
+        const firstName = nameParts[0]
+        let matchingParticipant = participants.find(p => {
+          const participantFirst = p.name.split(/\s+/)[0]
+          return participantFirst.toLowerCase() === firstName.toLowerCase()
+        })
+        
+        // If no exact match, try fuzzy matching on first name
+        if (!matchingParticipant) {
+          const normalizedFirstName = normalizeWordForMatching(firstName)
+          let bestMatch: Participant | null = null
+          let bestSimilarity = 0
+          
+          for (const p of participants) {
+            const participantFirst = p.name.split(/\s+/)[0]
+            const normalizedParticipantFirst = normalizeWordForMatching(participantFirst)
+            
+            if (shouldFuzzyMatch(firstName, participantFirst, normalizedFirstName, normalizedParticipantFirst, true)) {
+              const similarity = calculateSimilarity(normalizedFirstName, normalizedParticipantFirst)
+              if (similarity > bestSimilarity) {
+                bestSimilarity = similarity
+                bestMatch = p
+              }
+            }
+          }
+          
+          // Use 40% threshold for very short names (to catch Jhon → John)
+          if (bestMatch && bestSimilarity >= 0.40) {
+            matchingParticipant = bestMatch
           }
         }
         
-        // Only suggest if similarity is reasonable (>= 0.5)
-        const suggestion = bestSimilarity >= 0.5 ? bestMatch : ''
+        if (matchingParticipant) {
+          // Calculate exact column position
+          const column = lines[i].indexOf(speakerName) + 1
+          // Include the caret in foundText for speaker labels
+          const foundTextWithCaret = speakerName + '^'
+          issues.push({
+            id: `speaker-label-${i}-${speakerName}`,
+            category: 'name',
+            ruleName: 'Speaker Label Validation',
+            severity: 'high',
+            foundText: foundTextWithCaret,
+            suggestedCorrection: matchingParticipant.name,
+            line: i + 1,
+            column: column,
+            ignored: false
+          })
+        } else {
+          // First name not found in participants - still invalid
+          const column = lines[i].indexOf(speakerName) + 1
+          // Include the caret in foundText for speaker labels
+          const foundTextWithCaret = speakerName + '^'
+          issues.push({
+            id: `speaker-label-${i}-${speakerName}`,
+            category: 'name',
+            ruleName: 'Speaker Label Validation',
+            severity: 'high',
+            foundText: foundTextWithCaret,
+            suggestedCorrection: 'Use full name (first + last)',
+            line: i + 1,
+            column: column,
+            ignored: false
+          })
+        }
+      } else {
+        // Speaker label has multiple parts - check if it matches expected names
+        const hasExactMatch = expectedNamesLower.includes(speakerNameLower)
         
-        console.log(`[validateNames] Adding issue for "${speakerName}" -> suggestion: "${suggestion}"`)
+        // DEBUG: Log multi-part speaker labels
+        if (speakerNameLower.includes('lke') || speakerNameLower.includes('smtih') || speakerNameLower.includes('lester')) {
+          console.log(`[validateSpeakerLabels] Multi-part speaker label: "${speakerName}"`)
+          console.log(`[validateSpeakerLabels] Has exact match: ${hasExactMatch}`)
+          console.log(`[validateSpeakerLabels] Name parts:`, nameParts)
+          console.log(`[validateSpeakerLabels] Expected names:`, expectedNames)
+        }
         
-        issues.push({
-          id: `name-${i}-${speakerName}`,
-          category: 'name',
-          foundText: speakerName,
-          suggestedCorrection: suggestion,
-          line: i + 1,
-          column: lines[i].indexOf(speakerName) + 1,
-          ignored: false
-        })
+        // Check if speaker label is missing middle name (e.g., "Lester Knight^" vs "Lester B. Knight^")
+        if (nameParts.length === 2 && !hasExactMatch) {
+          const firstName = nameParts[0]
+          const lastName = nameParts[1]
+          
+          // DEBUG: Log for specific names
+          if (speakerNameLower.includes('lster') || speakerNameLower.includes('edmund') || speakerNameLower.includes('edmnd')) {
+            console.log(`[validateSpeakerLabels] Checking for missing middle name: "${speakerName}"`)
+            console.log(`[validateSpeakerLabels] First name: "${firstName}", Last name: "${lastName}"`)
+          }
+          
+          // Find participant with matching first and last name but has middle name
+          // Use fuzzy matching for first name to catch misspellings like "Leter" -> "Lester"
+          const participantWithMiddle = participants.find(p => {
+            const parts = p.name.split(/\s+/)
+            if (parts.length >= 3) {
+              const pFirst = parts[0]
+              const pLast = parts[parts.length - 1]
+              
+              // DEBUG: Log participant comparison
+              if (speakerNameLower.includes('lster') || speakerNameLower.includes('edmund') || speakerNameLower.includes('edmnd')) {
+                console.log(`[validateSpeakerLabels] Comparing with participant: "${p.name}"`)
+                console.log(`[validateSpeakerLabels] Last name match: ${pLast.toLowerCase() === lastName.toLowerCase()}`)
+                console.log(`[validateSpeakerLabels] First name exact match: ${pFirst.toLowerCase() === firstName.toLowerCase()}`)
+              }
+              
+              // Check last name exact match
+              if (pLast.toLowerCase() !== lastName.toLowerCase()) return false
+              
+              // Check first name exact match or fuzzy match
+              if (pFirst.toLowerCase() === firstName.toLowerCase()) return true
+              
+              // Try fuzzy matching for first name
+              const normalizedFirstName = normalizeWordForMatching(firstName)
+              const normalizedPFirst = normalizeWordForMatching(pFirst)
+              if (shouldFuzzyMatch(firstName, pFirst, normalizedFirstName, normalizedPFirst, true)) {
+                const similarity = calculateSimilarity(normalizedFirstName, normalizedPFirst)
+                // Use more lenient threshold for missing middle name detection (0.75 instead of 0.92)
+                // This catches misspellings like "Lster" -> "Lester" (0.83 similarity)
+                const threshold = pFirst.length <= 4 ? 0.40 : 0.75
+                
+                if (speakerNameLower.includes('lster') || speakerNameLower.includes('edmund') || speakerNameLower.includes('edmnd')) {
+                  console.log(`[validateSpeakerLabels] First name fuzzy similarity: ${similarity.toFixed(2)}, threshold: ${threshold}`)
+                }
+                
+                return similarity >= threshold
+              }
+              
+              return false
+            }
+            return false
+          })
+          
+          if (participantWithMiddle) {
+            const column = lines[i].indexOf(speakerName) + 1
+            const foundTextWithCaret = speakerName + '^'
+            issues.push({
+              id: `speaker-label-${i}-${speakerName}`,
+              category: 'name',
+              ruleName: 'Speaker Label Validation',
+              severity: 'high',
+              foundText: foundTextWithCaret,
+              suggestedCorrection: participantWithMiddle.name,
+              line: i + 1,
+              column: column,
+              ignored: false
+            })
+            continue
+          }
+        }
+        
+        if (!hasExactMatch) {
+          // Check each part of the name individually for misspellings
+          // If any part is misspelled, suggest the correct full name
+          let foundMisspelledPart = false
+          
+          for (const expectedName of expectedNames) {
+            const expectedParts = expectedName.split(/\s+/)
+            
+            // DEBUG: Log expected name comparison
+            if (speakerNameLower.includes('lke') || speakerNameLower.includes('smtih')) {
+              console.log(`[validateSpeakerLabels] Comparing with expected: "${expectedName}"`)
+              console.log(`[validateSpeakerLabels] Expected parts:`, expectedParts)
+              console.log(`[validateSpeakerLabels] Parts count match: ${nameParts.length === expectedParts.length}`)
+            }
+            
+            // Check if the number of parts matches
+            if (nameParts.length === expectedParts.length) {
+              let allPartsMatch = true
+              
+              for (let k = 0; k < nameParts.length; k++) {
+                const speakerPart = nameParts[k]
+                const expectedPart = expectedParts[k]
+                const normalizedSpeakerPart = normalizeWordForMatching(speakerPart)
+                const normalizedExpectedPart = normalizeWordForMatching(expectedPart)
+                
+                // Check if this part matches exactly
+                if (speakerPart.toLowerCase() !== expectedPart.toLowerCase()) {
+                  // No exact match - check fuzzy match
+                  if (shouldFuzzyMatch(speakerPart, expectedPart, normalizedSpeakerPart, normalizedExpectedPart, true)) {
+                    const similarity = calculateSimilarity(normalizedSpeakerPart, normalizedExpectedPart)
+                    const threshold = expectedPart.length <= 4 ? 0.50 : 0.92
+                    
+                    if (speakerNameLower.includes('lke') || speakerNameLower.includes('smtih')) {
+                      console.log(`[validateSpeakerLabels] Similarity: ${similarity.toFixed(2)}, threshold: ${threshold}`)
+                    }
+                    
+                    if (similarity >= threshold) {
+                      // This part is misspelled but close enough
+                      foundMisspelledPart = true
+                    } else {
+                      // This part doesn't match at all
+                      allPartsMatch = false
+                    }
+                  } else {
+                    // This part doesn't match at all
+                    allPartsMatch = false
+                  }
+                }
+              }
+              
+              // DEBUG: Log result
+              if (speakerNameLower.includes('lke') || speakerNameLower.includes('smtih')) {
+                console.log(`[validateSpeakerLabels] allPartsMatch: ${allPartsMatch}, foundMisspelledPart: ${foundMisspelledPart}`)
+              }
+              
+              // If all parts match (either exactly or with fuzzy match), suggest this name
+              if (allPartsMatch && foundMisspelledPart) {
+                const column = lines[i].indexOf(speakerName) + 1
+                // Include the caret in foundText for speaker labels
+                const foundTextWithCaret = speakerName + '^'
+                issues.push({
+                  id: `speaker-label-${i}-${speakerName}`,
+                  category: 'name',
+                  ruleName: 'Speaker Label Validation',
+                  severity: 'high',
+                  foundText: foundTextWithCaret,
+                  suggestedCorrection: expectedName,
+                  line: i + 1,
+                  column: column,
+                  ignored: false
+                })
+                break
+              }
+            }
+          }
+          
+          // If no part-by-part match, try full name fuzzy matching as fallback
+          if (!foundMisspelledPart) {
+            let bestMatch = ''
+            let bestSimilarity = 0
+            
+            for (const expectedName of expectedNames) {
+              const normalizedSpeakerName = normalizeWordForMatching(speakerName)
+              const normalizedExpectedName = normalizeWordForMatching(expectedName)
+              
+              if (shouldFuzzyMatch(speakerName, expectedName, normalizedSpeakerName, normalizedExpectedName, true)) {
+                const similarity = calculateSimilarity(normalizedSpeakerName, normalizedExpectedName)
+                if (similarity > bestSimilarity) {
+                  bestSimilarity = similarity
+                  bestMatch = expectedName
+                }
+              }
+            }
+            
+            // Only suggest if we found a good match
+            if (bestMatch && bestSimilarity >= 0.80) {
+              const column = lines[i].indexOf(speakerName) + 1
+              // Include the caret in foundText for speaker labels
+              const foundTextWithCaret = speakerName + '^'
+              issues.push({
+                id: `speaker-label-${i}-${speakerName}`,
+                category: 'name',
+                ruleName: 'Speaker Label Validation',
+                severity: 'high',
+                foundText: foundTextWithCaret,
+                suggestedCorrection: bestMatch,
+                line: i + 1,
+                column: column,
+                ignored: false
+              })
+            }
+          }
+        }
       }
     }
   }
   
-  // Check transcript text for misspelled first names (after +++presentation)
-  for (let i = presentationStartIndex + 1; i < lines.length; i++) {
+  console.log(`[PERF] Speaker Label Validation: ${Math.round(performance.now() - startTime)}ms`)
+  return issues
+}
+
+// Validate names in transcript body using extracted references
+export function validateBodyNames(transcript: string, participants: Participant[], customDictionary: string[] = []): ValidationIssue[] {
+  const startTime = performance.now()
+  const issues: ValidationIssue[] = []
+  const lines = transcript.split('\n')
+  
+  if (participants.length === 0) {
+    console.log(`[PERF] Body Name Validation: ${Math.round(performance.now() - startTime)}ms (no participants)`)
+    return issues
+  }
+  
+  // Extract all expected names (exact matches only)
+  const expectedNames = participants.map(p => p.name)
+  const expectedNamesLower = expectedNames.map(n => n.toLowerCase())
+  
+  // Extract first names from participant names for individual word validation
+  const firstNames = participants.map(p => p.name.split(' ')[0])
+  const firstNamesLower = firstNames.map(n => n.toLowerCase())
+  
+  // Extract last names from participant names
+  const lastNames = participants.map(p => {
+    const parts = p.name.split(' ')
+    return parts.length > 1 ? parts[parts.length - 1] : ''
+  }).filter(n => n.length > 0)
+  const lastNamesLower = lastNames.map(n => n.toLowerCase())
+  
+  // Build Set of custom dictionary words for filtering
+  const customDictLower = new Set(customDictionary.map(w => w.toLowerCase()))
+  
+  // Validate entire transcript body for misspelled names
+  for (let i = 0; i < lines.length; i++) {
     const line = lines[i]
-    // Skip speaker label lines (lines that end with ^)
-    if (line.trim().match(/\^$/)) continue
-    
     const words = line.split(/\s+/)
     
     words.forEach((word, wordIndex) => {
-      // Clean the word - remove punctuation but keep letters
       const cleanWord = word.replace(/[^a-zA-Z]/g, '')
-      if (cleanWord.length < 2) return // Skip very short words
+      if (cleanWord.length < 2) return
       
       const cleanWordLower = cleanWord.toLowerCase()
       
-      // Check if this word might be a misspelled first name
-      // It should not be an exact match to any first name
-      if (!firstNamesLower.includes(cleanWordLower)) {
-        // Check for fuzzy match with first names
-        for (let j = 0; j < firstNames.length; j++) {
-          const firstName = firstNames[j]
-          const firstNameLower = firstNamesLower[j]
-          const similarity = calculateSimilarity(cleanWord, firstName)
+      // DEBUG: Log specific words we're looking for
+      if (cleanWordLower === 'jhon' || cleanWordLower === 'smtih' || cleanWordLower === 'lke' || cleanWordLower === 'grg') {
+        console.log(`[validateBodyNames] Checking word: "${word}" -> cleanWord: "${cleanWord}"`)
+        console.log(`[validateBodyNames] Expected names:`, expectedNamesLower)
+        console.log(`[validateBodyNames] First names:`, firstNamesLower)
+        console.log(`[validateBodyNames] Last names:`, lastNamesLower)
+      }
+      
+      // Skip if exact match to any expected name (case-insensitive)
+      if (expectedNamesLower.includes(cleanWordLower)) return
+      
+      // Skip if exact match to first name or last name
+      if (firstNamesLower.includes(cleanWordLower)) return
+      if (lastNamesLower.includes(cleanWordLower)) return
+      
+      // Skip speaker labels (words ending with ^) - these are handled by speaker label validation
+      if (word.endsWith('^')) return
+      
+      // Skip words that are part of a speaker label (before a word ending with ^)
+      // Find if there's a word ending with ^ after this word in the same line
+      const hasSpeakerLabelAfter = words.slice(wordIndex + 1).some(w => w.endsWith('^'))
+      if (hasSpeakerLabelAfter) return
+      
+      // Skip if in custom dictionary (technical terms)
+      if (customDictLower.has(cleanWordLower)) return
+      
+      // Skip if common English word
+      if (commonEnglishWords.has(cleanWordLower)) return
+      
+      // Skip if word doesn't start with uppercase (not a candidate name token)
+      // Check cleanWord instead of original word to handle punctuation
+      if (cleanWord[0] !== cleanWord[0].toUpperCase()) return
+      
+      // Skip if ALL CAPS
+      if (word === word.toUpperCase()) return
+      
+      // Skip if contains numbers
+      if (/\d/.test(word)) return
+      
+      // Check for fuzzy match with first names
+      const normalizedWord = normalizeWordForMatching(cleanWord)
+      for (let j = 0; j < firstNames.length; j++) {
+        const firstName = firstNames[j]
+        const normalizedFirstName = normalizeWordForMatching(firstName)
+        
+        if (shouldFuzzyMatch(cleanWord, firstName, normalizedWord, normalizedFirstName, true)) {
+          const similarity = calculateSimilarity(normalizedWord, normalizedFirstName)
           
-          // If similarity is high enough but not exact, flag it
-          if (similarity >= 0.6 && similarity < 1.0) {
-            const lineStart = line.indexOf(word)
-            console.log(`[validateNames] Found misspelled first name in text: "${cleanWord}" -> "${firstName}" at line ${i + 1}`)
-            
+          // DEBUG: Log similarity for specific words
+          if (cleanWordLower === 'lke' || cleanWordLower === 'jhon' || cleanWordLower === 'grg') {
+            console.log(`[validateBodyNames] Comparing "${cleanWord}" -> "${firstName}"`)
+            console.log(`[validateBodyNames] Similarity: ${similarity.toFixed(2)}, threshold: ${firstName.length <= 4 ? 0.40 : 0.92}`)
+          }
+          
+          // Adjust threshold based on word length - shorter names need lower threshold
+          const threshold = firstName.length <= 4 ? 0.40 : 0.92
+          
+          if (similarity >= threshold && similarity < 1.0) {
+            // Calculate column: position of original word in line + position of cleanWord within original word
+            const wordStart = line.indexOf(word)
+            const cleanWordStart = word.indexOf(cleanWord)
+            const column = wordStart + cleanWordStart + 1
             issues.push({
-              id: `name-text-${i}-${wordIndex}`,
+              id: `body-name-${i}-${wordIndex}`,
               category: 'name',
-              foundText: word,
-              suggestedCorrection: firstName,
+              ruleName: 'Body Name Validation',
+              severity: 'high',
+              foundText: cleanWord, // Use cleanWord without punctuation for accurate highlighting
+              suggestedCorrection: firstName, // Suggest only the first name for body name validation
               line: i + 1,
-              column: lineStart + 1,
+              column: column,
               ignored: false
             })
-            break // Only add one issue per word
+            break // Only add one issue per word for first names
+          }
+        }
+      }
+      
+      // Check for fuzzy match with last names
+      for (let j = 0; j < lastNames.length; j++) {
+        const lastName = lastNames[j]
+        const normalizedLastName = normalizeWordForMatching(lastName)
+        
+        if (shouldFuzzyMatch(cleanWord, lastName, normalizedWord, normalizedLastName, true)) {
+          const similarity = calculateSimilarity(normalizedWord, normalizedLastName)
+          
+          // Adjust threshold based on word length - shorter names need lower threshold
+          const threshold = lastName.length <= 4 ? 0.40 : 0.92
+          
+          if (similarity >= threshold && similarity < 1.0) {
+            // Calculate column: position of original word in line + position of cleanWord within original word
+            const wordStart = line.indexOf(word)
+            const cleanWordStart = word.indexOf(cleanWord)
+            const column = wordStart + cleanWordStart + 1
+            issues.push({
+              id: `body-name-${i}-${wordIndex}`,
+              category: 'name',
+              ruleName: 'Body Name Validation',
+              severity: 'high',
+              foundText: cleanWord, // Use cleanWord without punctuation for accurate highlighting
+              suggestedCorrection: lastName,
+              line: i + 1,
+              column: column,
+              ignored: false
+            })
+            break // Only add one issue per word for last names
           }
         }
       }
     })
   }
   
-  console.log('[validateNames] Total name issues found:', issues.length)
+  console.log(`[PERF] Body Name Validation: ${Math.round(performance.now() - startTime)}ms`)
   return issues
 }
 
@@ -290,231 +729,6 @@ const englishDictionary: Set<string> = new Set([
   // Common connectors
   'and', 'but', 'or', 'nor', 'for', 'yet', 'so', 'although', 'though', 'because', 'since', 'as', 'if', 'unless', 'until', 'while', 'where', 'when', 'before', 'after', 'during', 'through', 'in', 'on', 'at', 'to', 'from', 'by', 'with', 'without', 'about', 'against', 'between', 'among', 'throughout', 'within', 'beyond', 'across', 'behind', 'below', 'above', 'over', 'under'
 ])
-
-// Common misspellings dictionary for suggestions
-const commonMisspellings: Record<string, string> = {
-  'evryone': 'everyone',
-  'every1': 'everyone',
-  'everyne': 'everyone',
-  'everybod': 'everybody',
-  'thnk': 'think',
-  'thnking': 'thinking',
-  'togther': 'together',
-  'togethr': 'together',
-  'recieve': 'receive',
-  'recive': 'receive',
-  'occured': 'occurred',
-  'seperate': 'separate',
-  'definately': 'definitely',
-  'accomodate': 'accommodate',
-  'neccessary': 'necessary',
-  'maintainance': 'maintenance',
-  'goverment': 'government',
-  'enviroment': 'environment',
-  'acheive': 'achieve',
-  'beleive': 'believe',
-  'begining': 'beginning',
-  'buisness': 'business',
-  'calender': 'calendar',
-  'catagory': 'category',
-  'cemetary': 'cemetery',
-  'collegue': 'colleague',
-  'comming': 'coming',
-  'concious': 'conscious',
-  'curiousity': 'curiosity',
-  'decieve': 'deceive',
-  'desparate': 'desperate',
-  'diffrent': 'different',
-  'disapear': 'disappear',
-  'embarass': 'embarrass',
-  'existance': 'existence',
-  'experiance': 'experience',
-  'familar': 'familiar',
-  'finaly': 'finally',
-  'foriegn': 'foreign',
-  'fourty': 'forty',
-  'freind': 'friend',
-  'gaurd': 'guard',
-  'grammer': 'grammar',
-  'greatful': 'grateful',
-  'happend': 'happened',
-  'heros': 'heroes',
-  'higest': 'highest',
-  'humourous': 'humorous',
-  'immediatly': 'immediately',
-  'independant': 'independent',
-  'intresting': 'interesting',
-  'irrelevent': 'irrelevant',
-  'knowlege': 'knowledge',
-  'labratory': 'laboratory',
-  'lisence': 'license',
-  'loose': 'lose',
-  'millenium': 'millennium',
-  'mischievious': 'mischievous',
-  'noticable': 'noticeable',
-  'ocassion': 'occasion',
-  'offical': 'official',
-  'oftenly': 'often',
-  'origionally': 'originally',
-  'pavillion': 'pavilion',
-  'percieve': 'perceive',
-  'pharoah': 'pharaoh',
-  'posession': 'possession',
-  'potatos': 'potatoes',
-  'prefered': 'preferred',
-  'priviledge': 'privilege',
-  'profesion': 'profession',
-  'publically': 'publicly',
-  'questionaire': 'questionnaire',
-  'realise': 'realize',
-  'realy': 'really',
-  'reccomend': 'recommend',
-  'recomend': 'recommend',
-  'refered': 'referred',
-  'relevent': 'relevant',
-  'religous': 'religious',
-  'remeber': 'remember',
-  'repetition': 'repetition',
-  'resistence': 'resistance',
-  'responsability': 'responsibility',
-  'rythm': 'rhythm',
-  'sacrilegious': 'sacrilegious',
-  'sargent': 'sergeant',
-  'scedule': 'schedule',
-  'sence': 'sense',
-  'sieze': 'seize',
-  'similiar': 'similar',
-  'sincerly': 'sincerely',
-  'speach': 'speech',
-  'sucessful': 'successful',
-  'supercede': 'supersede',
-  'suprise': 'surprise',
-  'temperture': 'temperature',
-  'tendancy': 'tendency',
-  'thankyou': 'thank you',
-  'therefor': 'therefore',
-  'thier': 'their',
-  'tomatos': 'tomatoes',
-  'tommorrow': 'tomorrow',
-  'tounge': 'tongue',
-  'truely': 'truly',
-  'unfortunatly': 'unfortunately',
-  'untill': 'until',
-  'unuseual': 'unusual',
-  'usuable': 'usable',
-  'usualy': 'usually',
-  'vaccuum': 'vacuum',
-  'vegetaian': 'vegetarian',
-  'vehical': 'vehicle',
-  'visious': 'vicious',
-  'weird': 'weird',
-  'wether': 'whether',
-  'wierd': 'weird',
-  'writting': 'writing',
-  'yours': 'yours',
-  'zebra': 'zebra',
-  // Additional common misspellings
-  'grat': 'great',
-  'graet': 'great',
-  'lke': 'like',
-  'jone': 'john',
-  'jonh': 'john',
-  'johm': 'john',
-  'micheal': 'michael',
-  'michal': 'michael',
-  'mathew': 'matthew',
-  'steven': 'stephen',
-  'stevan': 'stephen',
-  'sara': 'sarah',
-  'davud': 'david',
-  'robrt': 'robert',
-  'wiliiam': 'william',
-  'jaims': 'james',
-  'richad': 'richard',
-  'josef': 'joseph',
-  'thoms': 'thomas',
-  'charls': 'charles',
-  'christofer': 'christopher',
-  'danial': 'daniel',
-  'mattew': 'matthew',
-  'antony': 'anthony',
-  'marc': 'mark',
-  'donlad': 'donald',
-  'pual': 'paul',
-  'stven': 'steven',
-  'andrw': 'andrew',
-  'joshau': 'joshua',
-  'keneth': 'kenneth',
-  'keven': 'kevin',
-  'bryan': 'brian',
-  'gorge': 'george',
-  'edwad': 'edward',
-  'ronad': 'ronald',
-  'timoth': 'timothy',
-  'jasn': 'jason',
-  'jeffry': 'jeffrey',
-  'ryna': 'ryan',
-  'jaccob': 'jacob',
-  'garey': 'gary',
-  'erik': 'eric',
-  'jonthan': 'jonathan',
-  'stphen': 'stephen',
-  'lary': 'larry',
-  'justn': 'justin',
-  'scot': 'scott',
-  'bradon': 'brandon',
-  'benjamen': 'benjamin',
-  'samual': 'samuel',
-  'raymod': 'raymond',
-  'alexandar': 'alexander',
-  'alexandr': 'alexander',
-  'patric': 'patrick',
-  'jac': 'jack',
-  'denis': 'dennis',
-  'jery': 'jerry',
-  'tyer': 'tyler',
-  'jos': 'jose',
-  'ada': 'adam',
-  'henrey': 'henry',
-  'nathen': 'nathan',
-  'duglas': 'douglas',
-  'petr': 'peter',
-  'kyl': 'kyle',
-  'waltr': 'walter',
-  'ethen': 'ethan',
-  'jermy': 'jeremy',
-  'harod': 'harold',
-  'kieth': 'keith',
-  'christain': 'christian',
-  'logon': 'logan',
-  'alexix': 'alexis',
-  'coln': 'colin',
-  'cody': 'cody',
-  'claton': 'clayton',
-  'shne': 'shane',
-  'camron': 'cameron',
-  'felip': 'felipe',
-  'elijha': 'elijah',
-  'dylun': 'dylan',
-  'jorden': 'jordan',
-  'jacksn': 'jackson',
-  'gavon': 'gavin',
-  'kenedy': 'kennedy',
-  'braxtn': 'braxton',
-  'carsn': 'carson',
-  'huntr': 'hunter',
-  'tristn': 'tristan',
-  'parkr': 'parker',
-  'lincon': 'lincoln',
-  'masn': 'mason',
-  'jaspr': 'jasper',
-  'conor': 'connor',
-  'finly': 'finley',
-  'graysn': 'grayson',
-  'charli': 'charlie',
-  'luek': 'luke',
-  'luk': 'luke'
-}
 
 // Check if a word should be skipped from spell checking
 function shouldSkipSpellCheck(word: string): boolean {
@@ -576,6 +790,7 @@ export async function validateSpelling(
   
   console.log('[validateSpelling] Checking transcript for spelling errors')
   console.log('[validateSpelling] Custom dictionary size:', customDictionary.length)
+  console.log('[validateSpelling] Custom dictionary entries:', customDictionary)
   
   // Initialize spell checker
   const spell = await initializeSpellChecker()
@@ -583,235 +798,177 @@ export async function validateSpelling(
     console.warn('[validateSpelling] Spell checker not available, falling back to manual dictionary')
   }
   
-  // Build Set for valid uncommon words (references + custom dictionary) - O(1) lookup
+  // Build Set for valid uncommon words (references + custom dictionary) - O(1) lookup (case-sensitive)
   const validUncommonWords = new Set<string>()
   
-  // Add company names
+  // Add company names (case-sensitive)
   companyNames.forEach(name => {
     const words = name.split(/\s+/)
-    words.forEach(word => validUncommonWords.add(word.toLowerCase()))
+    words.forEach(word => validUncommonWords.add(word))
   })
   
-  // Add participant names
+  // Add participant names (case-sensitive)
   participants.forEach(p => {
     const words = p.name.split(/\s+/)
-    words.forEach(word => validUncommonWords.add(word.toLowerCase()))
+    words.forEach(word => validUncommonWords.add(word))
   })
   
-  // Add custom dictionary words
-  customDictionary.forEach(word => validUncommonWords.add(word.toLowerCase()))
+  // Add custom dictionary words (case-sensitive)
+  customDictionary.forEach(word => validUncommonWords.add(word))
   
   console.log('[validateSpelling] Valid uncommon words:', Array.from(validUncommonWords).length)
   
   // Cache for spell check results - avoid checking same word multiple times
   const spellCheckCache = new Map<string, boolean>()
-  const suggestionCache = new Map<string, string>()
   
   // Track processed words to avoid duplicates
   const processedWords = new Set<string>()
   
-  let totalWords = 0
   let processedCount = 0
   
-  onProgress?.({ stage: 'spelling', current: 0, total: lines.length, message: 'Checking English spelling...' })
+  onProgress?.({ stage: 'technical', current: 0, total: lines.length, message: 'Checking technical terms...' })
   
   lines.forEach((line, lineIndex) => {
     const words = line.split(/\s+/)
-    totalWords += words.length
     
     words.forEach((word, wordIndex) => {
-      const cleanWord = word.replace(/[^a-zA-Z]/g, '').toLowerCase()
+      const cleanWord = word.replace(/[^a-zA-Z]/g, '')
       
-      // DEBUG: Log word processing
-      if (cleanWord === 'evryone' || cleanWord === 'togther' || cleanWord === 'recieve') {
-        console.log(`[DEBUG] Processing word: "${word}" -> cleanWord: "${cleanWord}"`)
-        console.log(`[DEBUG] shouldSkipSpellCheck: ${shouldSkipSpellCheck(word)}`)
-        console.log(`[DEBUG] cleanWord.length: ${cleanWord.length}`)
-        console.log(`[DEBUG] processedWords.has: ${processedWords.has(cleanWord)}`)
-        console.log(`[DEBUG] validUncommonWords.has: ${validUncommonWords.has(cleanWord)}`)
-      }
+      // Skip very short words early
+      if (cleanWord.length < 2) return
+      
+      // Skip if already processed this word (early exit for duplicates) - case-sensitive
+      if (processedWords.has(cleanWord)) return
+      processedWords.add(cleanWord)
+      
+      processedCount++
       
       // Check for fuzzy match with custom dictionary (misspelled technical terms)
       // This must happen BEFORE skip logic to catch ALL CAPS misspellings like EBTDA -> EBITDA
+      // Use smart matching that ignores common grammatical suffixes (case-sensitive)
+      const normalizedWord = normalizeWordForMatching(cleanWord)
+      
+      // DEBUG: Log specific words we're looking for
+      if (cleanWord === 'ebtida' || cleanWord === 'canacord' || cleanWord === 'ebitda' || cleanWord === 'canaccord' || cleanWord === 'EBITDA' || cleanWord === 'Canaccord') {
+        console.log(`[DEBUG] Checking word: "${cleanWord}" (normalized: "${normalizedWord}")`)
+      }
+      
       for (const customTerm of customDictionary) {
-        const customTermLower = customTerm.toLowerCase()
-        if (cleanWord !== customTermLower) {
-          const similarity = calculateSimilarity(cleanWord, customTerm)
-          if (similarity >= 0.7 && similarity < 1.0) {
-            const lineStart = line.indexOf(word)
-            console.log(`[validateSpelling] Found misspelled custom term: "${cleanWord}" -> "${customTerm}" at line ${lineIndex + 1}`)
+        const normalizedTerm = normalizeWordForMatching(customTerm)
+        
+        // DEBUG: Log when comparing specific terms
+        if ((cleanWord === 'ebtida' || cleanWord === 'canacord' || cleanWord === 'cannacord' || cleanWord === 'EBITDA' || cleanWord === 'Canaccord') && (customTerm === 'EBITDA' || customTerm === 'Canaccord')) {
+          console.log(`[DEBUG] Comparing: "${cleanWord}" -> "${customTerm}"`)
+          console.log(`[DEBUG] Normalized: "${normalizedWord}" -> "${normalizedTerm}"`)
+          console.log(`[DEBUG] Exact match: ${cleanWord === customTerm}`)
+        }
+        
+        // Case-sensitive exact match check
+        if (cleanWord !== customTerm) {
+          // Check if it's a case mismatch (same letters, different case)
+          // This should be flagged as an issue with 100% similarity
+          if (cleanWord.toLowerCase() === customTerm.toLowerCase()) {
+            // Calculate column: position of original word in line + position of cleanWord within original word
+            const wordStart = line.indexOf(word)
+            const cleanWordStart = word.indexOf(cleanWord)
+            const column = wordStart + cleanWordStart + 1
+            console.log(`[validateSpelling] Found case mismatch: "${cleanWord}" -> "${customTerm}" at line ${lineIndex + 1}`)
             issues.push({
               id: `spelling-custom-${lineIndex}-${wordIndex}`,
               category: 'spelling',
-              foundText: word,
+              ruleName: 'Technical Dictionary',
+              severity: 'medium',
+              foundText: cleanWord,
               suggestedCorrection: customTerm,
               line: lineIndex + 1,
-              column: lineStart + 1,
+              column: column,
               ignored: false
             })
-            processedWords.add(cleanWord)
-            processedCount++
             return // Exit early after finding a match
+          }
+          
+          // Use strict fuzzy matching conditions for technical dictionary (case-sensitive)
+          if (shouldFuzzyMatch(cleanWord, customTerm, normalizedWord, normalizedTerm)) {
+            const similarity = calculateSimilarity(normalizedWord, normalizedTerm)
+            
+            // DEBUG: Log similarity for specific comparisons
+            if ((cleanWord === 'ebtida' || cleanWord === 'canacord' || cleanWord === 'cannacord') && (customTerm === 'EBITDA' || customTerm === 'Canaccord')) {
+              console.log(`[DEBUG] Similarity: ${similarity.toFixed(2)} (threshold: 0.65)`)
+              console.log(`[DEBUG] Passes threshold: ${similarity >= 0.65}`)
+            }
+            
+            // Use 65% threshold for Technical Dictionary (lower than 92% for names)
+            // Technical terms are more distinctive and less prone to false positives
+            // EBTIDA → EBITDA is 67% similarity, so we need at least 65%
+            if (similarity >= 0.65 && similarity < 1.0) {
+              // Calculate column: position of original word in line + position of cleanWord within original word
+              const wordStart = line.indexOf(word)
+              const cleanWordStart = word.indexOf(cleanWord)
+              const column = wordStart + cleanWordStart + 1
+              console.log(`[validateSpelling] Found misspelled custom term: "${cleanWord}" -> "${customTerm}" at line ${lineIndex + 1} (similarity: ${similarity.toFixed(2)})`)
+              issues.push({
+                id: `spelling-custom-${lineIndex}-${wordIndex}`,
+                category: 'spelling',
+                ruleName: 'Technical Dictionary',
+                severity: 'medium',
+                foundText: cleanWord, // Use cleanWord without punctuation for accurate highlighting
+                suggestedCorrection: customTerm,
+                line: lineIndex + 1,
+                column: column,
+                ignored: false
+              })
+              return // Exit early after finding a match
+            }
+          } else {
+            // DEBUG: Log why fuzzy match failed
+            if ((cleanWord === 'ebtida' || cleanWord === 'canacord') && (customTerm === 'EBITDA' || customTerm === 'Canaccord')) {
+              console.log(`[DEBUG] shouldFuzzyMatch returned FALSE`)
+              console.log(`[DEBUG] First letter match: ${word[0].toLowerCase() === customTerm[0].toLowerCase()}`)
+              console.log(`[DEBUG] Length diff: ${Math.abs(word.length - customTerm.length)}`)
+              console.log(`[DEBUG] Is common English word: ${commonEnglishWords.has(normalizedTerm)}`)
+            }
           }
         }
       }
       
       // Skip if word should not be spell checked
-      if (shouldSkipSpellCheck(word)) {
-        if (cleanWord === 'evryone' || cleanWord === 'togther' || cleanWord === 'recieve') {
-          console.log(`[DEBUG] SKIPPED by shouldSkipSpellCheck: "${word}"`)
-        }
-        return
-      }
+      if (shouldSkipSpellCheck(word)) return
       
-      // Skip very short words
-      if (cleanWord.length < 2) {
-        if (cleanWord === 'evryone' || cleanWord === 'togther' || cleanWord === 'recieve') {
-          console.log(`[DEBUG] SKIPPED by length check: "${cleanWord}"`)
-        }
-        return
-      }
-      
-      // Skip if already processed this word
-      if (processedWords.has(cleanWord)) {
-        if (cleanWord === 'evryone' || cleanWord === 'togther' || cleanWord === 'recieve') {
-          console.log(`[DEBUG] SKIPPED by processedWords: "${cleanWord}"`)
-        }
-        return
-      }
-      processedWords.add(cleanWord)
-      
-      processedCount++
-      
-      // Check if it's a valid uncommon word (reference or custom dict) - no action needed
-      if (validUncommonWords.has(cleanWord)) {
-        if (cleanWord === 'evryone' || cleanWord === 'togther' || cleanWord === 'recieve') {
-          console.log(`[DEBUG] SKIPPED by validUncommonWords: "${cleanWord}"`)
-        }
-        return
-      }
+      // Check if it's a valid uncommon word (reference or custom dict) - early exit
+      if (validUncommonWords.has(cleanWord)) return
       
       // Check if it's a common English word using typo-js (with cache)
       let isCorrect = false
       if (spellCheckCache.has(cleanWord)) {
         isCorrect = spellCheckCache.get(cleanWord)!
-        if (cleanWord === 'evryone' || cleanWord === 'togther' || cleanWord === 'recieve') {
-          console.log(`[DEBUG] Cache hit for "${cleanWord}": ${isCorrect}`)
-        }
       } else if (spell) {
         isCorrect = spell.check(cleanWord)
         spellCheckCache.set(cleanWord, isCorrect)
-        if (cleanWord === 'evryone' || cleanWord === 'togther' || cleanWord === 'recieve') {
-          console.log(`[DEBUG] Spell check for "${cleanWord}": ${isCorrect}`)
-        }
       } else if (englishDictionary.has(cleanWord)) {
         isCorrect = true
         spellCheckCache.set(cleanWord, true)
-        if (cleanWord === 'evryone' || cleanWord === 'togther' || cleanWord === 'recieve') {
-          console.log(`[DEBUG] Manual dictionary hit for "${cleanWord}"`)
-        }
       }
       
-      if (isCorrect) {
-        if (cleanWord === 'evryone' || cleanWord === 'togther' || cleanWord === 'recieve') {
-          console.log(`[DEBUG] SKIPPED because isCorrect=true: "${cleanWord}"`)
-        }
-        return
-      }
+      if (isCorrect) return
       
-      if (cleanWord === 'evryone' || cleanWord === 'togther' || cleanWord === 'recieve') {
-        console.log(`[DEBUG] Word "${cleanWord}" passed all checks, checking for suggestions...`)
-      }
-      
-      // Check if it's a common misspelling - add to issues
-      if (commonMisspellings[cleanWord]) {
-        const suggestedCorrection = commonMisspellings[cleanWord]
-        
-        // Skip if the only difference is capitalization
-        if (cleanWord === suggestedCorrection.toLowerCase()) {
-          return
-        }
-        
-        const lineStart = line.indexOf(word)
-        console.log(`[validateSpelling] Found misspelling: ${cleanWord} -> ${suggestedCorrection} at line ${lineIndex + 1}`)
-        issues.push({
-          id: `spelling-${lineIndex}-${wordIndex}`,
-          category: 'spelling',
-          foundText: word,
-          suggestedCorrection: suggestedCorrection,
-          line: lineIndex + 1,
-          column: lineStart + 1,
-          ignored: false
-        })
-      } else if (spell && !spell.check(cleanWord)) {
-        // Use typo-js to get suggestions for misspelled words (with cache)
-        let suggestedCorrection = suggestionCache.get(cleanWord)
-        if (!suggestedCorrection) {
-          const suggestions = spell.suggest(cleanWord)
-          if (cleanWord === 'evryone' || cleanWord === 'togther' || cleanWord === 'recieve') {
-            console.log(`[DEBUG] Suggestions for "${cleanWord}":`, suggestions)
-          }
-          if (suggestions && suggestions.length > 0) {
-            // Only use suggestion if it's reasonably similar (high confidence)
-            const similarity = calculateSimilarity(cleanWord, suggestions[0])
-            if (cleanWord === 'evryone' || cleanWord === 'togther' || cleanWord === 'recieve') {
-              console.log(`[DEBUG] Similarity with "${suggestions[0]}": ${similarity}`)
-            }
-            if (similarity >= 0.7) {
-              suggestedCorrection = suggestions[0]
-              suggestionCache.set(cleanWord, suggestedCorrection)
-            }
-          }
-        }
-        
-        if (suggestedCorrection) {
-          const lineStart = line.indexOf(word)
-          console.log(`[validateSpelling] Found misspelling via typo-js: ${cleanWord} -> ${suggestedCorrection} at line ${lineIndex + 1}`)
-          issues.push({
-            id: `spelling-typo-${lineIndex}-${wordIndex}`,
-            category: 'spelling',
-            foundText: word,
-            suggestedCorrection: suggestedCorrection,
-            line: lineIndex + 1,
-            column: lineStart + 1,
-            ignored: false
-          })
-        }
-      }
+      // Word is not valid English, but we don't add it as an issue here
+      // Issues are only added from:
+      // 1. Technical Dictionary fuzzy matching (already handled above)
+      // 2. Admin Hub style/formatting rules (handled in applyStyleRules)
+      // 3. Extracted references validation (handled in validateSpeakerLabels/validateBodyNames/validateCompanyNames)
     })
     
     // Update progress
     if (lineIndex % 10 === 0) {
-      onProgress?.({ stage: 'spelling', current: lineIndex + 1, total: lines.length, message: `Checking English spelling... (${lineIndex + 1}/${lines.length})` })
+      onProgress?.({ stage: 'technical', current: lineIndex + 1, total: lines.length, message: `Checking technical terms... (${lineIndex + 1}/${lines.length})` })
     }
   })
   
-  // Check for double dash repeated words pattern: word -- word (whole words only)
-  const doubleDashRegex = /\b(\w+)\s*--\s*\1\b/gi
-  let match
-  while ((match = doubleDashRegex.exec(transcript)) !== null) {
-    const line = transcript.substring(0, match.index).split('\n').length
-    const lineStart = transcript.lastIndexOf('\n', match.index - 1) + 1
-    const column = match.index - lineStart + 1
-    
-    console.log(`[validateSpelling] Found double dash pattern: "${match[0]}" at line ${line}`)
-    
-    issues.push({
-      id: `formatting-double-dash-${match.index}`,
-      category: 'formatting',
-      foundText: match[0],
-      suggestedCorrection: match[1],
-      line,
-      column,
-      ignored: false
-    })
-  }
-  
   const endTime = performance.now()
   const validationTime = Math.round(endTime - startTime)
-  console.log(`[validateSpelling] Total spelling issues found: ${issues.length}`)
+  console.log(`[validateSpelling] Total technical dictionary issues found: ${issues.length}`)
   console.log(`[validateSpelling] Validation time: ${validationTime}ms`)
-  console.log(`[validateSpelling] Words processed: ${processedCount}/${totalWords}`)
+  console.log(`[validateSpelling] Unique words processed: ${processedCount}`)
   console.log(`[validateSpelling] Cache hit rate: ${spellCheckCache.size > 0 ? Math.round((processedCount - spellCheckCache.size) / processedCount * 100) : 0}%`)
   
   return issues
@@ -886,10 +1043,20 @@ export async function getValidUncommonWords(
   return uncommonWords
 }
 export function validateCompanyNames(transcript: string, companyNames: string[]): ValidationIssue[] {
+  const startTime = performance.now()
   const issues: ValidationIssue[] = []
   const lines = transcript.split('\n')
   
-  if (companyNames.length === 0) return issues
+  console.log('[validateCompanyNames] Company names:', companyNames)
+  
+  if (companyNames.length === 0) {
+    console.log('[validateCompanyNames] No company names to validate')
+    console.log(`[PERF] Company Validation: ${Math.round(performance.now() - startTime)}ms`)
+    return issues
+  }
+  
+  // Build Set for fast exact match lookup (case-sensitive)
+  const companyNamesSet = new Set(companyNames.map(n => n.replace(/[^a-zA-Z0-9]/g, '')))
   
   // Check each line for company name mentions
   lines.forEach((line, lineIndex) => {
@@ -897,47 +1064,58 @@ export function validateCompanyNames(transcript: string, companyNames: string[])
     
     words.forEach((word, wordIndex) => {
       const cleanWord = word.replace(/[^a-zA-Z0-9]/g, '')
+      if (cleanWord.length < 2) return
+      
+      // Skip if exact match (case-sensitive)
+      if (companyNamesSet.has(cleanWord)) return
+      
+      const normalizedWord = normalizeWordForMatching(cleanWord)
       
       for (const companyName of companyNames) {
         const cleanCompany = companyName.replace(/[^a-zA-Z0-9]/g, '')
+        const normalizedCompany = normalizeWordForMatching(cleanCompany)
         
-        // Skip if it's an exact match (case-insensitive)
-        if (cleanWord.toLowerCase() === cleanCompany.toLowerCase()) {
-          continue
-        }
-        
-        // Check for fuzzy match
-        const similarity = calculateSimilarity(cleanWord, cleanCompany)
-        
-        // Only suggest if similarity is high enough but not just a capitalization difference
-        if (similarity >= 0.7 && similarity < 0.95) {
-          // Skip if the only difference is capitalization
-          if (cleanWord.toLowerCase() === cleanCompany.toLowerCase()) {
-            continue
-          }
+        // Use strict fuzzy matching conditions (case-sensitive)
+        if (shouldFuzzyMatch(cleanWord, cleanCompany, normalizedWord, normalizedCompany)) {
+          const similarity = calculateSimilarity(normalizedWord, normalizedCompany)
           
-          const lineStart = line.indexOf(word)
-          issues.push({
-            id: `company-${lineIndex}-${wordIndex}`,
-            category: 'company',
-            foundText: word,
-            suggestedCorrection: companyName,
-            line: lineIndex + 1,
-            column: lineStart + 1,
-            ignored: false
-          })
+          // Only suggest if similarity is very high (>= 92%)
+          if (similarity >= 0.92 && similarity < 1.0) {
+            // Calculate column: position of original word in line + position of cleanWord within original word
+            const wordStart = line.indexOf(word)
+            const cleanWordStart = word.indexOf(cleanWord)
+            const column = wordStart + cleanWordStart + 1
+            console.log(`[validateCompanyNames] Found misspelled company: "${cleanWord}" -> "${companyName}" at line ${lineIndex + 1} (similarity: ${similarity.toFixed(2)})`)
+            issues.push({
+              id: `company-${lineIndex}-${wordIndex}`,
+              category: 'company',
+              ruleName: 'Company Name Validation',
+              severity: 'high',
+              foundText: cleanWord, // Use cleanWord without punctuation for accurate highlighting
+              suggestedCorrection: companyName,
+              line: lineIndex + 1,
+              column: column,
+              ignored: false
+            })
+            return // Only add one issue per word
+          }
         }
       }
     })
   })
   
+  console.log(`[validateCompanyNames] Total company issues found: ${issues.length}`)
+  console.log(`[PERF] Company Validation: ${Math.round(performance.now() - startTime)}ms`)
   return issues
 }
 
 // Apply style and formatting rules
 export function applyStyleRules(transcript: string, rules: ValidationRule[]): ValidationIssue[] {
+  const startTime = performance.now()
   const issues: ValidationIssue[] = []
   const enabledRules = rules.filter(r => r.enabled)
+  
+  console.log('[applyStyleRules] Rules to apply:', enabledRules.length)
   
   enabledRules.forEach(rule => {
     const regex = new RegExp(rule.find.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi')
@@ -959,6 +1137,8 @@ export function applyStyleRules(transcript: string, rules: ValidationRule[]): Va
       issues.push({
         id: `${category}-${rule.id}-${matchCount}`,
         category,
+        ruleName: rule.rule_name,
+        severity: rule.severity || 'medium',
         foundText: match[0],
         suggestedCorrection: rule.replace,
         line,
@@ -968,6 +1148,8 @@ export function applyStyleRules(transcript: string, rules: ValidationRule[]): Va
     }
   })
   
+  console.log(`[applyStyleRules] Total style/formatting issues found: ${issues.length}`)
+  console.log(`[PERF] Style Rules: ${Math.round(performance.now() - startTime)}ms`)
   return issues
 }
 
@@ -976,10 +1158,22 @@ export async function validateTranscript(
   transcript: string,
   rules: ValidationRule[],
   customDictionary: string[] = [],
+  department: string = 'all',
   onProgress?: (progress: ValidationProgress) => void
 ): Promise<ValidationIssue[]> {
   const startTime = performance.now()
   const allIssues: ValidationIssue[] = []
+  
+  console.log('[DEBUG] validateTranscript() called')
+  console.log('[DEBUG] Department:', department)
+  console.log('[DEBUG] Technical Dictionary passed in:')
+  console.log(`[DEBUG] Count: ${customDictionary.length}`)
+  console.log('[DEBUG] Entries:', customDictionary)
+  
+  // Filter rules by department
+  const filteredRules = department === 'all' 
+    ? rules 
+    : rules.filter(r => r.department === department || r.department === 'all')
   
   onProgress?.({ stage: 'extracting', current: 0, total: 100, message: 'Extracting references...' })
   const extractStart = performance.now()
@@ -989,12 +1183,15 @@ export async function validateTranscript(
   console.log(`[PERF] Extract References: ${extractTime}ms`)
   
   onProgress?.({ stage: 'names', current: 1, total: 100, message: 'Checking participant names...' })
-  const namesStart = performance.now()
-  // Validate names
-  const nameIssues = validateNames(transcript, participants)
-  allIssues.push(...nameIssues)
-  const namesTime = Math.round(performance.now() - namesStart)
-  console.log(`[PERF] Participant Validation: ${namesTime}ms`)
+  const NamesStart = performance.now()
+  // Validate speaker labels
+  const speakerLabelIssues = validateSpeakerLabels(transcript, participants)
+  allIssues.push(...speakerLabelIssues)
+  // Validate body names
+  const bodyNameIssues = validateBodyNames(transcript, participants, customDictionary)
+  allIssues.push(...bodyNameIssues)
+  const namesTime = Math.round(performance.now() - NamesStart)
+  console.log(`[PERF] Name Validation: ${namesTime}ms`)
   
   onProgress?.({ stage: 'companies', current: 2, total: 100, message: 'Checking company names...' })
   const companiesStart = performance.now()
@@ -1014,8 +1211,8 @@ export async function validateTranscript(
   
   onProgress?.({ stage: 'style', current: 4, total: 100, message: 'Applying style rules...' })
   const styleStart = performance.now()
-  // Apply style rules
-  const styleIssues = applyStyleRules(transcript, rules)
+  // Apply style rules (filtered by department)
+  const styleIssues = applyStyleRules(transcript, filteredRules)
   allIssues.push(...styleIssues)
   const styleTime = Math.round(performance.now() - styleStart)
   console.log(`[PERF] Style Rules: ${styleTime}ms`)
