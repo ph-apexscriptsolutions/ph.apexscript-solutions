@@ -343,9 +343,9 @@ export default function DashboardPage() {
         if (error) {
           // Table might not exist yet, that's okay
           console.log('[DEBUG] Custom dictionary table not yet created or error loading:', error.message)
-          setCustomDictionary(!error.message.includes('does not exist') ? (data?.map(d => d.term) || []) : [])
+          setCustomDictionary(!error.message.includes('does not exist') ? ((data as any)?.map((d: { term: string }) => d.term) || []) : [])
         } else {
-          const terms = data?.map(d => d.term) || []
+          const terms = (data as any)?.map((d: { term: string }) => d.term) || []
           console.log('[DEBUG] Technical Dictionary Loaded:')
           console.log(`[DEBUG] Count: ${terms.length}`)
           console.log('[DEBUG] Entries:', terms)
