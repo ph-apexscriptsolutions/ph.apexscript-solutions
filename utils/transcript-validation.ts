@@ -1153,6 +1153,191 @@ export function applyStyleRules(transcript: string, rules: ValidationRule[]): Va
   return issues
 }
 
+// Detect repeated words in transcript
+export function detectRepeatedWords(transcript: string): ValidationIssue[] {
+  const startTime = performance.now()
+  const issues: ValidationIssue[] = []
+  const lines = transcript.split('\n')
+  
+  console.log('[detectRepeatedWords] Checking for repeated words')
+  
+  lines.forEach((line, lineIndex) => {
+    const words = line.split(/\s+/)
+    
+    for (let i = 0; i < words.length - 1; i++) {
+      const currentWord = words[i].replace(/[^a-zA-Z]/g, '').toLowerCase()
+      const nextWord = words[i + 1].replace(/[^a-zA-Z]/g, '').toLowerCase()
+      
+      // Skip very short words
+      if (currentWord.length < 2 || nextWord.length < 2) continue
+      
+      // Check if current word equals next word (repeated)
+      if (currentWord === nextWord) {
+        // Calculate column position
+        let column = 0
+        for (let k = 0; k <= i; k++) {
+          column += words[k].length + 1 // +1 for space
+        }
+        column -= words[i].length // Adjust to start of current word
+        
+        console.log(`[detectRepeatedWords] Found repeated word: "${words[i]}" at line ${lineIndex + 1}`)
+        
+        issues.push({
+          id: `repeated-word-${lineIndex}-${i}`,
+          category: 'style',
+          ruleName: 'Repeated Words',
+          severity: 'medium',
+          foundText: words[i],
+          suggestedCorrection: words[i], // Suggest removing the duplicate
+          line: lineIndex + 1,
+          column: column + 1,
+          ignored: false
+        })
+      }
+    }
+  })
+  
+  console.log(`[detectRepeatedWords] Total repeated word issues found: ${issues.length}`)
+  console.log(`[PERF] Repeated Words Detection: ${Math.round(performance.now() - startTime)}ms`)
+  return issues
+}
+
+// Validate Senate Hearing participant names (Sen. format)
+export function validateSenateParticipantNames(transcript: string): ValidationIssue[] {
+  const startTime = performance.now()
+  const issues: ValidationIssue[] = []
+  const lines = transcript.split('\n')
+  
+  console.log('[validateSenateParticipantNames] Checking Senate participant names')
+  
+  lines.forEach((line, lineIndex) => {
+    // Pattern for Senate participants: Sen. Name, R-State or D-State
+    const senatePattern = /Sen\.\s+([A-Za-z\s]+),\s+([RD])-[A-Za-z]{2,3}\.?/i
+    
+    const match = line.match(senatePattern)
+    if (match) {
+      const fullName = match[1].trim()
+      const parts = fullName.split(/\s+/)
+      
+      // Check if name has at least first and last name
+      if (parts.length < 2) {
+        const column = line.indexOf(match[0]) + 1
+        console.log(`[validateSenateParticipantNames] Incomplete participant name at line ${lineIndex + 1}`)
+        
+        issues.push({
+          id: `senate-participant-${lineIndex}`,
+          category: 'name',
+          ruleName: 'Senate Participant Name',
+          severity: 'medium',
+          foundText: match[0],
+          suggestedCorrection: 'Sen. [First Last], [R/D]-[State]',
+          line: lineIndex + 1,
+          column,
+          ignored: false
+        })
+      }
+      
+      // Check for proper capitalization
+      const capitalizedParts = parts.map(part => 
+        part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()
+      )
+      const expectedName = capitalizedParts.join(' ')
+      
+      if (fullName !== expectedName) {
+        const column = line.indexOf(fullName) + 1
+        console.log(`[validateSenateParticipantNames] Capitalization issue at line ${lineIndex + 1}`)
+        
+        issues.push({
+          id: `senate-capitalization-${lineIndex}`,
+          category: 'name',
+          ruleName: 'Senate Name Capitalization',
+          severity: 'low',
+          foundText: fullName,
+          suggestedCorrection: expectedName,
+          line: lineIndex + 1,
+          column,
+          ignored: false
+        })
+      }
+    }
+  })
+  
+  console.log(`[validateSenateParticipantNames] Total issues found: ${issues.length}`)
+  console.log(`[PERF] Senate Participant Validation: ${Math.round(performance.now() - startTime)}ms`)
+  return issues
+}
+
+// Validate Senate Hearing witness names (Dr. format)
+export function validateSenateWitnessNames(transcript: string): ValidationIssue[] {
+  const startTime = performance.now()
+  const issues: ValidationIssue[] = []
+  const lines = transcript.split('\n')
+  
+  console.log('[validateSenateWitnessNames] Checking Senate witness names')
+  
+  lines.forEach((line, lineIndex) => {
+    // Pattern for Senate witnesses: Dr. Name, to be [position]
+    const witnessPattern = /Dr\.\s+([A-Za-z\s\.-]+),\s+to\s+be\s+[A-Za-z\s]+/i
+    
+    const match = line.match(witnessPattern)
+    if (match) {
+      const fullName = match[1].trim()
+      const parts = fullName.split(/\s+/)
+      
+      // Check if name has at least first and last name
+      if (parts.length < 2) {
+        const column = line.indexOf(match[0]) + 1
+        console.log(`[validateSenateWitnessNames] Incomplete witness name at line ${lineIndex + 1}`)
+        
+        issues.push({
+          id: `senate-witness-${lineIndex}`,
+          category: 'name',
+          ruleName: 'Senate Witness Name',
+          severity: 'medium',
+          foundText: match[0],
+          suggestedCorrection: 'Dr. [First Last], to be [Position]',
+          line: lineIndex + 1,
+          column,
+          ignored: false
+        })
+      }
+      
+      // Check for proper capitalization
+      const capitalizedParts = parts.map(part => {
+        // Handle hyphenated names
+        if (part.includes('-')) {
+          return part.split('-').map(subPart => 
+            subPart.charAt(0).toUpperCase() + subPart.slice(1).toLowerCase()
+          ).join('-')
+        }
+        return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()
+      })
+      const expectedName = capitalizedParts.join(' ')
+      
+      if (fullName !== expectedName) {
+        const column = line.indexOf(fullName) + 1
+        console.log(`[validateSenateWitnessNames] Capitalization issue at line ${lineIndex + 1}`)
+        
+        issues.push({
+          id: `senate-witness-capitalization-${lineIndex}`,
+          category: 'name',
+          ruleName: 'Senate Witness Capitalization',
+          severity: 'low',
+          foundText: fullName,
+          suggestedCorrection: expectedName,
+          line: lineIndex + 1,
+          column,
+          ignored: false
+        })
+      }
+    }
+  })
+  
+  console.log(`[validateSenateWitnessNames] Total issues found: ${issues.length}`)
+  console.log(`[PERF] Senate Witness Validation: ${Math.round(performance.now() - startTime)}ms`)
+  return issues
+}
+
 // Main validation function
 export async function validateTranscript(
   transcript: string,
@@ -1170,17 +1355,12 @@ export async function validateTranscript(
   console.log(`[DEBUG] Count: ${customDictionary.length}`)
   console.log('[DEBUG] Entries:', customDictionary)
   
-  // Only apply transcript validation for Conference/Earnings call department
-  // Other departments have different format and styleguide requirements
+  // Only apply built-in validation (speaker labels, body names, companies) for Conference/Earnings call department
+  // Other departments use custom rules from Admin Hub only
   const normalizedDepartment = department.toLowerCase().replace(/\s+/g, '')
-  if (normalizedDepartment !== 'conference/earningscall' && normalizedDepartment !== 'conference') {
-    console.log('[DEBUG] Skipping transcript validation - not Conference/Earnings call department')
-    console.log('[DEBUG] Current department:', department)
-    console.log('[DEBUG] Normalized department:', normalizedDepartment)
-    return []
-  }
+  const isConferenceDepartment = normalizedDepartment === 'conference/earningscall' || normalizedDepartment === 'conference'
   
-  // Filter rules by department
+  // Filter rules by department (custom rules from Admin Hub)
   const filteredRules = department === 'all' 
     ? rules 
     : rules.filter(r => r.department === department || r.department === 'all')
@@ -1192,32 +1372,49 @@ export async function validateTranscript(
   const extractTime = Math.round(performance.now() - extractStart)
   console.log(`[PERF] Extract References: ${extractTime}ms`)
   
-  onProgress?.({ stage: 'names', current: 1, total: 100, message: 'Checking participant names...' })
-  const NamesStart = performance.now()
-  // Validate speaker labels
-  const speakerLabelIssues = validateSpeakerLabels(transcript, participants)
-  allIssues.push(...speakerLabelIssues)
-  // Validate body names
-  const bodyNameIssues = validateBodyNames(transcript, participants, customDictionary)
-  allIssues.push(...bodyNameIssues)
-  const namesTime = Math.round(performance.now() - NamesStart)
-  console.log(`[PERF] Name Validation: ${namesTime}ms`)
-  
-  onProgress?.({ stage: 'companies', current: 2, total: 100, message: 'Checking company names...' })
-  const companiesStart = performance.now()
-  // Validate company names
-  const companyIssues = validateCompanyNames(transcript, companyNames)
-  allIssues.push(...companyIssues)
-  const companiesTime = Math.round(performance.now() - companiesStart)
-  console.log(`[PERF] Company Validation: ${companiesTime}ms`)
-  
-  onProgress?.({ stage: 'technical', current: 3, total: 100, message: 'Checking technical terms...' })
-  const spellingStart = performance.now()
-  // Validate spelling (now async with progress)
-  const spellingIssues = await validateSpelling(transcript, participants, companyNames, customDictionary, onProgress)
-  allIssues.push(...spellingIssues)
-  const spellingTime = Math.round(performance.now() - spellingStart)
-  console.log(`[PERF] English Spell Check: ${spellingTime}ms`)
+  // Only apply built-in validation for Conference/Earnings call department
+  let namesTime = 0, companiesTime = 0, spellingTime = 0
+  let senateTime = 0
+  if (isConferenceDepartment) {
+    onProgress?.({ stage: 'names', current: 1, total: 100, message: 'Checking participant names...' })
+    const NamesStart = performance.now()
+    // Validate speaker labels
+    const speakerLabelIssues = validateSpeakerLabels(transcript, participants)
+    allIssues.push(...speakerLabelIssues)
+    // Validate body names
+    const bodyNameIssues = validateBodyNames(transcript, participants, customDictionary)
+    allIssues.push(...bodyNameIssues)
+    namesTime = Math.round(performance.now() - NamesStart)
+    console.log(`[PERF] Name Validation: ${namesTime}ms`)
+    
+    onProgress?.({ stage: 'companies', current: 2, total: 100, message: 'Checking company names...' })
+    const companiesStart = performance.now()
+    // Validate company names
+    const companyIssues = validateCompanyNames(transcript, companyNames)
+    allIssues.push(...companyIssues)
+    companiesTime = Math.round(performance.now() - companiesStart)
+    console.log(`[PERF] Company Validation: ${companiesTime}ms`)
+    
+    onProgress?.({ stage: 'technical', current: 3, total: 100, message: 'Checking technical terms...' })
+    const spellingStart = performance.now()
+    // Validate spelling (now async with progress)
+    const spellingIssues = await validateSpelling(transcript, participants, companyNames, customDictionary, onProgress)
+    allIssues.push(...spellingIssues)
+    spellingTime = Math.round(performance.now() - spellingStart)
+    console.log(`[PERF] English Spell Check: ${spellingTime}ms`)
+  } else if (normalizedDepartment === 'senate' || normalizedDepartment === 'senatehearing/political') {
+    // Apply Senate Hearing specific validation
+    onProgress?.({ stage: 'senate', current: 1, total: 100, message: 'Checking Senate participant names...' })
+    const senateStart = performance.now()
+    const senateParticipantIssues = validateSenateParticipantNames(transcript)
+    allIssues.push(...senateParticipantIssues)
+    const senateWitnessIssues = validateSenateWitnessNames(transcript)
+    allIssues.push(...senateWitnessIssues)
+    senateTime = Math.round(performance.now() - senateStart)
+    console.log(`[PERF] Senate Validation: ${senateTime}ms`)
+  } else {
+    console.log('[DEBUG] Skipping built-in validation - not Conference/Earnings call or Senate department')
+  }
   
   onProgress?.({ stage: 'style', current: 4, total: 100, message: 'Applying style rules...' })
   const styleStart = performance.now()
@@ -1227,11 +1424,19 @@ export async function validateTranscript(
   const styleTime = Math.round(performance.now() - styleStart)
   console.log(`[PERF] Style Rules: ${styleTime}ms`)
   
+  onProgress?.({ stage: 'repeated', current: 5, total: 100, message: 'Checking for repeated words...' })
+  const repeatedStart = performance.now()
+  // Detect repeated words
+  const repeatedWordIssues = detectRepeatedWords(transcript)
+  allIssues.push(...repeatedWordIssues)
+  const repeatedTime = Math.round(performance.now() - repeatedStart)
+  console.log(`[PERF] Repeated Words: ${repeatedTime}ms`)
+  
   const endTime = performance.now()
   const validationTime = Math.round(endTime - startTime)
   console.log(`[validateTranscript] Total validation time: ${validationTime}ms`)
   console.log(`[validateTranscript] Total issues found: ${allIssues.length}`)
-  console.log(`[PERF] Breakdown: Extract=${extractTime}ms, Names=${namesTime}ms, Companies=${companiesTime}ms, Spelling=${spellingTime}ms, Style=${styleTime}ms`)
+  console.log(`[PERF] Breakdown: Extract=${extractTime}ms, Names=${namesTime}ms, Companies=${companiesTime}ms, Spelling=${spellingTime}ms, Senate=${senateTime}ms, Style=${styleTime}ms, Repeated=${repeatedTime}ms`)
   
   onProgress?.({ stage: 'complete', current: 100, total: 100, message: `Validation complete (${validationTime}ms)` })
   
