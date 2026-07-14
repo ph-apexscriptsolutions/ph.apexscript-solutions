@@ -5728,10 +5728,10 @@ export default function DashboardPage() {
 
       {isEditWorkerModalOpen && activeWorker && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 relative">
-            <button onClick={() => setIsEditWorkerModalOpen(false)} className="absolute right-4 top-4 text-zinc-400 hover:text-zinc-900"><X className="h-5 w-5" /></button>
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 relative max-h-[90vh] flex flex-col">
+            <button onClick={() => setIsEditWorkerModalOpen(false)} className="absolute right-4 top-4 text-zinc-400 hover:text-zinc-900 z-10"><X className="h-5 w-5" /></button>
             <h3 className="text-lg font-semibold text-zinc-900 mb-4">Edit Worker Details</h3>
-            <form onSubmit={handleSaveWorkerDetails} className="space-y-4">
+            <form onSubmit={handleSaveWorkerDetails} className="space-y-4 overflow-y-auto flex-1 pr-2">
               <div>
                 <label className="block text-sm font-medium text-zinc-700 mb-1">Full Name</label>
                 <input type="text" value={editWorkerForm.fullName} onChange={(e) => setEditWorkerForm({ ...editWorkerForm, fullName: e.target.value })} className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm" required />
@@ -5793,13 +5793,13 @@ export default function DashboardPage() {
                   ))}
                 </div>
               </div>
-              <div className="flex gap-3 mt-6">
-                <button type="button" onClick={() => setIsEditWorkerModalOpen(false)} className="flex-1 rounded-md border border-zinc-300 bg-white px-5 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-100 transition">Cancel</button>
-                <button type="submit" disabled={isUpdatingWorkerDetails} className="flex-1 inline-flex items-center justify-center gap-2 rounded-md bg-gradient-to-r from-cyan-600 to-sky-600 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-cyan-600/20 hover:from-cyan-700 hover:to-sky-700 disabled:opacity-50">
-                  {isUpdatingWorkerDetails ? 'Saving...' : <span className="flex items-center gap-2"><Save className="h-4 w-4" /> Save</span>}
-                </button>
-              </div>
             </form>
+            <div className="flex gap-3 mt-6 pt-4 border-t border-zinc-200">
+              <button type="button" onClick={() => setIsEditWorkerModalOpen(false)} className="flex-1 rounded-md border border-zinc-300 bg-white px-5 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-100 transition">Cancel</button>
+              <button type="button" onClick={handleSaveWorkerDetails} disabled={isUpdatingWorkerDetails} className="flex-1 inline-flex items-center justify-center gap-2 rounded-md bg-gradient-to-r from-cyan-600 to-sky-600 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-cyan-600/20 hover:from-cyan-700 hover:to-sky-700 disabled:opacity-50">
+                {isUpdatingWorkerDetails ? 'Saving...' : <span className="flex items-center gap-2"><Save className="h-4 w-4" /> Save</span>}
+              </button>
+            </div>
           </div>
         </div>
       )}
