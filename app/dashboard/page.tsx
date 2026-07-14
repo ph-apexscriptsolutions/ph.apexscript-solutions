@@ -7,6 +7,7 @@ import { FileText, HardDrive, LogOut, Calendar, X, Pencil, Save, User, ArrowLeft
 import AdminChat from '@/components/admin-chat'
 import WorkerRealtimeChat from '@/components/worker-realtime-chat'
 import { FlagIcon } from "@/components/flag-icon"
+import TranscriptCleanup from '@/components/TranscriptCleanup'
 import { validateTranscript, replaceInTranscript, getHighlightClass, validationHighlightStyles, ValidationIssue, ValidationRule, Participant, extractParticipants, getValidUncommonWords, extractSenateSpeakers } from '@/utils/transcript-validation'
 
 const getDepartmentIcon = (department: string) => {
@@ -230,6 +231,7 @@ export default function DashboardPage() {
   const [customDictionary, setCustomDictionary] = useState<string[]>([])
   const [issueSearchQuery, setIssueSearchQuery] = useState("")
   const [showValidationPanel, setShowValidationPanel] = useState(false)
+  const [isTranscriptCleanupModalOpen, setIsTranscriptCleanupModalOpen] = useState(false)
   const [transcriptContent, setTranscriptContent] = useState("")
   const [selectedIssue, setSelectedIssue] = useState<ValidationIssue | null>(null)
   const [debouncedTranscript, setDebouncedTranscript] = useState("")
@@ -3396,6 +3398,24 @@ export default function DashboardPage() {
                         </div>
                       </button>
 
+                      {/* Transcript Cleanup */}
+                      <button
+                        type="button"
+                        onClick={() => setIsTranscriptCleanupModalOpen(true)}
+                        className="group relative flex flex-col items-start gap-1 rounded-md border border-white/10 bg-white/5 p-2 text-left backdrop-blur-sm hover:bg-white/10 hover:border-green-400/40 transition-all duration-200 hover:shadow-xl hover:shadow-green-600/20"
+                      >
+                        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br from-green-500 to-emerald-600 shadow-lg shadow-green-500/30 group-hover:scale-110 transition-transform duration-200">
+                          <FileEdit className="h-3 w-3 text-white" />
+                        </div>
+                        <div>
+                          <p className="text-[11px] font-semibold text-white">Transcript Cleanup</p>
+                          <p className="mt-0.5 text-[8px] leading-relaxed text-zinc-400">Auto-remove timestamps & fillers</p>
+                        </div>
+                        <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <svg className="h-2.5 w-2.5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                        </div>
+                      </button>
+
                     </div>
                   )}
                 </div>
@@ -4496,6 +4516,51 @@ export default function DashboardPage() {
               >
                 Close
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Transcript Cleanup Modal ── */}
+      {isTranscriptCleanupModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-md animate-fade-in">
+          <div className="bg-gradient-to-b from-green-50 to-white border border-green-200/60 backdrop-blur-xl shadow-[0_8px_60px_rgba(34,197,94,0.12)] rounded-3xl w-full max-w-2xl p-4 relative max-h-[90vh] flex flex-col overflow-hidden animate-scale-up">
+            <button
+              onClick={() => setIsTranscriptCleanupModalOpen(false)}
+              className="absolute right-4 top-4 z-10 cursor-pointer text-zinc-400 hover:text-green-500 hover:rotate-90 transition-all duration-300"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            {/* Header */}
+            <div className="flex items-center gap-2.5 mb-3 flex-shrink-0">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 text-white shadow-lg shadow-green-500/30 flex-shrink-0">
+                <FileEdit className="h-4.5 w-4.5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-zinc-900">Transcript Cleanup</h3>
+                <p className="text-[10px] text-zinc-500">Automatically clean up your transcript</p>
+              </div>
+            </div>
+
+            {/* Transcript Input */}
+            <div className="mb-4 flex-shrink-0">
+              <label className="text-[10px] font-bold text-zinc-700 mb-1.5 block">Paste Your Transcript</label>
+              <textarea
+                value={transcriptContent}
+                onChange={(e) => setTranscriptContent(e.target.value)}
+                className="w-full border border-green-300/60 rounded-lg px-3 py-2 text-xs text-zinc-800 outline-none focus:border-green-500 focus:ring-2 focus:ring-green-500/25 transition-all bg-white min-h-[120px] resize-y font-mono shadow-sm leading-relaxed"
+                placeholder="Paste your transcript here to clean up..."
+              />
+            </div>
+
+            {/* Transcript Cleanup Component */}
+            <div className="flex-1 overflow-y-auto pr-2">
+              <TranscriptCleanup
+                transcript={transcriptContent}
+                onCleanupApplied={(cleaned) => setTranscriptContent(cleaned)}
+                department={selectedDepartment}
+              />
             </div>
           </div>
         </div>
