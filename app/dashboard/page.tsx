@@ -4524,7 +4524,7 @@ export default function DashboardPage() {
       {/* ── Transcript Cleanup Modal ── */}
       {isTranscriptCleanupModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-md animate-fade-in">
-          <div className="bg-gradient-to-b from-green-50 to-white border border-green-200/60 backdrop-blur-xl shadow-[0_8px_60px_rgba(34,197,94,0.12)] rounded-3xl w-full max-w-2xl p-4 relative max-h-[90vh] flex flex-col overflow-hidden animate-scale-up">
+          <div className="bg-gradient-to-b from-green-50 to-white border border-green-200/60 backdrop-blur-xl shadow-[0_8px_60px_rgba(34,197,94,0.12)] rounded-3xl w-full max-w-6xl p-4 relative max-h-[90vh] flex flex-col overflow-hidden animate-scale-up">
             <button
               onClick={() => setIsTranscriptCleanupModalOpen(false)}
               className="absolute right-4 top-4 z-10 cursor-pointer text-zinc-400 hover:text-green-500 hover:rotate-90 transition-all duration-300"
@@ -4533,7 +4533,7 @@ export default function DashboardPage() {
             </button>
 
             {/* Header */}
-            <div className="flex items-center gap-2.5 mb-3 flex-shrink-0">
+            <div className="flex items-center gap-2.5 mb-4 flex-shrink-0">
               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 text-white shadow-lg shadow-green-500/30 flex-shrink-0">
                 <FileEdit className="h-4.5 w-4.5" />
               </div>
@@ -4543,22 +4543,11 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Transcript Input */}
-            <div className="mb-4 flex-shrink-0">
-              <label className="text-[10px] font-bold text-zinc-700 mb-1.5 block">Paste Your Transcript</label>
-              <textarea
-                value={transcriptContent}
-                onChange={(e) => setTranscriptContent(e.target.value)}
-                className="w-full border border-green-300/60 rounded-lg px-3 py-2 text-xs text-zinc-800 outline-none focus:border-green-500 focus:ring-2 focus:ring-green-500/25 transition-all bg-white min-h-[120px] resize-y font-mono shadow-sm leading-relaxed"
-                placeholder="Paste your transcript here to clean up..."
-              />
-            </div>
-
             {/* Transcript Cleanup Component */}
-            <div className="flex-1 overflow-y-auto pr-2">
+            <div className="flex-1 overflow-hidden">
               <TranscriptCleanup
                 transcript={transcriptContent}
-                onCleanupApplied={(cleaned) => setTranscriptContent(cleaned)}
+                onTranscriptChange={setTranscriptContent}
                 department={selectedDepartment}
               />
             </div>
