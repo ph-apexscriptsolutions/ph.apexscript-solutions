@@ -6,14 +6,16 @@ const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     if (!supabaseUrl || !supabaseServiceRoleKey) {
       return NextResponse.json({ error: 'Missing Supabase server configuration.' }, { status: 500 })
     }
 
-    const id = params.id
+    const { id } = await params
+
+    console.log('[DELETE formatting-rules] ID received:', id)
 
     if (!id) {
       return NextResponse.json({ error: 'Missing rule id.' }, { status: 400 })

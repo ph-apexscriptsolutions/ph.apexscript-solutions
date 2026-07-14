@@ -12,6 +12,7 @@ interface ValidationRule {
   find: string
   replace: string
   enabled: boolean
+  is_regex: boolean
   created_at: string
   updated_at: string
 }
@@ -31,7 +32,8 @@ export default function ValidationRulesPage() {
     category: "",
     find: "",
     replace: "",
-    enabled: true
+    enabled: true,
+    is_regex: false
   })
 
   useEffect(() => {
@@ -83,6 +85,7 @@ export default function ValidationRulesPage() {
             find: formData.find,
             replace: formData.replace,
             enabled: formData.enabled,
+            is_regex: formData.is_regex,
             updated_at: new Date().toISOString()
           })
           .eq('id', editingRule.id)
@@ -97,7 +100,8 @@ export default function ValidationRulesPage() {
             category: formData.category,
             find: formData.find,
             replace: formData.replace,
-            enabled: formData.enabled
+            enabled: formData.enabled,
+            is_regex: formData.is_regex
           })
         
         if (error) {
@@ -113,7 +117,7 @@ export default function ValidationRulesPage() {
       await loadRules()
       setIsModalOpen(false)
       setEditingRule(null)
-      setFormData({ rule_name: "", department: "all", category: "", find: "", replace: "", enabled: true })
+      setFormData({ rule_name: "", department: "all", category: "", find: "", replace: "", enabled: true, is_regex: false })
     } catch (error: any) {
       console.error('Error saving rule:', error)
       alert(`Error saving rule: ${error.message || 'Unknown error'}`)
@@ -124,6 +128,11 @@ export default function ValidationRulesPage() {
 
   const handleDelete = async (id: number) => {
     if (!confirm('Are you sure you want to delete this rule?')) return
+    
+    if (!id) {
+      alert('Error: Rule ID is missing')
+      return
+    }
     
     setIsDeleting(id)
     
@@ -186,14 +195,15 @@ export default function ValidationRulesPage() {
       category: rule.category,
       find: rule.find,
       replace: rule.replace,
-      enabled: rule.enabled
+      enabled: rule.enabled,
+      is_regex: rule.is_regex || false
     })
     setIsModalOpen(true)
   }
 
   const openCreateModal = () => {
     setEditingRule(null)
-    setFormData({ rule_name: "", department: "all", category: "", find: "", replace: "", enabled: true })
+    setFormData({ rule_name: "", department: "all", category: "", find: "", replace: "", enabled: true, is_regex: false })
     setIsModalOpen(true)
   }
 
@@ -308,7 +318,7 @@ export default function ValidationRulesPage() {
                 onClick={() => {
                   setIsModalOpen(false)
                   setEditingRule(null)
-                  setFormData({ rule_name: "", department: "all", category: "", find: "", replace: "", enabled: true })
+                  setFormData({ rule_name: "", department: "all", category: "", find: "", replace: "", enabled: true, is_regex: false })
                 }}
                 className="p-1 text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 rounded-lg transition-colors"
               >
@@ -385,6 +395,27 @@ export default function ValidationRulesPage() {
               <div className="flex items-center gap-2">
                 <input
                   type="checkbox"
+                  id="is_regex"
+                  checked={formData.is_regex}
+                  onChange={(e) => setFormData({ ...formData, is_regex: e.target.checked })}
+                  className="h-4 w-4 text-rose-600 border-zinc-300 rounded focus:ring-rose-500"
+                />
+                <label htmlFor="is_regex" className="text-sm text-zinc-700">Use Regex Pattern</label>
+              </div>
+
+              {formData.is_regex && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                  <p className="text-xs text-blue-800">
+                    <strong>Regex Mode:</strong> Use regex patterns to match dynamic content. 
+                    Example: <code className="bg-blue-100 px-1 rounded">(\w+)\s*--\s*\1</code> will match "word -- word" for any word.
+                    Use <code className="bg-blue-100 px-1 rounded">$1</code> in replace to reference captured groups.
+                  </p>
+                </div>
+              )}
+
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
                   id="enabled"
                   checked={formData.enabled}
                   onChange={(e) => setFormData({ ...formData, enabled: e.target.checked })}
@@ -400,7 +431,7 @@ export default function ValidationRulesPage() {
                 onClick={() => {
                   setIsModalOpen(false)
                   setEditingRule(null)
-                  setFormData({ rule_name: "", department: "all", category: "", find: "", replace: "", enabled: true })
+                  setFormData({ rule_name: "", department: "all", category: "", find: "", replace: "", enabled: true, is_regex: false })
                 }}
                 className="px-4 py-2 text-sm font-medium text-zinc-700 hover:text-zinc-900 transition-colors"
               >

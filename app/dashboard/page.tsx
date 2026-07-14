@@ -3,11 +3,11 @@ export const dynamic = 'force-dynamic'
 import { useEffect, useState, FormEvent, useMemo, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/utils/supabase/client"
-import { FileText, HardDrive, LogOut, Calendar, X, Pencil, Save, User, ArrowLeft, Upload, UserPlus, CreditCard, Trash2, Check, Bell, AlertCircle, Tv, Mic, Headphones, FileEdit, Newspaper, Radio, Video, BookOpen, Gavel, TrendingUp, Activity, Search, Loader2, Copy, ChevronDown, ChevronUp } from "lucide-react"
+import { FileText, HardDrive, LogOut, Calendar, X, Pencil, Save, User, ArrowLeft, Upload, UserPlus, CreditCard, Trash2, Check, Bell, AlertCircle, Tv, Mic, Headphones, FileEdit, Newspaper, Radio, Video, BookOpen, Gavel, TrendingUp, Activity, Search, Loader2, Copy, ChevronDown, ChevronUp, Building2 } from "lucide-react"
 import AdminChat from '@/components/admin-chat'
 import WorkerRealtimeChat from '@/components/worker-realtime-chat'
 import { FlagIcon } from "@/components/flag-icon"
-import { validateTranscript, replaceInTranscript, getHighlightClass, validationHighlightStyles, ValidationIssue, ValidationRule, Participant, extractParticipants, getValidUncommonWords } from '@/utils/transcript-validation'
+import { validateTranscript, replaceInTranscript, getHighlightClass, validationHighlightStyles, ValidationIssue, ValidationRule, Participant, extractParticipants, getValidUncommonWords, extractSenateSpeakers } from '@/utils/transcript-validation'
 
 const getDepartmentIcon = (department: string) => {
   const dept = department.toLowerCase()
@@ -236,11 +236,15 @@ export default function DashboardPage() {
   const [isReferencesExpanded, setIsReferencesExpanded] = useState(true)
   const [copySuccess, setCopySuccess] = useState(false)
   const [validUncommonWords, setValidUncommonWords] = useState<{ word: string, line: number, column: number }[]>([])
+  const [formatMismatchError, setFormatMismatchError] = useState<string | null>(null)
   const [validationProgress, setValidationProgress] = useState<{ stage: string, message: string } | null>(null)
   const [validationTime, setValidationTime] = useState<number | null>(null)
+  const [isReportIssueModalOpen, setIsReportIssueModalOpen] = useState(false)
+  const [reportIssueDescription, setReportIssueDescription] = useState("")
+  const [isSubmittingReport, setIsSubmittingReport] = useState(false)
 
   const [isEditWorkerModalOpen, setIsEditWorkerModalOpen] = useState(false)
-  const [editWorkerForm, setEditWorkerForm] = useState({ fullName: "", jobTitle: "", department: "", email: "", location: "United States" })
+  const [editWorkerForm, setEditWorkerForm] = useState({ fullName: "", jobTitle: "", department: "", email: "", location: "United States", departmentPermissions: ["conference", "senate", "academics", "broadcast", "podcast", "medical"] })
   const [isUpdatingWorkerDetails, setIsUpdatingWorkerDetails] = useState(false)
 
   const [assignments, setAssignments] = useState<any[]>([])
@@ -256,7 +260,7 @@ export default function DashboardPage() {
   const [assignmentHeaderTemplate, setAssignmentHeaderTemplate] = useState('3fr 1fr 1fr')
   const [assignmentRowTemplate, setAssignmentRowTemplate] = useState('3fr 1fr 1fr')
   const [isSavingLayout, setIsSavingLayout] = useState(false)
-  const [isReportIssueModalOpen, setIsReportIssueModalOpen] = useState(false)
+  const [isAssignmentReportIssueModalOpen, setIsAssignmentReportIssueModalOpen] = useState(false)
   const [reportIssueAssignment, setReportIssueAssignment] = useState<any | null>(null)
   const [issueDescription, setIssueDescription] = useState("")
   const [isSubmittingIssue, setIsSubmittingIssue] = useState(false)
@@ -286,7 +290,10 @@ export default function DashboardPage() {
   const [isFormattingRulesAdminModalOpen, setIsFormattingRulesAdminModalOpen] = useState(false)
   const [formattingRules, setFormattingRules] = useState<any[]>([])
   const [isLoadingFormattingRules, setIsLoadingFormattingRules] = useState(false)
-  const [newFormattingRule, setNewFormattingRule] = useState({ name: "", description: "", pattern: "", department: "all" })
+  const [isValidatorReportsModalOpen, setIsValidatorReportsModalOpen] = useState(false)
+  const [validatorReports, setValidatorReports] = useState<any[]>([])
+  const [isLoadingValidatorReports, setIsLoadingValidatorReports] = useState(false)
+  const [newFormattingRule, setNewFormattingRule] = useState({ name: "", description: "", pattern: "", replacement: "", department: "all" })
   const [sampleTextForDetection, setSampleTextForDetection] = useState("")
   const [detectedFormats, setDetectedFormats] = useState<any[]>([])
   const [isUploadingStyleGuide, setIsUploadingStyleGuide] = useState<string | null>(null)
@@ -300,22 +307,56 @@ export default function DashboardPage() {
   const [isRenamingDept, setIsRenamingDept] = useState<number | null>(null)
   const [isDeletingDeptId, setIsDeletingDeptId] = useState<number | null>(null)
 
-  // Load validation rules
+  // Load validation rules (from both transcript_validation_rules and formatting_rules)
   useEffect(() => {
     const loadValidationRules = async () => {
       try {
-        const { data, error } = await supabase
+        // Load transcript validation rules
+        const { data: transcriptRules, error: transcriptError } = await supabase
           .from('transcript_validation_rules')
           .select('*')
           .eq('enabled', true)
         
-        if (error) {
-          // Table might not exist yet, that's okay
-          console.log('Validation rules table not yet created or error loading:', error.message)
-          setValidationRules(!error.message.includes('does not exist') ? (data || []) : [])
-        } else {
-          setValidationRules(data || [])
+        // Load formatting rules from Admin Hub
+        const { data: formattingRulesData, error: formattingError } = await supabase
+          .from('formatting_rules')
+          .select('*')
+        
+        let combinedRules: ValidationRule[] = []
+        
+        // Add transcript validation rules
+        if (!transcriptError && transcriptRules) {
+          combinedRules = [...combinedRules, ...transcriptRules.map((r: any) => ({
+            id: r.id,
+            rule_name: r.rule_name,
+            department: r.department,
+            category: r.category,
+            find: r.find,
+            replace: r.replace,
+            enabled: r.enabled,
+            is_regex: r.is_regex || false
+          }))]
+        } else if (transcriptError && !transcriptError.message.includes('does not exist')) {
+          console.log('Error loading transcript validation rules:', transcriptError.message)
         }
+        
+        // Add formatting rules from Admin Hub
+        if (!formattingError && formattingRulesData) {
+          combinedRules = [...combinedRules, ...formattingRulesData.map((r: any) => ({
+            id: r.id,
+            rule_name: r.name,
+            department: r.department,
+            category: 'formatting',
+            find: r.pattern,
+            replace: r.replacement || '',
+            enabled: true,
+            is_regex: false
+          }))]
+        } else if (formattingError) {
+          console.log('Error loading formatting rules:', formattingError.message)
+        }
+        
+        setValidationRules(combinedRules)
       } catch (error) {
         console.log('Error loading validation rules:', error)
         setValidationRules([])
@@ -407,14 +448,24 @@ export default function DashboardPage() {
       
       // Run validation with custom dictionary and progress callback
       const startTime = performance.now()
+      
       const issues = await validateTranscript(debouncedTranscript, filteredRules, customDictionary, selectedDepartment, (progress) => {
         setValidationProgress({ stage: progress.stage, message: progress.message })
       })
       const endTime = performance.now()
       setValidationTime(Math.round(endTime - startTime))
       
-      setValidationIssues(issues)
-      updateHighlightedTranscript(issues)
+      // Check if format mismatch error was returned
+      const formatMismatch = issues.find(issue => issue.id === 'format-mismatch-warning')
+      if (formatMismatch) {
+        setFormatMismatchError(formatMismatch.suggestedCorrection)
+        setValidationIssues(issues)
+        // Don't update highlighted transcript - block transcript display
+      } else {
+        setFormatMismatchError(null)
+        setValidationIssues(issues)
+        updateHighlightedTranscript(issues)
+      }
     } catch (error) {
       console.error('Validation error:', error)
     }
@@ -448,19 +499,11 @@ export default function DashboardPage() {
   const highlightedTranscript = useMemo(() => {
     // Create a map of character positions to highlights
     const highlightMap = new Map<number, { className: string, text: string, issueId?: string }>()
-    
-    // Add green underlining for valid uncommon words
-    validUncommonWords.forEach(({ word, line, column }) => {
-      const charPos = getCharacterPosition(debouncedTranscript, line, column)
-      if (charPos !== -1) {
-        highlightMap.set(charPos, { className: 'validation-issue-green-underline', text: word })
-      }
-    })
-    
+
     // Add validation issue highlights
     validationIssues.forEach(issue => {
       if (issue.ignored) return
-      
+
       const charPos = getCharacterPosition(debouncedTranscript, issue.line, issue.column)
       if (charPos !== -1) {
         const className = getHighlightClass(issue.category)
@@ -468,22 +511,33 @@ export default function DashboardPage() {
       }
     })
     
-    // Sort highlights by position (reverse order for insertion)
-    const sortedHighlights = Array.from(highlightMap.entries()).sort((a, b) => b[0] - a[0])
+    // Sort highlights by position (ascending for character-by-character building)
+    const sortedHighlights = Array.from(highlightMap.entries()).sort((a, b) => a[0] - b[0])
     
-    // Build highlighted transcript by inserting spans at exact positions
-    let highlighted = debouncedTranscript
-    sortedHighlights.forEach(([pos, { className, text, issueId }]) => {
-      // Escape HTML in the text to prevent injection
-      const escapedText = escapeHtml(text)
-      const issueIdAttr = issueId ? ` data-issue-id="${issueId}"` : ''
-      const span = `<span class="${className}"${issueIdAttr}>${escapedText}</span>`
-      
-      // Insert span at exact position
-      highlighted = highlighted.slice(0, pos) + span + highlighted.slice(pos + text.length)
-    })
+    // Build highlighted transcript character by character to avoid corruption
+    let result = ''
+    let i = 0
+    let highlightIndex = 0
     
-    return highlighted
+    while (i < debouncedTranscript.length) {
+      // Check if we need to insert a highlight at this position
+      if (highlightIndex < sortedHighlights.length && sortedHighlights[highlightIndex][0] === i) {
+        const [pos, { className, text, issueId }] = sortedHighlights[highlightIndex]
+        const escapedText = escapeHtml(text)
+        const issueIdAttr = issueId ? ` data-issue-id="${issueId}"` : ''
+        const span = `<span class="${className}"${issueIdAttr}>${escapedText}</span>`
+        
+        result += span
+        i += text.length
+        highlightIndex++
+      } else {
+        // Escape the current character and add it
+        result += escapeHtml(debouncedTranscript[i])
+        i++
+      }
+    }
+    
+    return result
   }, [debouncedTranscript, validUncommonWords, validationIssues, getCharacterPosition, escapeHtml])
   
   const updateHighlightedTranscript = useCallback((issues?: ValidationIssue[]) => {
@@ -1235,6 +1289,7 @@ export default function DashboardPage() {
       department: activeWorker.department || "",
       email: activeWorker.email || "",
       location: activeWorker.location || "United States",
+      departmentPermissions: activeWorker.department_permissions || ["conference", "senate", "academics", "broadcast", "podcast", "medical"],
     })
     setIsEditWorkerModalOpen(true)
   }
@@ -1274,10 +1329,24 @@ export default function DashboardPage() {
         setActiveWorker(updatedWorker)
         const { data: workers } = await supabase.from('worker_profiles').select('*').order('full_name')
         if (workers) setAllWorkers(workers)
-        setToastMessage('✅ Worker details updated successfully!')
-        setShowToast(true)
-        setTimeout(() => { setShowToast(false); setToastMessage(null) }, 3000)
       }
+
+      // Update department permissions
+      const permissionsResponse = await fetch(`/api/workers/${activeWorker.id}/permissions`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          department_permissions: editWorkerForm.departmentPermissions
+        }),
+      })
+
+      if (!permissionsResponse.ok) {
+        console.error('Failed to update department permissions')
+      }
+
+      setToastMessage('✅ Worker details updated successfully!')
+      setShowToast(true)
+      setTimeout(() => { setShowToast(false); setToastMessage(null) }, 3000)
 
       setIsEditWorkerModalOpen(false)
     } catch (err: any) {
@@ -1593,6 +1662,20 @@ export default function DashboardPage() {
       console.error('Fetch formatting rules error:', err)
     } finally {
       setIsLoadingFormattingRules(false)
+    }
+  }
+
+  const fetchValidatorReports = async () => {
+    setIsLoadingValidatorReports(true)
+    try {
+      const res = await fetch('/api/validator-issue-reports')
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to fetch validator reports')
+      setValidatorReports(data.reports || [])
+    } catch (err: any) {
+      console.error('Fetch validator reports error:', err)
+    } finally {
+      setIsLoadingValidatorReports(false)
     }
   }
 
@@ -2299,7 +2382,7 @@ export default function DashboardPage() {
       setToastMessage('✅ Issue reported successfully')
       setShowToast(true)
       setTimeout(() => { setShowToast(false); setToastMessage(null) }, 3000)
-      setIsReportIssueModalOpen(false)
+      setIsAssignmentReportIssueModalOpen(false)
       setIssueDescription('')
       setReportIssueAssignment(null)
       setSelectedAssignment(null)
@@ -2899,6 +2982,23 @@ export default function DashboardPage() {
                         </div>
                       </button>
 
+                      {/* Validator Issue Reports */}
+                      <button
+                        onClick={() => { setIsValidatorReportsModalOpen(true); fetchValidatorReports() }}
+                        className="group relative flex flex-col items-start gap-1 rounded-md border border-white/10 bg-white/5 p-2 text-left backdrop-blur-sm hover:bg-white/10 hover:border-red-400/40 transition-all duration-200 hover:shadow-xl hover:shadow-red-600/20"
+                      >
+                        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br from-red-500 to-orange-600 shadow-lg shadow-red-500/30 group-hover:scale-110 transition-transform duration-200">
+                          <AlertCircle className="h-3 w-3 text-white" />
+                        </div>
+                        <div>
+                          <p className="text-[11px] font-semibold text-white">Issue Reports</p>
+                          <p className="mt-0.5 text-[8px] text-zinc-400">View validator issue reports</p>
+                        </div>
+                        <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <svg className="h-2.5 w-2.5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                        </div>
+                      </button>
+
                       {/* Transcript Validation Rules */}
                       <button
                         onClick={() => window.location.href = '/dashboard/validation-rules'}
@@ -3359,7 +3459,7 @@ export default function DashboardPage() {
                     </div>
                   </div>
                   <div className="border-t border-zinc-200 p-5 flex gap-3 justify-end">
-                    <button type="button" onClick={() => { setIsReportIssueModalOpen(true); setReportIssueAssignment(selectedAssignment) }} className="inline-flex items-center justify-center rounded-md bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800 transition">
+                    <button type="button" onClick={() => { setIsAssignmentReportIssueModalOpen(true); setReportIssueAssignment(selectedAssignment) }} className="inline-flex items-center justify-center rounded-md bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800 transition">
                       Report Issue
                     </button>
                     <button type="button" onClick={() => setSelectedAssignment(null)} className="inline-flex items-center justify-center rounded-md bg-gradient-to-r from-cyan-600 to-sky-600 px-4 py-2 text-sm font-semibold text-white hover:from-cyan-700 hover:to-sky-700 transition">
@@ -3909,90 +4009,131 @@ export default function DashboardPage() {
 
       {/* ── Transcript Validation Panel ── */}
       {showValidationPanel && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-md animate-fade-in">
-          <div className="bg-gradient-to-b from-purple-50 to-white border border-purple-200/60 backdrop-blur-xl shadow-[0_8px_60px_rgba(168,85,247,0.12)] rounded-3xl w-full max-w-6xl p-4 relative max-h-[90vh] flex flex-col overflow-hidden animate-scale-up">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gradient-to-br from-slate-900/95 via-purple-900/90 to-slate-900/95 backdrop-blur-xl animate-fade-in">
+          <div className="bg-gradient-to-br from-white via-purple-50/30 to-white border border-purple-200/60 backdrop-blur-2xl shadow-[0_25px_100px_rgba(168,85,247,0.25)] rounded-3xl w-full max-w-7xl p-0 relative max-h-[94vh] flex flex-col overflow-hidden animate-scale-up ring-1 ring-purple-300/50">
 
-            <button 
-              onClick={() => setShowValidationPanel(false)} 
-              className="absolute right-4 top-4 z-10 cursor-pointer text-zinc-400 hover:text-purple-500 hover:rotate-90 transition-all duration-300"
-            >
-              <X className="h-5 w-5" />
-            </button>
+            {/* Decorative gradient overlay */}
+            <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 via-transparent to-violet-500/5 pointer-events-none" />
+
+            <div className="absolute right-6 top-6 z-20 flex items-center gap-3">
+              <button
+                onClick={() => setIsReportIssueModalOpen(true)}
+                className="flex items-center gap-2 px-4 py-2.5 text-xs font-semibold text-red-600 bg-gradient-to-r from-red-50 to-red-100/80 border border-red-200/60 rounded-xl hover:from-red-100 hover:to-red-200 hover:border-red-300 hover:shadow-lg hover:shadow-red-500/20 transition-all duration-300"
+              >
+                <AlertCircle className="h-4 w-4" />
+                Report Issue
+              </button>
+              <button
+                onClick={() => setShowValidationPanel(false)}
+                className="cursor-pointer text-zinc-400 hover:text-red-500 hover:rotate-90 transition-all duration-300 bg-white/80 hover:bg-red-50 rounded-full p-2.5 shadow-sm hover:shadow-md border border-zinc-200 hover:border-red-200"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
 
             {/* Header */}
-            <div className="flex items-center gap-2.5 mb-3 flex-shrink-0">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-violet-600 text-white shadow-lg shadow-purple-500/30 flex-shrink-0">
-                <Check className="h-4.5 w-4.5" />
+            <div className="relative z-10 flex items-center gap-3 mb-5 flex-shrink-0 pb-4 border-b border-purple-200/60 px-8 pt-6">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-purple-600 via-violet-600 to-purple-700 text-white shadow-lg shadow-purple-500/30 flex-shrink-0 ring-2 ring-purple-300/50">
+                <Check className="h-5 w-5" />
               </div>
               <div>
-                <h3 className="text-base font-bold bg-gradient-to-r from-purple-600 via-violet-500 to-purple-600 bg-clip-text text-transparent">Transcript Validation Engine</h3>
-                <p className="text-[10px] text-zinc-500">Check transcript for style rules, name validation & company validation</p>
+                <h3 className="text-base font-bold bg-gradient-to-r from-purple-700 via-violet-600 to-purple-700 bg-clip-text text-transparent tracking-tight">Transcript Validation Engine</h3>
+                <p className="text-[10px] text-zinc-500 font-medium mt-0.5 flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 bg-purple-500 rounded-full animate-pulse"></span>
+                  Validate transcripts against style guides and formatting rules
+                </p>
               </div>
             </div>
 
             {/* Content */}
-            <div className="flex-1 overflow-hidden flex gap-4">
+            <div className="relative z-10 flex-1 overflow-hidden flex gap-6 px-8 pb-8">
               {/* Left Column */}
-              <div className="flex-1 overflow-y-auto space-y-3 pr-2">
+              <div className="flex-1 overflow-y-auto space-y-4 pr-3">
+                {/* Department Selector */}
+                <div className="bg-gradient-to-br from-white via-purple-50/40 to-white border border-purple-200/70 rounded-xl p-3 shadow-sm ring-1 ring-purple-100/50">
+                  <label className="text-[10px] font-bold text-zinc-700 mb-2 flex items-center gap-2 uppercase tracking-wider">
+                    <Building2 className="h-3 w-3 text-purple-600" />
+                    Department
+                  </label>
+                  <select
+                    value={selectedDepartment}
+                    onChange={(e) => setSelectedDepartment(e.target.value)}
+                    className="w-full border border-purple-300/60 rounded-lg px-3 py-2 text-xs text-zinc-800 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/25 transition-all bg-white shadow-sm font-medium"
+                  >
+                    {isAdmin ? (
+                      <>
+                        <option value="conference">Conference / Earnings Call</option>
+                        <option value="senate">Senate Hearing / Political</option>
+                        <option value="academics">Academics</option>
+                        <option value="broadcast">Broadcast</option>
+                        <option value="podcast">Podcast</option>
+                        <option value="medical">Medical</option>
+                      </>
+                    ) : (
+                      (user?.department_permissions || ['conference', 'senate', 'academics', 'broadcast', 'podcast', 'medical']).map((dept: string) => (
+                        <option key={dept} value={dept}>
+                          {dept === 'conference' ? 'Conference / Earnings Call' :
+                           dept === 'senate' ? 'Senate Hearing / Political' :
+                           dept === 'academics' ? 'Academics' :
+                           dept === 'broadcast' ? 'Broadcast' :
+                           dept === 'podcast' ? 'Podcast' :
+                           dept === 'medical' ? 'Medical' : dept}
+                        </option>
+                      ))
+                    )}
+                  </select>
+                </div>
+
                 {/* Transcript Input */}
-                <div>
-                  <label className="text-[10px] font-semibold text-zinc-700 mb-1.5 block">Transcript Text</label>
+                <div className="bg-gradient-to-br from-white via-purple-50/40 to-white border border-purple-200/70 rounded-xl p-3 shadow-sm ring-1 ring-purple-100/50">
+                  <label className="text-[10px] font-bold text-zinc-700 mb-2 flex items-center gap-2 uppercase tracking-wider">
+                    <FileText className="h-3 w-3 text-purple-600" />
+                    Transcript Text
+                  </label>
                   <textarea
                     value={transcriptContent}
                     onChange={(e) => setTranscriptContent(e.target.value)}
-                    className="w-full border border-purple-200 rounded-lg px-3 py-2 text-sm text-zinc-800 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all bg-white min-h-[120px] resize-y font-mono"
+                    className="w-full border border-purple-300/60 rounded-lg px-3 py-2 text-xs text-zinc-800 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/25 transition-all bg-white min-h-[120px] resize-y font-mono shadow-sm leading-relaxed"
                     placeholder="Paste your transcript here to validate..."
                   />
                 </div>
 
-                {/* Department Selector */}
-                <div>
-                  <label className="text-[10px] font-semibold text-zinc-700 mb-1.5 block">Department</label>
-                  <select
-                    value={selectedDepartment}
-                    onChange={(e) => setSelectedDepartment(e.target.value)}
-                    className="w-full border border-purple-200 rounded-lg px-3 py-2 text-sm text-zinc-800 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all bg-white"
-                  >
-                    <option value="conference">Conference / Earnings Call</option>
-                    <option value="senate">Senate Hearing / Political</option>
-                    <option value="academics">Academics</option>
-                    <option value="broadcast">Broadcast</option>
-                    <option value="podcast">Podcast</option>
-                    <option value="medical">Medical</option>
-                  </select>
-                </div>
-
                 {/* Validation Status */}
                 {isRunningValidation && (
-                  <div className="flex items-center gap-2 text-purple-600 text-sm">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span>Running validation...</span>
+                  <div className="bg-gradient-to-r from-purple-100/80 via-violet-100/80 to-purple-100/80 border border-purple-300/60 rounded-xl p-3 flex items-center gap-3 shadow-sm ring-1 ring-purple-200/50">
+                    <Loader2 className="h-4 w-4 text-purple-700 animate-spin" />
+                    <div className="flex-1">
+                      <span className="text-xs font-bold text-purple-900">Running validation...</span>
+                      {validationProgress && (
+                        <p className="text-[10px] text-purple-700 mt-0.5 font-medium">{validationProgress.message}</p>
+                      )}
+                    </div>
                   </div>
                 )}
 
                 {/* Extracted References Panel */}
                 {(extractedParticipants.length > 0 || extractedCompanies.length > 0) && (
-                  <div className="bg-white border border-purple-200 rounded-xl p-3">
-                    <div 
+                  <div className="bg-gradient-to-br from-white via-purple-50/40 to-white border border-purple-200/70 rounded-xl p-3 shadow-sm ring-1 ring-purple-100/50">
+                    <div
                       className="flex items-center justify-between gap-2 mb-3 cursor-pointer"
                       onClick={() => setIsReferencesExpanded(!isReferencesExpanded)}
                     >
                       <div className="flex items-center gap-2">
-                        <Check className="h-4 w-4 text-purple-600" />
-                        <span className="text-sm font-semibold text-purple-800">Extracted References</span>
+                        <Check className="h-3.5 w-3.5 text-purple-600" />
+                        <span className="text-xs font-bold text-purple-900">Extracted References</span>
                       </div>
                       <div className="flex items-center gap-3">
                         {/* Live Counters */}
-                        <div className="flex gap-3 text-[10px] text-zinc-600">
+                        <div className="flex gap-3 text-[9px] text-zinc-600 font-medium">
                           <span>Companies: <span className="font-bold text-purple-600">{extractedCompanies.length}</span></span>
                           <span>Corporate Participants: <span className="font-bold text-purple-600">{extractedParticipants.filter(p => p.type === 'board').length}</span></span>
                           <span>Analysts: <span className="font-bold text-purple-600">{extractedParticipants.filter(p => p.type === 'analyst').length}</span></span>
                           <span>Validation Issues: <span className="font-bold text-purple-600">{validationIssues.filter(i => !i.ignored).length}</span></span>
                         </div>
                         {isReferencesExpanded ? (
-                          <ChevronUp className="h-4 w-4 text-zinc-400" />
+                          <ChevronUp className="h-3.5 w-3.5 text-zinc-400" />
                         ) : (
-                          <ChevronDown className="h-4 w-4 text-zinc-400" />
+                          <ChevronDown className="h-3.5 w-3.5 text-zinc-400" />
                         )}
                       </div>
                     </div>
@@ -4122,121 +4263,104 @@ export default function DashboardPage() {
 
                 {/* Issues Panel */}
                 {validationIssues.length > 0 || isRunningValidation ? (
-                  <div className="bg-white border border-purple-200 rounded-xl p-3">
+                  <div className="bg-gradient-to-br from-white via-purple-50/40 to-white border border-purple-200/70 rounded-xl p-3 shadow-sm ring-1 ring-purple-100/50">
                     {/* Validation Progress */}
                     {isRunningValidation && validationProgress && (
-                      <div className="bg-blue-50 rounded-lg p-3 mb-3">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Loader2 className="h-4 w-4 text-blue-600 animate-spin" />
-                          <span className="text-xs font-semibold text-blue-800">Validating...</span>
+                      <div className="bg-gradient-to-r from-blue-100/80 via-purple-100/80 to-blue-100/80 border border-blue-300/60 rounded-xl p-3 mb-3 shadow-sm ring-1 ring-blue-200/50">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Loader2 className="h-4 w-4 text-blue-700 animate-spin" />
+                          <span className="text-xs font-bold text-blue-900">Validating...</span>
                         </div>
-                        <div className="text-xs text-blue-700">{validationProgress.message}</div>
+                        <div className="text-xs text-blue-800 font-medium">{validationProgress.message}</div>
                       </div>
                     )}
-                    
+
                     {/* Validation Summary */}
                     {!isRunningValidation && validationIssues.length > 0 && (
-                      <div className="bg-purple-50 rounded-lg p-3 mb-3">
-                        <div className="text-xs font-semibold text-purple-800 mb-2">Validation Summary</div>
-                        <div className="grid grid-cols-3 gap-2 text-xs">
-                          <div className="text-zinc-600">Total Issues: <span className="font-bold text-purple-700">{validationIssues.filter(i => !i.ignored).length}</span></div>
-                          <div className="text-zinc-600">Name Issues: <span className="font-bold text-red-600">{validationIssues.filter(i => !i.ignored && i.category === 'name').length}</span></div>
-                          <div className="text-zinc-600">Company Issues: <span className="font-bold text-orange-600">{validationIssues.filter(i => !i.ignored && i.category === 'company').length}</span></div>
-                          <div className="text-zinc-600">Spelling Issues: <span className="font-bold text-blue-600">{validationIssues.filter(i => !i.ignored && i.category === 'spelling').length}</span></div>
-                          <div className="text-zinc-600">Style Issues: <span className="font-bold text-yellow-600">{validationIssues.filter(i => !i.ignored && i.category === 'style').length}</span></div>
-                          <div className="text-zinc-600">Formatting Issues: <span className="font-bold text-purple-600">{validationIssues.filter(i => !i.ignored && i.category === 'formatting').length}</span></div>
+                      <div className="bg-gradient-to-br from-purple-100/90 via-violet-100/90 to-purple-100/90 border border-purple-300/70 rounded-xl p-3 mb-3 shadow-sm ring-1 ring-purple-200/50">
+                        <div className="flex items-center gap-2 mb-3">
+                          <Check className="h-4 w-4 text-purple-800" />
+                          <span className="text-xs font-bold text-purple-900">Validation Summary</span>
+                        </div>
+                        <div className="grid grid-cols-3 gap-3 text-xs">
+                          <div className="bg-white/70 rounded-lg p-2.5 border border-purple-200/60 shadow-sm">
+                            <div className="text-zinc-600 text-[9px] font-semibold uppercase tracking-wider mb-1">Total Issues</div>
+                            <div className="font-bold text-purple-700 text-lg">{validationIssues.filter(i => !i.ignored).length}</div>
+                          </div>
+                          <div className="bg-white/70 rounded-lg p-2.5 border border-purple-200/60 shadow-sm">
+                            <div className="text-zinc-600 text-[9px] font-semibold uppercase tracking-wider mb-1">Style Issues</div>
+                            <div className="font-bold text-yellow-600 text-lg">{validationIssues.filter(i => !i.ignored && i.category === 'style').length}</div>
+                          </div>
+                          <div className="bg-white/70 rounded-lg p-2.5 border border-purple-200/60 shadow-sm">
+                            <div className="text-zinc-600 text-[9px] font-semibold uppercase tracking-wider mb-1">Formatting Issues</div>
+                            <div className="font-bold text-purple-600 text-lg">{validationIssues.filter(i => !i.ignored && i.category === 'formatting').length}</div>
+                          </div>
                         </div>
                         {validationTime && (
-                          <div className="text-xs text-zinc-500 mt-2">Validation time: {validationTime}ms</div>
+                          <div className="text-[10px] text-zinc-500 mt-3 flex items-center gap-1.5 font-medium">
+                            <Activity className="h-3 w-3" />
+                            Validation time: {validationTime}ms
+                          </div>
                         )}
                       </div>
                     )}
 
-                    <div className="flex items-center justify-between gap-2 mb-3">
+                    <div className="flex items-center justify-between gap-3 mb-3">
                       <div className="flex items-center gap-2">
                         <AlertCircle className="h-4 w-4 text-purple-600" />
-                        <span className="text-sm font-semibold text-purple-800">{validationIssues.filter(i => !i.ignored).length} Issue(s) Found</span>
+                        <span className="text-xs font-bold text-purple-900">{validationIssues.filter(i => !i.ignored).length} Issue(s) Found</span>
                       </div>
                       <div className="relative">
-                        <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-400" />
+                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-zinc-400" />
                         <input
                           type="text"
                           value={issueSearchQuery}
                           onChange={(e) => setIssueSearchQuery(e.target.value)}
-                          className="pl-8 pr-3 py-1.5 text-xs border border-purple-200 rounded-lg text-zinc-800 outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-200/50 transition-all bg-white w-40"
+                          className="pl-8 pr-3 py-1.5 text-xs border border-purple-300/60 rounded-lg text-zinc-800 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/25 transition-all bg-white w-40 shadow-sm font-medium"
                           placeholder="Search issues..."
                         />
                       </div>
                     </div>
-                    
-                    <div className="space-y-2 max-h-[200px] overflow-y-auto">
+
+                    <div className="space-y-2 max-h-[220px] overflow-y-auto pr-2">
                       {validationIssues
                         .filter(issue => !issue.ignored)
-                        .filter((issue) => 
-                          issueSearchQuery === '' || 
+                        .filter((issue) =>
+                          issueSearchQuery === '' ||
                           issue.foundText.toLowerCase().includes(issueSearchQuery.toLowerCase()) ||
                           issue.suggestedCorrection.toLowerCase().includes(issueSearchQuery.toLowerCase()) ||
                           issue.category.toLowerCase().includes(issueSearchQuery.toLowerCase())
                         )
                         .map((issue, index) => (
-                          <div 
+                          <div
                             key={issue.id}
                             onClick={() => handleIssueClick(issue)}
-                            className={`p-2 rounded-lg border transition-all cursor-pointer ${
+                            className={`p-2.5 rounded-lg border transition-all cursor-pointer ${
                               selectedIssue?.id === issue.id
-                                ? 'bg-purple-100 border-purple-400'
-                                : 'bg-zinc-50 border-zinc-200 hover:bg-zinc-100 hover:border-zinc-300'
+                                ? 'bg-purple-100/90 border-purple-400 shadow-md shadow-purple-200/50 ring-1 ring-purple-300/50'
+                                : 'bg-white border-purple-200/60 hover:bg-purple-50/50 hover:border-purple-300 hover:shadow-sm'
                             }`}
                           >
                             <div className="flex items-start justify-between gap-2">
                               <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 mb-1 flex-wrap">
-                                  {issue.ruleName && (
-                                    <span className="text-[10px] font-semibold text-zinc-700">
-                                      {issue.ruleName}
-                                    </span>
-                                  )}
-                                  {issue.severity && (
-                                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
-                                      issue.severity === 'critical' ? 'bg-red-100 text-red-800' :
-                                      issue.severity === 'high' ? 'bg-orange-100 text-orange-800' :
-                                      issue.severity === 'medium' ? 'bg-yellow-100 text-yellow-800' :
-                                      'bg-zinc-100 text-zinc-800'
-                                    }`}>
-                                      {issue.severity}
-                                    </span>
-                                  )}
-                                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
-                                    issue.category === 'style' ? 'bg-yellow-100 text-yellow-800' :
-                                    issue.category === 'name' ? 'bg-red-100 text-red-800' :
-                                    issue.category === 'company' ? 'bg-blue-100 text-blue-800' :
-                                    issue.category === 'formatting' ? 'bg-purple-100 text-purple-800' :
-                                    'bg-orange-100 text-orange-800'
-                                  }`}>
-                                    {issue.category}
-                                  </span>
-                                  {issue.line > 0 && (
-                                    <span className="text-[10px] text-zinc-500">Line {issue.line}</span>
-                                  )}
+                                <div className="text-[10px] text-zinc-600 mb-1">
+                                  <span className="font-semibold text-zinc-700">Found:</span> <span className="font-mono bg-red-50 text-red-700 px-1.5 py-0.5 rounded-md border border-red-200">{issue.foundText}</span>
                                 </div>
-                                <div className="text-xs text-zinc-600 mb-1">
-                                  <span className="font-medium">Found:</span> <span className="font-mono bg-zinc-200 px-1 rounded">{issue.foundText}</span>
-                                </div>
-                                <div className="text-xs text-zinc-600">
-                                  <span className="font-medium">Suggested:</span> <span className="font-mono bg-green-100 px-1 rounded text-green-800">{issue.suggestedCorrection}</span>
+                                <div className="text-[10px] text-zinc-600">
+                                  <span className="font-medium text-zinc-700">Suggested:</span> <span className="font-mono bg-green-50 text-green-700 px-2 py-0.5 rounded-md border border-green-200">{issue.suggestedCorrection}</span>
                                 </div>
                               </div>
-                              <div className="flex gap-1 flex-shrink-0">
+                              <div className="flex gap-1.5 flex-shrink-0">
                                 <button
                                   onClick={(e) => { e.stopPropagation(); handleReplaceIssue(issue) }}
-                                  className="p-1.5 text-xs bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+                                  className="px-2 py-1 text-[10px] font-semibold bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-md hover:from-green-600 hover:to-emerald-700 transition-all shadow-sm"
                                   title="Replace"
                                 >
                                   Replace
                                 </button>
                                 <button
                                   onClick={(e) => { e.stopPropagation(); handleIgnoreIssue(issue) }}
-                                  className="p-1.5 text-xs bg-zinc-200 text-zinc-700 rounded-lg hover:bg-zinc-300 transition-colors"
+                                  className="px-2 py-1 text-[10px] font-semibold bg-zinc-100 text-zinc-700 rounded-md hover:bg-zinc-200 transition-all"
                                   title="Ignore"
                                 >
                                   Ignore
@@ -4248,28 +4372,35 @@ export default function DashboardPage() {
                     </div>
                   </div>
                 ) : (
-                  <div className="bg-white border border-purple-200 rounded-xl p-3">
-                    <div className="flex items-center justify-center gap-2 py-8">
-                      <Check className="h-5 w-5 text-green-500" />
-                      <span className="text-sm font-semibold text-green-600">No Issues Found</span>
+                  <div className="bg-gradient-to-br from-green-50/50 to-white border border-green-200 rounded-xl p-6">
+                    <div className="flex flex-col items-center justify-center gap-3 py-8">
+                      <div className="w-12 h-12 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center shadow-lg shadow-green-500/25">
+                        <Check className="h-6 w-6 text-white" />
+                      </div>
+                      <span className="text-sm font-semibold text-green-700">No Issues Found</span>
+                      <p className="text-xs text-zinc-500 text-center">Your transcript looks great!</p>
                     </div>
                   </div>
                 )}
               </div>
 
               {/* Right Column - Highlighted Transcript */}
-              <div className="w-1/2 overflow-y-auto pl-2">
+              <div className="w-1/2 overflow-y-auto pl-3">
                 {isRunningValidation ? (
-                  <div className="flex items-center justify-center h-full min-h-[400px] border border-purple-200 rounded-lg bg-purple-50">
+                  <div className="flex items-center justify-center h-full min-h-[300px] border border-purple-300/60 rounded-xl bg-gradient-to-br from-purple-100/80 via-violet-100/80 to-purple-100/80 shadow-sm ring-1 ring-purple-200/50">
                     <div className="text-center">
-                      <Loader2 className="h-6 w-6 text-purple-400 mx-auto mb-2 animate-spin" />
-                      <p className="text-xs text-zinc-600">Please wait while the Transcript Checker validates error.</p>
+                      <Loader2 className="h-8 w-8 text-purple-600 mx-auto mb-3 animate-spin" />
+                      <p className="text-xs font-bold text-purple-900">Validating transcript...</p>
+                      <p className="text-[10px] text-purple-700 mt-1 font-medium">Please wait</p>
                     </div>
                   </div>
                 ) : debouncedTranscript ? (
                   <div className="sticky top-0">
-                    <div className="flex items-center justify-between mb-1.5">
-                      <label className="text-[10px] font-semibold text-zinc-700">Highlighted Transcript</label>
+                    <div className="flex items-center justify-between mb-3">
+                      <label className="text-[10px] font-bold text-zinc-700 flex items-center gap-2 uppercase tracking-wider">
+                        <FileText className="h-3 w-3 text-purple-600" />
+                        Highlighted Transcript
+                      </label>
                       {validationIssues.filter(i => !i.ignored).length === 0 && (
                         <button
                           onClick={() => {
@@ -4277,7 +4408,7 @@ export default function DashboardPage() {
                             setCopySuccess(true)
                             setTimeout(() => setCopySuccess(false), 2000)
                           }}
-                          className="flex items-center gap-1.5 text-[10px] font-semibold text-green-600 hover:text-green-700 transition-colors"
+                          className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all shadow-sm"
                         >
                           {copySuccess ? (
                             <>
@@ -4287,44 +4418,58 @@ export default function DashboardPage() {
                           ) : (
                             <>
                               <Copy className="h-3 w-3" />
-                              Copy Edited Transcript
+                              Copy Transcript
                             </>
                           )}
                         </button>
                       )}
                     </div>
-                    <div
-                      dangerouslySetInnerHTML={{ __html: highlightedTranscript || debouncedTranscript }}
-                      className="w-full border border-purple-200 rounded-lg px-3 py-2 text-xs text-zinc-800 bg-white min-h-[400px] overflow-y-auto whitespace-pre-wrap font-mono"
-                    />
-                    <div className="mt-2 flex gap-4 text-[10px] flex-wrap">
-                      <div className="flex items-center gap-1">
-                        <div className="w-3 h-3 bg-yellow-200 border border-yellow-400 rounded"></div>
-                        <span className="text-zinc-600">Style Rule</span>
+                    {formatMismatchError ? (
+                      <div className="w-full border border-red-300/80 bg-gradient-to-br from-red-50/90 to-orange-50/90 rounded-xl px-6 py-8 text-center shadow-sm ring-1 ring-red-200/50">
+                        <div className="flex items-center justify-center gap-3 mb-3">
+                          <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center shadow-sm">
+                            <svg className="w-6 h-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                          </div>
+                          <h3 className="text-xs font-semibold text-red-800">Department Format Mismatch</h3>
+                        </div>
+                        <p className="text-[10px] text-red-700 mb-2">
+                          The transcript format does not match the selected department. Please select the correct department to continue.
+                        </p>
+                        <div className="inline-block bg-white border border-red-200 rounded-lg px-4 py-2 shadow-sm">
+                          <p className="text-[10px] text-red-800 font-bold">
+                            Suggested Department: <span className="font-extrabold">{formatMismatchError}</span>
+                          </p>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-1">
-                        <div className="w-3 h-3 bg-red-200 border border-red-400 rounded"></div>
-                        <span className="text-zinc-600">Name Validation</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <div className="w-3 h-3 bg-orange-200 border border-orange-400 rounded"></div>
-                        <span className="text-zinc-600">Company Validation</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <div className="w-3 h-3 bg-purple-200 border border-purple-400 rounded"></div>
-                        <span className="text-zinc-600">Formatting</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <div className="w-3 h-3 border-b-2 border-green-500"></div>
-                        <span className="text-zinc-600">Valid Uncommon Word</span>
-                      </div>
-                    </div>
+                    ) : (
+                      <>
+                        <div
+                          dangerouslySetInnerHTML={{ __html: highlightedTranscript || debouncedTranscript }}
+                          className="w-full border border-purple-300/60 rounded-xl px-4 py-3 text-[10px] text-zinc-800 bg-white min-h-[300px] overflow-y-auto whitespace-pre-wrap font-mono shadow-sm ring-1 ring-purple-100/50 leading-relaxed"
+                        />
+                        <div className="mt-3 flex gap-3 text-[10px] flex-wrap bg-gradient-to-br from-purple-100/80 via-violet-100/80 to-purple-100/80 border border-purple-300/60 rounded-lg p-3 shadow-sm ring-1 ring-purple-200/50">
+                          <div className="flex items-center gap-2">
+                            <div className="w-3 h-3 bg-yellow-200 border border-yellow-400 rounded-md shadow-sm"></div>
+                            <span className="text-zinc-700 font-semibold">Style Rule</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className="w-3 h-3 bg-purple-200 border border-purple-400 rounded-md shadow-sm"></div>
+                            <span className="text-zinc-700 font-semibold">Formatting</span>
+                          </div>
+                        </div>
+                      </>
+                    )}
                   </div>
                 ) : (
-                  <div className="flex items-center justify-center h-full min-h-[400px] border border-dashed border-purple-200 rounded-lg bg-purple-50/50">
+                  <div className="flex items-center justify-center h-full min-h-[300px] border-2 border-dashed border-purple-300/60 rounded-xl bg-gradient-to-br from-purple-50/60 via-white to-purple-50/60">
                     <div className="text-center">
-                      <FileText className="h-8 w-8 text-purple-300 mx-auto mb-2" />
-                      <p className="text-xs text-zinc-500">Paste transcript to see highlighted preview</p>
+                      <div className="w-16 h-16 bg-gradient-to-br from-purple-100 to-violet-100 rounded-xl flex items-center justify-center mx-auto mb-3 shadow-sm ring-1 ring-purple-200/50">
+                        <FileText className="h-8 w-8 text-purple-500" />
+                      </div>
+                      <p className="text-xs font-bold text-zinc-700">Paste transcript to see highlighted preview</p>
+                      <p className="text-[10px] text-zinc-500 mt-1 font-medium">The transcript will be displayed here with validation highlights</p>
                     </div>
                   </div>
                 )}
@@ -4332,8 +4477,8 @@ export default function DashboardPage() {
             </div>
 
             {/* Footer */}
-            <div className="flex-shrink-0 pt-3 border-t border-purple-100 mt-3 flex gap-2">
-              <button 
+            <div className="relative z-10 flex-shrink-0 pt-4 border-t border-purple-200/60 mt-4 flex justify-center gap-3 px-8 pb-6">
+              <button
                 onClick={() => {
                   setTranscriptContent("")
                   setValidationIssues([])
@@ -4341,13 +4486,13 @@ export default function DashboardPage() {
                   setExtractedCompanies([])
                   setIssueSearchQuery("")
                 }}
-                className="flex-1 rounded-lg border border-purple-200 bg-white px-4 py-2 text-xs font-semibold text-zinc-700 hover:bg-purple-50 hover:text-zinc-900 hover:border-purple-300 transition-all duration-300 shadow-sm"
+                className="rounded-lg border border-purple-300/60 bg-white px-6 py-2 text-[10px] font-bold text-zinc-700 hover:bg-purple-50 hover:text-zinc-900 hover:border-purple-400 transition-all duration-300 shadow-sm"
               >
                 Clear
               </button>
-              <button 
-                onClick={() => setShowValidationPanel(false)} 
-                className="flex-1 rounded-lg border border-purple-200 bg-purple-50 px-4 py-2 text-xs font-semibold text-zinc-700 hover:bg-purple-100 hover:text-zinc-900 hover:border-purple-300 transition-all duration-300 shadow-sm"
+              <button
+                onClick={() => setShowValidationPanel(false)}
+                className="rounded-lg border border-purple-300/60 bg-purple-50/80 px-6 py-2 text-[10px] font-bold text-zinc-700 hover:bg-purple-100 hover:text-zinc-900 hover:border-purple-400 transition-all duration-300 shadow-sm"
               >
                 Close
               </button>
@@ -4723,7 +4868,7 @@ export default function DashboardPage() {
                     value={newFormattingRule.name}
                     onChange={(e) => setNewFormattingRule({...newFormattingRule, name: e.target.value})}
                     className="w-full border border-rose-200 rounded-lg px-3 py-2 text-sm text-zinc-800 outline-none focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20 transition-all bg-white"
-                    placeholder="Rule name (e.g., Speaker Labels)"
+                    placeholder="Rule name (e.g., Fix repeated words)"
                   />
                   <div>
                     <label className="text-[10px] font-semibold text-zinc-700 mb-1 block">Department</label>
@@ -4745,18 +4890,42 @@ export default function DashboardPage() {
                     value={newFormattingRule.description}
                     onChange={(e) => setNewFormattingRule({...newFormattingRule, description: e.target.value})}
                     className="w-full border border-rose-200 rounded-lg px-3 py-2 text-sm text-zinc-800 outline-none focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20 transition-all bg-white min-h-[60px] resize-y"
-                    placeholder="Description (e.g., Speaker labels must be in uppercase)"
+                    placeholder="Description (e.g., Find and fix repeated words)"
                   />
-                  <input
-                    type="text"
-                    value={newFormattingRule.pattern}
-                    onChange={(e) => setNewFormattingRule({...newFormattingRule, pattern: e.target.value})}
-                    className="w-full border border-rose-200 rounded-lg px-3 py-2 text-sm text-zinc-800 outline-none focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20 transition-all bg-white"
-                    placeholder="Pattern/regex to check (e.g., ^[A-Z]+:)"
-                  />
+                  <div>
+                    <label className="text-[10px] font-semibold text-zinc-700 mb-1 block">Pattern (what to find)</label>
+                    <input
+                      type="text"
+                      value={newFormattingRule.pattern}
+                      onChange={(e) => setNewFormattingRule({...newFormattingRule, pattern: e.target.value})}
+                      className="w-full border border-rose-200 rounded-lg px-3 py-2 text-sm text-zinc-800 outline-none focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20 transition-all bg-white"
+                      placeholder="e.g., because -- because"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-semibold text-zinc-700 mb-1 block">Suggestion (what it should be)</label>
+                    <input
+                      type="text"
+                      value={newFormattingRule.replacement}
+                      onChange={(e) => setNewFormattingRule({...newFormattingRule, replacement: e.target.value})}
+                      className="w-full border border-rose-200 rounded-lg px-3 py-2 text-sm text-zinc-800 outline-none focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20 transition-all bg-white"
+                      placeholder="e.g., because"
+                    />
+                  </div>
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-2">
+                    <p className="text-[9px] text-green-800">
+                      <strong>📝 Example:</strong> To fix repeated words with "--"
+                      <br/>• <strong>Pattern:</strong> "be -- be" (will match ANY "word -- word")
+                      <br/>• <strong>Suggestion:</strong> "be" (will suggest the single word)
+                      <br/><em>(The pattern is generic and works for any repeated word)</em>
+                    </p>
+                  </div>
                   <button
                     onClick={async () => {
-                      if (!newFormattingRule.name || !newFormattingRule.pattern) return
+                      if (!newFormattingRule.name || !newFormattingRule.pattern) {
+                        alert('Please enter a rule name and pattern')
+                        return
+                      }
                       try {
                         const res = await fetch('/api/formatting-rules', {
                           method: 'POST',
@@ -4766,7 +4935,24 @@ export default function DashboardPage() {
                         const data = await res.json()
                         if (!res.ok) throw new Error(data.error || 'Failed to add rule')
                         await fetchFormattingRules()
-                        setNewFormattingRule({ name: "", description: "", pattern: "", department: "all" })
+                        // Reload validation rules to include the new formatting rule
+                        const { data: newRules, error: rulesError } = await supabase
+                          .from('formatting_rules')
+                          .select('*')
+                        if (!rulesError && newRules) {
+                          const formattingRulesMapped = newRules.map((r: any) => ({
+                            id: r.id,
+                            rule_name: r.name,
+                            department: r.department,
+                            category: 'formatting',
+                            find: r.pattern,
+                            replace: r.replacement || '',
+                            enabled: true,
+                            is_regex: false
+                          }))
+                          setValidationRules(prev => [...prev.filter(r => r.category !== 'formatting'), ...formattingRulesMapped])
+                        }
+                        setNewFormattingRule({ name: "", description: "", pattern: "", replacement: "", department: "all" })
                         setToastMessage('✅ Format rule added successfully')
                         setShowToast(true)
                         setTimeout(() => { setShowToast(false); setToastMessage(null) }, 3000)
@@ -4805,11 +4991,33 @@ export default function DashboardPage() {
                       <button
                         onClick={async () => {
                           if (!confirm('Are you sure you want to delete this rule?')) return
+                          if (!rule.id) {
+                            alert('Error: Rule ID is missing')
+                            return
+                          }
                           try {
+                            console.log('[Delete formatting rule] Rule ID:', rule.id)
                             const res = await fetch(`/api/formatting-rules/${rule.id}`, { method: 'DELETE' })
                             const data = await res.json()
                             if (!res.ok) throw new Error(data.error || 'Failed to delete rule')
                             await fetchFormattingRules()
+                            // Reload validation rules to remove the deleted formatting rule
+                            const { data: newRules, error: rulesError } = await supabase
+                              .from('formatting_rules')
+                              .select('*')
+                            if (!rulesError) {
+                              const formattingRulesMapped = (newRules || []).map((r: any) => ({
+                                id: r.id,
+                                rule_name: r.name,
+                                department: r.department,
+                                category: 'formatting',
+                                find: r.pattern,
+                                replace: r.replacement || '',
+                                enabled: true,
+                                is_regex: false
+                              }))
+                              setValidationRules(prev => [...prev.filter(r => r.category !== 'formatting'), ...formattingRulesMapped])
+                            }
                             setToastMessage('✅ Format rule deleted')
                             setShowToast(true)
                             setTimeout(() => { setShowToast(false); setToastMessage(null) }, 3000)
@@ -4835,6 +5043,170 @@ export default function DashboardPage() {
                 className="w-full rounded-xl border border-rose-200 bg-rose-50 px-5 py-2.5 text-sm font-semibold text-zinc-700 hover:bg-rose-100 hover:text-zinc-900 hover:border-rose-300 transition-all duration-300 shadow-sm"
               >
                 Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Report Issue Modal ── */}
+      {isReportIssueModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-md animate-fade-in">
+          <div className="bg-gradient-to-b from-red-50 to-white border border-red-200/60 backdrop-blur-xl shadow-[0_8px_60px_rgba(239,68,68,0.12)] rounded-3xl w-full max-w-xl p-4 relative max-h-[90vh] flex flex-col overflow-hidden animate-scale-up">
+            <button 
+              onClick={() => setIsReportIssueModalOpen(false)} 
+              className="absolute right-4 top-4 z-10 cursor-pointer text-zinc-400 hover:text-red-500 hover:rotate-90 transition-all duration-300"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            <div className="mb-4">
+              <h3 className="text-sm font-bold bg-gradient-to-r from-red-600 to-rose-600 bg-clip-text text-transparent">Report Validator Issue</h3>
+              <p className="text-[10px] text-zinc-600 mt-1">Report any issues with the Transcript Validation Engine to the admin</p>
+            </div>
+
+            <div className="flex-1 overflow-y-auto space-y-3">
+              <div>
+                <label className="text-[10px] font-semibold text-zinc-700 mb-1 block">Issue Description</label>
+                <textarea
+                  value={reportIssueDescription}
+                  onChange={(e) => setReportIssueDescription(e.target.value)}
+                  className="w-full border border-red-200 rounded-lg px-3 py-2 text-sm text-zinc-800 outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/20 transition-all bg-white min-h-[120px] resize-y"
+                  placeholder="Describe the issue you encountered with the validator..."
+                />
+              </div>
+              <div className="bg-red-50 border border-red-200 rounded-lg p-2">
+                <p className="text-[9px] text-red-800">
+                  <strong>ℹ️ Info:</strong> Your report will include the current transcript content and department for admin review.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex-shrink-0 pt-4 border-t border-red-100 mt-4">
+              <button
+                onClick={async () => {
+                  if (!reportIssueDescription.trim()) {
+                    alert('Please describe the issue')
+                    return
+                  }
+                  setIsSubmittingReport(true)
+                  try {
+                    const res = await fetch('/api/validator-issue-reports', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        worker_id: user?.id || 'unknown',
+                        worker_name: user?.full_name || 'Unknown Worker',
+                        transcript_content: transcriptContent,
+                        issue_description: reportIssueDescription,
+                        department: selectedDepartment
+                      })
+                    })
+                    const data = await res.json()
+                    if (!res.ok) throw new Error(data.error || 'Failed to submit report')
+                    setReportIssueDescription('')
+                    setIsReportIssueModalOpen(false)
+                    setToastMessage('✅ Issue reported successfully')
+                    setShowToast(true)
+                    setTimeout(() => { setShowToast(false); setToastMessage(null) }, 3000)
+                  } catch (err: any) {
+                    console.error('Report issue error:', err)
+                    alert('Failed to report issue: ' + (err.message || 'Unknown error'))
+                  } finally {
+                    setIsSubmittingReport(false)
+                  }
+                }}
+                disabled={isSubmittingReport}
+                className="w-full rounded-xl bg-gradient-to-r from-red-500 to-rose-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-red-500/30 hover:from-red-600 hover:to-rose-700 hover:shadow-xl hover:shadow-red-600/40 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSubmittingReport ? 'Submitting...' : 'Submit Report'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Validator Issue Reports Modal ── */}
+      {isValidatorReportsModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-md animate-fade-in">
+          <div className="bg-gradient-to-b from-red-50 to-white border border-red-200/60 backdrop-blur-xl shadow-[0_8px_60px_rgba(239,68,68,0.12)] rounded-3xl w-full max-w-2xl p-4 relative max-h-[90vh] flex flex-col overflow-hidden animate-scale-up">
+            <button 
+              onClick={() => setIsValidatorReportsModalOpen(false)} 
+              className="absolute right-4 top-4 z-10 cursor-pointer text-zinc-400 hover:text-red-500 hover:rotate-90 transition-all duration-300"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            <div className="mb-4">
+              <h3 className="text-sm font-bold bg-gradient-to-r from-red-600 to-rose-600 bg-clip-text text-transparent">Validator Issue Reports</h3>
+              <p className="text-[10px] text-zinc-600 mt-1">View and manage reported validator issues from workers</p>
+            </div>
+
+            <div className="flex-1 overflow-y-auto space-y-2">
+              {isLoadingValidatorReports ? (
+                <div className="text-center text-zinc-500 text-xs py-8">Loading reports...</div>
+              ) : validatorReports.length === 0 ? (
+                <div className="text-center text-zinc-500 text-xs py-8">No issue reports yet</div>
+              ) : (
+                validatorReports.map((report: any) => (
+                  <div key={report.id} className="bg-white border border-red-200 rounded-lg p-3">
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-[10px] font-semibold text-zinc-800">{report.worker_name}</span>
+                          <span className="text-[9px] bg-red-100 text-red-700 px-1.5 py-0.5 rounded-full capitalize">
+                            {report.department}
+                          </span>
+                          <span className={`text-[9px] px-1.5 py-0.5 rounded-full ${
+                            report.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
+                            report.status === 'resolved' ? 'bg-green-100 text-green-700' :
+                            'bg-zinc-100 text-zinc-700'
+                          }`}>
+                            {report.status}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-zinc-600">{new Date(report.created_at).toLocaleString()}</p>
+                      </div>
+                      {report.status === 'pending' && (
+                        <button
+                          onClick={async () => {
+                            try {
+                              const res = await fetch('/api/validator-issue-reports', {
+                                method: 'PATCH',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ id: report.id, status: 'resolved' })
+                              })
+                              if (res.ok) {
+                                await fetchValidatorReports()
+                                setToastMessage('✅ Report marked as resolved')
+                                setShowToast(true)
+                                setTimeout(() => { setShowToast(false); setToastMessage(null) }, 3000)
+                              }
+                            } catch (err) {
+                              console.error('Error updating report status:', err)
+                            }
+                          }}
+                          className="text-[9px] bg-green-500 text-white px-2 py-1 rounded hover:bg-green-600 transition"
+                        >
+                          Mark Resolved
+                        </button>
+                      )}
+                    </div>
+                    <p className="text-[10px] text-zinc-700 bg-red-50 p-2 rounded mb-2">{report.issue_description}</p>
+                    <div className="bg-zinc-50 p-2 rounded max-h-24 overflow-y-auto">
+                      <p className="text-[9px] text-zinc-600 font-mono whitespace-pre-wrap">{report.transcript_content.substring(0, 200)}{report.transcript_content.length > 200 ? '...' : ''}</p>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="flex-shrink-0 pt-4 border-t border-red-100 mt-4">
+              <button 
+                onClick={() => setIsValidatorReportsModalOpen(false)} 
+                className="w-full rounded-xl border border-red-200 bg-red-50 px-5 py-2.5 text-sm font-semibold text-zinc-700 hover:bg-red-100 hover:text-zinc-900 hover:border-red-300 transition-all duration-300 shadow-sm"
+              >
+                Close
               </button>
             </div>
           </div>
@@ -5393,6 +5765,34 @@ export default function DashboardPage() {
                   <FlagIcon country={editWorkerForm.location} size={18} />
                 </div>
               </div>
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 mb-2">Department Permissions</label>
+                <div className="space-y-2">
+                  {['conference', 'senate', 'academics', 'broadcast', 'podcast', 'medical'].map((dept) => (
+                    <label key={dept} className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={editWorkerForm.departmentPermissions.includes(dept)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setEditWorkerForm({
+                              ...editWorkerForm,
+                              departmentPermissions: [...editWorkerForm.departmentPermissions, dept]
+                            })
+                          } else {
+                            setEditWorkerForm({
+                              ...editWorkerForm,
+                              departmentPermissions: editWorkerForm.departmentPermissions.filter(d => d !== dept)
+                            })
+                          }
+                        }}
+                        className="rounded border-zinc-300 text-cyan-600 focus:ring-cyan-500"
+                      />
+                      <span className="text-sm text-zinc-700 capitalize">{dept}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
               <div className="flex gap-3 mt-6">
                 <button type="button" onClick={() => setIsEditWorkerModalOpen(false)} className="flex-1 rounded-md border border-zinc-300 bg-white px-5 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-100 transition">Cancel</button>
                 <button type="submit" disabled={isUpdatingWorkerDetails} className="flex-1 inline-flex items-center justify-center gap-2 rounded-md bg-gradient-to-r from-cyan-600 to-sky-600 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-cyan-600/20 hover:from-cyan-700 hover:to-sky-700 disabled:opacity-50">
@@ -5474,10 +5874,10 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {isReportIssueModalOpen && reportIssueAssignment && (
+      {isAssignmentReportIssueModalOpen && reportIssueAssignment && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 relative">
-            <button onClick={() => { setIsReportIssueModalOpen(false); setIssueDescription(''); setReportIssueAssignment(null) }} className="absolute right-4 top-4 text-zinc-400 hover:text-zinc-900"><X className="h-5 w-5" /></button>
+            <button onClick={() => { setIsAssignmentReportIssueModalOpen(false); setIssueDescription(''); setReportIssueAssignment(null) }} className="absolute right-4 top-4 text-zinc-400 hover:text-zinc-900"><X className="h-5 w-5" /></button>
             <h3 className="text-lg font-semibold text-zinc-900 mb-4">Report Assignment Issue</h3>
             <div className="space-y-4">
               <div>
@@ -5496,7 +5896,7 @@ export default function DashboardPage() {
                 />
               </div>
               <div className="flex gap-3 mt-6">
-                <button onClick={() => { setIsReportIssueModalOpen(false); setIssueDescription(''); setReportIssueAssignment(null) }} className="flex-1 rounded-md border border-zinc-300 bg-white px-5 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-100 transition">Cancel</button>
+                <button onClick={() => { setIsAssignmentReportIssueModalOpen(false); setIssueDescription(''); setReportIssueAssignment(null) }} className="flex-1 rounded-md border border-zinc-300 bg-white px-5 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-100 transition">Cancel</button>
                 <button onClick={handleSubmitIssue} disabled={isSubmittingIssue || !issueDescription.trim()} className="flex-1 inline-flex items-center justify-center gap-2 rounded-md bg-red-700 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-red-600/20 hover:bg-red-800 disabled:opacity-50 transition">
                   {isSubmittingIssue ? 'Submitting...' : 'Submit Issue'}
                 </button>

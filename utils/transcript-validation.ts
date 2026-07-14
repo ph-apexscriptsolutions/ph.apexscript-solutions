@@ -62,6 +62,118 @@ export interface ValidationRule {
   severity?: 'low' | 'medium' | 'high' | 'critical'
   description?: string
   enabled: boolean
+  is_regex?: boolean
+}
+
+// Extract Senate speakers from transcript
+export interface ExtractedSenateSpeaker {
+  type: 'participant' | 'witness'
+  fullName: string
+  lastName: string
+  lastNameUpper: string
+  label: string
+}
+
+export function extractSenateSpeakers(transcript: string): { participants: ExtractedSenateSpeaker[], witnesses: ExtractedSenateSpeaker[], transcriptStartIndex: number } {
+  const participants: ExtractedSenateSpeaker[] = []
+  const witnesses: ExtractedSenateSpeaker[] = []
+  const lines = transcript.split('\n')
+  const speakerLabels = new Set<string>()
+  
+  // Find the transcript start marker [*]
+  let transcriptStartIndex = 0
+  let foundTranscriptStart = false
+  
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i].trim() === '[*]') {
+      transcriptStartIndex = i + 1
+      foundTranscriptStart = true
+      break
+    }
+  }
+  
+  console.log('[extractSenateSpeakers] Transcript start marker found:', foundTranscriptStart, 'at line:', transcriptStartIndex)
+  
+  // Extract speaker labels from the actual transcript (after [*])
+  for (let i = transcriptStartIndex; i < lines.length; i++) {
+    const match = lines[i].match(/^([A-Z]{2,}):\s*(.*)/)
+    if (match) {
+      speakerLabels.add(match[1])
+    }
+  }
+  
+  // Extract participants from PARTICIPANTS section (before [*])
+  // Handle both ALL CAPS and mixed case formats
+  // Handle both R-State, R-S.D., R-S.DOT formats (state codes can have dots)
+  const participantsPattern = /(?:SEN\.|REP\.|Sen\.|Rep\.)\s+([A-Za-z\s]+),\s+[RD]-[A-Za-z]{1,4}(?:\.[A-Za-z]{0,2})?/g
+  let match
+  
+  while ((match = participantsPattern.exec(transcript)) !== null) {
+    const fullName = match[1].trim()
+    // Convert to title case if it's all caps
+    const titleCaseName = fullName.toUpperCase() === fullName 
+      ? fullName.split(/\s+/).map(word => word.charAt(0) + word.slice(1).toLowerCase()).join(' ')
+      : fullName
+    
+    const nameParts = titleCaseName.split(/\s+/)
+    const lastName = nameParts[nameParts.length - 1]
+    const lastNameUpper = lastName.toUpperCase()
+    
+    // Check if this speaker has a label in the transcript
+    const label = speakerLabels.has(lastNameUpper) ? lastNameUpper : ''
+    
+    participants.push({
+      type: 'participant',
+      fullName: titleCaseName,
+      lastName,
+      lastNameUpper,
+      label
+    })
+  }
+  
+  // Extract witnesses from WITNESSES section (before [*])
+  // Handle various witness formats
+  const witnessPatterns = [
+    /(?:HONORABLE|Honorable)\s+([A-Za-z\s]+)(?:,\s+[^.]+\.?)/g,
+    /(?:DR\.|Dr\.)\s+([A-Za-z\s]+)(?:,\s+to be\s+[^.]+\.?)/g,
+    /(?:MR\.|Mr\.|MS\.|Ms\.|MRS\.|Mrs\.)\s+([A-Za-z\s]+)(?:,\s+[^.]+\.?)/g
+  ]
+  
+  for (const pattern of witnessPatterns) {
+    while ((match = pattern.exec(transcript)) !== null) {
+      const fullName = match[1].trim()
+      // Convert to title case if it's all caps
+      const titleCaseName = fullName.toUpperCase() === fullName 
+        ? fullName.split(/\s+/).map(word => word.charAt(0) + word.slice(1).toLowerCase()).join(' ')
+        : fullName
+      
+      const nameParts = titleCaseName.split(/\s+/)
+      const lastName = nameParts[nameParts.length - 1]
+      const lastNameUpper = lastName.toUpperCase()
+      
+      // Check if this speaker has a label in the transcript
+      const label = speakerLabels.has(lastNameUpper) ? lastNameUpper : ''
+      
+      // Avoid duplicates
+      if (!witnesses.some(w => w.fullName === titleCaseName)) {
+        witnesses.push({
+          type: 'witness',
+          fullName: titleCaseName,
+          lastName,
+          lastNameUpper,
+          label
+        })
+      }
+    }
+  }
+  
+  console.log('[extractSenateSpeakers] Participants found:', participants.length)
+  console.log('[extractSenateSpeakers] Witnesses found:', witnesses.length)
+  console.log('[extractSenateSpeakers] Speaker labels found:', Array.from(speakerLabels))
+  console.log('[extractSenateSpeakers] Participants:', participants.map(p => p.fullName))
+  console.log('[extractSenateSpeakers] Witnesses:', witnesses.map(w => w.fullName))
+  
+  return { participants, witnesses, transcriptStartIndex }
 }
 
 // Levenshtein distance for fuzzy matching
@@ -139,7 +251,7 @@ export function shouldFuzzyMatch(
   // DEBUG: Log for specific words
   const wordLower = word.toLowerCase()
   const candidateLower = candidate.toLowerCase()
-  if (wordLower === 'lke' || wordLower === 'jhon' || wordLower === 'grg' || wordLower === 'smtih') {
+  if (wordLower === 'lke' || wordLower === 'jhon' || wordLower === 'grg' || wordLower === 'smtih' || wordLower === 'canacord') {
     console.log(`[shouldFuzzyMatch] Checking "${word}" -> "${candidate}"`)
     console.log(`[shouldFuzzyMatch] Exact match: ${normalizedWord === normalizedCandidate}`)
     console.log(`[shouldFuzzyMatch] First letter match: ${word[0].toLowerCase() === candidate[0].toLowerCase()}`)
@@ -1118,12 +1230,84 @@ export function applyStyleRules(transcript: string, rules: ValidationRule[]): Va
   console.log('[applyStyleRules] Rules to apply:', enabledRules.length)
   
   enabledRules.forEach(rule => {
-    const regex = new RegExp(rule.find.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi')
+    let regex: RegExp
+    let patternToUse = rule.find
+    let useCapturedGroup = false
+
+    // Log the rule pattern to debug
+    console.log(`[applyStyleRules] Processing rule: ${rule.rule_name}, find: "${rule.find}", replace: "${rule.replace}"`)
+
+    // Skip rules with empty find pattern
+    if (!patternToUse || patternToUse.trim() === '') {
+      console.log(`[applyStyleRules] Skipping rule with empty find pattern: ${rule.rule_name}`)
+      return
+    }
+
+    // Skip rules where find pattern is just "--" or only dashes
+    if (patternToUse.trim().match(/^[-\s]+$/)) {
+      console.log(`[applyStyleRules] Skipping rule with only dashes/whitespace in find pattern: ${rule.rule_name}`)
+      return
+    }
+
+    // Handle special " -- " pattern format for repeated words
+    // Example: "be -- be" should match ANY "word -- word" pattern and suggest "word"
+    // Example: "because of -- because of" should match "phrase -- phrase" and suggest "phrase"
+    if (patternToUse.includes(' -- ')) {
+      const parts = patternToUse.split(' -- ')
+      if (parts.length === 2 && parts[0] === parts[1]) {
+        // Skip if the pattern is just "--" (no actual word to match)
+        if (parts[0].trim() === '') {
+          console.log(`[applyStyleRules] Skipping empty " -- " pattern: ${rule.find}`)
+          return
+        }
+        // Convert to regex that matches any repeated word/phrase with " -- " separator
+        // Pattern: (.+?)\s*--\s*\1
+        // Note: We don't use word boundaries because they don't work well with backreferences
+        patternToUse = '(.+?)\\s*--\\s*\\1'
+        useCapturedGroup = true
+        console.log(`[applyStyleRules] Converting " -- " pattern: ${rule.find} -> ${patternToUse}`)
+      }
+    } else {
+      // Also check if the pattern contains "--" without spaces (e.g., "word--word")
+      if (patternToUse.includes('--')) {
+        const parts = patternToUse.split('--')
+        if (parts.length === 2 && parts[0] === parts[1]) {
+          // Skip if the pattern is just "--" (no actual word to match)
+          if (parts[0].trim() === '') {
+            console.log(`[applyStyleRules] Skipping empty "--" pattern: ${rule.find}`)
+            return
+          }
+          // Convert to regex that matches any repeated word/phrase with "--" separator
+          patternToUse = '(.+?)--\\1'
+          useCapturedGroup = true
+          console.log(`[applyStyleRules] Converting "--" pattern: ${rule.find} -> ${patternToUse}`)
+        }
+      }
+    }
+
+    // Skip rules with empty replace pattern (but only if not using captured group)
+    if (!useCapturedGroup && (!rule.replace || rule.replace.trim() === '')) {
+      console.log(`[applyStyleRules] Skipping rule with empty replace pattern: ${rule.rule_name}`)
+      return
+    }
+    
+    // Check if this is a regex pattern or literal string
+    if (rule.is_regex || useCapturedGroup) {
+      // Use the pattern as-is for regex mode (or for " -- " patterns)
+      regex = new RegExp(patternToUse, 'gi')
+    } else {
+      // Escape special regex characters for literal string matching
+      regex = new RegExp(patternToUse.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi')
+    }
+    
+    console.log(`[applyStyleRules] Rule: ${rule.rule_name}, Pattern: ${patternToUse}, Regex: ${regex.toString()}`)
+
     let match
     let matchCount = 0
-    
+
     while ((match = regex.exec(transcript)) !== null) {
       matchCount++
+      console.log(`[applyStyleRules] Match ${matchCount}: "${match[0]}" at index ${match.index}, captured: ${match[1]}`)
       // Limit to first 10 matches per rule to avoid overwhelming
       if (matchCount > 10) break
       
@@ -1134,13 +1318,31 @@ export function applyStyleRules(transcript: string, rules: ValidationRule[]): Va
       // Determine category based on rule's category field
       const category = rule.category === 'formatting' ? 'formatting' : 'style'
       
+      // Calculate the suggested correction
+      let suggestedCorrection: string
+      if (rule.is_regex) {
+        // Replace with captured groups if regex mode
+        suggestedCorrection = match[0].replace(regex, rule.replace)
+      } else if (useCapturedGroup) {
+        // Use the first captured group (the word) for " -- " patterns
+        suggestedCorrection = match[1] || rule.replace
+      } else {
+        suggestedCorrection = rule.replace
+      }
+      
+      // Skip if found and suggested are the same (no actual correction needed)
+      if (match[0] === suggestedCorrection) {
+        console.log(`[applyStyleRules] Skipping duplicate suggestion: "${match[0]}" -> "${suggestedCorrection}"`)
+        continue
+      }
+      
       issues.push({
         id: `${category}-${rule.id}-${matchCount}`,
         category,
         ruleName: rule.rule_name,
         severity: rule.severity || 'medium',
         foundText: match[0],
-        suggestedCorrection: rule.replace,
+        suggestedCorrection,
         line,
         column,
         ignored: false
@@ -1148,9 +1350,19 @@ export function applyStyleRules(transcript: string, rules: ValidationRule[]): Va
     }
   })
   
+  // Deduplicate issues based on found text and position
+  const uniqueIssues = issues.filter((issue, index, self) =>
+    index === self.findIndex((i) =>
+      i.foundText === issue.foundText &&
+      i.line === issue.line &&
+      i.column === issue.column
+    )
+  )
+
   console.log(`[applyStyleRules] Total style/formatting issues found: ${issues.length}`)
+  console.log(`[applyStyleRules] After deduplication: ${uniqueIssues.length}`)
   console.log(`[PERF] Style Rules: ${Math.round(performance.now() - startTime)}ms`)
-  return issues
+  return uniqueIssues
 }
 
 // Detect repeated words in transcript
@@ -1164,6 +1376,46 @@ export function detectRepeatedWords(transcript: string): ValidationIssue[] {
   lines.forEach((line, lineIndex) => {
     const words = line.split(/\s+/)
     
+    for (let i = 0; i < words.length; i++) {
+      const word = words[i]
+      
+      // Check for repeated letters at the beginning of a word (e.g., "NNice", "TThe")
+      if (word.length >= 3) {
+        const firstChar = word[0]
+        const secondChar = word[1]
+
+        // Skip if the word is all uppercase (likely an acronym like SST, NASA, etc.)
+        if (word === word.toUpperCase() && word.length <= 6) {
+          continue
+        }
+
+        // Check if first two characters are the same letter (case-insensitive)
+        if (firstChar.toLowerCase() === secondChar.toLowerCase() && /[a-zA-Z]/.test(firstChar)) {
+          // Calculate column position
+          let column = 0
+          for (let k = 0; k < i; k++) {
+            column += words[k].length + 1 // +1 for space
+          }
+          column += 1 // 1-indexed column
+
+          console.log(`[detectRepeatedWords] Found repeated letter at start: "${word}" at line ${lineIndex + 1}`)
+
+          issues.push({
+            id: `repeated-letter-${lineIndex}-${i}`,
+            category: 'style',
+            ruleName: 'Repeated Letter at Word Start',
+            severity: 'medium',
+            foundText: word,
+            suggestedCorrection: firstChar + word.substring(2), // Remove the duplicate first letter
+            line: lineIndex + 1,
+            column,
+            ignored: false
+          })
+        }
+      }
+    }
+    
+    // Check for repeated consecutive words (e.g., "the the")
     for (let i = 0; i < words.length - 1; i++) {
       const currentWord = words[i].replace(/[^a-zA-Z]/g, '').toLowerCase()
       const nextWord = words[i + 1].replace(/[^a-zA-Z]/g, '').toLowerCase()
@@ -1173,22 +1425,21 @@ export function detectRepeatedWords(transcript: string): ValidationIssue[] {
       
       // Check if current word equals next word (repeated)
       if (currentWord === nextWord) {
-        // Calculate column position
+        // Calculate column position for the second (duplicate) word
         let column = 0
         for (let k = 0; k <= i; k++) {
           column += words[k].length + 1 // +1 for space
         }
-        column -= words[i].length // Adjust to start of current word
         
-        console.log(`[detectRepeatedWords] Found repeated word: "${words[i]}" at line ${lineIndex + 1}`)
+        console.log(`[detectRepeatedWords] Found repeated word: "${words[i]} ${words[i+1]}" at line ${lineIndex + 1}`)
         
         issues.push({
           id: `repeated-word-${lineIndex}-${i}`,
           category: 'style',
           ruleName: 'Repeated Words',
           severity: 'medium',
-          foundText: words[i],
-          suggestedCorrection: words[i], // Suggest removing the duplicate
+          foundText: words[i + 1], // Show the duplicate word
+          suggestedCorrection: '', // Suggest removing it
           line: lineIndex + 1,
           column: column + 1,
           ignored: false
@@ -1203,16 +1454,31 @@ export function detectRepeatedWords(transcript: string): ValidationIssue[] {
 }
 
 // Validate Senate Hearing participant names (Sen. format)
-export function validateSenateParticipantNames(transcript: string): ValidationIssue[] {
+export function validateSenateParticipantNames(transcript: string, extractedSpeakers?: { participants: ExtractedSenateSpeaker[], witnesses: ExtractedSenateSpeaker[], transcriptStartIndex: number }): ValidationIssue[] {
   const startTime = performance.now()
   const issues: ValidationIssue[] = []
   const lines = transcript.split('\n')
   
   console.log('[validateSenateParticipantNames] Checking Senate participant names')
+  console.log('[validateSenateParticipantNames] Extracted speakers provided:', extractedSpeakers ? 'Yes' : 'No')
+  
+  // Use extracted speakers if available
+  const validSpeakers = new Set<string>()
+  if (extractedSpeakers) {
+    extractedSpeakers.participants.forEach(speaker => {
+      validSpeakers.add(speaker.fullName.toLowerCase())
+    })
+    console.log('[validateSenateParticipantNames] Valid speakers from extraction:', Array.from(validSpeakers))
+  }
   
   lines.forEach((line, lineIndex) => {
-    // Pattern for Senate participants: Sen. Name, R-State or D-State
-    const senatePattern = /Sen\.\s+([A-Za-z\s]+),\s+([RD])-[A-Za-z]{2,3}\.?/i
+    // Skip validation if we're before the transcript start marker [*]
+    if (extractedSpeakers && lineIndex < extractedSpeakers.transcriptStartIndex) {
+      return
+    }
+    
+    // Pattern for Senate participants: Sen. or Rep. Name, R/D-State (e.g., Sen. Deb Fischer, R-Neb.)
+    const senatePattern = /(?:Sen\.|Rep\.)\s+([A-Za-z\s]+),\s+([RD])-[A-Za-z]{2,4}\.?/i
     
     const match = line.match(senatePattern)
     if (match) {
@@ -1230,11 +1496,32 @@ export function validateSenateParticipantNames(transcript: string): ValidationIs
           ruleName: 'Senate Participant Name',
           severity: 'medium',
           foundText: match[0],
-          suggestedCorrection: 'Sen. [First Last], [R/D]-[State]',
+          suggestedCorrection: 'Sen./Rep. [First Last], [R/D]-[State]',
           line: lineIndex + 1,
           column,
           ignored: false
         })
+      }
+      
+      // Check if name matches provided speaker names
+      if (validSpeakers.size > 0) {
+        const normalizedName = fullName.toLowerCase()
+        if (!validSpeakers.has(normalizedName)) {
+          const column = line.indexOf(fullName) + 1
+          console.log(`[validateSenateParticipantNames] Name not in speaker list at line ${lineIndex + 1}: ${fullName}`)
+          
+          issues.push({
+            id: `senate-unknown-participant-${lineIndex}`,
+            category: 'name',
+            ruleName: 'Unknown Senate Participant',
+            severity: 'medium',
+            foundText: fullName,
+            suggestedCorrection: 'Check if this name should be in the speaker list',
+            line: lineIndex + 1,
+            column,
+            ignored: false
+          })
+        }
       }
       
       // Check for proper capitalization
@@ -1268,14 +1555,29 @@ export function validateSenateParticipantNames(transcript: string): ValidationIs
 }
 
 // Validate Senate Hearing witness names (Dr. format)
-export function validateSenateWitnessNames(transcript: string): ValidationIssue[] {
+export function validateSenateWitnessNames(transcript: string, extractedSpeakers?: { participants: ExtractedSenateSpeaker[], witnesses: ExtractedSenateSpeaker[], transcriptStartIndex: number }): ValidationIssue[] {
   const startTime = performance.now()
   const issues: ValidationIssue[] = []
   const lines = transcript.split('\n')
   
   console.log('[validateSenateWitnessNames] Checking Senate witness names')
+  console.log('[validateSenateWitnessNames] Extracted speakers provided:', extractedSpeakers ? 'Yes' : 'No')
+  
+  // Use extracted speakers if available
+  const validSpeakers = new Set<string>()
+  if (extractedSpeakers) {
+    extractedSpeakers.witnesses.forEach(speaker => {
+      validSpeakers.add(speaker.fullName.toLowerCase())
+    })
+    console.log('[validateSenateWitnessNames] Valid speakers from extraction:', Array.from(validSpeakers))
+  }
   
   lines.forEach((line, lineIndex) => {
+    // Skip validation if we're before the transcript start marker [*]
+    if (extractedSpeakers && lineIndex < extractedSpeakers.transcriptStartIndex) {
+      return
+    }
+    
     // Pattern for Senate witnesses: Dr. Name, to be [position]
     const witnessPattern = /Dr\.\s+([A-Za-z\s\.-]+),\s+to\s+be\s+[A-Za-z\s]+/i
     
@@ -1300,6 +1602,27 @@ export function validateSenateWitnessNames(transcript: string): ValidationIssue[
           column,
           ignored: false
         })
+      }
+      
+      // Check if name matches provided speaker names
+      if (validSpeakers.size > 0) {
+        const normalizedName = fullName.toLowerCase()
+        if (!validSpeakers.has(normalizedName)) {
+          const column = line.indexOf(fullName) + 1
+          console.log(`[validateSenateWitnessNames] Name not in speaker list at line ${lineIndex + 1}: ${fullName}`)
+          
+          issues.push({
+            id: `senate-unknown-witness-${lineIndex}`,
+            category: 'name',
+            ruleName: 'Unknown Senate Witness',
+            severity: 'medium',
+            foundText: fullName,
+            suggestedCorrection: 'Check if this name should be in the speaker list',
+            line: lineIndex + 1,
+            column,
+            ignored: false
+          })
+        }
       }
       
       // Check for proper capitalization
@@ -1338,6 +1661,393 @@ export function validateSenateWitnessNames(transcript: string): ValidationIssue[
   return issues
 }
 
+// Validate speaker name spelling throughout the transcript
+export function validateSpeakerNameSpelling(transcript: string, extractedSpeakers?: { participants: ExtractedSenateSpeaker[], witnesses: ExtractedSenateSpeaker[], transcriptStartIndex: number }): ValidationIssue[] {
+  const startTime = performance.now()
+  const issues: ValidationIssue[] = []
+  const lines = transcript.split('\n')
+  
+  console.log('[validateSpeakerNameSpelling] Checking speaker name spelling throughout transcript')
+  console.log('[validateSpeakerNameSpelling] Extracted speakers provided:', extractedSpeakers ? 'Yes' : 'No')
+  
+  // Use extracted speakers if available
+  const validSpeakers = new Map<string, string>() // normalized -> original
+  if (extractedSpeakers) {
+    // Add participants
+    extractedSpeakers.participants.forEach(speaker => {
+      validSpeakers.set(speaker.fullName.toLowerCase(), speaker.fullName)
+    })
+    // Add witnesses
+    extractedSpeakers.witnesses.forEach(speaker => {
+      validSpeakers.set(speaker.fullName.toLowerCase(), speaker.fullName)
+    })
+    console.log('[validateSpeakerNameSpelling] Valid speakers from extraction:', Array.from(validSpeakers.keys()))
+  }
+  
+  if (validSpeakers.size === 0) {
+    console.log('[validateSpeakerNameSpelling] No speaker names provided, skipping validation')
+    return issues
+  }
+  
+  // Check each line for potential name mentions
+  lines.forEach((line, lineIndex) => {
+    // Skip validation if we're before the transcript start marker [*]
+    if (extractedSpeakers && lineIndex < extractedSpeakers.transcriptStartIndex) {
+      return
+    }
+    
+    // Skip lines that are speaker labels (ALL CAPS + colon)
+    if (/^[A-Z]{2,}:\s*/.test(line)) {
+      return
+    }
+    
+    // Skip lines that are already validated by other Senate validators
+    if (/Sen\.\s+[A-Za-z\s]+,\s+[RD]-[A-Za-z]{2,3}/i.test(line) || 
+        /Dr\.\s+[A-Za-z\s\.-]+,\s+to\s+be\s+[A-Za-z\s]+/i.test(line)) {
+      return
+    }
+    
+    // Check for each valid speaker name in the line
+    validSpeakers.forEach((originalName, normalizedName) => {
+      // Split the name into parts to check for partial matches
+      const nameParts = originalName.split(/\s+/)
+      
+      nameParts.forEach(part => {
+        if (part.length < 2) return // Skip very short parts
+        
+        // Create regex pattern for this name part (case-insensitive)
+        const pattern = new RegExp(`\\b${part}\\b`, 'gi')
+        const matches = line.matchAll(pattern)
+        
+        for (const match of matches) {
+          const matchedText = match[0]
+          const column = match.index + 1
+          
+          // Check if the matched text has correct capitalization
+          if (matchedText !== part) {
+            console.log(`[validateSpeakerNameSpelling] Spelling issue at line ${lineIndex + 1}: "${matchedText}" should be "${part}"`)
+            
+            issues.push({
+              id: `speaker-spelling-${lineIndex}-${column}`,
+              category: 'name',
+              ruleName: 'Speaker Name Spelling',
+              severity: 'medium',
+              foundText: matchedText,
+              suggestedCorrection: part,
+              line: lineIndex + 1,
+              column,
+              ignored: false
+            })
+          }
+        }
+      })
+    })
+  })
+  
+  console.log(`[validateSpeakerNameSpelling] Total issues found: ${issues.length}`)
+  console.log(`[PERF] Speaker Name Spelling Validation: ${Math.round(performance.now() - startTime)}ms`)
+  return issues
+}
+
+// Validate Senate speaker labels (ALL CAPS + colon format)
+export function validateSenateSpeakerLabels(transcript: string, extractedSpeakers?: { participants: ExtractedSenateSpeaker[], witnesses: ExtractedSenateSpeaker[], transcriptStartIndex: number }): ValidationIssue[] {
+  const startTime = performance.now()
+  const issues: ValidationIssue[] = []
+  const lines = transcript.split('\n')
+  
+  console.log('[validateSenateSpeakerLabels] Checking Senate speaker labels')
+  console.log('[validateSenateSpeakerLabels] Extracted speakers provided:', extractedSpeakers ? 'Yes' : 'No')
+  
+  // Use extracted speakers if available to check against labels
+  const validSpeakers = new Map<string, { fullName: string, lastName: string, lastNameUpper: string }>()
+  const lastNameList: string[] = []
+  if (extractedSpeakers) {
+    // Add participants
+    extractedSpeakers.participants.forEach(speaker => {
+      validSpeakers.set(speaker.fullName.toLowerCase(), { fullName: speaker.fullName, lastName: speaker.lastName, lastNameUpper: speaker.lastNameUpper })
+      lastNameList.push(speaker.lastName.toLowerCase())
+    })
+    // Add witnesses
+    extractedSpeakers.witnesses.forEach(speaker => {
+      validSpeakers.set(speaker.fullName.toLowerCase(), { fullName: speaker.fullName, lastName: speaker.lastName, lastNameUpper: speaker.lastNameUpper })
+      lastNameList.push(speaker.lastName.toLowerCase())
+    })
+    console.log('[validateSenateSpeakerLabels] Valid speakers from extraction:', Array.from(validSpeakers.keys()))
+    console.log('[validateSenateSpeakerLabels] Last names:', lastNameList)
+  }
+  
+  lines.forEach((line, lineIndex) => {
+    // Skip validation if we're before the transcript start marker [*]
+    if (extractedSpeakers && lineIndex < extractedSpeakers.transcriptStartIndex) {
+      return
+    }
+    
+    // Pattern for Senate speaker labels: ALL CAPS + colon (e.g., FISCHER:, SULLIVAN:)
+    const speakerLabelPattern = /^([A-Z]{2,}):\s*(.*)/
+    const match = line.match(speakerLabelPattern)
+    
+    if (match) {
+      const label = match[1]
+      const restOfLine = match[2]
+      
+      // Check if the label matches any valid speaker name
+      if (validSpeakers.size > 0) {
+        const normalizedLabel = label.toLowerCase()
+        let foundMatch = false
+        let suggestedName = ''
+        
+        validSpeakers.forEach((speakerInfo, speakerName) => {
+          // Check if the label is a last name match (e.g., FISCHER matches Deb Fischer)
+          if (normalizedLabel === speakerInfo.lastName.toLowerCase()) {
+            foundMatch = true
+          }
+          // Also check if label is close to a last name (for typos)
+          if (speakerInfo.lastNameUpper.includes(label) || label.includes(speakerInfo.lastNameUpper.slice(0, -1))) {
+            suggestedName = speakerInfo.lastNameUpper
+          }
+        })
+        
+        // If no match found, use Levenshtein distance to find the closest last name
+        if (!foundMatch && !suggestedName) {
+          let bestMatch = ''
+          let bestDistance = Infinity
+          
+          validSpeakers.forEach((speakerInfo) => {
+            const distance = levenshteinDistance(label, speakerInfo.lastNameUpper)
+            const maxLen = Math.max(label.length, speakerInfo.lastNameUpper.length)
+            const similarity = maxLen === 0 ? 0 : 1 - (distance / maxLen)
+            
+            // If similarity is 60% or higher, consider it a potential match
+            if (similarity >= 0.60 && distance < bestDistance) {
+              bestDistance = distance
+              bestMatch = speakerInfo.lastNameUpper
+            }
+          })
+          
+          if (bestMatch) {
+            suggestedName = bestMatch
+            console.log(`[validateSenateSpeakerLabels] Found similar last name: "${label}" -> "${bestMatch}" (distance: ${bestDistance})`)
+          }
+        }
+        
+        console.log(`[validateSenateSpeakerLabels] Label: ${label}, Normalized: ${normalizedLabel}, Found match: ${foundMatch}`)
+        console.log(`[validateSenateSpeakerLabels] Valid speakers count: ${validSpeakers.size}`)
+        console.log(`[validateSenateSpeakerLabels] Valid speakers last names:`, Array.from(validSpeakers.values()).map(s => s.lastName))
+        
+        if (!foundMatch) {
+          console.log(`[validateSenateSpeakerLabels] Unknown speaker label at line ${lineIndex + 1}: ${label}`)
+          
+          issues.push({
+            id: `senate-unknown-label-${lineIndex}`,
+            category: 'name',
+            ruleName: 'Unknown Senate Speaker Label',
+            severity: 'high',
+            foundText: label,
+            suggestedCorrection: suggestedName || 'Check if this speaker is in the speaker list',
+            line: lineIndex + 1,
+            column: 1,
+            ignored: false
+          })
+        }
+      }
+      
+      // Check for misspellings in the rest of the line (like "Ruonds" instead of "Rounds")
+      if (validSpeakers.size > 0) {
+        console.log(`[validateSenateSpeakerLabels] Checking rest of line for typos: "${restOfLine}"`)
+        
+        // Collect all valid name parts to check if a word is already a valid name
+        const allValidParts = new Set<string>()
+        validSpeakers.forEach((speakerInfo) => {
+          speakerInfo.fullName.split(/\s+/).forEach(part => {
+            if (part.length >= 3) {
+              allValidParts.add(part.toLowerCase())
+            }
+          })
+        })
+        console.log(`[validateSenateSpeakerLabels] All valid parts:`, Array.from(allValidParts))
+        
+        // Track suggested pairs to avoid reciprocal suggestions (e.g., Joni->John and John->Joni)
+        const suggestedPairs = new Set<string>()
+        
+        // First pass: collect all potential typos with their similarities
+        const potentialTypos = new Map<string, { word: string, part: string, similarity: number, wordIndex: number }>()
+        
+        validSpeakers.forEach((speakerInfo) => {
+          const speakerParts = speakerInfo.fullName.split(/\s+/)
+          console.log(`[validateSenateSpeakerLabels] Checking speaker parts: ${speakerParts.join(', ')}`)
+          
+          speakerParts.forEach(part => {
+            if (part.length < 3) return // Skip very short parts
+            
+            // Check for words that start with capital letter (potential names)
+            const capitalWordPattern = new RegExp(`\\b[A-Z][a-z]+\\b`, 'g')
+            let match
+            while ((match = capitalWordPattern.exec(restOfLine)) !== null) {
+              const capitalWord = match[0]
+              const wordIndex = match.index
+              
+              console.log(`[validateSenateSpeakerLabels] Found capital word: "${capitalWord}" comparing to "${part}"`)
+              
+              // Check if this capital word is similar to a name part
+              const normalizedWord = capitalWord.toLowerCase()
+              const normalizedPart = part.toLowerCase()
+              
+              // Skip if the word itself is already a valid name (avoid reciprocal suggestions)
+              if (allValidParts.has(normalizedWord)) {
+                console.log(`[validateSenateSpeakerLabels] Skipping "${capitalWord}" - it's already a valid name`)
+                continue
+              }
+              
+              // Calculate Levenshtein distance for better typo detection
+              const distance = levenshteinDistance(normalizedWord, normalizedPart)
+              const maxLen = Math.max(normalizedWord.length, normalizedPart.length)
+              const similarity = maxLen === 0 ? 0 : 1 - (distance / maxLen)
+              
+              console.log(`[validateSenateSpeakerLabels] Distance: ${distance}, Similarity: ${similarity.toFixed(2)}, Word: "${normalizedWord}", Part: "${normalizedPart}"`)
+              
+              // If words are similar (50% or more) but not identical, collect as potential typo
+              if (normalizedWord !== normalizedPart && similarity >= 0.50) {
+                const key = `${normalizedWord}-${wordIndex}`
+                const existing = potentialTypos.get(key)
+                
+                // Calculate a score for tiebreaking
+                let score = similarity
+                // Prefer matches with same first letter
+                if (normalizedWord[0] === normalizedPart[0]) {
+                  score += 0.1
+                }
+                // Prefer matches with same length
+                if (normalizedWord.length === normalizedPart.length) {
+                  score += 0.1
+                }
+                // Prefer matches that are anagrams (same letters, different order) - likely transpositions
+                const wordSorted = normalizedWord.split('').sort().join('')
+                const partSorted = normalizedPart.split('').sort().join('')
+                if (wordSorted === partSorted) {
+                  score += 0.2
+                }
+                
+                // Only keep the best match (highest score) for each word position
+                if (!existing || score > existing.similarity || (score === existing.similarity && similarity > existing.similarity)) {
+                  potentialTypos.set(key, { word: capitalWord, part, similarity: score, wordIndex })
+                }
+              }
+            }
+          })
+        })
+        
+        // Second pass: add only the best matches to issues
+        potentialTypos.forEach((value, key) => {
+          const { word, part, similarity, wordIndex } = value
+          
+          // Calculate column: position in restOfLine + label length + ": " (2 chars) + 1 (for 1-indexed columns)
+          const column = wordIndex + label.length + 2 + 1
+          
+          console.log(`[validateSenateSpeakerLabels] Possible typo at line ${lineIndex + 1}: "${word}" vs "${part}" (similarity: ${similarity.toFixed(2)})`)
+          console.log(`[validateSenateSpeakerLabels] Column calculation: wordIndex=${wordIndex}, label.length=${label.length}, column=${column}`)
+          console.log(`[validateSenateSpeakerLabels] Full line: "${line}"`)
+          console.log(`[validateSenateSpeakerLabels] Rest of line: "${restOfLine}"`)
+          
+          // Use a unique ID that includes the word and part to avoid duplicates
+          issues.push({
+            id: `senate-typo-${lineIndex}-${column}-${word}-${part}`,
+            category: 'name',
+            ruleName: 'Possible Name Typo',
+            severity: 'medium',
+            foundText: word,
+            suggestedCorrection: part,
+            line: lineIndex + 1,
+            column,
+            ignored: false
+          })
+        })
+      }
+    }
+    
+    // Also check for full name speaker labels (should be last name only)
+    const fullNameLabelPattern = /^([A-Z][a-z]+\s+[A-Z][a-z]+):\s*(.*)/
+    const fullNameMatch = line.match(fullNameLabelPattern)
+    
+    if (fullNameMatch && validSpeakers.size > 0) {
+      const fullNameLabel = fullNameMatch[1]
+      const labelParts = fullNameLabel.split(/\s+/)
+      const lastName = labelParts[labelParts.length - 1]
+      const lastNameUpper = lastName.toUpperCase()
+      
+      console.log(`[validateSenateSpeakerLabels] Full name label detected at line ${lineIndex + 1}: ${fullNameLabel}`)
+      
+      issues.push({
+        id: `senate-fullname-label-${lineIndex}`,
+        category: 'formatting',
+        ruleName: 'Senate Speaker Label Format',
+        severity: 'high',
+        foundText: fullNameLabel,
+        suggestedCorrection: `${lastNameUpper}:`,
+        line: lineIndex + 1,
+        column: 1,
+        ignored: false
+      })
+    }
+  })
+  
+  console.log(`[validateSenateSpeakerLabels] Total issues found: ${issues.length}`)
+  console.log(`[PERF] Senate Speaker Label Validation: ${Math.round(performance.now() - startTime)}ms`)
+  return issues
+}
+
+// Detect transcript format to warn if wrong department is selected
+export function detectTranscriptFormat(transcript: string): { format: string; confidence: number } {
+  const lines = transcript.split('\n').filter(line => line.trim())
+  let conferenceScore = 0
+  let senateScore = 0
+  
+  // Conference/Earnings Call format indicators
+  const conferencePatterns = [
+    /\^/, // Speaker labels with ^
+    /\[.*\]/, // Brackets for speaker labels
+    /C:\s*\d{1,2}:\d{2}/i, // C: timestamp format
+    /P:\s*\d{1,2}:\d{2}/i, // P: timestamp format
+    /\+\+\+presentation/i, // +++presentation header
+    /\+\+\+q&a/i, // +++q&a header
+  ]
+  
+  // Senate Hearing format indicators (ALL CAPS + colon speaker labels)
+  const senatePatterns = [
+    /^[A-Z]{2,}:\s*\[/m, // ALL CAPS + colon + bracket (e.g., DOE: [text])
+    /Sen\.\s+[A-Za-z]+,\s+[RD]-[A-Za-z]{2,3}/i, // Sen. Name, R-State
+    /Dr\.\s+[A-Za-z\s]+,\s+to\s+be/i, // Dr. Name, to be
+    /Chairman/i, // Chairman
+    /Senator/i, // Senator
+    /The Chair/i, // The Chair
+    /Mr\./i, // Mr. (formal address)
+    /Ms\./i, // Ms. (formal address)
+    /Rep\./i, // Rep. (Representative)
+  ]
+  
+  // Score Conference format
+  conferencePatterns.forEach(pattern => {
+    const matches = transcript.match(new RegExp(pattern.source, 'gi'))
+    if (matches) conferenceScore += matches.length
+  })
+  
+  // Score Senate format
+  senatePatterns.forEach(pattern => {
+    const matches = transcript.match(new RegExp(pattern.source, 'gi'))
+    if (matches) senateScore += matches.length
+  })
+  
+  console.log(`[detectTranscriptFormat] Conference score: ${conferenceScore}, Senate score: ${senateScore}`)
+  
+  // Determine format based on scores
+  if (conferenceScore > senateScore && conferenceScore > 0) {
+    return { format: 'conference', confidence: Math.min(conferenceScore / (conferenceScore + senateScore), 1) }
+  } else if (senateScore > conferenceScore && senateScore > 0) {
+    return { format: 'senate', confidence: Math.min(senateScore / (conferenceScore + senateScore), 1) }
+  } else {
+    return { format: 'unknown', confidence: 0 }
+  }
+}
+
 // Main validation function
 export async function validateTranscript(
   transcript: string,
@@ -1355,68 +2065,54 @@ export async function validateTranscript(
   console.log(`[DEBUG] Count: ${customDictionary.length}`)
   console.log('[DEBUG] Entries:', customDictionary)
   
-  // Only apply built-in validation (speaker labels, body names, companies) for Conference/Earnings call department
-  // Other departments use custom rules from Admin Hub only
-  const normalizedDepartment = department.toLowerCase().replace(/\s+/g, '')
-  const isConferenceDepartment = normalizedDepartment === 'conference/earningscall' || normalizedDepartment === 'conference'
+  // Detect transcript format to warn if wrong department is selected
+  const formatDetection = detectTranscriptFormat(transcript)
+  console.log(`[DEBUG] Detected format: ${formatDetection.format} (confidence: ${formatDetection.confidence.toFixed(2)})`)
+  
+  // Check for department/format mismatch - return early with error if mismatch detected
+  if (formatDetection.format !== 'unknown' && formatDetection.confidence > 0.5) {
+    const normalizedDepartment = department.toLowerCase().replace(/\s+/g, '')
+    const isConferenceDepartment = normalizedDepartment === 'conference/earningscall' || normalizedDepartment === 'conference'
+    const isSenateDepartment = normalizedDepartment === 'senate' || normalizedDepartment === 'senatehearing/political'
+    
+    if (formatDetection.format === 'conference' && isSenateDepartment) {
+      console.log('[DEBUG] WARNING: Senate department selected but Conference format detected')
+      return [{
+        id: 'format-mismatch-warning',
+        category: 'formatting',
+        ruleName: 'Department Format Mismatch',
+        severity: 'high',
+        foundText: 'Senate Hearing / Political',
+        suggestedCorrection: 'Conference / Earnings Call',
+        line: 1,
+        column: 1,
+        ignored: false
+      }]
+    } else if (formatDetection.format === 'senate' && isConferenceDepartment) {
+      console.log('[DEBUG] WARNING: Conference department selected but Senate format detected')
+      return [{
+        id: 'format-mismatch-warning',
+        category: 'formatting',
+        ruleName: 'Department Format Mismatch',
+        severity: 'high',
+        foundText: 'Conference / Earnings Call',
+        suggestedCorrection: 'Senate Hearing / Political',
+        line: 1,
+        column: 1,
+        ignored: false
+      }]
+    }
+  }
   
   // Filter rules by department (custom rules from Admin Hub)
   const filteredRules = department === 'all' 
     ? rules 
     : rules.filter(r => r.department === department || r.department === 'all')
   
-  onProgress?.({ stage: 'extracting', current: 0, total: 100, message: 'Extracting references...' })
-  const extractStart = performance.now()
-  // Extract participants and company names
-  const { participants, companyNames } = extractParticipants(transcript)
-  const extractTime = Math.round(performance.now() - extractStart)
-  console.log(`[PERF] Extract References: ${extractTime}ms`)
+  // Name and company validation removed - only format and style guide validation
+  console.log('[DEBUG] Skipping name and company validation - only format and style validation enabled')
   
-  // Only apply built-in validation for Conference/Earnings call department
-  let namesTime = 0, companiesTime = 0, spellingTime = 0
-  let senateTime = 0
-  if (isConferenceDepartment) {
-    onProgress?.({ stage: 'names', current: 1, total: 100, message: 'Checking participant names...' })
-    const NamesStart = performance.now()
-    // Validate speaker labels
-    const speakerLabelIssues = validateSpeakerLabels(transcript, participants)
-    allIssues.push(...speakerLabelIssues)
-    // Validate body names
-    const bodyNameIssues = validateBodyNames(transcript, participants, customDictionary)
-    allIssues.push(...bodyNameIssues)
-    namesTime = Math.round(performance.now() - NamesStart)
-    console.log(`[PERF] Name Validation: ${namesTime}ms`)
-    
-    onProgress?.({ stage: 'companies', current: 2, total: 100, message: 'Checking company names...' })
-    const companiesStart = performance.now()
-    // Validate company names
-    const companyIssues = validateCompanyNames(transcript, companyNames)
-    allIssues.push(...companyIssues)
-    companiesTime = Math.round(performance.now() - companiesStart)
-    console.log(`[PERF] Company Validation: ${companiesTime}ms`)
-    
-    onProgress?.({ stage: 'technical', current: 3, total: 100, message: 'Checking technical terms...' })
-    const spellingStart = performance.now()
-    // Validate spelling (now async with progress)
-    const spellingIssues = await validateSpelling(transcript, participants, companyNames, customDictionary, onProgress)
-    allIssues.push(...spellingIssues)
-    spellingTime = Math.round(performance.now() - spellingStart)
-    console.log(`[PERF] English Spell Check: ${spellingTime}ms`)
-  } else if (normalizedDepartment === 'senate' || normalizedDepartment === 'senatehearing/political') {
-    // Apply Senate Hearing specific validation
-    onProgress?.({ stage: 'senate', current: 1, total: 100, message: 'Checking Senate participant names...' })
-    const senateStart = performance.now()
-    const senateParticipantIssues = validateSenateParticipantNames(transcript)
-    allIssues.push(...senateParticipantIssues)
-    const senateWitnessIssues = validateSenateWitnessNames(transcript)
-    allIssues.push(...senateWitnessIssues)
-    senateTime = Math.round(performance.now() - senateStart)
-    console.log(`[PERF] Senate Validation: ${senateTime}ms`)
-  } else {
-    console.log('[DEBUG] Skipping built-in validation - not Conference/Earnings call or Senate department')
-  }
-  
-  onProgress?.({ stage: 'style', current: 4, total: 100, message: 'Applying style rules...' })
+  onProgress?.({ stage: 'style', current: 1, total: 100, message: 'Applying style rules...' })
   const styleStart = performance.now()
   // Apply style rules (filtered by department)
   const styleIssues = applyStyleRules(transcript, filteredRules)
@@ -1424,7 +2120,15 @@ export async function validateTranscript(
   const styleTime = Math.round(performance.now() - styleStart)
   console.log(`[PERF] Style Rules: ${styleTime}ms`)
   
-  onProgress?.({ stage: 'repeated', current: 5, total: 100, message: 'Checking for repeated words...' })
+  onProgress?.({ stage: 'spelling', current: 2, total: 100, message: 'Checking technical dictionary...' })
+  const spellingStart = performance.now()
+  // Validate spelling using technical dictionary (custom dictionary)
+  const spellingIssues = await validateSpelling(transcript, [], [], customDictionary, onProgress)
+  allIssues.push(...spellingIssues)
+  const spellingTime = Math.round(performance.now() - spellingStart)
+  console.log(`[PERF] Spelling (Technical Dictionary): ${spellingTime}ms`)
+  
+  onProgress?.({ stage: 'repeated', current: 3, total: 100, message: 'Checking for repeated words...' })
   const repeatedStart = performance.now()
   // Detect repeated words
   const repeatedWordIssues = detectRepeatedWords(transcript)
@@ -1436,7 +2140,7 @@ export async function validateTranscript(
   const validationTime = Math.round(endTime - startTime)
   console.log(`[validateTranscript] Total validation time: ${validationTime}ms`)
   console.log(`[validateTranscript] Total issues found: ${allIssues.length}`)
-  console.log(`[PERF] Breakdown: Extract=${extractTime}ms, Names=${namesTime}ms, Companies=${companiesTime}ms, Spelling=${spellingTime}ms, Senate=${senateTime}ms, Style=${styleTime}ms, Repeated=${repeatedTime}ms`)
+  console.log(`[PERF] Breakdown: Style=${styleTime}ms, Spelling=${spellingTime}ms, Repeated=${repeatedTime}ms`)
   
   onProgress?.({ stage: 'complete', current: 100, total: 100, message: `Validation complete (${validationTime}ms)` })
   
@@ -1454,16 +2158,53 @@ export function replaceInTranscript(
     const lineIndex = issue.line - 1
     const line = lines[lineIndex]
     
-    // Find the text to replace
-    const regex = new RegExp(issue.foundText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i')
+    // If column info is available, replace only at that specific position
+    if (issue.column > 0 && issue.column <= line.length) {
+      const columnZeroBased = issue.column - 1
+      // Get the actual text at the position to ensure we replace the right thing
+      const actualText = line.substring(columnZeroBased, columnZeroBased + issue.foundText.length)
+      
+      console.log(`[replaceInTranscript] Line: ${issue.line}, Column: ${issue.column}`)
+      console.log(`[replaceInTranscript] FoundText: "${issue.foundText}", Suggested: "${issue.suggestedCorrection}"`)
+      console.log(`[replaceInTranscript] Actual text at position: "${actualText}"`)
+      
+      // Only replace if the actual text matches what we expect (case-insensitive)
+      if (actualText.toLowerCase() === issue.foundText.toLowerCase()) {
+        const before = line.substring(0, columnZeroBased)
+        const after = line.substring(columnZeroBased + issue.foundText.length)
+        const newLine = before + issue.suggestedCorrection + after
+        lines[lineIndex] = newLine
+        console.log(`[replaceInTranscript] Match found, replacing. New line: "${newLine}"`)
+        return lines.join('\n')
+      } else {
+        // If the text doesn't match, try to find it in the line
+        console.log(`[replaceInTranscript] Text doesn't match at position, searching in line...`)
+        const foundIndex = line.toLowerCase().indexOf(issue.foundText.toLowerCase())
+        if (foundIndex !== -1) {
+          const before = line.substring(0, foundIndex)
+          const after = line.substring(foundIndex + issue.foundText.length)
+          const newLine = before + issue.suggestedCorrection + after
+          lines[lineIndex] = newLine
+          console.log(`[replaceInTranscript] Found at index ${foundIndex}, replacing. New line: "${newLine}"`)
+          return lines.join('\n')
+        } else {
+          console.log(`[replaceInTranscript] Could not find "${issue.foundText}" in line`)
+        }
+      }
+    }
+    
+    // If column info is not available, use exact case match but only first occurrence
+    console.log(`[replaceInTranscript] No column info, using regex replacement`)
+    const regex = new RegExp(issue.foundText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
     const newLine = line.replace(regex, issue.suggestedCorrection)
     
     lines[lineIndex] = newLine
     return lines.join('\n')
   }
   
-  // If line info is not available, do global replace
-  const regex = new RegExp(issue.foundText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi')
+  // If line info is not available, do global replace with exact case
+  console.log(`[replaceInTranscript] No line info, doing global replace`)
+  const regex = new RegExp(issue.foundText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')
   return transcript.replace(regex, issue.suggestedCorrection)
 }
 

@@ -21,6 +21,9 @@ export async function GET() {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
+    console.log('[GET formatting-rules] Data:', data)
+    console.log('[GET formatting-rules] Data length:', data?.length)
+    
     return NextResponse.json({ success: true, rules: data || [] })
   } catch (err: any) {
     console.error('Formatting rules GET error:', err)
