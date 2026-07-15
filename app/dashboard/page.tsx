@@ -4524,7 +4524,7 @@ export default function DashboardPage() {
       {/* ── Transcript Cleanup Modal ── */}
       {isTranscriptCleanupModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-md animate-fade-in">
-          <div className="bg-gradient-to-b from-green-50 to-white border border-green-200/60 backdrop-blur-xl shadow-[0_8px_60px_rgba(34,197,94,0.12)] rounded-3xl w-full max-w-6xl p-4 relative max-h-[90vh] flex flex-col overflow-hidden animate-scale-up">
+          <div className="bg-gradient-to-b from-green-50 to-white border border-green-200/60 backdrop-blur-xl shadow-[0_8px_60px_rgba(34,197,94,0.12)] rounded-3xl w-full max-w-6xl p-4 relative h-[85vh] flex flex-col overflow-hidden animate-scale-up">
             <button
               onClick={() => setIsTranscriptCleanupModalOpen(false)}
               className="absolute right-4 top-4 z-10 cursor-pointer text-zinc-400 hover:text-green-500 hover:rotate-90 transition-all duration-300"

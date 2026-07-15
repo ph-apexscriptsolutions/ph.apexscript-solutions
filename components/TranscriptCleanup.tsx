@@ -1,20 +1,18 @@
 'use client'
 
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo, useEffect } from 'react'
 import { Check, X, Clock, MessageSquare, Repeat, User, FileEdit } from 'lucide-react'
 
 interface CleanupOptions {
   removeTimestamps: boolean
   removeFillerWords: boolean
   removeImmediateRepetitions: boolean
-  automaticSpeakerLabeling: boolean
 }
 
 interface CleanupSummary {
   timestampsRemoved: number
   fillerWordsRemoved: number
   repetitionsRemoved: number
-  speakerLabelsStandardized: number
 }
 
 interface SpeakerName {
@@ -35,30 +33,37 @@ export default function TranscriptCleanup({ transcript, onTranscriptChange, depa
   const [options, setOptions] = useState<CleanupOptions>({
     removeTimestamps: true,
     removeFillerWords: true,
-    removeImmediateRepetitions: true,
-    automaticSpeakerLabeling: false
+    removeImmediateRepetitions: true
   })
 
-  const [speakerNames, setSpeakerNames] = useState<string[]>([])
-  const [speakerInput, setSpeakerInput] = useState('')
   const [summary, setSummary] = useState<CleanupSummary>({
     timestampsRemoved: 0,
     fillerWordsRemoved: 0,
-    repetitionsRemoved: 0,
-    speakerLabelsStandardized: 0
+    repetitionsRemoved: 0
   })
   const [isProcessing, setIsProcessing] = useState(false)
 
-  const addSpeakerName = useCallback(() => {
-    if (speakerInput.trim() && !speakerNames.includes(speakerInput.trim())) {
-      setSpeakerNames([...speakerNames, speakerInput.trim()])
-      setSpeakerInput('')
-    }
-  }, [speakerInput, speakerNames])
+  const handleClear = useCallback(() => {
+    setOptions({
+      removeTimestamps: true,
+      removeFillerWords: true,
+      removeImmediateRepetitions: true
+    })
+    setSummary({
+      timestampsRemoved: 0,
+      fillerWordsRemoved: 0,
+      repetitionsRemoved: 0
+    })
+    setIsProcessing(false)
+    onTranscriptChange('')
+  }, [onTranscriptChange])
 
-  const removeSpeakerName = useCallback((name: string) => {
-    setSpeakerNames(speakerNames.filter(n => n !== name))
-  }, [speakerNames])
+  // Auto-clear data when component unmounts (modal closes)
+  useEffect(() => {
+    return () => {
+      handleClear()
+    }
+  }, [handleClear])
 
   const removeTimestamps = useCallback((text: string): { cleaned: string, count: number } => {
     let count = 0
@@ -77,7 +82,11 @@ export default function TranscriptCleanup({ transcript, onTranscriptChange, depa
       /\d{1,2}:\d{2}(?::\d{2})?(?:\.\d{3})?/g
     ]
 
-    const cleanedLines = lines.map(line => {
+    // Track which lines became empty due to timestamp removal
+    const linesBecameEmpty = new Set<number>()
+
+    const cleanedLines = lines.map((line, index) => {
+      const originalLine = line.trim()
       let cleanedLine = line
       let lineCount = 0
 
@@ -93,28 +102,38 @@ export default function TranscriptCleanup({ transcript, onTranscriptChange, depa
       // Collapse multiple spaces within the line
       cleanedLine = cleanedLine.replace(/\s+/g, ' ').trim()
 
-      // If the line is now empty after timestamp removal, return empty string
-      // Otherwise return the cleaned line
+      // Mark lines that became empty due to timestamp removal
+      // (original line had content, but cleaned line is empty)
+      if (originalLine.length > 0 && cleanedLine.length === 0) {
+        linesBecameEmpty.add(index)
+      }
+
       return cleanedLine
     })
 
-    // Filter out lines that became empty due to timestamp removal
-    // But preserve single empty lines as paragraph separators
-    const finalLines = cleanedLines.reduce((acc: string[], line, index) => {
+    // Process lines to preserve paragraph structure
+    // Remove lines that became empty due to timestamp removal
+    // Keep original empty lines as paragraph separators
+    const resultLines: string[] = []
+    for (let i = 0; i < cleanedLines.length; i++) {
+      const line = cleanedLines[i]
+      const lineBecameEmpty = linesBecameEmpty.has(i)
+      const prevLine = resultLines.length > 0 ? resultLines[resultLines.length - 1] : null
+
       if (line.length > 0) {
-        acc.push(line)
-      } else {
-        // For empty lines, preserve single empty lines as paragraph separators
-        // Remove consecutive empty lines
-        const prevLine = acc.length > 0 ? acc[acc.length - 1] : null
-        if (prevLine !== '') {
-          acc.push(line)
+        // Content line - add it
+        resultLines.push(line)
+      } else if (!lineBecameEmpty) {
+        // Original empty line - preserve as paragraph separator
+        // Only add if previous line wasn't empty (avoid consecutive empty lines)
+        if (!prevLine || prevLine.length > 0) {
+          resultLines.push(line)
         }
       }
-      return acc
-    }, [])
+      // Skip lines that became empty due to timestamp removal
+    }
 
-    const cleaned = finalLines.join('\n').trim()
+    const cleaned = resultLines.join('\n')
 
     return { cleaned, count }
   }, [])
@@ -126,44 +145,77 @@ export default function TranscriptCleanup({ transcript, onTranscriptChange, depa
     const lines = text.split('\n')
     const cleanedLines = lines
       .map(line => {
-        const words = line.split(/(\s+)/)
-        const cleanedWords: string[] = []
+        let result = line
 
-        for (let i = 0; i < words.length; i++) {
-          const word = words[i].toLowerCase().replace(/[.,!?;:'"()]/g, '')
+        // Remove filler words with their surrounding punctuation and whitespace
+        FILLER_WORDS.forEach(fillerWord => {
+          // Pattern: word + comma + filler word + comma + word (e.g., "is, um, not")
+          const pattern1 = new RegExp(`(\\b[\\w']+\\b)\\s*,\\s*\\b${fillerWord}\\b\\s*,\\s*(\\b[\\w']+\\b)`, 'gi')
+          result = result.replace(pattern1, (match, beforeWord, afterWord) => {
+            count++
+            return beforeWord + ' ' + afterWord
+          })
+          
+          // Pattern: word + comma + filler word (e.g., "is, um")
+          const pattern2 = new RegExp(`(\\b[\\w']+\\b)\\s*,\\s*\\b${fillerWord}\\b`, 'gi')
+          result = result.replace(pattern2, (match, word) => {
+            count++
+            return word + ' '
+          })
+          
+          // Pattern: filler word + comma + word (e.g., "um, not")
+          const pattern3 = new RegExp(`\\b${fillerWord}\\b\\s*,\\s*(\\b[\\w']+\\b)`, 'gi')
+          result = result.replace(pattern3, (match, nextWord) => {
+            count++
+            return ' ' + nextWord
+          })
+          
+          // Pattern: comma + filler word (e.g., ", um")
+          const pattern4 = new RegExp(`,\\s*\\b${fillerWord}\\b`, 'gi')
+          result = result.replace(pattern4, (match) => {
+            count++
+            return ''
+          })
+          
+          // Pattern: filler word + comma (e.g., "um,")
+          const pattern5 = new RegExp(`\\b${fillerWord}\\b\\s*,`, 'gi')
+          result = result.replace(pattern5, (match) => {
+            count++
+            return ''
+          })
+          
+          // Pattern: standalone filler word with whitespace (e.g., " um ")
+          const pattern6 = new RegExp(`\\s+\\b${fillerWord}\\b\\s+`, 'gi')
+          result = result.replace(pattern6, (match) => {
+            count++
+            return ' '
+          })
+          
+          // Pattern: filler word at beginning
+          const pattern7 = new RegExp(`^\\b${fillerWord}\\b\\s+`, 'gi')
+          result = result.replace(pattern7, (match) => {
+            count++
+            return ''
+          })
+          
+          // Pattern: filler word at end
+          const pattern8 = new RegExp(`\\s+\\b${fillerWord}\\b$`, 'gi')
+          result = result.replace(pattern8, (match) => {
+            count++
+            return ''
+          })
+        })
 
-          // Check if this is a standalone filler word
-          if (FILLER_WORDS.includes(word)) {
-            // Check if it's standalone (not part of another word)
-            const prevWord = i > 0 ? words[i - 1].toLowerCase() : ''
-            const nextWord = i < words.length - 1 ? words[i + 1].toLowerCase() : ''
-
-            // Only remove if it's truly standalone (surrounded by whitespace or punctuation)
-            const isStandalone =
-              (!prevWord || /^\s*$/.test(prevWord) || /[.,!?;:'"()]/.test(prevWord)) &&
-              (!nextWord || /^\s*$/.test(nextWord) || /[.,!?;:'"()]/.test(nextWord))
-
-            if (isStandalone) {
-              count++
-              // Remove the filler word and its following whitespace
-              if (i < words.length - 1 && /^\s+$/.test(words[i + 1])) {
-                cleanedWords.push('') // Skip the filler word
-                i++ // Skip the whitespace
-              } else {
-                cleanedWords.push('') // Skip the filler word
-              }
-              continue
-            }
-          }
-
-          cleanedWords.push(words[i])
-        }
-
-        return cleanedWords.join('').replace(/\s+/g, ' ').trim()
+        // Clean up multiple spaces and trim
+        result = result.replace(/\s+/g, ' ').trim()
+        
+        // Clean up any remaining standalone commas
+        result = result.replace(/\s*,\s*/g, ' ').replace(/\s+/g, ' ').trim()
+        
+        return result
       })
-      .filter(line => line.length > 0) // Remove empty lines
 
-    const cleaned = cleanedLines.join('\n').trim()
+    const cleaned = cleanedLines.join('\n')
     return { cleaned, count }
   }, [])
 
@@ -174,36 +226,133 @@ export default function TranscriptCleanup({ transcript, onTranscriptChange, depa
     const lines = text.split('\n')
     const cleanedLines = lines
       .map(line => {
-        const words = line.split(/(\s+)/)
-        const cleanedWords: string[] = []
+        let cleanedLine = line
 
-        for (let i = 0; i < words.length; i++) {
-          const currentWord = words[i].toLowerCase().replace(/[.,!?;:'"()]/g, '')
-          const nextWord = i < words.length - 1 ? words[i + 1].toLowerCase().replace(/[.,!?;:'"()]/g, '') : ''
+        // First, handle phrase repetitions (multi-word patterns) BEFORE single word repetitions
+        // This handles cases like "I think I think I think" -> "I think"
+        const phrasePatterns = [
+          // Pattern for 3-word phrase repetitions: "word1 word2 word3 word1 word2 word3 word1 word2 word3" -> "word1 word2 word3"
+          /(\b[\w']+\b\s+\b[\w']+\b\s+\b[\w']+\b)([\s,.;:!?'"()]+)(\1)([\s,.;:!?'"()]+)(\1)/gi,
+          // Pattern for 2-word phrase repetitions: "word1 word2 word1 word2 word1 word2" -> "word1 word2"
+          /(\b[\w']+\b\s+\b[\w']+\b)([\s,.;:!?'"()]+)(\1)([\s,.;:!?'"()]+)(\1)/gi,
+          // Pattern for 2-word phrase repetitions: "word1 word2 word1 word2" -> "word1 word2"
+          /(\b[\w']+\b\s+\b[\w']+\b)([\s,.;:!?'"()]+)(\1)/gi,
+          // Pattern for 3-word phrase repetitions: "word1 word2 word3 word1 word2 word3" -> "word1 word2 word3"
+          /(\b[\w']+\b\s+\b[\w']+\b\s+\b[\w']+\b)([\s,.;:!?'"()]+)(\1)/gi
+        ]
 
-          // Check if current word and next word are identical (case-insensitive)
-          if (currentWord === nextWord && currentWord.length > 0 && !/^\s+$/.test(words[i])) {
-            count++
-            cleanedWords.push(words[i]) // Keep one instance
-            i++ // Skip the duplicate
-            // Also skip whitespace after duplicate
-            if (i < words.length - 1 && /^\s+$/.test(words[i + 1])) {
-              i++
+        phrasePatterns.forEach(pattern => {
+          cleanedLine = cleanedLine.replace(pattern, (match, phrase, separator1, repetition1, separator2, repetition2) => {
+            if (repetition2) {
+              count += 2
+            } else {
+              count += 1
             }
-          } else {
-            cleanedWords.push(words[i])
+            return phrase
+          })
+        })
+
+        // Then handle single word repetitions
+        // Split into words while preserving whitespace and punctuation
+        const words = cleanedLine.split(/(\s+)/)
+        const cleanedWords: string[] = []
+        const indicesToSkip = new Set<number>()
+        const capitalizationMap = new Map<number, string>() // Store capitalization changes
+        let i = 0
+
+        while (i < words.length) {
+          const currentWord = words[i]
+          // Preserve apostrophes for contractions, but remove other punctuation
+          const currentWordClean = currentWord.toLowerCase().replace(/[.,!?;:"()]/g, '')
+
+          // Check if this is a word (not whitespace or punctuation)
+          if (!/^\s+$/.test(currentWord) && !/^[.,!?;:'"()]+$/.test(currentWord) && currentWordClean.length > 0) {
+            // Look for immediate repeated words (with or without punctuation between them)
+            let nextIndex = i + 1
+            let foundRepetition = false
+            let startIndex = i
+            let lastRepetitionIndex = i
+
+            // Check if this is at the start of the sentence (after sentence-ending punctuation or start of line)
+            let isAtStart = false
+            if (i === 0) {
+              isAtStart = true
+            } else {
+              // Check if previous word is sentence-ending punctuation
+              let prevIndex = i - 1
+              while (prevIndex >= 0 && (/^\s+$/.test(words[prevIndex]) || /^[.,!?;:'"()]+$/.test(words[prevIndex]))) {
+                if (/[.!?]$/.test(words[prevIndex])) {
+                  isAtStart = true
+                  break
+                }
+                prevIndex--
+              }
+            }
+
+            // Check forImmediate repetition (next word after whitespace/punctuation)
+            while (nextIndex < words.length) {
+              // Skip whitespace and punctuation
+              if (/^\s+$/.test(words[nextIndex]) || /^[.,!?;:'"()]+$/.test(words[nextIndex])) {
+                nextIndex++
+                continue
+              }
+
+              const nextWord = words[nextIndex]
+              // Preserve apostrophes for contractions
+              const nextWordClean = nextWord.toLowerCase().replace(/[.,!?;:"()]/g, '')
+
+              // Check if this word is a repetition of the current word
+              if (nextWordClean === currentWordClean) {
+                foundRepetition = true
+                lastRepetitionIndex = nextIndex
+                count++
+                // Skip the repetition and continue looking for more
+                nextIndex++
+              } else {
+                // Not a repetition, stop looking
+                break
+              }
+            }
+
+            // If we found repetitions, keep only the LAST occurrence and remove earlier ones
+            if (foundRepetition) {
+              // Mark all indices from startIndex to lastRepetitionIndex-1 for removal
+              for (let j = startIndex; j < lastRepetitionIndex; j++) {
+                indicesToSkip.add(j)
+              }
+
+              // If at start of sentence, capitalize the kept word
+              if (isAtStart && lastRepetitionIndex < words.length) {
+                const wordToCapitalize = words[lastRepetitionIndex]
+                if (wordToCapitalize.length > 0) {
+                  capitalizationMap.set(lastRepetitionIndex, wordToCapitalize.charAt(0).toUpperCase() + wordToCapitalize.slice(1))
+                }
+              }
+            }
+          }
+
+          i++
+        }
+
+        // Build cleaned words array, skipping marked indices and applying capitalization
+        for (let i = 0; i < words.length; i++) {
+          if (!indicesToSkip.has(i)) {
+            if (capitalizationMap.has(i)) {
+              cleanedWords.push(capitalizationMap.get(i)!)
+            } else {
+              cleanedWords.push(words[i])
+            }
           }
         }
 
-        return cleanedWords.join('').replace(/\s+/g, ' ').trim()
+        return cleanedWords.join('')
       })
-      .filter(line => line.length > 0) // Remove empty lines
 
-    const cleaned = cleanedLines.join('\n').trim()
+    const cleaned = cleanedLines.join('\n')
     return { cleaned, count }
   }, [])
 
-  const standardizeSpeakerLabels = useCallback((text: string, speakers: string[]): { cleaned: string, count: number } => {
+  const standardizeSpeakerLabels = useCallback((text: string, speakers: string[], format: 'conference' | 'senate', detectAnalysts: boolean): { cleaned: string, count: number } => {
     if (speakers.length === 0) return { cleaned: text, count: 0 }
 
     let count = 0
@@ -212,13 +361,13 @@ export default function TranscriptCleanup({ transcript, onTranscriptChange, depa
     speakers.forEach(speaker => {
       const speakerRegex = new RegExp(`^${escapeRegex(speaker)}:`, 'gm')
       const matches = cleaned.match(speakerRegex)
-      
+
       if (matches) {
         count += matches.length
-        
-        // Format based on department
+
+        // Format based on selected format
         let standardizedLabel: string
-        if (department === 'senate') {
+        if (format === 'senate') {
           // Senate format: LASTNAME:
           const lastName = speaker.split(' ').pop()?.toUpperCase() || speaker.toUpperCase()
           standardizedLabel = `${lastName}:`
@@ -226,13 +375,72 @@ export default function TranscriptCleanup({ transcript, onTranscriptChange, depa
           // Conference format: Name^
           standardizedLabel = `${speaker}^`
         }
-        
+
         cleaned = cleaned.replace(speakerRegex, standardizedLabel)
       }
     })
 
+    // Add context-aware speaker detection
+    // When a speaker mentions another speaker's name, add the label
+    speakers.forEach(speaker => {
+      const nameVariations = [
+        speaker,
+        speaker.split(' ').pop() || '', // Last name only
+        speaker.split(' ')[0] || '' // First name only
+      ].filter(n => n.length > 0)
+
+      nameVariations.forEach(variation => {
+        // Pattern: "SpeakerName, do you want to add something?" or "SpeakerName, yes"
+        const contextPattern = new RegExp(`(${escapeRegex(variation)})(?:,|\\s+do|\\s+yes|\\s+no|\\s+sure|\\s+of course)`, 'gi')
+        const matches = cleaned.match(contextPattern)
+        if (matches) {
+          count += matches.length
+          const standardFormat = format === 'conference' ? `${speaker}^` : `${speaker.split(' ').pop()?.toUpperCase() || speaker.toUpperCase()}:`
+          // Replace the name mention with the full label
+          cleaned = cleaned.replace(contextPattern, standardFormat)
+        }
+      })
+    })
+
+    // Add unidentified speaker labels for unknown speakers
+    // Look for patterns that might indicate unidentified speakers
+    const unidentifiedPatterns = [
+      /(?:speaker|participant|person|individual)(?:\s+\d+)?:/gi,
+      /\[unidentified\]/gi,
+      /\[unknown\]/gi,
+      /\[?\?\?\]?/gi
+    ]
+
+    unidentifiedPatterns.forEach(pattern => {
+      const matches = cleaned.match(pattern)
+      if (matches) {
+        count += matches.length
+        const unidentifiedLabel = format === 'conference' ? 'Unidentified Speaker^' : 'UNIDENTIFIED SPEAKER:'
+        cleaned = cleaned.replace(pattern, unidentifiedLabel)
+      }
+    })
+
+    // Detect analysts (question askers) if enabled
+    if (detectAnalysts) {
+      // Look for question patterns that might indicate analysts
+      const questionPatterns = [
+        /^(?:\w+\s*)+\?$/gm, // Lines ending with ?
+        /^(?:\w+\s*)+(?:ask|question|wonder|curious|want to know|can you tell|could you explain)/gim
+      ]
+
+      questionPatterns.forEach(pattern => {
+        const matches = cleaned.match(pattern)
+        if (matches) {
+          count += matches.length
+          const analystLabel = format === 'conference' ? 'Unidentified Participant^' : 'UNIDENTIFIED PARTICIPANT:'
+          // Replace the question line with analyst label
+          cleaned = cleaned.replace(pattern, analystLabel)
+        }
+      })
+    }
+
     return { cleaned, count }
-  }, [department])
+  }, [])
 
   const escapeRegex = (string: string): string => {
     return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
@@ -247,8 +455,7 @@ export default function TranscriptCleanup({ transcript, onTranscriptChange, depa
       let newSummary: CleanupSummary = {
         timestampsRemoved: 0,
         fillerWordsRemoved: 0,
-        repetitionsRemoved: 0,
-        speakerLabelsStandardized: 0
+        repetitionsRemoved: 0
       }
 
       if (options.removeTimestamps) {
@@ -269,33 +476,30 @@ export default function TranscriptCleanup({ transcript, onTranscriptChange, depa
         newSummary.repetitionsRemoved = result.count
       }
 
-      if (options.automaticSpeakerLabeling && speakerNames.length > 0) {
-        const result = standardizeSpeakerLabels(currentText, speakerNames)
-        currentText = result.cleaned
-        newSummary.speakerLabelsStandardized = result.count
-      }
-
       setSummary(newSummary)
       setIsProcessing(false)
-      
+
       // Auto-apply the cleaned transcript
       onTranscriptChange(currentText)
     }, 100)
-  }, [transcript, options, speakerNames, removeTimestamps, removeFillerWords, removeImmediateRepetitions, standardizeSpeakerLabels, onTranscriptChange])
+  }, [transcript, options, removeTimestamps, removeFillerWords, removeImmediateRepetitions, onTranscriptChange])
 
-  const hasChanges = summary.timestampsRemoved > 0 || summary.fillerWordsRemoved > 0 || summary.repetitionsRemoved > 0 || summary.speakerLabelsStandardized > 0
+  const hasChanges = summary.timestampsRemoved > 0 || summary.fillerWordsRemoved > 0 || summary.repetitionsRemoved > 0
 
   return (
-    <div className="flex gap-4">
+    <div className="flex gap-4 h-full">
       {/* Left Column - Cleanup Controls */}
-      <div className="w-1/2 bg-gradient-to-br from-white via-purple-50/40 to-white border border-purple-200/70 rounded-xl p-4 shadow-sm ring-1 ring-purple-100/50">
-        <h3 className="text-sm font-bold text-zinc-900 mb-4 flex items-center gap-2">
+      <div className="w-1/2 bg-gradient-to-br from-white via-purple-50/40 to-white border border-purple-200/70 rounded-xl p-4 shadow-sm ring-1 ring-purple-100/50 flex flex-col overflow-hidden">
+        <h3 className="text-sm font-bold text-zinc-900 mb-4 flex items-center gap-2 flex-shrink-0">
           <MessageSquare className="h-4 w-4 text-purple-600" />
           Transcript Cleanup
         </h3>
 
+        {/* Scrollable Content */}
+        <div className="overflow-y-auto pr-2 space-y-4 flex-1" style={{ maxHeight: 'calc(100vh - 400px)' }}>
+
         {/* Cleanup Options */}
-        <div className="space-y-3 mb-4">
+        <div className="space-y-3">
           <label className="flex items-center gap-3 cursor-pointer">
             <input
               type="checkbox"
@@ -334,72 +538,30 @@ export default function TranscriptCleanup({ transcript, onTranscriptChange, depa
               <span className="text-xs text-zinc-700">Remove Immediate Word Repetitions</span>
             </div>
           </label>
-
-          <label className="flex items-center gap-3 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={options.automaticSpeakerLabeling}
-              onChange={(e) => setOptions({ ...options, automaticSpeakerLabeling: e.target.checked })}
-              className="rounded border-zinc-300 text-purple-600 focus:ring-purple-500"
-            />
-            <div className="flex items-center gap-2">
-              <User className="h-4 w-4 text-purple-600" />
-              <span className="text-xs text-zinc-700">Automatic Speaker Labeling</span>
-            </div>
-          </label>
+        </div>
         </div>
 
-        {/* Speaker Names Input */}
-        {options.automaticSpeakerLabeling && (
-          <div className="mb-4 p-3 bg-purple-50/50 rounded-lg border border-purple-200/60">
-            <label className="text-[10px] font-bold text-zinc-700 mb-2 block">Confirmed Speaker Names</label>
-            <div className="flex gap-2 mb-2">
-              <input
-                type="text"
-                value={speakerInput}
-                onChange={(e) => setSpeakerInput(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && addSpeakerName()}
-                placeholder="Enter speaker name"
-                className="flex-1 rounded-md border border-purple-300/60 px-3 py-1.5 text-xs text-zinc-800 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/25 transition-all bg-white"
-              />
-              <button
-                onClick={addSpeakerName}
-                className="px-3 py-1.5 text-xs font-semibold bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-all"
-              >
-                Add
-              </button>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {speakerNames.map((name) => (
-                <div
-                  key={name}
-                  className="flex items-center gap-1 bg-white px-2 py-1 rounded-md border border-purple-200/60 text-xs text-zinc-700"
-                >
-                  {name}
-                  <button
-                    onClick={() => removeSpeakerName(name)}
-                    className="text-zinc-400 hover:text-red-500"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Process Button */}
-        <button
-          onClick={processCleanup}
-          disabled={isProcessing || !transcript.trim()}
-          className="w-full rounded-lg bg-gradient-to-r from-purple-600 via-violet-600 to-purple-700 px-4 py-2 text-[10px] font-bold text-white shadow-lg shadow-purple-500/30 hover:from-purple-700 hover:via-violet-700 hover:to-purple-800 hover:shadow-xl hover:shadow-purple-500/40 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center justify-center gap-1.5"
-        >
-          {isProcessing ? 'Processing...' : 'Process Cleanup'}
-        </button>
+        {/* Process Button - Fixed at bottom */}
+        <div className="mt-4 flex-shrink-0 flex gap-2">
+          <button
+            onClick={handleClear}
+            disabled={isProcessing}
+            className="flex-1 rounded-lg bg-gradient-to-r from-zinc-500 via-zinc-600 to-zinc-700 px-4 py-2 text-[10px] font-bold text-white shadow-lg shadow-zinc-500/30 hover:from-zinc-600 hover:via-zinc-700 hover:to-zinc-800 hover:shadow-xl hover:shadow-zinc-500/40 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center justify-center gap-1.5"
+          >
+            Clear
+          </button>
+          <button
+            onClick={processCleanup}
+            disabled={isProcessing || !transcript.trim()}
+            className="flex-1 rounded-lg bg-gradient-to-r from-purple-600 via-violet-600 to-purple-700 px-4 py-2 text-[10px] font-bold text-white shadow-lg shadow-purple-500/30 hover:from-purple-700 hover:via-violet-700 hover:to-purple-800 hover:shadow-xl hover:shadow-purple-500/40 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center justify-center gap-1.5"
+          >
+            {isProcessing ? 'Processing...' : 'Process Cleanup'}
+          </button>
+        </div>
 
         {/* Cleanup Summary */}
         {hasChanges && (
-          <div className="mt-4 p-3 bg-gradient-to-br from-green-50/80 to-emerald-50/80 border border-green-300/60 rounded-lg">
+          <div className="mt-4 p-3 bg-gradient-to-br from-green-50/80 to-emerald-50/80 border border-green-300/60 rounded-lg flex-shrink-0">
             <h4 className="text-[10px] font-bold text-green-900 mb-2 flex items-center gap-1.5">
               <Check className="h-3 w-3" />
               Cleanup Summary
@@ -421,12 +583,6 @@ export default function TranscriptCleanup({ transcript, onTranscriptChange, depa
                 <div className="text-[10px] text-green-800 flex items-center gap-1.5">
                   <Check className="h-3 w-3" />
                   {summary.repetitionsRemoved} repeated words removed
-                </div>
-              )}
-              {summary.speakerLabelsStandardized > 0 && (
-                <div className="text-[10px] text-green-800 flex items-center gap-1.5">
-                  <Check className="h-3 w-3" />
-                  {summary.speakerLabelsStandardized} speaker labels standardized
                 </div>
               )}
             </div>
