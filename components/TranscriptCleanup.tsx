@@ -487,28 +487,25 @@ export default function TranscriptCleanup({ transcript, onTranscriptChange, depa
   const hasChanges = summary.timestampsRemoved > 0 || summary.fillerWordsRemoved > 0 || summary.repetitionsRemoved > 0
 
   return (
-    <div className="flex gap-4 h-full">
+    <div className="flex gap-6 h-full items-stretch">
       {/* Left Column - Cleanup Controls */}
-      <div className="w-1/2 bg-gradient-to-br from-white via-purple-50/40 to-white border border-purple-200/70 rounded-xl p-4 shadow-sm ring-1 ring-purple-100/50 flex flex-col overflow-hidden">
-        <h3 className="text-sm font-bold text-zinc-900 mb-4 flex items-center gap-2 flex-shrink-0">
-          <MessageSquare className="h-4 w-4 text-purple-600" />
+      <div className="w-1/2 bg-gradient-to-br from-white via-purple-50/40 to-white border border-purple-200/70 rounded-xl p-4 shadow-sm ring-1 ring-purple-100/50 flex flex-col min-w-0">
+        <h3 className="text-sm font-bold text-zinc-900 mb-4 flex items-center gap-2 flex-shrink-0 whitespace-nowrap">
+          <MessageSquare className="h-4 w-4 text-purple-600 flex-shrink-0" />
           Transcript Cleanup
         </h3>
 
-        {/* Scrollable Content */}
-        <div className="overflow-y-auto pr-2 space-y-4 flex-1" style={{ maxHeight: 'calc(100vh - 400px)' }}>
-
-        {/* Cleanup Options */}
-        <div className="space-y-3">
+        {/* Cleanup Options - Takes remaining space */}
+        <div className="flex-1 space-y-3 overflow-y-auto pr-2">
           <label className="flex items-center gap-3 cursor-pointer">
             <input
               type="checkbox"
               checked={options.removeTimestamps}
               onChange={(e) => setOptions({ ...options, removeTimestamps: e.target.checked })}
-              className="rounded border-zinc-300 text-purple-600 focus:ring-purple-500"
+              className="rounded border-zinc-300 text-purple-600 focus:ring-purple-500 flex-shrink-0"
             />
             <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4 text-purple-600" />
+              <Clock className="h-4 w-4 text-purple-600 flex-shrink-0" />
               <span className="text-xs text-zinc-700">Remove Timestamps</span>
             </div>
           </label>
@@ -518,10 +515,10 @@ export default function TranscriptCleanup({ transcript, onTranscriptChange, depa
               type="checkbox"
               checked={options.removeFillerWords}
               onChange={(e) => setOptions({ ...options, removeFillerWords: e.target.checked })}
-              className="rounded border-zinc-300 text-purple-600 focus:ring-purple-500"
+              className="rounded border-zinc-300 text-purple-600 focus:ring-purple-500 flex-shrink-0"
             />
             <div className="flex items-center gap-2">
-              <MessageSquare className="h-4 w-4 text-purple-600" />
+              <MessageSquare className="h-4 w-4 text-purple-600 flex-shrink-0" />
               <span className="text-xs text-zinc-700">Remove Filler Words</span>
             </div>
           </label>
@@ -531,35 +528,16 @@ export default function TranscriptCleanup({ transcript, onTranscriptChange, depa
               type="checkbox"
               checked={options.removeImmediateRepetitions}
               onChange={(e) => setOptions({ ...options, removeImmediateRepetitions: e.target.checked })}
-              className="rounded border-zinc-300 text-purple-600 focus:ring-purple-500"
+              className="rounded border-zinc-300 text-purple-600 focus:ring-purple-500 flex-shrink-0"
             />
             <div className="flex items-center gap-2">
-              <Repeat className="h-4 w-4 text-purple-600" />
+              <Repeat className="h-4 w-4 text-purple-600 flex-shrink-0" />
               <span className="text-xs text-zinc-700">Remove Immediate Word Repetitions</span>
             </div>
           </label>
         </div>
-        </div>
 
-        {/* Process Button - Fixed at bottom */}
-        <div className="mt-4 flex-shrink-0 flex gap-2">
-          <button
-            onClick={handleClear}
-            disabled={isProcessing}
-            className="flex-1 rounded-lg bg-gradient-to-r from-zinc-500 via-zinc-600 to-zinc-700 px-4 py-2 text-[10px] font-bold text-white shadow-lg shadow-zinc-500/30 hover:from-zinc-600 hover:via-zinc-700 hover:to-zinc-800 hover:shadow-xl hover:shadow-zinc-500/40 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center justify-center gap-1.5"
-          >
-            Clear
-          </button>
-          <button
-            onClick={processCleanup}
-            disabled={isProcessing || !transcript.trim()}
-            className="flex-1 rounded-lg bg-gradient-to-r from-purple-600 via-violet-600 to-purple-700 px-4 py-2 text-[10px] font-bold text-white shadow-lg shadow-purple-500/30 hover:from-purple-700 hover:via-violet-700 hover:to-purple-800 hover:shadow-xl hover:shadow-purple-500/40 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center justify-center gap-1.5"
-          >
-            {isProcessing ? 'Processing...' : 'Process Cleanup'}
-          </button>
-        </div>
-
-        {/* Cleanup Summary */}
+        {/* Cleanup Summary - Fixed at bottom */}
         {hasChanges && (
           <div className="mt-4 p-3 bg-gradient-to-br from-green-50/80 to-emerald-50/80 border border-green-300/60 rounded-lg flex-shrink-0">
             <h4 className="text-[10px] font-bold text-green-900 mb-2 flex items-center gap-1.5">
@@ -588,20 +566,40 @@ export default function TranscriptCleanup({ transcript, onTranscriptChange, depa
             </div>
           </div>
         )}
+
+        {/* Action Buttons - Always at bottom */}
+        <div className="mt-4 flex-shrink-0 flex gap-2">
+          <button
+            onClick={handleClear}
+            disabled={isProcessing}
+            className="flex-1 rounded-lg bg-gradient-to-r from-zinc-500 via-zinc-600 to-zinc-700 px-4 py-2 text-[10px] font-bold text-white shadow-lg shadow-zinc-500/30 hover:from-zinc-600 hover:via-zinc-700 hover:to-zinc-800 hover:shadow-xl hover:shadow-zinc-500/40 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center justify-center gap-1.5"
+          >
+            Clear
+          </button>
+          <button
+            onClick={processCleanup}
+            disabled={isProcessing || !transcript.trim()}
+            className="flex-1 rounded-lg bg-gradient-to-r from-purple-600 via-violet-600 to-purple-700 px-4 py-2 text-[10px] font-bold text-white shadow-lg shadow-purple-500/30 hover:from-purple-700 hover:via-violet-700 hover:to-purple-800 hover:shadow-xl hover:shadow-purple-500/40 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center justify-center gap-1.5"
+          >
+            {isProcessing ? 'Processing...' : 'Process Cleanup'}
+          </button>
+        </div>
       </div>
 
       {/* Right Column - Transcript Input */}
-      <div className="w-1/2 bg-gradient-to-br from-white via-green-50/40 to-white border border-green-200/70 rounded-xl p-4 shadow-sm ring-1 ring-green-100/50 flex flex-col">
-        <h3 className="text-sm font-bold text-zinc-900 mb-4 flex items-center gap-2">
-          <FileEdit className="h-4 w-4 text-green-600" />
+      <div className="w-1/2 bg-gradient-to-br from-white via-green-50/40 to-white border border-green-200/70 rounded-xl p-4 shadow-sm ring-1 ring-green-100/50 flex flex-col min-w-0 overflow-hidden">
+        <h3 className="text-sm font-bold text-zinc-900 mb-4 flex items-center gap-2 flex-shrink-0 whitespace-nowrap">
+          <FileEdit className="h-4 w-4 text-green-600 flex-shrink-0" />
           Transcript
         </h3>
-        <textarea
-          value={transcript}
-          onChange={(e) => onTranscriptChange(e.target.value)}
-          className="flex-1 w-full border border-green-300/60 rounded-lg px-3 py-2 text-xs text-zinc-800 outline-none focus:border-green-500 focus:ring-2 focus:ring-green-500/25 transition-all bg-white min-h-[400px] resize-y font-mono shadow-sm leading-relaxed"
-          placeholder="Paste your transcript here to clean up..."
-        />
+        <div className="flex-1 min-h-0 overflow-hidden">
+          <textarea
+            value={transcript}
+            onChange={(e) => onTranscriptChange(e.target.value)}
+            className="w-full h-full border border-green-300/60 rounded-lg px-3 py-2 text-xs text-zinc-800 outline-none focus:border-green-500 focus:ring-2 focus:ring-green-500/25 transition-all bg-white resize-none font-mono shadow-sm leading-relaxed box-border"
+            placeholder="Paste your transcript here to clean up..."
+          />
+        </div>
       </div>
     </div>
   )
