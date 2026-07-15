@@ -73,17 +73,17 @@ export async function POST(request: Request) {
 
     const supabase = createClient(supabaseUrl, supabaseServiceRoleKey)
     
-    // Fetch worker's email and name
+    // Fetch worker's email, name, and location
     const { data: workerData, error: workerError } = await supabase
       .from('worker_profiles')
-      .select('email, full_name')
+      .select('email, full_name, location')
       .eq('id', workerId)
       .single()
 
     if (workerError) {
       console.error('Failed to fetch worker data:', workerError)
     } else {
-      console.log('Worker data fetched:', { email: workerData?.email, full_name: workerData?.full_name })
+      console.log('Worker data fetched:', { email: workerData?.email, full_name: workerData?.full_name, location: workerData?.location })
     }
 
     console.log('Email configuration check:', { 
@@ -121,9 +121,13 @@ export async function POST(request: Request) {
 
     if (transporter && workerData?.email && workerData?.full_name) {
       try {
-        const formattedAmount = new Intl.NumberFormat('en-US', {
+        // Determine currency based on worker location
+        const location = workerData?.location?.toLowerCase() || ''
+        const isPhilippines = location.includes('philippines') || location.includes('philippine') || location.includes('ph')
+        
+        const formattedAmount = new Intl.NumberFormat(isPhilippines ? 'en-PH' : 'en-US', {
           style: 'currency',
-          currency: 'USD',
+          currency: isPhilippines ? 'PHP' : 'USD',
         }).format(amount)
 
         const formattedDate = new Date(paymentDate).toLocaleDateString('en-US', {
