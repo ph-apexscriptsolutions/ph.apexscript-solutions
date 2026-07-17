@@ -1,6 +1,6 @@
 "use client"
 export const dynamic = 'force-dynamic'
-import { useEffect, useState, FormEvent, useMemo, useCallback } from "react"
+import { useEffect, useState, FormEvent, useMemo, useCallback, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/utils/supabase/client"
 import { FileText, HardDrive, LogOut, Calendar, X, Pencil, Save, User, ArrowLeft, Upload, UserPlus, CreditCard, Trash2, Check, Bell, AlertCircle, Tv, Mic, Headphones, FileEdit, Newspaper, Radio, Video, BookOpen, Gavel, TrendingUp, Activity, Search, Loader2, Copy, ChevronDown, ChevronUp, Building2 } from "lucide-react"
@@ -146,6 +146,7 @@ export default function DashboardPage() {
   const [endDate, setEndDate] = useState("")
   const [searchQuery, setSearchQuery] = useState("")
   const [records, setRecords] = useState<any[]>([])
+  const justAddedRecordRef = useRef(false)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
@@ -622,6 +623,8 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (!activeWorker) return
+    // Skip fetching if a record was just added manually (to preserve the single record view)
+    if (justAddedRecordRef.current) return
     if (!filterApplied && !searchQuery) {
       setRecords([])
       return
@@ -634,7 +637,7 @@ export default function DashboardPage() {
       if (data) {
         let filteredData = data
         if (searchQuery) {
-          filteredData = data.filter((r: any) => 
+          filteredData = data.filter((r: any) =>
             r.file_name?.toLowerCase().includes(searchQuery.toLowerCase())
           )
         }
@@ -799,7 +802,10 @@ export default function DashboardPage() {
         filter: `worker_id=eq.${activeWorkerId}`,
       },
       (payload) => {
-        
+
+        // Skip fetching if a record was just added manually (to preserve the single record view)
+        if (justAddedRecordRef.current) return
+
         if (filterApplied) {
           setFilterTrigger(prev => prev + 1)
         } else {
@@ -1134,14 +1140,21 @@ export default function DashboardPage() {
           console.error('Failed to update assignment status:', err)
         }
       }
-      
+
       setIsUploadModalOpen(false); setSelectedFile(null)
-      
+
+      // Set flag to prevent useEffect from fetching all records
+      justAddedRecordRef.current = true
+
       // Fetch and display the newly uploaded record immediately
       const { data: newRecords } = await supabase.from("production_records").select("*").eq("worker_id", activeWorker.id).order("date_completed", { ascending: false }).limit(1)
       if (newRecords && newRecords.length > 0) {
         setRecords([newRecords[0]])
       }
+
+      // Reset the flag after a short delay to allow normal filtering to resume
+      setTimeout(() => { justAddedRecordRef.current = false }, 500)
+
       const successMessage = uploadData?.emailWarning
         ? `✅ File uploaded and saved successfully, but email notification failed: ${uploadData.emailWarning}`
         : '✅ File uploaded, saved, and emailed successfully!'
@@ -1181,11 +1194,20 @@ export default function DashboardPage() {
 
       setIsManualAddModalOpen(false)
       setManualFileForm({ fileName: '', dateCompleted: '', byteSize: '' })
+      // Clear filters to ensure only the newly added record is shown
+      setStartDate('')
+      setEndDate('')
+      setSearchQuery('')
+      setFilterApplied(false)
+      // Set flag to prevent useEffect from fetching all records
+      justAddedRecordRef.current = true
       // Fetch and display the newly added record immediately
       const { data: newRecords } = await supabase.from('production_records').select('*').eq('worker_id', activeWorker.id).order('date_completed', { ascending: false }).limit(1)
       if (newRecords && newRecords.length > 0) {
         setRecords([newRecords[0]])
       }
+      // Reset the flag after a short delay to allow normal filtering to resume
+      setTimeout(() => { justAddedRecordRef.current = false }, 500)
       alert('✅ Manual record added successfully!')
     } catch (err: any) {
       console.error('Manual add error:', err)
