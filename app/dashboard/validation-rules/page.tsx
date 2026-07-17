@@ -13,6 +13,7 @@ interface ValidationRule {
   replace: string
   enabled: boolean
   is_regex: boolean
+  case_sensitive: boolean
   created_at: string
   updated_at: string
 }
@@ -33,7 +34,8 @@ export default function ValidationRulesPage() {
     find: "",
     replace: "",
     enabled: true,
-    is_regex: false
+    is_regex: false,
+    case_sensitive: false
   })
 
   useEffect(() => {
@@ -86,6 +88,7 @@ export default function ValidationRulesPage() {
             replace: formData.replace,
             enabled: formData.enabled,
             is_regex: formData.is_regex,
+            case_sensitive: formData.case_sensitive,
             updated_at: new Date().toISOString()
           })
           .eq('id', editingRule.id)
@@ -101,7 +104,8 @@ export default function ValidationRulesPage() {
             find: formData.find,
             replace: formData.replace,
             enabled: formData.enabled,
-            is_regex: formData.is_regex
+            is_regex: formData.is_regex,
+            case_sensitive: formData.case_sensitive
           })
         
         if (error) {
@@ -117,7 +121,7 @@ export default function ValidationRulesPage() {
       await loadRules()
       setIsModalOpen(false)
       setEditingRule(null)
-      setFormData({ rule_name: "", department: "all", category: "", find: "", replace: "", enabled: true, is_regex: false })
+      setFormData({ rule_name: "", department: "all", category: "", find: "", replace: "", enabled: true, is_regex: false, case_sensitive: false })
     } catch (error: any) {
       console.error('Error saving rule:', error)
       alert(`Error saving rule: ${error.message || 'Unknown error'}`)
@@ -196,14 +200,15 @@ export default function ValidationRulesPage() {
       find: rule.find,
       replace: rule.replace,
       enabled: rule.enabled,
-      is_regex: rule.is_regex || false
+      is_regex: rule.is_regex || false,
+      case_sensitive: rule.case_sensitive || false
     })
     setIsModalOpen(true)
   }
 
   const openCreateModal = () => {
     setEditingRule(null)
-    setFormData({ rule_name: "", department: "all", category: "", find: "", replace: "", enabled: true, is_regex: false })
+    setFormData({ rule_name: "", department: "all", category: "", find: "", replace: "", enabled: true, is_regex: false, case_sensitive: false })
     setIsModalOpen(true)
   }
 
@@ -318,7 +323,7 @@ export default function ValidationRulesPage() {
                 onClick={() => {
                   setIsModalOpen(false)
                   setEditingRule(null)
-                  setFormData({ rule_name: "", department: "all", category: "", find: "", replace: "", enabled: true, is_regex: false })
+                  setFormData({ rule_name: "", department: "all", category: "", find: "", replace: "", enabled: true, is_regex: false, case_sensitive: false })
                 }}
                 className="p-1 text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 rounded-lg transition-colors"
               >
@@ -327,7 +332,7 @@ export default function ValidationRulesPage() {
             </div>
 
             {/* Form */}
-            <div className="p-6 space-y-4">
+            <div className="p-6 space-y-4 max-h-[calc(100vh-280px)] overflow-y-auto">
               <div>
                 <label className="block text-sm font-medium text-zinc-700 mb-1.5">Rule Name</label>
                 <input
@@ -406,12 +411,23 @@ export default function ValidationRulesPage() {
               {formData.is_regex && (
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
                   <p className="text-xs text-blue-800">
-                    <strong>Regex Mode:</strong> Use regex patterns to match dynamic content. 
+                    <strong>Regex Mode:</strong> Use regex patterns to match dynamic content.
                     Example: <code className="bg-blue-100 px-1 rounded">(\w+)\s*--\s*\1</code> will match "word -- word" for any word.
                     Use <code className="bg-blue-100 px-1 rounded">$1</code> in replace to reference captured groups.
                   </p>
                 </div>
               )}
+
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="case_sensitive"
+                  checked={formData.case_sensitive}
+                  onChange={(e) => setFormData({ ...formData, case_sensitive: e.target.checked })}
+                  className="h-4 w-4 text-rose-600 border-zinc-300 rounded focus:ring-rose-500"
+                />
+                <label htmlFor="case_sensitive" className="text-sm text-zinc-700">Case Sensitive</label>
+              </div>
 
               <div className="flex items-center gap-2">
                 <input
@@ -431,7 +447,7 @@ export default function ValidationRulesPage() {
                 onClick={() => {
                   setIsModalOpen(false)
                   setEditingRule(null)
-                  setFormData({ rule_name: "", department: "all", category: "", find: "", replace: "", enabled: true, is_regex: false })
+                  setFormData({ rule_name: "", department: "all", category: "", find: "", replace: "", enabled: true, is_regex: false, case_sensitive: false })
                 }}
                 className="px-4 py-2 text-sm font-medium text-zinc-700 hover:text-zinc-900 transition-colors"
               >

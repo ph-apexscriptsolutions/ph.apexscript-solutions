@@ -63,6 +63,7 @@ export interface ValidationRule {
   description?: string
   enabled: boolean
   is_regex?: boolean
+  case_sensitive?: boolean
 }
 
 // Extract Senate speakers from transcript
@@ -1310,11 +1311,14 @@ export function applyStyleRules(transcript: string, rules: ValidationRule[]): Va
     if (rule.is_regex || useCapturedGroup) {
       // Use the pattern as-is for regex mode (or for " -- " patterns)
       // For " -- " patterns, use case-sensitive matching to prevent "I -- i" false positives
-      const flags = useCapturedGroup ? 'g' : 'gi'
+      // Also respect case_sensitive flag from the rule
+      const flags = (useCapturedGroup || rule.case_sensitive) ? 'g' : 'gi'
       regex = new RegExp(patternToUse, flags)
     } else {
       // Escape special regex characters for literal string matching
-      regex = new RegExp(patternToUse.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi')
+      // Respect case_sensitive flag from the rule
+      const flags = rule.case_sensitive ? 'g' : 'gi'
+      regex = new RegExp(patternToUse.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), flags)
     }
     
     console.log(`[applyStyleRules] Rule: ${rule.rule_name}, Pattern: ${patternToUse}, Regex: ${regex.toString()}`)
