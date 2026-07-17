@@ -1181,11 +1181,11 @@ export default function DashboardPage() {
 
       setIsManualAddModalOpen(false)
       setManualFileForm({ fileName: '', dateCompleted: '', byteSize: '' })
-      let q: any = supabase.from('production_records').select('*').eq('worker_id', activeWorker.id)
-      if (startDate) q = q.gte('date_completed', startDate)
-      if (endDate) q = q.lte('date_completed', endDate)
-      const { data } = await q.order('date_completed', { ascending: false })
-      if (data) setRecords(data)
+      // Fetch and display the newly added record immediately
+      const { data: newRecords } = await supabase.from('production_records').select('*').eq('worker_id', activeWorker.id).order('date_completed', { ascending: false }).limit(1)
+      if (newRecords && newRecords.length > 0) {
+        setRecords([newRecords[0]])
+      }
       alert('✅ Manual record added successfully!')
     } catch (err: any) {
       console.error('Manual add error:', err)
