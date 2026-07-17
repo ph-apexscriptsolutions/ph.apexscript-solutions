@@ -4371,13 +4371,15 @@ export default function DashboardPage() {
                                 </div>
                               </div>
                               <div className="flex gap-1.5 flex-shrink-0">
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); handleReplaceIssue(issue) }}
-                                  className="px-2 py-1 text-[10px] font-semibold bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-md hover:from-green-600 hover:to-emerald-700 transition-all shadow-sm"
-                                  title="Replace"
-                                >
-                                  Replace
-                                </button>
+                                {issue.ruleName !== 'Repeated Words' && (
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); handleReplaceIssue(issue) }}
+                                    className="px-2 py-1 text-[10px] font-semibold bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-md hover:from-green-600 hover:to-emerald-700 transition-all shadow-sm"
+                                    title="Replace"
+                                  >
+                                    Replace
+                                  </button>
+                                )}
                                 <button
                                   onClick={(e) => { e.stopPropagation(); handleIgnoreIssue(issue) }}
                                   className="px-2 py-1 text-[10px] font-semibold bg-zinc-100 text-zinc-700 rounded-md hover:bg-zinc-200 transition-all"

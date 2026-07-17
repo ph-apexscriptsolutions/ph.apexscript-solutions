@@ -1243,9 +1243,21 @@ export function applyStyleRules(transcript: string, rules: ValidationRule[]): Va
       return
     }
 
-    // Skip rules where find pattern is just "--" or only dashes
+    // Skip rules where find pattern is just "--" or only dashes (change of thought marker)
     if (patternToUse.trim().match(/^[-\s]+$/)) {
-      console.log(`[applyStyleRules] Skipping rule with only dashes/whitespace in find pattern: ${rule.rule_name}`)
+      console.log(`[applyStyleRules] Skipping rule with only dashes/whitespace in find pattern (change of thought): ${rule.rule_name}`)
+      return
+    }
+
+    // Skip standalone "--" patterns (change of thought markers)
+    if (patternToUse.trim() === '--' || patternToUse.trim() === ' -- ' || patternToUse.trim() === '  --  ') {
+      console.log(`[applyStyleRules] Skipping standalone "--" pattern (change of thought): ${rule.rule_name}`)
+      return
+    }
+
+    // Skip any rule that contains only "--" with optional spaces (change of thought marker)
+    if (patternToUse.replace(/\s/g, '') === '--') {
+      console.log(`[applyStyleRules] Skipping rule that is only "--" with spaces (change of thought): ${rule.rule_name}`)
       return
     }
 
@@ -1261,9 +1273,11 @@ export function applyStyleRules(transcript: string, rules: ValidationRule[]): Va
           return
         }
         // Convert to regex that matches any repeated word/phrase with " -- " separator
-        // Pattern: (.+?)\s*--\s*\1
-        // Note: We don't use word boundaries because they don't work well with backreferences
-        patternToUse = '(.+?)\\s*--\\s*\\1'
+        // Pattern: \b(.+?)\b\s*--\s*\b\1\b
+        // Using \b word boundaries to ensure complete word matching
+        // This prevents matching "discipline -- disciplined" (partial match)
+        // Using backreference \1 to ensure exact match (same word, same case)
+        patternToUse = '\\b(.+?)\\b\\s*--\\s*\\b\\1\\b'
         useCapturedGroup = true
         console.log(`[applyStyleRules] Converting " -- " pattern: ${rule.find} -> ${patternToUse}`)
       }
@@ -1278,7 +1292,8 @@ export function applyStyleRules(transcript: string, rules: ValidationRule[]): Va
             return
           }
           // Convert to regex that matches any repeated word/phrase with "--" separator
-          patternToUse = '(.+?)--\\1'
+          // Using \b word boundaries to ensure complete word matching
+          patternToUse = '\\b(.+?)\\b--\\b\\1\\b'
           useCapturedGroup = true
           console.log(`[applyStyleRules] Converting "--" pattern: ${rule.find} -> ${patternToUse}`)
         }
@@ -1294,7 +1309,9 @@ export function applyStyleRules(transcript: string, rules: ValidationRule[]): Va
     // Check if this is a regex pattern or literal string
     if (rule.is_regex || useCapturedGroup) {
       // Use the pattern as-is for regex mode (or for " -- " patterns)
-      regex = new RegExp(patternToUse, 'gi')
+      // For " -- " patterns, use case-sensitive matching to prevent "I -- i" false positives
+      const flags = useCapturedGroup ? 'g' : 'gi'
+      regex = new RegExp(patternToUse, flags)
     } else {
       // Escape special regex characters for literal string matching
       regex = new RegExp(patternToUse.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi')
@@ -1417,13 +1434,19 @@ export function detectRepeatedWords(transcript: string): ValidationIssue[] {
     
     // Check for repeated consecutive words (e.g., "the the")
     for (let i = 0; i < words.length - 1; i++) {
-      const currentWord = words[i].replace(/[^a-zA-Z]/g, '').toLowerCase()
-      const nextWord = words[i + 1].replace(/[^a-zA-Z]/g, '').toLowerCase()
+      const currentWord = words[i].replace(/[^a-zA-Z]/g, '')
+      const nextWord = words[i + 1].replace(/[^a-zA-Z]/g, '')
+      
+      // Skip if either word is empty after removing non-letters (e.g., "--")
+      if (currentWord.length === 0 || nextWord.length === 0) continue
       
       // Skip very short words
       if (currentWord.length < 2 || nextWord.length < 2) continue
       
-      // Check if current word equals next word (repeated)
+      // Skip if either word is just a single letter (like "I" or "a")
+      if (currentWord.length === 1 || nextWord.length === 1) continue
+      
+      // Check if current word equals next word (case-sensitive to avoid "I -- i" false positives)
       if (currentWord === nextWord) {
         // Calculate column position for the second (duplicate) word
         let column = 0
@@ -1439,7 +1462,7 @@ export function detectRepeatedWords(transcript: string): ValidationIssue[] {
           ruleName: 'Repeated Words',
           severity: 'medium',
           foundText: words[i + 1], // Show the duplicate word
-          suggestedCorrection: '', // Suggest removing it
+          suggestedCorrection: 'Remove repeated word', // Suggest removing it
           line: lineIndex + 1,
           column: column + 1,
           ignored: false
