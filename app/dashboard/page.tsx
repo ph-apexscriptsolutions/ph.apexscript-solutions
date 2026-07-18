@@ -8,7 +8,7 @@ import AdminChat from '@/components/admin-chat'
 import WorkerRealtimeChat from '@/components/worker-realtime-chat'
 import { FlagIcon } from "@/components/flag-icon"
 import TranscriptCleanup from '@/components/TranscriptCleanup'
-import { validateTranscript, replaceInTranscript, getHighlightClass, validationHighlightStyles, ValidationIssue, ValidationRule, Participant, extractParticipants, getValidUncommonWords, extractSenateSpeakers } from '@/utils/transcript-validation'
+import { validateTranscript, replaceInTranscript, getHighlightClass, validationHighlightStyles, ValidationIssue, ValidationRule, Participant, extractParticipants, getValidUncommonWords, detectFillerWords, extractSenateSpeakers } from '@/utils/transcript-validation'
 
 const getDepartmentIcon = (department: string) => {
   const dept = department.toLowerCase()
@@ -337,7 +337,8 @@ export default function DashboardPage() {
             find: r.find,
             replace: r.replace,
             enabled: r.enabled,
-            is_regex: r.is_regex || false
+            is_regex: r.is_regex || false,
+            case_sensitive: r.case_sensitive || false
           }))]
         } else if (transcriptError && !transcriptError.message.includes('does not exist')) {
           console.log('Error loading transcript validation rules:', transcriptError.message)
@@ -439,34 +440,39 @@ export default function DashboardPage() {
       const { participants, companyNames } = extractParticipants(debouncedTranscript)
       setExtractedParticipants(participants)
       setExtractedCompanies(companyNames)
-      
+
       // Get valid uncommon words for green underlining (unknown uncommon terms)
       const uncommonWords = await getValidUncommonWords(debouncedTranscript, participants, companyNames, customDictionary)
       setValidUncommonWords(uncommonWords)
-      
+
       // Filter rules by selected department
-      const filteredRules = selectedDepartment === 'all' 
-        ? validationRules 
+      const filteredRules = selectedDepartment === 'all'
+        ? validationRules
         : validationRules.filter(rule => rule.department === 'all' || rule.department === selectedDepartment)
-      
+
       // Run validation with custom dictionary and progress callback
       const startTime = performance.now()
-      
+
       const issues = await validateTranscript(debouncedTranscript, filteredRules, customDictionary, selectedDepartment, (progress) => {
         setValidationProgress({ stage: progress.stage, message: progress.message })
       })
+
+      // Add filler word issues ("you know" and "like")
+      const fillerWordIssues = detectFillerWords(debouncedTranscript)
+      const allIssues = [...issues, ...fillerWordIssues]
+
       const endTime = performance.now()
       setValidationTime(Math.round(endTime - startTime))
-      
+
       // Check if format mismatch error was returned
-      const formatMismatch = issues.find(issue => issue.id === 'format-mismatch-warning')
+      const formatMismatch = allIssues.find(issue => issue.id === 'format-mismatch-warning')
       if (formatMismatch) {
         setFormatMismatchError(formatMismatch.suggestedCorrection)
-        setValidationIssues(issues)
+        setValidationIssues(allIssues)
         // Don't update highlighted transcript - block transcript display
       } else {
         setFormatMismatchError(null)
-        setValidationIssues(issues)
+        setValidationIssues(allIssues)
         updateHighlightedTranscript(issues)
       }
     } catch (error) {
@@ -4393,7 +4399,7 @@ export default function DashboardPage() {
                                 </div>
                               </div>
                               <div className="flex gap-1.5 flex-shrink-0">
-                                {issue.ruleName !== 'Repeated Words' && (
+                                {issue.ruleName !== 'Repeated Words' && issue.ruleName !== 'Filler Check' && (
                                   <button
                                     onClick={(e) => { e.stopPropagation(); handleReplaceIssue(issue) }}
                                     className="px-2 py-1 text-[10px] font-semibold bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-md hover:from-green-600 hover:to-emerald-700 transition-all shadow-sm"
@@ -4468,6 +4474,9 @@ export default function DashboardPage() {
                         </button>
                       )}
                     </div>
+                    {validationIssues.filter(i => !i.ignored).length > 0 && (
+                      <p className="text-[10px] text-amber-600 font-medium mb-3">Resolve all issues before copying</p>
+                    )}
                     {formatMismatchError ? (
                       <div className="w-full border border-red-300/80 bg-gradient-to-br from-red-50/90 to-orange-50/90 rounded-xl px-6 py-8 text-center shadow-sm ring-1 ring-red-200/50">
                         <div className="flex items-center justify-center gap-3 mb-3">

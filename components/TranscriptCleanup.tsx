@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback, useMemo, useEffect } from 'react'
-import { Check, X, Clock, MessageSquare, Repeat, User, FileEdit } from 'lucide-react'
+import { Check, X, Clock, MessageSquare, Repeat, User, FileEdit, Eye, Copy } from 'lucide-react'
 
 interface CleanupOptions {
   removeTimestamps: boolean
@@ -13,6 +13,11 @@ interface CleanupSummary {
   timestampsRemoved: number
   fillerWordsRemoved: number
   repetitionsRemoved: number
+}
+
+interface RemovedItem {
+  type: 'timestamp' | 'filler' | 'repetition'
+  text: string
 }
 
 interface SpeakerName {
@@ -42,6 +47,10 @@ export default function TranscriptCleanup({ transcript, onTranscriptChange, depa
     repetitionsRemoved: 0
   })
   const [isProcessing, setIsProcessing] = useState(false)
+  const [removedItems, setRemovedItems] = useState<RemovedItem[]>([])
+  const [showRemovedItems, setShowRemovedItems] = useState(false)
+  const [copySuccess, setCopySuccess] = useState(false)
+  const [originalTranscript, setOriginalTranscript] = useState('')
 
   const handleClear = useCallback(() => {
     setOptions({
@@ -55,6 +64,10 @@ export default function TranscriptCleanup({ transcript, onTranscriptChange, depa
       repetitionsRemoved: 0
     })
     setIsProcessing(false)
+    setRemovedItems([])
+    setShowRemovedItems(false)
+    setCopySuccess(false)
+    setOriginalTranscript('')
     onTranscriptChange('')
   }, [onTranscriptChange])
 
@@ -65,8 +78,9 @@ export default function TranscriptCleanup({ transcript, onTranscriptChange, depa
     }
   }, [handleClear])
 
-  const removeTimestamps = useCallback((text: string): { cleaned: string, count: number } => {
+  const removeTimestamps = useCallback((text: string): { cleaned: string, count: number, removed: RemovedItem[] } => {
     let count = 0
+    const removed: RemovedItem[] = []
     const lines = text.split('\n')
 
     // Match various timestamp formats:
@@ -95,6 +109,13 @@ export default function TranscriptCleanup({ transcript, onTranscriptChange, depa
         if (matches) {
           lineCount += matches.length
           count += matches.length
+          // Track removed timestamps
+          matches.forEach(match => {
+            removed.push({
+              type: 'timestamp',
+              text: match
+            })
+          })
           cleanedLine = cleanedLine.replace(pattern, '')
         }
       })
@@ -135,11 +156,12 @@ export default function TranscriptCleanup({ transcript, onTranscriptChange, depa
 
     const cleaned = resultLines.join('\n')
 
-    return { cleaned, count }
+    return { cleaned, count, removed }
   }, [])
 
-  const removeFillerWords = useCallback((text: string): { cleaned: string, count: number } => {
+  const removeFillerWords = useCallback((text: string): { cleaned: string, count: number, removed: RemovedItem[] } => {
     let count = 0
+    const removed: RemovedItem[] = []
 
     // Process line by line to preserve paragraph structure
     const lines = text.split('\n')
@@ -153,6 +175,14 @@ export default function TranscriptCleanup({ transcript, onTranscriptChange, depa
           const pattern1 = new RegExp(`(\\b[\\w']+\\b)\\s*,\\s*\\b${fillerWord}\\b\\s*,\\s*(\\b[\\w']+\\b)`, 'gi')
           result = result.replace(pattern1, (match, beforeWord, afterWord) => {
             count++
+            // Track removed filler word
+            const fillerMatch = match.match(new RegExp(`\\b${fillerWord}\\b`, 'i'))
+            if (fillerMatch) {
+              removed.push({
+                type: 'filler',
+                text: fillerMatch[0]
+              })
+            }
             return beforeWord + ' ' + afterWord
           })
           
@@ -160,6 +190,14 @@ export default function TranscriptCleanup({ transcript, onTranscriptChange, depa
           const pattern2 = new RegExp(`(\\b[\\w']+\\b)\\s*,\\s*\\b${fillerWord}\\b`, 'gi')
           result = result.replace(pattern2, (match, word) => {
             count++
+            // Track removed filler word
+            const fillerMatch = match.match(new RegExp(`\\b${fillerWord}\\b`, 'i'))
+            if (fillerMatch) {
+              removed.push({
+                type: 'filler',
+                text: fillerMatch[0]
+              })
+            }
             return word + ' '
           })
           
@@ -167,6 +205,14 @@ export default function TranscriptCleanup({ transcript, onTranscriptChange, depa
           const pattern3 = new RegExp(`\\b${fillerWord}\\b\\s*,\\s*(\\b[\\w']+\\b)`, 'gi')
           result = result.replace(pattern3, (match, nextWord) => {
             count++
+            // Track removed filler word
+            const fillerMatch = match.match(new RegExp(`\\b${fillerWord}\\b`, 'i'))
+            if (fillerMatch) {
+              removed.push({
+                type: 'filler',
+                text: fillerMatch[0]
+              })
+            }
             return ' ' + nextWord
           })
           
@@ -174,6 +220,14 @@ export default function TranscriptCleanup({ transcript, onTranscriptChange, depa
           const pattern4 = new RegExp(`,\\s*\\b${fillerWord}\\b`, 'gi')
           result = result.replace(pattern4, (match) => {
             count++
+            // Track removed filler word
+            const fillerMatch = match.match(new RegExp(`\\b${fillerWord}\\b`, 'i'))
+            if (fillerMatch) {
+              removed.push({
+                type: 'filler',
+                text: fillerMatch[0]
+              })
+            }
             return ''
           })
           
@@ -181,6 +235,14 @@ export default function TranscriptCleanup({ transcript, onTranscriptChange, depa
           const pattern5 = new RegExp(`\\b${fillerWord}\\b\\s*,`, 'gi')
           result = result.replace(pattern5, (match) => {
             count++
+            // Track removed filler word
+            const fillerMatch = match.match(new RegExp(`\\b${fillerWord}\\b`, 'i'))
+            if (fillerMatch) {
+              removed.push({
+                type: 'filler',
+                text: fillerMatch[0]
+              })
+            }
             return ''
           })
           
@@ -188,6 +250,14 @@ export default function TranscriptCleanup({ transcript, onTranscriptChange, depa
           const pattern6 = new RegExp(`\\s+\\b${fillerWord}\\b\\s+`, 'gi')
           result = result.replace(pattern6, (match) => {
             count++
+            // Track removed filler word
+            const fillerMatch = match.match(new RegExp(`\\b${fillerWord}\\b`, 'i'))
+            if (fillerMatch) {
+              removed.push({
+                type: 'filler',
+                text: fillerMatch[0]
+              })
+            }
             return ' '
           })
           
@@ -195,6 +265,14 @@ export default function TranscriptCleanup({ transcript, onTranscriptChange, depa
           const pattern7 = new RegExp(`^\\b${fillerWord}\\b\\s+`, 'gi')
           result = result.replace(pattern7, (match) => {
             count++
+            // Track removed filler word
+            const fillerMatch = match.match(new RegExp(`\\b${fillerWord}\\b`, 'i'))
+            if (fillerMatch) {
+              removed.push({
+                type: 'filler',
+                text: fillerMatch[0]
+              })
+            }
             return ''
           })
           
@@ -202,6 +280,14 @@ export default function TranscriptCleanup({ transcript, onTranscriptChange, depa
           const pattern8 = new RegExp(`\\s+\\b${fillerWord}\\b$`, 'gi')
           result = result.replace(pattern8, (match) => {
             count++
+            // Track removed filler word
+            const fillerMatch = match.match(new RegExp(`\\b${fillerWord}\\b`, 'i'))
+            if (fillerMatch) {
+              removed.push({
+                type: 'filler',
+                text: fillerMatch[0]
+              })
+            }
             return ''
           })
         })
@@ -216,11 +302,12 @@ export default function TranscriptCleanup({ transcript, onTranscriptChange, depa
       })
 
     const cleaned = cleanedLines.join('\n')
-    return { cleaned, count }
+    return { cleaned, count, removed }
   }, [])
 
-  const removeImmediateRepetitions = useCallback((text: string): { cleaned: string, count: number } => {
+  const removeImmediateRepetitions = useCallback((text: string): { cleaned: string, count: number, removed: RemovedItem[] } => {
     let count = 0
+    const removed: RemovedItem[] = []
 
     // Process line by line to preserve paragraph structure
     const lines = text.split('\n')
@@ -245,8 +332,22 @@ export default function TranscriptCleanup({ transcript, onTranscriptChange, depa
           cleanedLine = cleanedLine.replace(pattern, (match, phrase, separator1, repetition1, separator2, repetition2) => {
             if (repetition2) {
               count += 2
+              // Track removed phrase repetitions
+              removed.push({
+                type: 'repetition',
+                text: repetition1
+              })
+              removed.push({
+                type: 'repetition',
+                text: repetition2
+              })
             } else {
               count += 1
+              // Track removed phrase repetition
+              removed.push({
+                type: 'repetition',
+                text: repetition1
+              })
             }
             return phrase
           })
@@ -306,6 +407,11 @@ export default function TranscriptCleanup({ transcript, onTranscriptChange, depa
                 foundRepetition = true
                 lastRepetitionIndex = nextIndex
                 count++
+                // Track removed word repetition
+                removed.push({
+                  type: 'repetition',
+                  text: nextWord
+                })
                 // Skip the repetition and continue looking for more
                 nextIndex++
               } else {
@@ -349,7 +455,7 @@ export default function TranscriptCleanup({ transcript, onTranscriptChange, depa
       })
 
     const cleaned = cleanedLines.join('\n')
-    return { cleaned, count }
+    return { cleaned, count, removed }
   }, [])
 
   const standardizeSpeakerLabels = useCallback((text: string, speakers: string[], format: 'conference' | 'senate', detectAnalysts: boolean): { cleaned: string, count: number } => {
@@ -457,26 +563,35 @@ export default function TranscriptCleanup({ transcript, onTranscriptChange, depa
         fillerWordsRemoved: 0,
         repetitionsRemoved: 0
       }
+      const allRemovedItems: RemovedItem[] = []
 
+      // Store original transcript before processing
+      setOriginalTranscript(transcript)
+
+      // Apply cleanup sequentially and track removed items at each step
       if (options.removeTimestamps) {
         const result = removeTimestamps(currentText)
         currentText = result.cleaned
         newSummary.timestampsRemoved = result.count
+        allRemovedItems.push(...result.removed)
       }
 
       if (options.removeFillerWords) {
         const result = removeFillerWords(currentText)
         currentText = result.cleaned
         newSummary.fillerWordsRemoved = result.count
+        allRemovedItems.push(...result.removed)
       }
 
       if (options.removeImmediateRepetitions) {
         const result = removeImmediateRepetitions(currentText)
         currentText = result.cleaned
         newSummary.repetitionsRemoved = result.count
+        allRemovedItems.push(...result.removed)
       }
 
       setSummary(newSummary)
+      setRemovedItems(allRemovedItems)
       setIsProcessing(false)
 
       // Auto-apply the cleaned transcript
@@ -485,6 +600,46 @@ export default function TranscriptCleanup({ transcript, onTranscriptChange, depa
   }, [transcript, options, removeTimestamps, removeFillerWords, removeImmediateRepetitions, onTranscriptChange])
 
   const hasChanges = summary.timestampsRemoved > 0 || summary.fillerWordsRemoved > 0 || summary.repetitionsRemoved > 0
+
+  const handleCopyTranscript = useCallback(() => {
+    navigator.clipboard.writeText(transcript)
+    setCopySuccess(true)
+    setTimeout(() => setCopySuccess(false), 2000)
+  }, [transcript])
+
+  const getRemovedItemColor = (type: RemovedItem['type']) => {
+    switch (type) {
+      case 'timestamp':
+        return 'bg-blue-200 text-blue-900 border-b-2 border-blue-400'
+      case 'filler':
+        return 'bg-orange-200 text-orange-900 border-b-2 border-orange-400'
+      case 'repetition':
+        return 'bg-purple-200 text-purple-900 border-b-2 border-purple-400'
+      default:
+        return 'bg-gray-200 text-gray-900 border-b-2 border-gray-400'
+    }
+  }
+
+  const renderHighlightedTranscript = () => {
+    if (!originalTranscript) return null
+
+    // Create a highlighted version by replacing removed items with highlighted spans
+    let highlightedText = originalTranscript
+
+    // Sort removed items by length (longest first) to avoid partial matches
+    const sortedItems = [...removedItems].sort((a, b) => b.text.length - a.text.length)
+
+    // Replace each removed item with a highlighted span
+    sortedItems.forEach((item, index) => {
+      const escapedText = item.text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+      const regex = new RegExp(escapedText, 'g')
+      highlightedText = highlightedText.replace(regex, (match) => {
+        return `<span class="${getRemovedItemColor(item.type)} px-1 rounded" title="${item.type}: ${item.text}">${match}</span>`
+      })
+    })
+
+    return <div dangerouslySetInnerHTML={{ __html: highlightedText }} className="text-gray-800" />
+  }
 
   return (
     <div className="flex gap-6 h-full items-stretch">
@@ -564,6 +719,14 @@ export default function TranscriptCleanup({ transcript, onTranscriptChange, depa
                 </div>
               )}
             </div>
+            {/* View Removed Items Button */}
+            <button
+              onClick={() => setShowRemovedItems(!showRemovedItems)}
+              className="mt-3 w-full rounded-lg bg-gradient-to-r from-blue-500 via-blue-600 to-blue-700 px-3 py-1.5 text-[10px] font-bold text-white shadow-lg shadow-blue-500/30 hover:from-blue-600 hover:via-blue-700 hover:to-blue-800 hover:shadow-xl hover:shadow-blue-500/40 transition-all duration-300 flex items-center justify-center gap-1.5"
+            >
+              <Eye className="h-3 w-3" />
+              {showRemovedItems ? 'Hide Removed Items' : 'View Removed Items'}
+            </button>
           </div>
         )}
 
@@ -588,10 +751,20 @@ export default function TranscriptCleanup({ transcript, onTranscriptChange, depa
 
       {/* Right Column - Transcript Input */}
       <div className="w-1/2 bg-gradient-to-br from-white via-green-50/40 to-white border border-green-200/70 rounded-xl p-4 shadow-sm ring-1 ring-green-100/50 flex flex-col min-w-0 overflow-hidden">
-        <h3 className="text-sm font-bold text-zinc-900 mb-4 flex items-center gap-2 flex-shrink-0 whitespace-nowrap">
-          <FileEdit className="h-4 w-4 text-green-600 flex-shrink-0" />
-          Transcript
-        </h3>
+        <div className="flex items-center justify-between mb-4 flex-shrink-0">
+          <h3 className="text-sm font-bold text-zinc-900 flex items-center gap-2 whitespace-nowrap">
+            <FileEdit className="h-4 w-4 text-green-600 flex-shrink-0" />
+            Transcript
+          </h3>
+          <button
+            onClick={handleCopyTranscript}
+            disabled={!transcript.trim()}
+            className="rounded-lg bg-gradient-to-r from-emerald-500 via-emerald-600 to-emerald-700 px-3 py-1.5 text-[10px] font-bold text-white shadow-lg shadow-emerald-500/30 hover:from-emerald-600 hover:via-emerald-700 hover:to-emerald-800 hover:shadow-xl hover:shadow-emerald-500/40 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center justify-center gap-1.5"
+          >
+            <Copy className="h-3 w-3" />
+            {copySuccess ? 'Copied!' : 'Copy'}
+          </button>
+        </div>
         <div className="flex-1 min-h-0 overflow-hidden">
           <textarea
             value={transcript}
@@ -601,6 +774,53 @@ export default function TranscriptCleanup({ transcript, onTranscriptChange, depa
           />
         </div>
       </div>
+
+      {/* Removed Items Modal */}
+      {showRemovedItems && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[85vh] overflow-hidden flex flex-col">
+            <div className="p-4 border-b border-gray-200 flex items-center justify-between bg-gradient-to-r from-purple-50 to-blue-50">
+              <h3 className="text-sm font-bold text-zinc-900 flex items-center gap-2">
+                <Eye className="h-4 w-4 text-purple-600" />
+                Removed Items - Original Transcript
+              </h3>
+              <button
+                onClick={() => setShowRemovedItems(false)}
+                className="rounded-lg bg-gray-200 hover:bg-gray-300 px-3 py-1.5 text-[10px] font-bold text-gray-700 transition-all"
+              >
+                Close
+              </button>
+            </div>
+            <div className="p-4 overflow-y-auto flex-1 bg-gray-50">
+              {removedItems.length === 0 ? (
+                <p className="text-xs text-gray-500 text-center py-8">No items removed yet</p>
+              ) : (
+                <div className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
+                  <div className="text-xs leading-relaxed whitespace-pre-wrap font-mono">
+                    {renderHighlightedTranscript()}
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="p-4 border-t border-gray-200 bg-gray-50">
+              <div className="flex items-center gap-4 text-[10px] text-gray-600">
+                <div className="flex items-center gap-1">
+                  <div className="w-3 h-3 rounded bg-blue-200 border-b-2 border-blue-400"></div>
+                  <span>Timestamps</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-3 h-3 rounded bg-orange-200 border-b-2 border-orange-400"></div>
+                  <span>Filler Words</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-3 h-3 rounded bg-purple-200 border-b-2 border-purple-400"></div>
+                  <span>Repetitions</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

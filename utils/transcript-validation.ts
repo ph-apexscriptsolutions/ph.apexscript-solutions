@@ -1097,41 +1097,41 @@ export async function getValidUncommonWords(
 ): Promise<{ word: string, line: number, column: number }[]> {
   const uncommonWords: { word: string, line: number, column: number }[] = []
   const lines = transcript.split('\n')
-  
+
   // Build set of words to EXCLUDE from green underlining
   const excludedWords = new Set<string>()
-  
+
   // Add company names
   companyNames.forEach(name => {
     const words = name.split(/\s+/)
     words.forEach(word => excludedWords.add(word.toLowerCase()))
   })
-  
+
   // Add participant names
   participants.forEach(p => {
     const words = p.name.split(/\s+/)
     words.forEach(word => excludedWords.add(word.toLowerCase()))
   })
-  
+
   // Add custom dictionary terms
   customDictionary.forEach(word => excludedWords.add(word.toLowerCase()))
-  
+
   // Initialize spell checker to check if words are valid English
   const spell = await initializeSpellChecker()
-  
+
   lines.forEach((line, lineIndex) => {
     const words = line.split(/\s+/)
-    
+
     words.forEach((word, wordIndex) => {
       const cleanWord = word.replace(/[^a-zA-Z]/g, '').toLowerCase()
       if (cleanWord.length < 2) return
-      
+
       // Skip if word should not be spell checked (acronyms, ALL CAPS, contractions, etc.)
       if (shouldSkipSpellCheck(word)) return
-      
+
       // Skip company and participant names (they're already in Extracted References)
       if (excludedWords.has(cleanWord)) return
-      
+
       // Check if it's a valid English word using the spell checker
       let isEnglishWord = false
       if (spell) {
@@ -1139,10 +1139,10 @@ export async function getValidUncommonWords(
       } else if (englishDictionary.has(cleanWord)) {
         isEnglishWord = true
       }
-      
+
       // Skip if it's a valid English word
       if (isEnglishWord) return
-      
+
       // Green underline unknown uncommon terms (not in English dict, not extracted, not in custom dict)
       const lineStart = line.indexOf(word)
       uncommonWords.push({
@@ -1152,8 +1152,62 @@ export async function getValidUncommonWords(
       })
     })
   })
-  
+
   return uncommonWords
+}
+
+// Detect filler words (specifically "you know" and "like")
+export function detectFillerWords(transcript: string): ValidationIssue[] {
+  const issues: ValidationIssue[] = []
+  const lines = transcript.split('\n')
+
+  lines.forEach((line, lineIndex) => {
+    // Detect "you know" (case-insensitive)
+    const youKnowRegex = /\byou know\b/gi
+    let match
+    while ((match = youKnowRegex.exec(line)) !== null) {
+      issues.push({
+        id: `filler-you-know-${lineIndex}-${match.index}`,
+        category: 'style',
+        ruleName: 'Filler Check',
+        severity: 'low',
+        foundText: match[0],
+        suggestedCorrection: 'Filler Check',
+        line: lineIndex + 1,
+        column: match.index + 1,
+        ignored: false
+      })
+    }
+
+    // Detect standalone "like" (case-insensitive, but not as part of other words)
+    const likeRegex = /\blike\b/gi
+    while ((match = likeRegex.exec(line)) !== null) {
+      // Check if it's a standalone "like" (not part of a phrase like "would like")
+      const before = line.substring(0, match.index).trim()
+      const after = line.substring(match.index + match[0].length).trim()
+      
+      // Skip if it's part of common phrases
+      const skipPhrases = ['would like', 'should like', 'might like', 'just like', 'looks like', 'sounds like', 'feels like']
+      const fullContext = (before + ' ' + match[0] + ' ' + after).toLowerCase()
+      const shouldSkip = skipPhrases.some(phrase => fullContext.includes(phrase))
+      
+      if (!shouldSkip) {
+        issues.push({
+          id: `filler-like-${lineIndex}-${match.index}`,
+          category: 'style',
+          ruleName: 'Filler Check',
+          severity: 'low',
+          foundText: match[0],
+          suggestedCorrection: 'Filler Check',
+          line: lineIndex + 1,
+          column: match.index + 1,
+          ignored: false
+        })
+      }
+    }
+  })
+
+  return issues
 }
 export function validateCompanyNames(transcript: string, companyNames: string[]): ValidationIssue[] {
   const startTime = performance.now()
@@ -1236,7 +1290,7 @@ export function applyStyleRules(transcript: string, rules: ValidationRule[]): Va
     let useCapturedGroup = false
 
     // Log the rule pattern to debug
-    console.log(`[applyStyleRules] Processing rule: ${rule.rule_name}, find: "${rule.find}", replace: "${rule.replace}"`)
+    console.log(`[applyStyleRules] Processing rule: ${rule.rule_name}, find: "${rule.find}", replace: "${rule.replace}", is_regex: ${rule.is_regex}, case_sensitive: ${rule.case_sensitive}`)
 
     // Skip rules with empty find pattern
     if (!patternToUse || patternToUse.trim() === '') {
@@ -1311,13 +1365,15 @@ export function applyStyleRules(transcript: string, rules: ValidationRule[]): Va
     if (rule.is_regex || useCapturedGroup) {
       // Use the pattern as-is for regex mode (or for " -- " patterns)
       // For " -- " patterns, use case-sensitive matching to prevent "I -- i" false positives
-      // Also respect case_sensitive flag from the rule
-      const flags = (useCapturedGroup || rule.case_sensitive) ? 'g' : 'gi'
+      // For other rules, always use case-insensitive matching (gi flag)
+      // The case_sensitive flag only affects the replacement case, not the matching
+      const flags = useCapturedGroup ? 'g' : 'gi'
       regex = new RegExp(patternToUse, flags)
     } else {
       // Escape special regex characters for literal string matching
-      // Respect case_sensitive flag from the rule
-      const flags = rule.case_sensitive ? 'g' : 'gi'
+      // Always use case-insensitive matching (gi flag)
+      // The case_sensitive flag only affects the replacement case, not the matching
+      const flags = 'gi'
       regex = new RegExp(patternToUse.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), flags)
     }
     
@@ -1338,17 +1394,55 @@ export function applyStyleRules(transcript: string, rules: ValidationRule[]): Va
       
       // Determine category based on rule's category field
       const category = rule.category === 'formatting' ? 'formatting' : 'style'
-      
+
       // Calculate the suggested correction
       let suggestedCorrection: string
       if (rule.is_regex) {
         // Replace with captured groups if regex mode
-        suggestedCorrection = match[0].replace(regex, rule.replace)
+        if (rule.case_sensitive && rule.replace) {
+          // For case-sensitive regex rules, preserve the case pattern of the original match
+          const foundText = match[0]
+          const replacement = rule.replace
+
+          // If found text is all uppercase, make replacement all uppercase
+          if (foundText === foundText.toUpperCase() && foundText !== foundText.toLowerCase()) {
+            suggestedCorrection = replacement.toUpperCase()
+          }
+          // If found text is capitalized (first letter uppercase, rest lowercase), capitalize replacement
+          else if (foundText.length > 0 && foundText[0] === foundText[0].toUpperCase() && foundText.slice(1) === foundText.slice(1).toLowerCase()) {
+            suggestedCorrection = replacement.charAt(0).toUpperCase() + replacement.slice(1).toLowerCase()
+          }
+          // Otherwise use replacement as-is (lowercase)
+          else {
+            suggestedCorrection = replacement.toLowerCase()
+          }
+        } else {
+          suggestedCorrection = match[0].replace(regex, rule.replace)
+        }
       } else if (useCapturedGroup) {
         // Use the first captured group (the word) for " -- " patterns
         suggestedCorrection = match[1] || rule.replace
       } else {
-        suggestedCorrection = rule.replace
+        // For case-sensitive rules, preserve the case pattern of the original match
+        if (rule.case_sensitive && rule.replace) {
+          const foundText = match[0]
+          const replacement = rule.replace
+
+          // If found text is all uppercase, make replacement all uppercase
+          if (foundText === foundText.toUpperCase() && foundText !== foundText.toLowerCase()) {
+            suggestedCorrection = replacement.toUpperCase()
+          }
+          // If found text is capitalized (first letter uppercase, rest lowercase), capitalize replacement
+          else if (foundText.length > 0 && foundText[0] === foundText[0].toUpperCase() && foundText.slice(1) === foundText.slice(1).toLowerCase()) {
+            suggestedCorrection = replacement.charAt(0).toUpperCase() + replacement.slice(1).toLowerCase()
+          }
+          // Otherwise use replacement as-is (lowercase)
+          else {
+            suggestedCorrection = replacement.toLowerCase()
+          }
+        } else {
+          suggestedCorrection = rule.replace
+        }
       }
       
       // Skip if found and suggested are the same (no actual correction needed)
