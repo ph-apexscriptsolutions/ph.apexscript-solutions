@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/reset-availability",
-      "schedule": "0 12 * * 6"
+      "schedule": "0 13 * * 6"
     }
   ]
 }
