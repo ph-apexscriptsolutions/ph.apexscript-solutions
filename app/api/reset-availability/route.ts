@@ -40,7 +40,14 @@ export async function GET(request: Request) {
     // Verify the request is from Vercel Cron or is authorized
     const authHeader = request.headers.get('authorization')
     const cronSecret = process.env.CRON_SECRET
-    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+    const userAgent = request.headers.get('user-agent')
+
+    // Allow requests from Vercel cron jobs (user-agent contains "vercel-cron")
+    // Or requests with valid Bearer token
+    const isVercelCron = userAgent && userAgent.includes('vercel-cron')
+    const hasValidAuth = authHeader === `Bearer ${cronSecret}`
+
+    if (cronSecret && !isVercelCron && !hasValidAuth) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
