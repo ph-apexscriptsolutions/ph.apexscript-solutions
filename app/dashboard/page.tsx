@@ -4486,7 +4486,7 @@ export default function DashboardPage() {
                       )}
                     </div>
                     {validationIssues.filter(i => !i.ignored).length > 0 && (
-                      <p className="text-[10px] text-amber-600 font-medium mb-3">Resolve all issues before copying</p>
+                      <p className="text-xs text-amber-700 font-semibold mb-3">Resolve all issues before copying</p>
                     )}
                     {formatMismatchError ? (
                       <div className="w-full border border-red-300/80 bg-gradient-to-br from-red-50/90 to-orange-50/90 rounded-xl px-6 py-8 text-center shadow-sm ring-1 ring-red-200/50">
@@ -4512,16 +4512,16 @@ export default function DashboardPage() {
                         <div className="flex items-center justify-between mb-2">
                           <button
                             onClick={() => setIsEditMode(!isEditMode)}
-                            className="text-[10px] font-semibold text-purple-600 hover:text-purple-700 flex items-center gap-1"
+                            className="text-xs font-semibold text-purple-700 hover:text-purple-800 flex items-center gap-1"
                           >
                             {isEditMode ? (
                               <>
-                                <Eye className="h-3 w-3" />
+                                <Eye className="h-4 w-4" />
                                 View Mode
                               </>
                             ) : (
                               <>
-                                <Pencil className="h-3 w-3" />
+                                <Pencil className="h-4 w-4" />
                                 Edit Mode
                               </>
                             )}
@@ -4532,9 +4532,9 @@ export default function DashboardPage() {
                                 setTranscriptContent(editedTranscript)
                                 setIsEditMode(false)
                               }}
-                              className="text-[10px] font-semibold text-green-600 hover:text-green-700 flex items-center gap-1"
+                              className="text-xs font-semibold text-green-700 hover:text-green-800 flex items-center gap-1"
                             >
-                              <Save className="h-3 w-3" />
+                              <Save className="h-4 w-4" />
                               Save Changes
                             </button>
                           )}
