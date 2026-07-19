@@ -461,8 +461,12 @@ export default function DashboardPage() {
       const formatDetection = detectTranscriptFormat(debouncedTranscript)
       console.log('[DEBUG] Filler word check - Detected format:', formatDetection.format)
 
+      // Use detected format, or fall back to selected department if format is unknown
+      const effectiveFormat = formatDetection.format === 'unknown' ? selectedDepartment : formatDetection.format
+      console.log('[DEBUG] Filler word check - Effective format (using department as fallback):', effectiveFormat)
+
       // Add filler word issues ("you know" and "like") - only for Conference/Earnings, not Senate
-      const fillerWordIssues = detectFillerWords(debouncedTranscript, formatDetection.format)
+      const fillerWordIssues = detectFillerWords(debouncedTranscript, effectiveFormat)
       console.log('[DEBUG] Filler word issues found:', fillerWordIssues.length)
       const allIssues = [...issues, ...fillerWordIssues]
 

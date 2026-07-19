@@ -1160,7 +1160,9 @@ export async function getValidUncommonWords(
 // Only applies to Conference/Earnings transcripts, not Senate hearings
 export function detectFillerWords(transcript: string, format: string = 'unknown'): ValidationIssue[] {
   // Skip filler word detection for Senate hearings
-  if (format === 'senate') {
+  // Check both 'senate' format and department names that contain 'senate'
+  const isSenate = format === 'senate' || format.toLowerCase().includes('senate')
+  if (isSenate) {
     return []
   }
 
