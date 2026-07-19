@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic'
 import { useEffect, useState, FormEvent, useMemo, useCallback, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/utils/supabase/client"
-import { FileText, HardDrive, LogOut, Calendar, X, Pencil, Save, User, ArrowLeft, Upload, UserPlus, CreditCard, Trash2, Check, Bell, AlertCircle, Tv, Mic, Headphones, FileEdit, Newspaper, Radio, Video, BookOpen, Gavel, TrendingUp, Activity, Search, Loader2, Copy, ChevronDown, ChevronUp, Building2 } from "lucide-react"
+import { FileText, HardDrive, LogOut, Calendar, X, Pencil, Save, User, ArrowLeft, Upload, UserPlus, CreditCard, Trash2, Check, Bell, AlertCircle, Tv, Mic, Headphones, FileEdit, Newspaper, Radio, Video, BookOpen, Gavel, TrendingUp, Activity, Search, Loader2, Copy, ChevronDown, ChevronUp, Building2, Eye } from "lucide-react"
 import AdminChat from '@/components/admin-chat'
 import WorkerRealtimeChat from '@/components/worker-realtime-chat'
 import { FlagIcon } from "@/components/flag-icon"
@@ -237,6 +237,8 @@ export default function DashboardPage() {
   const [selectedIssue, setSelectedIssue] = useState<ValidationIssue | null>(null)
   const [debouncedTranscript, setDebouncedTranscript] = useState("")
   const [isReferencesExpanded, setIsReferencesExpanded] = useState(true)
+  const [editedTranscript, setEditedTranscript] = useState("")
+  const [isEditMode, setIsEditMode] = useState(false)
   const [copySuccess, setCopySuccess] = useState(false)
   const [validUncommonWords, setValidUncommonWords] = useState<{ word: string, line: number, column: number }[]>([])
   const [formatMismatchError, setFormatMismatchError] = useState<string | null>(null)
@@ -4507,10 +4509,49 @@ export default function DashboardPage() {
                       </div>
                     ) : (
                       <>
-                        <div
-                          dangerouslySetInnerHTML={{ __html: highlightedTranscript || debouncedTranscript }}
-                          className="w-full border border-purple-300/60 rounded-xl px-4 py-3 text-[10px] text-zinc-800 bg-white min-h-[300px] overflow-y-auto whitespace-pre-wrap font-mono shadow-sm ring-1 ring-purple-100/50 leading-relaxed"
-                        />
+                        <div className="flex items-center justify-between mb-2">
+                          <button
+                            onClick={() => setIsEditMode(!isEditMode)}
+                            className="text-[10px] font-semibold text-purple-600 hover:text-purple-700 flex items-center gap-1"
+                          >
+                            {isEditMode ? (
+                              <>
+                                <Eye className="h-3 w-3" />
+                                View Mode
+                              </>
+                            ) : (
+                              <>
+                                <Pencil className="h-3 w-3" />
+                                Edit Mode
+                              </>
+                            )}
+                          </button>
+                          {isEditMode && (
+                            <button
+                              onClick={() => {
+                                setTranscriptContent(editedTranscript)
+                                setIsEditMode(false)
+                              }}
+                              className="text-[10px] font-semibold text-green-600 hover:text-green-700 flex items-center gap-1"
+                            >
+                              <Save className="h-3 w-3" />
+                              Save Changes
+                            </button>
+                          )}
+                        </div>
+                        {isEditMode ? (
+                          <textarea
+                            value={editedTranscript || transcriptContent}
+                            onChange={(e) => setEditedTranscript(e.target.value)}
+                            className="w-full border border-purple-300/60 rounded-xl px-4 py-3 text-[10px] text-zinc-800 bg-white min-h-[300px] overflow-y-auto whitespace-pre-wrap font-mono shadow-sm ring-1 ring-purple-100/50 leading-relaxed outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/25 transition-all"
+                            placeholder="Edit the transcript here..."
+                          />
+                        ) : (
+                          <div
+                            dangerouslySetInnerHTML={{ __html: highlightedTranscript || debouncedTranscript }}
+                            className="w-full border border-purple-300/60 rounded-xl px-4 py-3 text-[10px] text-zinc-800 bg-white min-h-[300px] overflow-y-auto whitespace-pre-wrap font-mono shadow-sm ring-1 ring-purple-100/50 leading-relaxed"
+                          />
+                        )}
                         <div className="mt-3 flex gap-3 text-[10px] flex-wrap bg-gradient-to-br from-purple-100/80 via-violet-100/80 to-purple-100/80 border border-purple-300/60 rounded-lg p-3 shadow-sm ring-1 ring-purple-200/50">
                           <div className="flex items-center gap-2">
                             <div className="w-3 h-3 bg-yellow-200 border border-yellow-400 rounded-md shadow-sm"></div>
