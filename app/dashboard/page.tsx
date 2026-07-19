@@ -459,9 +459,11 @@ export default function DashboardPage() {
 
       // Detect transcript format to determine if filler words should be checked
       const formatDetection = detectTranscriptFormat(debouncedTranscript)
+      console.log('[DEBUG] Filler word check - Detected format:', formatDetection.format)
 
       // Add filler word issues ("you know" and "like") - only for Conference/Earnings, not Senate
       const fillerWordIssues = detectFillerWords(debouncedTranscript, formatDetection.format)
+      console.log('[DEBUG] Filler word issues found:', fillerWordIssues.length)
       const allIssues = [...issues, ...fillerWordIssues]
 
       const endTime = performance.now()
