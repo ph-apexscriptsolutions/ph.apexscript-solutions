@@ -1157,7 +1157,13 @@ export async function getValidUncommonWords(
 }
 
 // Detect filler words (specifically "you know" and "like")
-export function detectFillerWords(transcript: string): ValidationIssue[] {
+// Only applies to Conference/Earnings transcripts, not Senate hearings
+export function detectFillerWords(transcript: string, format: string = 'unknown'): ValidationIssue[] {
+  // Skip filler word detection for Senate hearings
+  if (format === 'senate') {
+    return []
+  }
+
   const issues: ValidationIssue[] = []
   const lines = transcript.split('\n')
 

@@ -8,7 +8,7 @@ import AdminChat from '@/components/admin-chat'
 import WorkerRealtimeChat from '@/components/worker-realtime-chat'
 import { FlagIcon } from "@/components/flag-icon"
 import TranscriptCleanup from '@/components/TranscriptCleanup'
-import { validateTranscript, replaceInTranscript, getHighlightClass, validationHighlightStyles, ValidationIssue, ValidationRule, Participant, extractParticipants, getValidUncommonWords, detectFillerWords, extractSenateSpeakers } from '@/utils/transcript-validation'
+import { validateTranscript, replaceInTranscript, getHighlightClass, validationHighlightStyles, ValidationIssue, ValidationRule, Participant, extractParticipants, getValidUncommonWords, detectFillerWords, extractSenateSpeakers, detectTranscriptFormat } from '@/utils/transcript-validation'
 
 const getDepartmentIcon = (department: string) => {
   const dept = department.toLowerCase()
@@ -457,8 +457,11 @@ export default function DashboardPage() {
         setValidationProgress({ stage: progress.stage, message: progress.message })
       })
 
-      // Add filler word issues ("you know" and "like")
-      const fillerWordIssues = detectFillerWords(debouncedTranscript)
+      // Detect transcript format to determine if filler words should be checked
+      const formatDetection = detectTranscriptFormat(debouncedTranscript)
+
+      // Add filler word issues ("you know" and "like") - only for Conference/Earnings, not Senate
+      const fillerWordIssues = detectFillerWords(debouncedTranscript, formatDetection.format)
       const allIssues = [...issues, ...fillerWordIssues]
 
       const endTime = performance.now()
