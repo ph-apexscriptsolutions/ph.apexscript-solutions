@@ -4,7 +4,7 @@ import nodemailer from 'nodemailer'
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { workerId, workerName, workerEmail, comment, adminName } = body
+    const { workerId, workerName, workerEmail, comment, filename, adminName } = body
 
     if (!workerEmail || !comment || !adminName) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
@@ -102,11 +102,18 @@ export async function POST(request: Request) {
           </div>
           
           <p class="greeting">Dear ${workerName},</p>
-          
+
           <p style="margin-bottom: 16px;">
             We hope this message finds you well. An administrator has reviewed your recent assignment submission and would like to share some feedback with you.
           </p>
-          
+
+          ${filename ? `
+          <div style="background-color: #f0f9ff; border-left: 4px solid #0ea5e9; padding: 16px; margin: 20px 0; border-radius: 0 8px 8px 0;">
+            <div style="font-size: 12px; font-weight: 600; color: #0369a1; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">Assignment File</div>
+            <div style="font-size: 15px; color: #0c4a6e; font-weight: 500;">${filename}</div>
+          </div>
+          ` : ''}
+
           <div class="message">
             <div class="message-label">Assignment Comment</div>
             <div class="comment-text">${comment}</div>

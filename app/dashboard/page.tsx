@@ -272,6 +272,7 @@ export default function DashboardPage() {
   const [assignmentsWithUpdatedDescription, setAssignmentsWithUpdatedDescription] = useState<Set<number>>(new Set())
   const [isAssignmentCommentModalOpen, setIsAssignmentCommentModalOpen] = useState(false)
   const [assignmentComment, setAssignmentComment] = useState("")
+  const [assignmentFilename, setAssignmentFilename] = useState("")
   const [selectedWorkerForComment, setSelectedWorkerForComment] = useState<any | null>(null)
   const [isSendingComment, setIsSendingComment] = useState(false)
 
@@ -2315,6 +2316,7 @@ export default function DashboardPage() {
           workerName: selectedWorkerForComment.full_name,
           workerEmail: selectedWorkerForComment.email,
           comment: assignmentComment,
+          filename: assignmentFilename,
           adminName: user?.full_name || 'Admin'
         }),
       })
@@ -2327,6 +2329,7 @@ export default function DashboardPage() {
 
       setIsAssignmentCommentModalOpen(false)
       setAssignmentComment('')
+      setAssignmentFilename('')
       setSelectedWorkerForComment(null)
     } catch (err: any) {
       console.error('Error sending comment:', err)
@@ -4703,65 +4706,6 @@ export default function DashboardPage() {
               </div>
             </div>
 
-          {isAssignmentCommentModalOpen && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-              <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl p-6 relative max-h-[90vh] overflow-y-auto">
-                <button onClick={() => {
-                  setIsAssignmentCommentModalOpen(false)
-                  setAssignmentComment('')
-                  setSelectedWorkerForComment(null)
-                }} className="absolute right-4 top-4 text-zinc-400 hover:text-zinc-900"><X className="h-5 w-5" /></button>
-                <h3 className="text-lg font-semibold text-zinc-900 mb-4">Send Assignment Comment</h3>
-
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-zinc-700 mb-2">Select Worker</label>
-                    <select
-                      value={selectedWorkerForComment?.id || ''}
-                      onChange={(e) => {
-                        const worker = allWorkers.find(w => w.id === parseInt(e.target.value))
-                        setSelectedWorkerForComment(worker)
-                      }}
-                      className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm text-zinc-800 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                    >
-                      <option value="">Select a worker...</option>
-                      {allWorkers.map((worker: any) => (
-                        <option key={worker.id} value={worker.id}>
-                          {worker.full_name} ({worker.email})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-zinc-700 mb-2">Comment</label>
-                    <textarea
-                      value={assignmentComment}
-                      onChange={(e) => setAssignmentComment(e.target.value)}
-                      rows={6}
-                      className="w-full rounded-md border border-zinc-300 px-3 py-3 text-sm text-zinc-800 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                      placeholder="Write your comment about the assignment..."
-                    />
-                  </div>
-                  <div className="text-xs text-zinc-500">
-                    {assignmentComment.length} characters
-                  </div>
-                </div>
-
-                <div className="flex justify-end gap-3 mt-6">
-                  <button type="button" onClick={() => {
-                    setIsAssignmentCommentModalOpen(false)
-                    setAssignmentComment('')
-                    setSelectedWorkerForComment(null)
-                  }} className="rounded-md border border-zinc-200 bg-white px-5 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 transition">Cancel</button>
-                  <button type="button" onClick={sendAssignmentComment} disabled={!selectedWorkerForComment || !assignmentComment.trim() || isSendingComment} className="inline-flex items-center justify-center rounded-md bg-blue-500 px-5 py-2 text-sm font-semibold text-white hover:bg-blue-600 transition disabled:opacity-50">
-                    {isSendingComment ? 'Sending...' : 'Send Comment'}
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
             {/* Transcript Cleanup Component */}
             <div className="flex-1 overflow-hidden">
               <TranscriptCleanup
@@ -5993,6 +5937,78 @@ export default function DashboardPage() {
               }} className="rounded-md border border-zinc-200 bg-white px-5 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 transition">Cancel</button>
               <button type="button" onClick={isEditingAnnouncement ? updateAnnouncement : publishAnnouncement} disabled={isPublishingAnnouncement} className="inline-flex items-center justify-center rounded-md bg-amber-500 px-5 py-2 text-sm font-semibold text-white hover:bg-amber-600 transition disabled:opacity-50">
                 {isPublishingAnnouncement ? (isEditingAnnouncement ? 'Updating...' : 'Publishing...') : (isEditingAnnouncement ? 'Update' : 'Publish')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isAssignmentCommentModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl p-6 relative max-h-[90vh] overflow-y-auto">
+            <button onClick={() => {
+              setIsAssignmentCommentModalOpen(false)
+              setAssignmentComment('')
+              setAssignmentFilename('')
+              setSelectedWorkerForComment(null)
+            }} className="absolute right-4 top-4 text-zinc-400 hover:text-zinc-900"><X className="h-5 w-5" /></button>
+            <h3 className="text-lg font-semibold text-zinc-900 mb-4">Send Assignment Comment</h3>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 mb-2">Select Worker</label>
+                <select
+                  value={selectedWorkerForComment?.id || ''}
+                  onChange={(e) => {
+                    const worker = allWorkers.find(w => w.id === e.target.value)
+                    setSelectedWorkerForComment(worker)
+                  }}
+                  className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm text-zinc-800 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                >
+                  <option value="">Select a worker...</option>
+                  {allWorkers.filter((w: any) => w.role === 'worker').map((worker: any) => (
+                    <option key={worker.id} value={worker.id}>
+                      {worker.full_name} ({worker.email})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 mb-2">Assignment Filename</label>
+                <input
+                  type="text"
+                  value={assignmentFilename}
+                  onChange={(e) => setAssignmentFilename(e.target.value)}
+                  className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm text-zinc-800 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  placeholder="Enter the assignment filename..."
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 mb-2">Comment</label>
+                <textarea
+                  value={assignmentComment}
+                  onChange={(e) => setAssignmentComment(e.target.value)}
+                  rows={6}
+                  className="w-full rounded-md border border-zinc-300 px-3 py-3 text-sm text-zinc-800 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  placeholder="Write your comment about the assignment..."
+                />
+              </div>
+              <div className="text-xs text-zinc-500">
+                {assignmentComment.length} characters
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 mt-6">
+              <button type="button" onClick={() => {
+                setIsAssignmentCommentModalOpen(false)
+                setAssignmentComment('')
+                setAssignmentFilename('')
+                setSelectedWorkerForComment(null)
+              }} className="rounded-md border border-zinc-200 bg-white px-5 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 transition">Cancel</button>
+              <button type="button" onClick={sendAssignmentComment} disabled={!selectedWorkerForComment || !assignmentComment.trim() || isSendingComment} className="inline-flex items-center justify-center rounded-md bg-blue-500 px-5 py-2 text-sm font-semibold text-white hover:bg-blue-600 transition disabled:opacity-50">
+                {isSendingComment ? 'Sending...' : 'Send Comment'}
               </button>
             </div>
           </div>
