@@ -2333,7 +2333,7 @@ export default function DashboardPage() {
       setSelectedWorkerForComment(null)
     } catch (err: any) {
       console.error('Error sending comment:', err)
-      alert('Failed to send comment. Please try again.')
+      alert(`Failed to send comment: ${err.message}`)
     } finally {
       setIsSendingComment(false)
     }
