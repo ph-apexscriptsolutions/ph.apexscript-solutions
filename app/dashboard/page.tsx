@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic'
 import { useEffect, useState, FormEvent, useMemo, useCallback, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/utils/supabase/client"
-import { FileText, HardDrive, LogOut, Calendar, X, Pencil, Save, User, ArrowLeft, Upload, UserPlus, CreditCard, Trash2, Check, Bell, AlertCircle, Tv, Mic, Headphones, FileEdit, Newspaper, Radio, Video, BookOpen, Gavel, TrendingUp, Activity, Search, Loader2, Copy, ChevronDown, ChevronUp, Building2, Eye } from "lucide-react"
+import { FileText, HardDrive, LogOut, Calendar, X, Pencil, Save, User, ArrowLeft, Upload, UserPlus, CreditCard, Trash2, Check, Bell, AlertCircle, Tv, Mic, Headphones, FileEdit, Newspaper, Radio, Video, BookOpen, Gavel, TrendingUp, Activity, Search, Loader2, Copy, ChevronDown, ChevronUp, Building2, Eye, MessageSquare } from "lucide-react"
 import AdminChat from '@/components/admin-chat'
 import WorkerRealtimeChat from '@/components/worker-realtime-chat'
 import { FlagIcon } from "@/components/flag-icon"
@@ -270,6 +270,10 @@ export default function DashboardPage() {
   const [issueDescription, setIssueDescription] = useState("")
   const [isSubmittingIssue, setIsSubmittingIssue] = useState(false)
   const [assignmentsWithUpdatedDescription, setAssignmentsWithUpdatedDescription] = useState<Set<number>>(new Set())
+  const [isAssignmentCommentModalOpen, setIsAssignmentCommentModalOpen] = useState(false)
+  const [assignmentComment, setAssignmentComment] = useState("")
+  const [selectedWorkerForComment, setSelectedWorkerForComment] = useState<any | null>(null)
+  const [isSendingComment, setIsSendingComment] = useState(false)
 
   // Weekly Availability
   const defaultAvailability = {
@@ -2253,10 +2257,10 @@ export default function DashboardPage() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Failed to fetch assignments')
       const nextAssignments = data.assignments || []
-      
+
       // Check if there are any pending assignments
       const hasPendingAssignments = nextAssignments.some((a: any) => a.status === 'pending')
-      
+
       // If no pending assignments, delete all (done/cancelled) and show success message
       if (!hasPendingAssignments && nextAssignments.length > 0) {
         for (const assignment of nextAssignments) {
@@ -2277,11 +2281,67 @@ export default function DashboardPage() {
         setShowAllSubmittedMessage(false)
       }
     } catch (err: any) {
-      console.error('Fetch assignments error:', err)
-      setAssignments([])
-      setShowAllSubmittedMessage(false)
+      console.error('Error fetching assignments:', err)
     }
   }
+
+  const fetchAllWorkers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('worker_profiles')
+        .select('id, full_name, email')
+        .eq('role', 'worker')
+      if (error) throw error
+      // Filter only workers from the existing allWorkers
+      const workersOnly = (data || []).filter((w: any) => w.role === 'worker')
+      // Update allWorkers with workers only
+      const { data: allData } = await supabase.from('worker_profiles').select('*').order('full_name')
+      if (allData) setAllWorkers(allData)
+    } catch (err: any) {
+      console.error('Error fetching workers:', err)
+    }
+  }
+
+  const sendAssignmentComment = async () => {
+    if (!selectedWorkerForComment || !assignmentComment.trim()) return
+
+    setIsSendingComment(true)
+    try {
+      const res = await fetch('/api/send-assignment-comment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          workerId: selectedWorkerForComment.id,
+          workerName: selectedWorkerForComment.full_name,
+          workerEmail: selectedWorkerForComment.email,
+          comment: assignmentComment,
+          adminName: user?.full_name || 'Admin'
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to send comment')
+
+      setToastMessage('✅ Comment sent successfully')
+      setShowToast(true)
+      setTimeout(() => { setShowToast(false); setToastMessage(null) }, 3000)
+
+      setIsAssignmentCommentModalOpen(false)
+      setAssignmentComment('')
+      setSelectedWorkerForComment(null)
+    } catch (err: any) {
+      console.error('Error sending comment:', err)
+      alert('Failed to send comment. Please try again.')
+    } finally {
+      setIsSendingComment(false)
+    }
+  }
+
+  // Fetch all workers when modal opens
+  useEffect(() => {
+    if (isAssignmentCommentModalOpen && isAdmin) {
+      fetchAllWorkers()
+    }
+  }, [isAssignmentCommentModalOpen, isAdmin])
 
   const addAssignment = async (workerId: string, filename: string) => {
     if (!filename.trim()) {
@@ -3071,6 +3131,23 @@ export default function DashboardPage() {
                         </div>
                         <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
                           <svg className="h-2.5 w-2.5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                        </div>
+                      </button>
+
+                      {/* Assignment Comments */}
+                      <button
+                        onClick={() => setIsAssignmentCommentModalOpen(true)}
+                        className="group relative flex flex-col items-start gap-1 rounded-md border border-white/10 bg-white/5 p-2 text-left backdrop-blur-sm hover:bg-white/10 hover:border-blue-400/40 transition-all duration-200 hover:shadow-xl hover:shadow-blue-600/20"
+                      >
+                        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg shadow-blue-500/30 group-hover:scale-110 transition-transform duration-200">
+                          <MessageSquare className="h-3 w-3 text-white" />
+                        </div>
+                        <div>
+                          <p className="text-[11px] font-semibold text-white">Assignment Comments</p>
+                          <p className="mt-0.5 text-[8px] text-zinc-400">Send comments on assignments</p>
+                        </div>
+                        <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <svg className="h-2.5 w-2.5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
                         </div>
                       </button>
 
@@ -4625,6 +4702,65 @@ export default function DashboardPage() {
                 <p className="text-[10px] text-zinc-500">Automatically clean up your transcript</p>
               </div>
             </div>
+
+          {isAssignmentCommentModalOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+              <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl p-6 relative max-h-[90vh] overflow-y-auto">
+                <button onClick={() => {
+                  setIsAssignmentCommentModalOpen(false)
+                  setAssignmentComment('')
+                  setSelectedWorkerForComment(null)
+                }} className="absolute right-4 top-4 text-zinc-400 hover:text-zinc-900"><X className="h-5 w-5" /></button>
+                <h3 className="text-lg font-semibold text-zinc-900 mb-4">Send Assignment Comment</h3>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-zinc-700 mb-2">Select Worker</label>
+                    <select
+                      value={selectedWorkerForComment?.id || ''}
+                      onChange={(e) => {
+                        const worker = allWorkers.find(w => w.id === parseInt(e.target.value))
+                        setSelectedWorkerForComment(worker)
+                      }}
+                      className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm text-zinc-800 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    >
+                      <option value="">Select a worker...</option>
+                      {allWorkers.map((worker: any) => (
+                        <option key={worker.id} value={worker.id}>
+                          {worker.full_name} ({worker.email})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-zinc-700 mb-2">Comment</label>
+                    <textarea
+                      value={assignmentComment}
+                      onChange={(e) => setAssignmentComment(e.target.value)}
+                      rows={6}
+                      className="w-full rounded-md border border-zinc-300 px-3 py-3 text-sm text-zinc-800 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                      placeholder="Write your comment about the assignment..."
+                    />
+                  </div>
+                  <div className="text-xs text-zinc-500">
+                    {assignmentComment.length} characters
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-3 mt-6">
+                  <button type="button" onClick={() => {
+                    setIsAssignmentCommentModalOpen(false)
+                    setAssignmentComment('')
+                    setSelectedWorkerForComment(null)
+                  }} className="rounded-md border border-zinc-200 bg-white px-5 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 transition">Cancel</button>
+                  <button type="button" onClick={sendAssignmentComment} disabled={!selectedWorkerForComment || !assignmentComment.trim() || isSendingComment} className="inline-flex items-center justify-center rounded-md bg-blue-500 px-5 py-2 text-sm font-semibold text-white hover:bg-blue-600 transition disabled:opacity-50">
+                    {isSendingComment ? 'Sending...' : 'Send Comment'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
             {/* Transcript Cleanup Component */}
             <div className="flex-1 overflow-hidden">
