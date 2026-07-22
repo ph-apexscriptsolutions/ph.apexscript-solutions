@@ -1208,6 +1208,7 @@ export default function DashboardPage() {
           fileName: manualFileForm.fileName,
           dateCompleted: manualFileForm.dateCompleted,
           byteSize: manualFileForm.byteSize,
+          isAdmin: isAdmin,
         }),
       })
 

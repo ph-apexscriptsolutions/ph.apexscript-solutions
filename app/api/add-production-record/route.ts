@@ -15,6 +15,7 @@ export async function POST(request: Request) {
     const fileName = body.fileName as string
     const dateCompleted = body.dateCompleted as string
     const byteSize = body.byteSize as string
+    const isAdmin = body.isAdmin as boolean || false
 
     if (!workerId || !fileName || !dateCompleted || !byteSize) {
       return NextResponse.json({ error: 'Missing required fields for manual record entry.' }, { status: 400 })
@@ -22,23 +23,26 @@ export async function POST(request: Request) {
 
     const supabase = createClient(supabaseUrl, supabaseServiceRoleKey)
 
-    // Check if the filename matches any of the worker's assigned assignments
-    const { data: assignments, error: assignmentsError } = await supabase
-      .from('production_assignments')
-      .select('filename')
-      .eq('worker_id', workerId)
-      .eq('status', 'pending')
+    // Only check assignment validation if not an admin
+    if (!isAdmin) {
+      // Check if the filename matches any of the worker's assigned assignments
+      const { data: assignments, error: assignmentsError } = await supabase
+        .from('production_assignments')
+        .select('filename')
+        .eq('worker_id', workerId)
+        .eq('status', 'pending')
 
-    if (assignmentsError) {
-      console.error('Assignments lookup error:', assignmentsError)
-      return NextResponse.json({ error: assignmentsError.message || 'Failed to validate assignment' }, { status: 500 })
-    }
+      if (assignmentsError) {
+        console.error('Assignments lookup error:', assignmentsError)
+        return NextResponse.json({ error: assignmentsError.message || 'Failed to validate assignment' }, { status: 500 })
+      }
 
-    // Check if the uploaded filename exactly matches any assigned filename
-    const isAssigned = assignments?.some((assignment: any) => assignment.filename === fileName)
+      // Check if the uploaded filename exactly matches any assigned filename
+      const isAssigned = assignments?.some((assignment: any) => assignment.filename === fileName)
 
-    if (!isAssigned) {
-      return NextResponse.json({ error: 'This file is not assigned to this worker. Please only add records for files that have been assigned by the admin.' }, { status: 403 })
+      if (!isAssigned) {
+        return NextResponse.json({ error: 'This file is not assigned to this worker. Please only add records for files that have been assigned by the admin.' }, { status: 403 })
+      }
     }
 
     const { data: existingRecords, error: checkError } = await supabase.from('production_records').select('id').eq('worker_id', workerId).ilike('file_name', fileName)
