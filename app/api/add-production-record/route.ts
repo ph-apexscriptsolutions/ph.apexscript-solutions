@@ -17,8 +17,6 @@ export async function POST(request: Request) {
     const byteSize = body.byteSize as string
     const isAdmin = body.isAdmin === true
 
-    console.log('add-production-record - isAdmin:', isAdmin, 'body.isAdmin:', body.isAdmin)
-
     if (!workerId || !fileName || !dateCompleted || !byteSize) {
       return NextResponse.json({ error: 'Missing required fields for manual record entry.' }, { status: 400 })
     }
