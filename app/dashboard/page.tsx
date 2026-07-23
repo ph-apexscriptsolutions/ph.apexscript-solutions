@@ -1126,6 +1126,7 @@ export default function DashboardPage() {
         throw new Error(`Upload failed: invalid JSON response (${uploadRes.status} ${uploadRes.statusText}) — ${uploadText}`)
       }
       if (!uploadRes.ok) {
+        console.log('Upload error debug info:', uploadData?.debug)
         throw new Error(uploadData?.error || `Upload failed (${uploadRes.status} ${uploadRes.statusText}) — ${uploadText}`)
       }
       
