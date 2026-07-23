@@ -51,9 +51,13 @@ export async function POST(request: Request) {
       console.log('assignment filenames:', assignments.map((a: any) => a.filename))
     }
 
-    // Check if the uploaded filename exactly matches any assigned filename
-    const isAssigned = assignments?.some((assignment: any) => assignment.filename === fileName)
+    // Strip file extension from uploaded filename for comparison
+    const uploadedFileNameWithoutExt = fileName.replace(/\.[^/.]+$/, '')
 
+    // Check if the uploaded filename (without extension) matches any assigned filename
+    const isAssigned = assignments?.some((assignment: any) => assignment.filename === uploadedFileNameWithoutExt)
+
+    console.log('uploadedFileNameWithoutExt:', uploadedFileNameWithoutExt)
     console.log('isAssigned:', isAssigned)
     console.log('=== END DEBUG ===')
 
@@ -61,6 +65,7 @@ export async function POST(request: Request) {
       const debugInfo = {
         workerId,
         uploadedFileName: fileName,
+        uploadedFileNameWithoutExt,
         assignmentsFound: assignments,
         assignmentsCount: assignments?.length || 0,
         assignmentFilenames: assignments?.map((a: any) => a.filename) || [],
