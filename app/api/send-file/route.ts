@@ -42,12 +42,20 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: assignmentsError.message || 'Failed to validate assignment' }, { status: 500 })
     }
 
-    console.log('send-file validation - workerId:', workerId, 'uploaded fileName:', fileName, 'assignments found:', assignments)
+    console.log('=== SEND-FILE VALIDATION DEBUG ===')
+    console.log('workerId:', workerId)
+    console.log('uploaded fileName:', fileName)
+    console.log('assignments found:', assignments)
+    console.log('assignments count:', assignments?.length || 0)
+    if (assignments && assignments.length > 0) {
+      console.log('assignment filenames:', assignments.map((a: any) => a.filename))
+    }
 
     // Check if the uploaded filename exactly matches any assigned filename
     const isAssigned = assignments?.some((assignment: any) => assignment.filename === fileName)
 
-    console.log('send-file validation - isAssigned:', isAssigned)
+    console.log('isAssigned:', isAssigned)
+    console.log('=== END DEBUG ===')
 
     if (!isAssigned) {
       return NextResponse.json({ error: 'This file is not assigned to you. Please only upload files that have been assigned by the admin.' }, { status: 403 })
