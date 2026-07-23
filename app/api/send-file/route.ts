@@ -58,7 +58,17 @@ export async function POST(request: Request) {
     console.log('=== END DEBUG ===')
 
     if (!isAssigned) {
-      return NextResponse.json({ error: 'This file is not assigned to you. Please only upload files that have been assigned by the admin.' }, { status: 403 })
+      const debugInfo = {
+        workerId,
+        uploadedFileName: fileName,
+        assignmentsFound: assignments,
+        assignmentsCount: assignments?.length || 0,
+        assignmentFilenames: assignments?.map((a: any) => a.filename) || [],
+      }
+      return NextResponse.json({
+        error: 'This file is not assigned to you. Please only upload files that have been assigned by the admin.',
+        debug: debugInfo
+      }, { status: 403 })
     }
 
     const { data: existingRecords, error: checkError } = await supabase.from('production_records').select('id').eq('worker_id', workerId).ilike('file_name', fileName)
