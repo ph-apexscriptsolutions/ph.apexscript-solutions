@@ -210,6 +210,11 @@ export default function DashboardPage() {
   const [announcementMessage, setAnnouncementMessage] = useState("")
   const [isPublishingAnnouncement, setIsPublishingAnnouncement] = useState(false)
   const [showAnnouncementPreview, setShowAnnouncementPreview] = useState(false)
+  const [announcementFontFamily, setAnnouncementFontFamily] = useState('Arial')
+  const [announcementFontSize, setAnnouncementFontSize] = useState('14')
+  const [announcementFontColor, setAnnouncementFontColor] = useState('#000000')
+  const [announcementBold, setAnnouncementBold] = useState(false)
+  const [announcementItalic, setAnnouncementItalic] = useState(false)
   const [isEditingAnnouncement, setIsEditingAnnouncement] = useState(false)
   const [editingAnnouncementId, setEditingAnnouncementId] = useState<number | null>(null)
   const [announcementSchemaHint, setAnnouncementSchemaHint] = useState<string | null>(null)
@@ -1918,7 +1923,14 @@ export default function DashboardPage() {
       const res = await fetch('/api/announcements', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: announcementMessage.trim() }),
+        body: JSON.stringify({
+          message: announcementMessage.trim(),
+          font_family: announcementFontFamily,
+          font_size: announcementFontSize,
+          font_color: announcementFontColor,
+          bold: announcementBold,
+          italic: announcementItalic,
+        }),
       })
       const data = await res.json()
       setAnnouncementSchemaHint(data.schemaHint || null)
@@ -1928,6 +1940,11 @@ export default function DashboardPage() {
         throw new Error(message)
       }
       setAnnouncementMessage('')
+      setAnnouncementFontFamily('Arial')
+      setAnnouncementFontSize('14')
+      setAnnouncementFontColor('#000000')
+      setAnnouncementBold(false)
+      setAnnouncementItalic(false)
       setAnnouncementErrorMessage(null)
       setIsAnnouncementModalOpen(false)
       setToastMessage('✅ Announcement published')
@@ -1977,6 +1994,11 @@ export default function DashboardPage() {
   const startEditingAnnouncement = (announcement: any) => {
     setEditingAnnouncementId(announcement.id)
     setAnnouncementMessage(announcement.message)
+    setAnnouncementFontFamily(announcement.font_family || 'Arial')
+    setAnnouncementFontSize(announcement.font_size || '14')
+    setAnnouncementFontColor(announcement.font_color || '#000000')
+    setAnnouncementBold(announcement.bold || false)
+    setAnnouncementItalic(announcement.italic || false)
     setIsEditingAnnouncement(true)
     setShowAnnouncementPreview(false)
     setIsAnnouncementModalOpen(true)
@@ -1994,7 +2016,15 @@ export default function DashboardPage() {
       const res = await fetch('/api/announcements', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: editingAnnouncementId, message: announcementMessage.trim() }),
+        body: JSON.stringify({
+          id: editingAnnouncementId,
+          message: announcementMessage.trim(),
+          font_family: announcementFontFamily,
+          font_size: announcementFontSize,
+          font_color: announcementFontColor,
+          bold: announcementBold,
+          italic: announcementItalic,
+        }),
       })
       const data = await res.json()
       setAnnouncementSchemaHint(data.schemaHint || null)
@@ -2004,6 +2034,11 @@ export default function DashboardPage() {
         throw new Error(message)
       }
       setAnnouncementMessage('')
+      setAnnouncementFontFamily('Arial')
+      setAnnouncementFontSize('14')
+      setAnnouncementFontColor('#000000')
+      setAnnouncementBold(false)
+      setAnnouncementItalic(false)
       setAnnouncementErrorMessage(null)
       setIsAnnouncementModalOpen(false)
       setIsEditingAnnouncement(false)
@@ -2655,7 +2690,18 @@ export default function DashboardPage() {
                       announcements.map((ann: any) => (
                         <div key={ann.id} className="px-4 py-3 hover:bg-zinc-50 transition">
                           <div className="flex items-start justify-between gap-2">
-                            <p className="text-sm text-zinc-800 leading-relaxed whitespace-pre-wrap flex-1">{ann.message}</p>
+                            <p
+                              className="leading-relaxed whitespace-pre-wrap flex-1"
+                              style={{
+                                fontFamily: ann.font_family || 'Arial',
+                                fontSize: `${ann.font_size || 14}px`,
+                                color: ann.font_color || '#000000',
+                                fontWeight: ann.bold ? 'bold' : 'normal',
+                                fontStyle: ann.italic ? 'italic' : 'normal',
+                              }}
+                            >
+                              {ann.message}
+                            </p>
                             {isAdmin && (
                               <div className="flex shrink-0 gap-1 ml-2">
                                 <button
@@ -5917,9 +5963,14 @@ export default function DashboardPage() {
       {isAnnouncementModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl p-6 relative max-h-[90vh] overflow-y-auto">
-            <button onClick={() => { 
+            <button onClick={() => {
               setIsAnnouncementModalOpen(false)
               setAnnouncementMessage('')
+              setAnnouncementFontFamily('Arial')
+              setAnnouncementFontSize('14')
+              setAnnouncementFontColor('#000000')
+              setAnnouncementBold(false)
+              setAnnouncementItalic(false)
               setIsEditingAnnouncement(false)
               setEditingAnnouncementId(null)
               setShowAnnouncementPreview(false)
@@ -5930,6 +5981,68 @@ export default function DashboardPage() {
             <div className="grid grid-cols-2 gap-6">
               {/* Input Section */}
               <div className="space-y-4">
+                {/* Formatting Controls */}
+                <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
+                  <label className="block text-xs font-semibold text-zinc-700 mb-2">Formatting Options</label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs text-zinc-600 mb-1">Font Family</label>
+                      <select
+                        value={announcementFontFamily}
+                        onChange={(e) => setAnnouncementFontFamily(e.target.value)}
+                        className="w-full rounded-md border border-zinc-300 px-2 py-1.5 text-xs text-zinc-800 outline-none focus:border-amber-500"
+                      >
+                        <option value="Arial">Arial</option>
+                        <option value="Georgia">Georgia</option>
+                        <option value="Times New Roman">Times New Roman</option>
+                        <option value="Courier New">Courier New</option>
+                        <option value="Verdana">Verdana</option>
+                        <option value="Tahoma">Tahoma</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs text-zinc-600 mb-1">Font Size (px)</label>
+                      <select
+                        value={announcementFontSize}
+                        onChange={(e) => setAnnouncementFontSize(e.target.value)}
+                        className="w-full rounded-md border border-zinc-300 px-2 py-1.5 text-xs text-zinc-800 outline-none focus:border-amber-500"
+                      >
+                        <option value="12">12px</option>
+                        <option value="14">14px</option>
+                        <option value="16">16px</option>
+                        <option value="18">18px</option>
+                        <option value="20">20px</option>
+                        <option value="24">24px</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs text-zinc-600 mb-1">Text Color</label>
+                      <input
+                        type="color"
+                        value={announcementFontColor}
+                        onChange={(e) => setAnnouncementFontColor(e.target.value)}
+                        className="w-full h-8 rounded-md border border-zinc-300 cursor-pointer"
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setAnnouncementBold(!announcementBold)}
+                        className={`flex-1 px-2 py-1.5 rounded-md text-xs font-semibold transition ${announcementBold ? 'bg-amber-500 text-white' : 'bg-white border border-zinc-300 text-zinc-700 hover:bg-zinc-50'}`}
+                      >
+                        B
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setAnnouncementItalic(!announcementItalic)}
+                        className={`flex-1 px-2 py-1.5 rounded-md text-xs italic transition ${announcementItalic ? 'bg-amber-500 text-white' : 'bg-white border border-zinc-300 text-zinc-700 hover:bg-zinc-50'}`}
+                      >
+                        I
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
                 <div>
                   <label className="block text-sm font-medium text-zinc-700 mb-2">Message</label>
                   <textarea
@@ -5948,8 +6061,8 @@ export default function DashboardPage() {
                     {announcementErrorMessage}
                   </div>
                 )}
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   onClick={() => setShowAnnouncementPreview(!showAnnouncementPreview)}
                   className="text-sm text-amber-600 hover:text-amber-700 font-medium"
                 >
@@ -5966,7 +6079,18 @@ export default function DashboardPage() {
                       <>
                         <div className="text-xs font-semibold uppercase tracking-[0.1em] text-amber-700">Announcement</div>
                         <div className="rounded-lg bg-white p-3 border border-amber-100">
-                          <p className="text-sm text-zinc-900 leading-relaxed">{announcementMessage}</p>
+                          <p
+                            className="leading-relaxed"
+                            style={{
+                              fontFamily: announcementFontFamily,
+                              fontSize: `${announcementFontSize}px`,
+                              color: announcementFontColor,
+                              fontWeight: announcementBold ? 'bold' : 'normal',
+                              fontStyle: announcementItalic ? 'italic' : 'normal',
+                            }}
+                          >
+                            {announcementMessage}
+                          </p>
                         </div>
                         <div className="text-xs text-amber-600">
                           {new Date().toLocaleString()}
@@ -5983,9 +6107,14 @@ export default function DashboardPage() {
             </div>
 
             <div className="flex justify-end gap-3 mt-6">
-              <button type="button" onClick={() => { 
+              <button type="button" onClick={() => {
                 setIsAnnouncementModalOpen(false)
                 setAnnouncementMessage('')
+                setAnnouncementFontFamily('Arial')
+                setAnnouncementFontSize('14')
+                setAnnouncementFontColor('#000000')
+                setAnnouncementBold(false)
+                setAnnouncementItalic(false)
                 setIsEditingAnnouncement(false)
                 setEditingAnnouncementId(null)
                 setShowAnnouncementPreview(false)
