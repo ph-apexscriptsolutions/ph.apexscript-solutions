@@ -95,7 +95,7 @@ const transporter = process.env.EMAIL_USER && process.env.EMAIL_PASS
 
 export async function POST(request: Request) {
   try {
-    const { message, font_family, font_size, font_color, bold, italic } = await request.json()
+    const { message } = await request.json()
     if (!message || typeof message !== 'string') {
       return NextResponse.json({ error: 'Missing announcement message' }, { status: 400 })
     }
@@ -113,15 +113,7 @@ export async function POST(request: Request) {
       console.error('Announcements deactivate error:', deactivate.error)
     }
 
-    const insertPayload: any = {
-      message: message.trim(),
-      content: message.trim(),
-      font_family: font_family || 'Arial',
-      font_size: font_size || '14',
-      font_color: font_color || '#000000',
-      bold: bold || false,
-      italic: italic || false,
-    }
+    const insertPayload: any = { message: message.trim(), content: message.trim() }
     if (hasActiveColumn) {
       insertPayload.active = true
     }
@@ -282,21 +274,13 @@ export async function DELETE(request: Request) {
 
 export async function PUT(request: Request) {
   try {
-    const { id, message, font_family, font_size, font_color, bold, italic } = await request.json()
+    const { id, message } = await request.json()
     if (!id || !message || typeof message !== 'string') {
       return NextResponse.json({ error: 'Missing announcement id or message' }, { status: 400 })
     }
 
     const supabase = getSupabaseServerClient(true)
-    let updatePayload: any = {
-      message: message.trim(),
-      content: message.trim(),
-      font_family: font_family || 'Arial',
-      font_size: font_size || '14',
-      font_color: font_color || '#000000',
-      bold: bold || false,
-      italic: italic || false,
-    }
+    let updatePayload: any = { message: message.trim(), content: message.trim() }
     let updateResult = await supabase
       .from('announcements')
       .update(updatePayload)

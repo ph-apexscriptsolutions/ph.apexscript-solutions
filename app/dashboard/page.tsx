@@ -210,11 +210,7 @@ export default function DashboardPage() {
   const [announcementMessage, setAnnouncementMessage] = useState("")
   const [isPublishingAnnouncement, setIsPublishingAnnouncement] = useState(false)
   const [showAnnouncementPreview, setShowAnnouncementPreview] = useState(false)
-  const [announcementFontFamily, setAnnouncementFontFamily] = useState('Arial')
-  const [announcementFontSize, setAnnouncementFontSize] = useState('14')
-  const [announcementFontColor, setAnnouncementFontColor] = useState('#000000')
-  const [announcementBold, setAnnouncementBold] = useState(false)
-  const [announcementItalic, setAnnouncementItalic] = useState(false)
+  const [editorRef, setEditorRef] = useState<HTMLDivElement | null>(null)
   const [isEditingAnnouncement, setIsEditingAnnouncement] = useState(false)
   const [editingAnnouncementId, setEditingAnnouncementId] = useState<number | null>(null)
   const [announcementSchemaHint, setAnnouncementSchemaHint] = useState<string | null>(null)
@@ -1912,7 +1908,8 @@ export default function DashboardPage() {
   }
 
   const publishAnnouncement = async () => {
-    if (!announcementMessage.trim()) {
+    const messageContent = editorRef?.innerHTML || ''
+    if (!messageContent.trim() || messageContent === '<br>') {
       alert('Please enter an announcement message.')
       return
     }
@@ -1924,12 +1921,7 @@ export default function DashboardPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          message: announcementMessage.trim(),
-          font_family: announcementFontFamily,
-          font_size: announcementFontSize,
-          font_color: announcementFontColor,
-          bold: announcementBold,
-          italic: announcementItalic,
+          message: messageContent.trim(),
         }),
       })
       const data = await res.json()
@@ -1940,11 +1932,7 @@ export default function DashboardPage() {
         throw new Error(message)
       }
       setAnnouncementMessage('')
-      setAnnouncementFontFamily('Arial')
-      setAnnouncementFontSize('14')
-      setAnnouncementFontColor('#000000')
-      setAnnouncementBold(false)
-      setAnnouncementItalic(false)
+      if (editorRef) editorRef.innerHTML = ''
       setAnnouncementErrorMessage(null)
       setIsAnnouncementModalOpen(false)
       setToastMessage('✅ Announcement published')
@@ -1994,18 +1982,17 @@ export default function DashboardPage() {
   const startEditingAnnouncement = (announcement: any) => {
     setEditingAnnouncementId(announcement.id)
     setAnnouncementMessage(announcement.message)
-    setAnnouncementFontFamily(announcement.font_family || 'Arial')
-    setAnnouncementFontSize(announcement.font_size || '14')
-    setAnnouncementFontColor(announcement.font_color || '#000000')
-    setAnnouncementBold(announcement.bold || false)
-    setAnnouncementItalic(announcement.italic || false)
     setIsEditingAnnouncement(true)
     setShowAnnouncementPreview(false)
     setIsAnnouncementModalOpen(true)
+    setTimeout(() => {
+      if (editorRef) editorRef.innerHTML = announcement.message
+    }, 100)
   }
 
   const updateAnnouncement = async () => {
-    if (!announcementMessage.trim()) {
+    const messageContent = editorRef?.innerHTML || ''
+    if (!messageContent.trim() || messageContent === '<br>') {
       alert('Please enter an announcement message.')
       return
     }
@@ -2018,12 +2005,7 @@ export default function DashboardPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           id: editingAnnouncementId,
-          message: announcementMessage.trim(),
-          font_family: announcementFontFamily,
-          font_size: announcementFontSize,
-          font_color: announcementFontColor,
-          bold: announcementBold,
-          italic: announcementItalic,
+          message: messageContent.trim(),
         }),
       })
       const data = await res.json()
@@ -2034,11 +2016,7 @@ export default function DashboardPage() {
         throw new Error(message)
       }
       setAnnouncementMessage('')
-      setAnnouncementFontFamily('Arial')
-      setAnnouncementFontSize('14')
-      setAnnouncementFontColor('#000000')
-      setAnnouncementBold(false)
-      setAnnouncementItalic(false)
+      if (editorRef) editorRef.innerHTML = ''
       setAnnouncementErrorMessage(null)
       setIsAnnouncementModalOpen(false)
       setIsEditingAnnouncement(false)
@@ -2690,18 +2668,10 @@ export default function DashboardPage() {
                       announcements.map((ann: any) => (
                         <div key={ann.id} className="px-4 py-3 hover:bg-zinc-50 transition">
                           <div className="flex items-start justify-between gap-2">
-                            <p
-                              className="leading-relaxed whitespace-pre-wrap flex-1"
-                              style={{
-                                fontFamily: ann.font_family || 'Arial',
-                                fontSize: `${ann.font_size || 14}px`,
-                                color: ann.font_color || '#000000',
-                                fontWeight: ann.bold ? 'bold' : 'normal',
-                                fontStyle: ann.italic ? 'italic' : 'normal',
-                              }}
-                            >
-                              {ann.message}
-                            </p>
+                            <div
+                              className="leading-relaxed whitespace-pre-wrap flex-1 text-sm"
+                              dangerouslySetInnerHTML={{ __html: ann.message }}
+                            />
                             {isAdmin && (
                               <div className="flex shrink-0 gap-1 ml-2">
                                 <button
@@ -5966,11 +5936,7 @@ export default function DashboardPage() {
             <button onClick={() => {
               setIsAnnouncementModalOpen(false)
               setAnnouncementMessage('')
-              setAnnouncementFontFamily('Arial')
-              setAnnouncementFontSize('14')
-              setAnnouncementFontColor('#000000')
-              setAnnouncementBold(false)
-              setAnnouncementItalic(false)
+              if (editorRef) editorRef.innerHTML = ''
               setIsEditingAnnouncement(false)
               setEditingAnnouncementId(null)
               setShowAnnouncementPreview(false)
@@ -5978,131 +5944,94 @@ export default function DashboardPage() {
             }} className="absolute right-4 top-4 text-zinc-400 hover:text-zinc-900"><X className="h-5 w-5" /></button>
             <h3 className="text-lg font-semibold text-zinc-900 mb-4">{isEditingAnnouncement ? 'Edit Announcement' : 'Publish Announcement'}</h3>
             
-            <div className="grid grid-cols-2 gap-6">
-              {/* Input Section */}
-              <div className="space-y-4">
-                {/* Formatting Controls */}
-                <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
-                  <label className="block text-xs font-semibold text-zinc-700 mb-2">Formatting Options</label>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs text-zinc-600 mb-1">Font Family</label>
-                      <select
-                        value={announcementFontFamily}
-                        onChange={(e) => setAnnouncementFontFamily(e.target.value)}
-                        className="w-full rounded-md border border-zinc-300 px-2 py-1.5 text-xs text-zinc-800 outline-none focus:border-amber-500"
-                      >
-                        <option value="Arial">Arial</option>
-                        <option value="Georgia">Georgia</option>
-                        <option value="Times New Roman">Times New Roman</option>
-                        <option value="Courier New">Courier New</option>
-                        <option value="Verdana">Verdana</option>
-                        <option value="Tahoma">Tahoma</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-xs text-zinc-600 mb-1">Font Size (px)</label>
-                      <select
-                        value={announcementFontSize}
-                        onChange={(e) => setAnnouncementFontSize(e.target.value)}
-                        className="w-full rounded-md border border-zinc-300 px-2 py-1.5 text-xs text-zinc-800 outline-none focus:border-amber-500"
-                      >
-                        <option value="12">12px</option>
-                        <option value="14">14px</option>
-                        <option value="16">16px</option>
-                        <option value="18">18px</option>
-                        <option value="20">20px</option>
-                        <option value="24">24px</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-xs text-zinc-600 mb-1">Text Color</label>
-                      <input
-                        type="color"
-                        value={announcementFontColor}
-                        onChange={(e) => setAnnouncementFontColor(e.target.value)}
-                        className="w-full h-8 rounded-md border border-zinc-300 cursor-pointer"
-                      />
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setAnnouncementBold(!announcementBold)}
-                        className={`flex-1 px-2 py-1.5 rounded-md text-xs font-semibold transition ${announcementBold ? 'bg-amber-500 text-white' : 'bg-white border border-zinc-300 text-zinc-700 hover:bg-zinc-50'}`}
-                      >
-                        B
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setAnnouncementItalic(!announcementItalic)}
-                        className={`flex-1 px-2 py-1.5 rounded-md text-xs italic transition ${announcementItalic ? 'bg-amber-500 text-white' : 'bg-white border border-zinc-300 text-zinc-700 hover:bg-zinc-50'}`}
-                      >
-                        I
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-zinc-700 mb-2">Message</label>
-                  <textarea
-                    value={announcementMessage}
-                    onChange={(e) => setAnnouncementMessage(e.target.value)}
-                    rows={8}
-                    className="w-full rounded-md border border-zinc-300 px-3 py-3 text-sm text-zinc-800 outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
-                    placeholder="Write an announcement for all workers..."
+            <div className="space-y-4">
+              {/* Formatting Toolbar */}
+              <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-2">
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => document.execCommand('bold', false, undefined)}
+                    className="px-3 py-1.5 rounded-md text-sm font-semibold bg-white border border-zinc-300 text-zinc-700 hover:bg-zinc-50 transition"
+                    title="Bold (Ctrl+B)"
+                  >
+                    B
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => document.execCommand('italic', false, undefined)}
+                    className="px-3 py-1.5 rounded-md text-sm italic bg-white border border-zinc-300 text-zinc-700 hover:bg-zinc-50 transition"
+                    title="Italic (Ctrl+I)"
+                  >
+                    I
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => document.execCommand('underline', false, undefined)}
+                    className="px-3 py-1.5 rounded-md text-sm underline bg-white border border-zinc-300 text-zinc-700 hover:bg-zinc-50 transition"
+                    title="Underline (Ctrl+U)"
+                  >
+                    U
+                  </button>
+                  <div className="w-px bg-zinc-300 mx-1"></div>
+                  <select
+                    onChange={(e) => document.execCommand('fontName', false, e.target.value)}
+                    className="px-2 py-1.5 rounded-md text-sm bg-white border border-zinc-300 text-zinc-700 outline-none"
+                  >
+                    <option value="Arial">Arial</option>
+                    <option value="Georgia">Georgia</option>
+                    <option value="Times New Roman">Times New Roman</option>
+                    <option value="Courier New">Courier New</option>
+                    <option value="Verdana">Verdana</option>
+                    <option value="Tahoma">Tahoma</option>
+                  </select>
+                  <select
+                    onChange={(e) => document.execCommand('fontSize', false, e.target.value)}
+                    className="px-2 py-1.5 rounded-md text-sm bg-white border border-zinc-300 text-zinc-700 outline-none"
+                  >
+                    <option value="1">Small</option>
+                    <option value="3">Normal</option>
+                    <option value="5">Large</option>
+                    <option value="7">Extra Large</option>
+                  </select>
+                  <input
+                    type="color"
+                    onChange={(e) => document.execCommand('foreColor', false, e.target.value)}
+                    className="h-8 w-10 rounded-md border border-zinc-300 cursor-pointer"
+                    title="Text Color"
+                  />
+                  <input
+                    type="color"
+                    onChange={(e) => document.execCommand('hiliteColor', false, e.target.value)}
+                    className="h-8 w-10 rounded-md border border-zinc-300 cursor-pointer"
+                    title="Highlight Color"
                   />
                 </div>
-                <div className="text-xs text-zinc-500">
-                  {announcementMessage.length} characters
-                </div>
-                {announcementErrorMessage && (
-                  <div className="rounded-2xl border border-red-200 bg-red-50 p-3 text-sm text-red-900">
-                    {announcementErrorMessage}
-                  </div>
-                )}
-                <button
-                  type="button"
-                  onClick={() => setShowAnnouncementPreview(!showAnnouncementPreview)}
-                  className="text-sm text-amber-600 hover:text-amber-700 font-medium"
-                >
-                  {showAnnouncementPreview ? '← Back to editing' : 'Preview →'}
-                </button>
               </div>
 
-              {/* Preview Section */}
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-zinc-700 mb-2">Preview</label>
-                  <div className="rounded-2xl border border-amber-100 bg-amber-50 p-4 min-h-[200px] space-y-3">
-                    {announcementMessage.trim() ? (
-                      <>
-                        <div className="text-xs font-semibold uppercase tracking-[0.1em] text-amber-700">Announcement</div>
-                        <div className="rounded-lg bg-white p-3 border border-amber-100">
-                          <p
-                            className="leading-relaxed"
-                            style={{
-                              fontFamily: announcementFontFamily,
-                              fontSize: `${announcementFontSize}px`,
-                              color: announcementFontColor,
-                              fontWeight: announcementBold ? 'bold' : 'normal',
-                              fontStyle: announcementItalic ? 'italic' : 'normal',
-                            }}
-                          >
-                            {announcementMessage}
-                          </p>
-                        </div>
-                        <div className="text-xs text-amber-600">
-                          {new Date().toLocaleString()}
-                        </div>
-                      </>
-                    ) : (
-                      <div className="text-sm text-amber-700 text-center py-8">
-                        Start typing to see preview here
-                      </div>
-                    )}
-                  </div>
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 mb-2">Message</label>
+                <div
+                  ref={(ref) => setEditorRef(ref)}
+                  contentEditable={true}
+                  className="w-full rounded-md border border-zinc-300 px-3 py-3 text-sm text-zinc-800 outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 min-h-[200px] max-h-[400px] overflow-y-auto"
+                  style={{ fontFamily: 'Arial', fontSize: '14px' }}
+                  onInput={(e) => {
+                    const content = (e.target as HTMLElement).innerHTML
+                    setAnnouncementMessage(content)
+                  }}
+                  placeholder="Write an announcement for all workers..."
+                />
+              </div>
+              <div className="text-xs text-zinc-500">
+                {editorRef?.innerText?.length || 0} characters
+              </div>
+              {announcementErrorMessage && (
+                <div className="rounded-2xl border border-red-200 bg-red-50 p-3 text-sm text-red-900">
+                  {announcementErrorMessage}
                 </div>
+              )}
+              <div className="text-xs text-zinc-500">
+                Tip: Highlight text and use the toolbar buttons to format specific parts of your message
               </div>
             </div>
 
@@ -6110,11 +6039,7 @@ export default function DashboardPage() {
               <button type="button" onClick={() => {
                 setIsAnnouncementModalOpen(false)
                 setAnnouncementMessage('')
-                setAnnouncementFontFamily('Arial')
-                setAnnouncementFontSize('14')
-                setAnnouncementFontColor('#000000')
-                setAnnouncementBold(false)
-                setAnnouncementItalic(false)
+                if (editorRef) editorRef.innerHTML = ''
                 setIsEditingAnnouncement(false)
                 setEditingAnnouncementId(null)
                 setShowAnnouncementPreview(false)
