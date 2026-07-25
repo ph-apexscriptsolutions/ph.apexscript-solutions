@@ -291,7 +291,6 @@ export default function DashboardPage() {
   const [availabilityForm, setAvailabilityForm] = useState<Record<string, { sameday: boolean; overnight: boolean }>>(defaultAvailability)
   const [isSavingAvailability, setIsSavingAvailability] = useState(false)
   const [availabilitySubmittedAt, setAvailabilitySubmittedAt] = useState<string | null>(null)
-  const [isResettingAvailability, setIsResettingAvailability] = useState(false)
 
   // Style Guides
   const [isStyleGuidesModalOpen, setIsStyleGuidesModalOpen] = useState(false)
