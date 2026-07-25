@@ -274,6 +274,9 @@ export default function DashboardPage() {
   const [assignmentComment, setAssignmentComment] = useState("")
   const [assignmentFilename, setAssignmentFilename] = useState("")
   const [selectedWorkerForComment, setSelectedWorkerForComment] = useState<any | null>(null)
+  const [isResetAvailabilityModalOpen, setIsResetAvailabilityModalOpen] = useState(false)
+  const [resetAvailabilityWorkerId, setResetAvailabilityWorkerId] = useState<string | null>(null)
+  const [isResettingAvailability, setIsResettingAvailability] = useState(false)
   const [isSendingComment, setIsSendingComment] = useState(false)
 
   // Weekly Availability
@@ -2341,6 +2344,40 @@ export default function DashboardPage() {
     }
   }
 
+  const handleResetAvailability = async () => {
+    if (!resetAvailabilityWorkerId && resetAvailabilityWorkerId !== null) return
+
+    setIsResettingAvailability(true)
+    try {
+      const body: any = {}
+      if (resetAvailabilityWorkerId === null) {
+        body.resetAll = true
+      } else {
+        body.workerId = resetAvailabilityWorkerId
+      }
+
+      const res = await fetch('/api/reset-availability', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to reset availability')
+
+      setToastMessage(`✅ Availability reset for ${data.reset} workers`)
+      setShowToast(true)
+      setTimeout(() => { setShowToast(false); setToastMessage(null) }, 3000)
+
+      setIsResetAvailabilityModalOpen(false)
+      setResetAvailabilityWorkerId(null)
+    } catch (err: any) {
+      console.error('Error resetting availability:', err)
+      alert(`Failed to reset availability: ${err.message}`)
+    } finally {
+      setIsResettingAvailability(false)
+    }
+  }
+
   // Fetch all workers when modal opens
   useEffect(() => {
     if (isAssignmentCommentModalOpen && isAdmin) {
@@ -3153,6 +3190,23 @@ export default function DashboardPage() {
                         </div>
                         <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
                           <svg className="h-2.5 w-2.5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                        </div>
+                      </button>
+
+                      {/* Reset Availability */}
+                      <button
+                        onClick={() => setIsResetAvailabilityModalOpen(true)}
+                        className="group relative flex flex-col items-start gap-1 rounded-md border border-white/10 bg-white/5 p-2 text-left backdrop-blur-sm hover:bg-white/10 hover:border-orange-400/40 transition-all duration-200 hover:shadow-xl hover:shadow-orange-600/20"
+                      >
+                        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br from-orange-500 to-red-600 shadow-lg shadow-orange-500/30 group-hover:scale-110 transition-transform duration-200">
+                          <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                        </div>
+                        <div>
+                          <p className="text-[11px] font-semibold text-white">Reset Availability</p>
+                          <p className="mt-0.5 text-[8px] text-zinc-400">Reset worker availability</p>
+                        </div>
+                        <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <svg className="h-2.5 w-2.5 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
                         </div>
                       </button>
 
@@ -5540,7 +5594,7 @@ export default function DashboardPage() {
               </div>
               <div>
                 <h3 className="text-lg font-bold text-zinc-900">Weekly Availability</h3>
-                <p className="text-xs text-zinc-600">Weekly Availability will automatically reset every Saturday.</p>
+                <p className="text-xs text-zinc-600">Submit your weekly availability schedule.</p>
               </div>
             </div>
 
@@ -6011,6 +6065,82 @@ export default function DashboardPage() {
               }} className="rounded-md border border-zinc-200 bg-white px-5 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 transition">Cancel</button>
               <button type="button" onClick={sendAssignmentComment} disabled={!selectedWorkerForComment || !assignmentComment.trim() || isSendingComment} className="inline-flex items-center justify-center rounded-md bg-blue-500 px-5 py-2 text-sm font-semibold text-white hover:bg-blue-600 transition disabled:opacity-50">
                 {isSendingComment ? 'Sending...' : 'Send Comment'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isResetAvailabilityModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 relative">
+            <button onClick={() => {
+              setIsResetAvailabilityModalOpen(false)
+              setResetAvailabilityWorkerId(null)
+            }} className="absolute right-4 top-4 text-zinc-400 hover:text-zinc-900"><X className="h-5 w-5" /></button>
+            <h3 className="text-lg font-semibold text-zinc-900 mb-4">Reset Worker Availability</h3>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 mb-2">Reset Option</label>
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      name="resetOption"
+                      value="all"
+                      checked={!resetAvailabilityWorkerId}
+                      onChange={() => setResetAvailabilityWorkerId(null)}
+                      className="text-orange-500 focus:ring-orange-500"
+                    />
+                    <span className="text-sm text-zinc-700">Reset All Workers</span>
+                  </label>
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      name="resetOption"
+                      value="specific"
+                      checked={!!resetAvailabilityWorkerId}
+                      onChange={() => setResetAvailabilityWorkerId('')}
+                      className="text-orange-500 focus:ring-orange-500"
+                    />
+                    <span className="text-sm text-zinc-700">Reset Specific Worker</span>
+                  </label>
+                </div>
+              </div>
+
+              {resetAvailabilityWorkerId !== null && (
+                <div>
+                  <label className="block text-sm font-medium text-zinc-700 mb-2">Select Worker</label>
+                  <select
+                    value={resetAvailabilityWorkerId}
+                    onChange={(e) => setResetAvailabilityWorkerId(e.target.value)}
+                    className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm text-zinc-800 outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
+                  >
+                    <option value="">Select a worker...</option>
+                    {allWorkers.filter((w: any) => w.role === 'worker').map((worker: any) => (
+                      <option key={worker.id} value={worker.id}>
+                        {worker.full_name} ({worker.email})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
+                <p className="text-xs text-orange-800">
+                  ⚠️ This will reset the worker's weekly availability and send them an email notification to resubmit their availability.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 mt-6">
+              <button type="button" onClick={() => {
+                setIsResetAvailabilityModalOpen(false)
+                setResetAvailabilityWorkerId(null)
+              }} className="rounded-md border border-zinc-200 bg-white px-5 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 transition">Cancel</button>
+              <button type="button" onClick={handleResetAvailability} disabled={isResettingAvailability || (resetAvailabilityWorkerId !== null && !resetAvailabilityWorkerId)} className="inline-flex items-center justify-center rounded-md bg-orange-500 px-5 py-2 text-sm font-semibold text-white hover:bg-orange-600 transition disabled:opacity-50">
+                {isResettingAvailability ? 'Resetting...' : 'Reset Availability'}
               </button>
             </div>
           </div>
