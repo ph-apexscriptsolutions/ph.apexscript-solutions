@@ -3623,30 +3623,13 @@ export default function DashboardPage() {
                   <div className="flex items-start justify-between gap-4 border-b border-zinc-200 p-5">
                     <div>
                       <h3 className="text-lg font-semibold text-zinc-900">Assignment details</h3>
-                      <p className="text-sm text-zinc-500">More information for the selected filename</p>
+                      <p className="text-sm text-zinc-500">Assignment description and attachments</p>
                     </div>
                     <button type="button" onClick={() => setSelectedAssignment(null)} className="text-zinc-400 hover:text-zinc-900">
                       <X className="h-5 w-5" />
                     </button>
                   </div>
                   <div className="space-y-4 p-5">
-                    <div>
-                      <div className="text-xs font-semibold text-zinc-500 uppercase">Filename</div>
-                      <div className="mt-1 text-sm font-medium text-zinc-900">{selectedAssignment.filename}</div>
-                    </div>
-                    <div>
-                              
-                    </div>
-                    <div>
-                      <div className="text-xs font-semibold text-zinc-500 uppercase">Status</div>
-                      <div className="mt-1">
-                        {selectedAssignment.status === 'done' ? (
-                          <span className="inline-flex items-center gap-1.5 rounded-full bg-green-100 px-2.5 py-1 text-xs font-semibold text-green-800">✓ Done</span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1.5 rounded-full bg-yellow-100 px-2.5 py-1 text-xs font-semibold text-yellow-800">⏳ Pending</span>
-                        )}
-                      </div>
-                    </div>
                     {selectedAssignment.description && (
                       <div>
                         <div className="text-xs font-semibold text-zinc-500 uppercase">Description</div>
@@ -5581,16 +5564,16 @@ export default function DashboardPage() {
       {/* ── Current Assignments Modal ── */}
       {isCurrentAssignmentsModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
-          <div className="bg-gradient-to-br from-white to-zinc-50 rounded-3xl shadow-2xl shadow-zinc-500/20 w-full max-w-xl p-4 relative border border-zinc-200 max-h-[90vh] flex flex-col">
-            <button onClick={() => setIsCurrentAssignmentsModalOpen(false)} className="absolute right-3 top-3 text-zinc-400 hover:text-zinc-700 transition-colors"><X className="h-4 w-4" /></button>
-            
+          <div className="bg-gradient-to-br from-white to-cyan-50 rounded-3xl shadow-2xl shadow-cyan-500/20 w-full max-w-xl p-4 relative border border-cyan-200 max-h-[90vh] flex flex-col">
+            <button onClick={() => setIsCurrentAssignmentsModalOpen(false)} className="absolute right-3 top-3 text-cyan-400 hover:text-cyan-700 transition-colors"><X className="h-4 w-4" /></button>
+
             <div className="flex items-center justify-between mb-3 flex-shrink-0">
               <div>
-                <h3 className="text-lg font-bold text-zinc-900 mb-0.5 flex-shrink-0">Current Assignments</h3>
-                <p className="text-[10px] text-zinc-600">View your active work assignments</p>
+                <h3 className="text-lg font-bold text-cyan-900 mb-0.5 flex-shrink-0">Current Assignments</h3>
+                <p className="text-[10px] text-cyan-600">View your active work assignments</p>
               </div>
               {isAdmin && (
-                <button onClick={() => { setIsCurrentAssignmentsModalOpen(false); setEditAssignmentId(null); setNewAssignmentFilename(''); setNewAssignmentDescription(''); setIsAddAssignmentModalOpen(true) }} className="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-2 py-1 text-[10px] font-semibold text-slate-800 hover:bg-slate-100 hover:border-slate-400 transition-all shadow-sm hover:shadow-md">
+                <button onClick={() => { setIsCurrentAssignmentsModalOpen(false); setEditAssignmentId(null); setNewAssignmentFilename(''); setNewAssignmentDescription(''); setIsAddAssignmentModalOpen(true) }} className="inline-flex items-center gap-1 rounded-lg border border-cyan-300 bg-white px-2 py-1 text-[10px] font-semibold text-cyan-800 hover:bg-cyan-100 hover:border-cyan-400 transition-all shadow-sm hover:shadow-md">
                   <span>+</span> Add Assignment
                 </button>
               )}
@@ -5598,10 +5581,10 @@ export default function DashboardPage() {
 
             <div className="flex-1 overflow-y-auto min-h-0 space-y-1.5 mb-3">
               <div className="space-y-1">
-                <div className="grid gap-1 items-center bg-zinc-100/80 px-2.5 py-2 border-b border-zinc-200/60 rounded-t-lg" style={{ gridTemplateColumns: effectiveHeaderTemplate }}>
-                  <div className="text-[10px] font-bold text-zinc-700 uppercase tracking-wider">Filename</div>
-                  <div className="text-[10px] font-bold text-zinc-700 uppercase tracking-wider">Status</div>
-                  {isAdmin && <div className="text-[10px] font-bold text-zinc-700 uppercase tracking-wider">Actions</div>}
+                <div className="grid gap-1 items-center bg-cyan-100/80 px-2.5 py-2 border-b border-cyan-200/60 rounded-t-lg" style={{ gridTemplateColumns: effectiveHeaderTemplate }}>
+                  <div className="text-[10px] font-bold text-cyan-700 uppercase tracking-wider">Filename</div>
+                  <div className="text-[10px] font-bold text-cyan-700 uppercase tracking-wider">Status</div>
+                  {isAdmin && <div className="text-[10px] font-bold text-cyan-700 uppercase tracking-wider">Actions</div>}
                 </div>
                 {showAllSubmittedMessage ? (
                   <div className="text-center py-3 flex flex-col items-center gap-1.5">
@@ -5615,9 +5598,9 @@ export default function DashboardPage() {
                 ) : (
                   <div className="space-y-1">
                     {assignments.map((a: any) => (
-                      <div key={a.id} className="grid gap-1 items-center py-1.5 px-2.5 rounded-md border border-zinc-200/60 bg-white hover:bg-zinc-50/80 transition-all" style={{ gridTemplateColumns: effectiveRowTemplate }}>
+                      <div key={a.id} className="grid gap-1 items-center py-1.5 px-2.5 rounded-md border border-cyan-200/60 bg-white hover:bg-cyan-50/80 transition-all" style={{ gridTemplateColumns: effectiveRowTemplate }}>
                         <div>
-                          <button type="button" onClick={() => { setSelectedAssignment(a); setIsCurrentAssignmentsModalOpen(false); if (profile?.id) localStorage.setItem(`last_viewed_description_${profile.id}_${a.id}`, new Date().toISOString()); setAssignmentsWithUpdatedDescription(prev => { const newSet = new Set(prev); newSet.delete(a.id); return newSet }) }} className="text-xs font-bold text-slate-900 underline-offset-4 hover:underline flex items-center gap-2">
+                          <button type="button" onClick={() => { setSelectedAssignment(a); setIsCurrentAssignmentsModalOpen(false); if (profile?.id) localStorage.setItem(`last_viewed_description_${profile.id}_${a.id}`, new Date().toISOString()); setAssignmentsWithUpdatedDescription(prev => { const newSet = new Set(prev); newSet.delete(a.id); return newSet }) }} className="text-xs font-bold text-cyan-900 underline-offset-4 hover:underline flex items-center gap-2">
                             {getDisplayFileName(a.filename)}
                             {assignmentsWithUpdatedDescription.has(a.id) && (
                               <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-red-500 text-white text-[10px] font-bold animate-pulse shadow-sm">REVISED</span>
@@ -5648,7 +5631,7 @@ export default function DashboardPage() {
                               setTimeout(() => {
                                 if (assignmentEditorRef) assignmentEditorRef.innerHTML = a.description || ''
                               }, 100)
-                            }} className="inline-flex items-center gap-1 rounded-md bg-blue-50 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700 hover:bg-blue-100 transition-all border border-blue-200">
+                            }} className="inline-flex items-center gap-1 rounded-md bg-cyan-50 px-1.5 py-0.5 text-[10px] font-semibold text-cyan-700 hover:bg-cyan-100 transition-all border border-cyan-200">
                               <Pencil className="h-3 w-3" /> Edit
                             </button>
                             <button onClick={() => deleteAssignment(a.id)} className="inline-flex items-center gap-1 rounded-md bg-red-50 px-1.5 py-0.5 text-[10px] font-semibold text-red-700 hover:bg-red-100 transition-all border border-red-200">
@@ -5663,11 +5646,11 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            <div className="border-t border-zinc-200/60 pt-3 mt-3 flex justify-end flex-shrink-0">
-              <button 
-                type="button" 
-                onClick={() => setIsCurrentAssignmentsModalOpen(false)} 
-                className="rounded-lg border border-zinc-200 bg-white px-4 py-1.5 text-[10px] font-semibold text-zinc-700 hover:bg-zinc-50 transition"
+            <div className="border-t border-cyan-200/60 pt-3 mt-3 flex justify-end flex-shrink-0">
+              <button
+                type="button"
+                onClick={() => setIsCurrentAssignmentsModalOpen(false)}
+                className="rounded-lg border border-cyan-200 bg-white px-4 py-1.5 text-[10px] font-semibold text-cyan-700 hover:bg-cyan-50 transition"
               >
                 Close
               </button>
