@@ -211,6 +211,7 @@ export default function DashboardPage() {
   const [isPublishingAnnouncement, setIsPublishingAnnouncement] = useState(false)
   const [showAnnouncementPreview, setShowAnnouncementPreview] = useState(false)
   const [editorRef, setEditorRef] = useState<HTMLDivElement | null>(null)
+  const [assignmentEditorRef, setAssignmentEditorRef] = useState<HTMLDivElement | null>(null)
   const [isEditingAnnouncement, setIsEditingAnnouncement] = useState(false)
   const [editingAnnouncementId, setEditingAnnouncementId] = useState<number | null>(null)
   const [announcementSchemaHint, setAnnouncementSchemaHint] = useState<string | null>(null)
@@ -2421,14 +2422,15 @@ export default function DashboardPage() {
         attachmentUrl = uploadData.attachmentUrl
       }
 
+      const descriptionContent = assignmentEditorRef?.innerHTML || ''
       const requestUrl = new URL('/api/production-assignments', window.location.origin).toString()
       const res = await fetch(requestUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          workerId, 
+        body: JSON.stringify({
+          workerId,
           filename: filename.trim(),
-          description: newAssignmentDescription || null,
+          description: descriptionContent || null,
           attachmentUrl,
         }),
       })
@@ -2443,6 +2445,7 @@ export default function DashboardPage() {
       setNewAssignmentFilename("")
       setNewAssignmentDescription("")
       setNewAssignmentAttachment(null)
+      if (assignmentEditorRef) assignmentEditorRef.innerHTML = ''
       setIsAddAssignmentModalOpen(false)
       setEditAssignmentId(null)
       setToastMessage('✅ Assignment added')
@@ -2457,6 +2460,7 @@ export default function DashboardPage() {
   }
 
   const saveAssignment = async (workerId: string) => {
+    const descriptionContent = assignmentEditorRef?.innerHTML || ''
     if (editAssignmentId) {
       try {
         const res = await fetch('/api/production-assignments/update', {
@@ -2465,14 +2469,14 @@ export default function DashboardPage() {
           body: JSON.stringify({
             assignmentId: editAssignmentId,
             filename: newAssignmentFilename.trim(),
-            description: newAssignmentDescription || null,
+            description: descriptionContent || null,
           }),
         })
         const data = await res.json()
         if (!res.ok) throw new Error(data.error || 'Failed to update assignment')
         if (workerId) await fetchAssignments(workerId)
         // Add to updated description notifications if description was changed
-        if (newAssignmentDescription) {
+        if (descriptionContent) {
           setAssignmentsWithUpdatedDescription(prev => new Set([...prev, editAssignmentId]))
         }
         setToastMessage('✅ Assignment updated')
@@ -2482,6 +2486,7 @@ export default function DashboardPage() {
         setEditAssignmentId(null)
         setNewAssignmentFilename('')
         setNewAssignmentDescription('')
+        if (assignmentEditorRef) assignmentEditorRef.innerHTML = ''
       } catch (err: any) {
         console.error('Update assignment error:', err)
         alert(`Failed to update assignment: ${err.message}`)
@@ -3645,7 +3650,7 @@ export default function DashboardPage() {
                     {selectedAssignment.description && (
                       <div>
                         <div className="text-xs font-semibold text-zinc-500 uppercase">Description</div>
-                        <div className="mt-1 text-sm text-zinc-700 whitespace-pre-wrap break-words">{selectedAssignment.description}</div>
+                        <div className="mt-1 text-sm text-zinc-700 whitespace-pre-wrap break-words" dangerouslySetInnerHTML={{ __html: selectedAssignment.description }} />
                       </div>
                     )}
                     {selectedAssignment.attachment_url && (
@@ -3682,18 +3687,90 @@ export default function DashboardPage() {
 
             {isAddAssignmentModalOpen && activeWorker && (
               <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-                <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 relative max-h-[90vh] overflow-y-auto">
-                  <button onClick={() => { setIsAddAssignmentModalOpen(false); setNewAssignmentFilename(""); setNewAssignmentDescription(""); setNewAssignmentAttachment(null) }} className="absolute right-4 top-4 text-zinc-400 hover:text-zinc-900"><X className="h-5 w-5" /></button>
-                  <h3 className="text-lg font-semibold text-zinc-900 mb-4">Add New Assignment</h3>
+                <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl p-6 relative max-h-[90vh] overflow-y-auto">
+                  <button onClick={() => { setIsAddAssignmentModalOpen(false); setNewAssignmentFilename(""); setNewAssignmentDescription(""); setNewAssignmentAttachment(null); if (assignmentEditorRef) assignmentEditorRef.innerHTML = '' }} className="absolute right-4 top-4 text-zinc-400 hover:text-zinc-900"><X className="h-5 w-5" /></button>
+                  <h3 className="text-lg font-semibold text-zinc-900 mb-4">{editAssignmentId ? 'Edit Assignment' : 'Add New Assignment'}</h3>
                   <form onSubmit={(e) => { e.preventDefault(); saveAssignment(activeWorker.id) }} className="space-y-4">
                     <div>
                       <label className="block text-sm font-medium text-zinc-700 mb-1">Filename</label>
                       <input type="text" value={newAssignmentFilename} onChange={(e) => setNewAssignmentFilename(e.target.value)} placeholder="e.g., 771241201" className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900" required />
                     </div>
-                    
+
                     <div>
                       <label className="block text-sm font-medium text-zinc-700 mb-1">Description</label>
-                      <textarea value={newAssignmentDescription} onChange={(e) => setNewAssignmentDescription(e.target.value)} placeholder="Add any details about this assignment..." className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 resize-none" rows={3} />
+                      {/* Formatting Toolbar */}
+                      <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-2 mb-2">
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={() => document.execCommand('bold', false, undefined)}
+                            className="px-3 py-1.5 rounded-md text-sm font-semibold bg-white border border-zinc-300 text-zinc-700 hover:bg-zinc-50 transition"
+                            title="Bold (Ctrl+B)"
+                          >
+                            B
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => document.execCommand('italic', false, undefined)}
+                            className="px-3 py-1.5 rounded-md text-sm italic bg-white border border-zinc-300 text-zinc-700 hover:bg-zinc-50 transition"
+                            title="Italic (Ctrl+I)"
+                          >
+                            I
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => document.execCommand('underline', false, undefined)}
+                            className="px-3 py-1.5 rounded-md text-sm underline bg-white border border-zinc-300 text-zinc-700 hover:bg-zinc-50 transition"
+                            title="Underline (Ctrl+U)"
+                          >
+                            U
+                          </button>
+                          <div className="w-px bg-zinc-300 mx-1"></div>
+                          <select
+                            onChange={(e) => document.execCommand('fontName', false, e.target.value)}
+                            className="px-2 py-1.5 rounded-md text-sm bg-white border border-zinc-300 text-zinc-700 outline-none"
+                          >
+                            <option value="Arial">Arial</option>
+                            <option value="Georgia">Georgia</option>
+                            <option value="Times New Roman">Times New Roman</option>
+                            <option value="Courier New">Courier New</option>
+                            <option value="Verdana">Verdana</option>
+                            <option value="Tahoma">Tahoma</option>
+                          </select>
+                          <select
+                            onChange={(e) => document.execCommand('fontSize', false, e.target.value)}
+                            className="px-2 py-1.5 rounded-md text-sm bg-white border border-zinc-300 text-zinc-700 outline-none"
+                          >
+                            <option value="1">Small</option>
+                            <option value="3">Normal</option>
+                            <option value="5">Large</option>
+                            <option value="7">Extra Large</option>
+                          </select>
+                          <input
+                            type="color"
+                            onChange={(e) => document.execCommand('foreColor', false, e.target.value)}
+                            className="h-8 w-10 rounded-md border border-zinc-300 cursor-pointer"
+                            title="Text Color"
+                          />
+                          <input
+                            type="color"
+                            onChange={(e) => document.execCommand('hiliteColor', false, e.target.value)}
+                            className="h-8 w-10 rounded-md border border-zinc-300 cursor-pointer"
+                            title="Highlight Color"
+                          />
+                        </div>
+                      </div>
+                      <div
+                        ref={(ref) => setAssignmentEditorRef(ref)}
+                        contentEditable={true}
+                        className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm text-zinc-800 outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 min-h-[100px] max-h-[200px] overflow-y-auto"
+                        style={{ fontFamily: 'Arial', fontSize: '14px' }}
+                        onInput={(e) => {
+                          const content = (e.target as HTMLElement).innerHTML
+                          setNewAssignmentDescription(content)
+                        }}
+                        placeholder="Add any details about this assignment..."
+                      />
                     </div>
 
                     <div>
@@ -3728,9 +3805,9 @@ export default function DashboardPage() {
                     </div>
 
                     <div className="flex gap-3">
-                      <button type="button" onClick={() => { setIsAddAssignmentModalOpen(false); setNewAssignmentFilename(""); setNewAssignmentDescription(""); setNewAssignmentAttachment(null) }} className="flex-1 rounded-md border border-zinc-300 bg-white px-5 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-100 transition">Cancel</button>
+                      <button type="button" onClick={() => { setIsAddAssignmentModalOpen(false); setNewAssignmentFilename(""); setNewAssignmentDescription(""); setNewAssignmentAttachment(null); if (assignmentEditorRef) assignmentEditorRef.innerHTML = '' }} className="flex-1 rounded-md border border-zinc-300 bg-white px-5 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-100 transition">Cancel</button>
                       <button type="submit" disabled={isAddingAssignment || isUploadingAttachment} className="flex-1 inline-flex items-center justify-center gap-2 rounded-md bg-gradient-to-r from-cyan-600 to-sky-600 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-cyan-600/20 hover:from-cyan-700 hover:to-sky-700 disabled:opacity-50">
-                        {isUploadingAttachment ? 'Uploading...' : isAddingAssignment ? 'Adding...' : 'Add Assignment'}
+                        {isUploadingAttachment ? 'Uploading...' : isAddingAssignment ? (editAssignmentId ? 'Updating...' : 'Adding...') : (editAssignmentId ? 'Update Assignment' : 'Add Assignment')}
                       </button>
                     </div>
                   </form>
@@ -5568,6 +5645,9 @@ export default function DashboardPage() {
                               setNewAssignmentFilename(a.filename)
                               setNewAssignmentDescription(a.description || '')
                               setIsAddAssignmentModalOpen(true)
+                              setTimeout(() => {
+                                if (assignmentEditorRef) assignmentEditorRef.innerHTML = a.description || ''
+                              }, 100)
                             }} className="inline-flex items-center gap-1 rounded-md bg-blue-50 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700 hover:bg-blue-100 transition-all border border-blue-200">
                               <Pencil className="h-3 w-3" /> Edit
                             </button>
