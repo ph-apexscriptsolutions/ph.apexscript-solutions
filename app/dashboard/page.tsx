@@ -3619,26 +3619,31 @@ export default function DashboardPage() {
 
             {selectedAssignment && (
               <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-                <div className="w-full max-w-md overflow-hidden rounded-xl bg-white shadow-2xl max-h-[90vh] overflow-y-auto">
-                  <div className="flex items-start justify-between gap-4 border-b border-zinc-200 p-5">
-                    <div>
-                      <h3 className="text-lg font-semibold text-zinc-900">Assignment details</h3>
-                      <p className="text-sm text-zinc-500">Assignment description and attachments</p>
+                <div className="w-full max-w-md overflow-hidden rounded-xl bg-gradient-to-br from-white to-cyan-50 shadow-2xl shadow-cyan-500/20 max-h-[90vh] overflow-y-auto border border-cyan-200">
+                  <div className="flex items-start justify-between gap-4 border-b border-cyan-200 p-5">
+                    <div className="flex items-center gap-3">
+                      <button type="button" onClick={() => { setSelectedAssignment(null); setIsCurrentAssignmentsModalOpen(true) }} className="text-cyan-400 hover:text-cyan-700 transition-colors">
+                        <ArrowLeft className="h-5 w-5" />
+                      </button>
+                      <div>
+                        <h3 className="text-lg font-semibold text-cyan-900">Assignment details</h3>
+                        <p className="text-sm text-cyan-600">Assignment description and attachments</p>
+                      </div>
                     </div>
-                    <button type="button" onClick={() => setSelectedAssignment(null)} className="text-zinc-400 hover:text-zinc-900">
+                    <button type="button" onClick={() => setSelectedAssignment(null)} className="text-cyan-400 hover:text-cyan-700">
                       <X className="h-5 w-5" />
                     </button>
                   </div>
                   <div className="space-y-4 p-5">
                     {selectedAssignment.description && (
                       <div>
-                        <div className="text-xs font-semibold text-zinc-500 uppercase">Description</div>
-                        <div className="mt-1 text-sm text-zinc-700 whitespace-pre-wrap break-words" dangerouslySetInnerHTML={{ __html: selectedAssignment.description }} />
+                        <div className="text-xs font-semibold text-cyan-500 uppercase">Description</div>
+                        <div className="mt-1 text-sm text-cyan-700 whitespace-pre-wrap break-words" dangerouslySetInnerHTML={{ __html: selectedAssignment.description }} />
                       </div>
                     )}
                     {selectedAssignment.attachment_url && (
                       <div>
-                        <div className="text-xs font-semibold text-zinc-500 uppercase">Attachment</div>
+                        <div className="text-xs font-semibold text-cyan-500 uppercase">Attachment</div>
                         <a
                           href={selectedAssignment.attachment_url}
                           target="_blank"
@@ -3652,11 +3657,11 @@ export default function DashboardPage() {
                       </div>
                     )}
                     <div>
-                      <div className="text-xs font-semibold text-zinc-500 uppercase">Created</div>
-                      <div className="mt-1 text-sm text-zinc-700">{formatDate(selectedAssignment.created_at)}</div>
+                      <div className="text-xs font-semibold text-cyan-500 uppercase">Created</div>
+                      <div className="mt-1 text-sm text-cyan-700">{formatDate(selectedAssignment.created_at)}</div>
                     </div>
                   </div>
-                  <div className="border-t border-zinc-200 p-5 flex gap-3 justify-end">
+                  <div className="border-t border-cyan-200 p-5 flex gap-3 justify-end">
                     <button type="button" onClick={() => { setIsAssignmentReportIssueModalOpen(true); setReportIssueAssignment(selectedAssignment) }} className="inline-flex items-center justify-center rounded-md bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800 transition">
                       Report Issue
                     </button>
