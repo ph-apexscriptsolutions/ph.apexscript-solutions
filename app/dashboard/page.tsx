@@ -3638,7 +3638,7 @@ export default function DashboardPage() {
                     {selectedAssignment.description && (
                       <div>
                         <div className="text-xs font-semibold text-cyan-500 uppercase">Description</div>
-                        <div className="mt-1 text-sm text-cyan-700 whitespace-pre-wrap break-words" dangerouslySetInnerHTML={{ __html: selectedAssignment.description }} />
+                        <div className="mt-1 text-sm text-black whitespace-pre-wrap break-words" dangerouslySetInnerHTML={{ __html: selectedAssignment.description }} />
                       </div>
                     )}
                     {selectedAssignment.attachment_url && (
