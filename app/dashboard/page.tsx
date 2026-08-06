@@ -4345,7 +4345,7 @@ export default function DashboardPage() {
                         <option value="medical">Medical</option>
                       </>
                     ) : (
-                      (user?.department_permissions || ['conference', 'senate', 'academics', 'broadcast', 'podcast', 'medical']).map((dept: string) => (
+                      (profile?.department_permissions || ['conference', 'senate', 'academics', 'broadcast', 'podcast', 'medical']).map((dept: string) => (
                         <option key={dept} value={dept}>
                           {dept === 'conference' ? 'Conference / Earnings Call' :
                            dept === 'senate' ? 'Senate Hearing / Political' :
