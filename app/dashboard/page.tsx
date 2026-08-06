@@ -3665,10 +3665,6 @@ export default function DashboardPage() {
                         </a>
                       </div>
                     )}
-                    <div>
-                      <div className="text-xs font-semibold text-cyan-500 uppercase">Created</div>
-                      <div className="mt-1 text-sm text-cyan-700">{formatDate(selectedAssignment.created_at)}</div>
-                    </div>
                   </div>
                   <div className="border-t border-cyan-200 p-5 flex gap-3 justify-end">
                     <button type="button" onClick={() => { setIsAssignmentReportIssueModalOpen(true); setReportIssueAssignment(selectedAssignment) }} className="inline-flex items-center justify-center rounded-md bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800 transition">
