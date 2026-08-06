@@ -3766,7 +3766,6 @@ export default function DashboardPage() {
                           const content = (e.target as HTMLElement).innerHTML
                           setNewAssignmentDescription(content)
                         }}
-                        placeholder="Add any details about this assignment..."
                       />
                     </div>
 
@@ -6093,7 +6092,6 @@ export default function DashboardPage() {
                     const content = (e.target as HTMLElement).innerHTML
                     setAnnouncementMessage(content)
                   }}
-                  placeholder="Write an announcement for all workers..."
                 />
               </div>
               <div className="text-xs text-zinc-500">
