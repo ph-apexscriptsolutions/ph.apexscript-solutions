@@ -674,6 +674,15 @@ export default function DashboardPage() {
   }, [activeWorker, filterTrigger, searchQuery])
 
   useEffect(() => {
+    if (isAddAssignmentModalOpen && editAssignmentId && assignmentEditorRef) {
+      const assignment = assignments.find((a: any) => a.id === editAssignmentId)
+      if (assignment && assignment.description) {
+        assignmentEditorRef.innerHTML = assignment.description
+      }
+    }
+  }, [isAddAssignmentModalOpen, editAssignmentId, assignmentEditorRef, assignments])
+
+  useEffect(() => {
     if (!activeWorker) return
     setBankForm({
       bankName: activeWorker.bank_name || "",
@@ -3674,7 +3683,7 @@ export default function DashboardPage() {
             )}
 
             {isAddAssignmentModalOpen && activeWorker && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+              <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
                 <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl p-6 relative max-h-[90vh] overflow-y-auto">
                   <button onClick={() => { setIsAddAssignmentModalOpen(false); setNewAssignmentFilename(""); setNewAssignmentDescription(""); setNewAssignmentAttachment(null); if (assignmentEditorRef) assignmentEditorRef.innerHTML = '' }} className="absolute right-4 top-4 text-zinc-400 hover:text-zinc-900"><X className="h-5 w-5" /></button>
                   <h3 className="text-lg font-semibold text-zinc-900 mb-4">{editAssignmentId ? 'Edit Assignment' : 'Add New Assignment'}</h3>
@@ -5633,9 +5642,6 @@ export default function DashboardPage() {
                               setNewAssignmentFilename(a.filename)
                               setNewAssignmentDescription(a.description || '')
                               setIsAddAssignmentModalOpen(true)
-                              setTimeout(() => {
-                                if (assignmentEditorRef) assignmentEditorRef.innerHTML = a.description || ''
-                              }, 100)
                             }} className="inline-flex items-center gap-1 rounded-md bg-cyan-50 px-1.5 py-0.5 text-[10px] font-semibold text-cyan-700 hover:bg-cyan-100 transition-all border border-cyan-200">
                               <Pencil className="h-3 w-3" /> Edit
                             </button>
