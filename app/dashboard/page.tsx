@@ -263,6 +263,7 @@ export default function DashboardPage() {
   const [newAssignmentAttachment, setNewAssignmentAttachment] = useState<File | null>(null)
   const [isUploadingAttachment, setIsUploadingAttachment] = useState(false)
   const [editAssignmentId, setEditAssignmentId] = useState<number | null>(null)
+  const [isPriorityAssignment, setIsPriorityAssignment] = useState(false)
   const [selectedAssignment, setSelectedAssignment] = useState<any | null>(null)
   const [assignmentHeaderTemplate, setAssignmentHeaderTemplate] = useState('3fr 1fr 1fr')
   const [assignmentRowTemplate, setAssignmentRowTemplate] = useState('3fr 1fr 1fr')
@@ -280,6 +281,11 @@ export default function DashboardPage() {
   const [resetAvailabilityWorkerId, setResetAvailabilityWorkerId] = useState<string | null>(null)
   const [isResettingAvailability, setIsResettingAvailability] = useState(false)
   const [isSendingComment, setIsSendingComment] = useState(false)
+
+  // Issue History
+  const [workerValidatorIssues, setWorkerValidatorIssues] = useState<any[]>([])
+  const [workerAssignmentIssues, setWorkerAssignmentIssues] = useState<any[]>([])
+  const [isIssueHistoryModalOpen, setIsIssueHistoryModalOpen] = useState(false)
 
   // Weekly Availability
   const defaultAvailability = {
@@ -307,6 +313,13 @@ export default function DashboardPage() {
   const [isValidatorReportsModalOpen, setIsValidatorReportsModalOpen] = useState(false)
   const [validatorReports, setValidatorReports] = useState<any[]>([])
   const [isLoadingValidatorReports, setIsLoadingValidatorReports] = useState(false)
+  const [isAssignmentIssuesModalOpen, setIsAssignmentIssuesModalOpen] = useState(false)
+  const [assignmentIssues, setAssignmentIssues] = useState<any[]>([])
+  const [isLoadingAssignmentIssues, setIsLoadingAssignmentIssues] = useState(false)
+  const [solutionText, setSolutionText] = useState("")
+  const [adminNameInput, setAdminNameInput] = useState("")
+  const [resolvingIssueId, setResolvingIssueId] = useState<number | null>(null)
+  const [isSubmittingSolution, setIsSubmittingSolution] = useState(false)
   const [newFormattingRule, setNewFormattingRule] = useState({ name: "", description: "", pattern: "", replacement: "", department: "all" })
   const [sampleTextForDetection, setSampleTextForDetection] = useState("")
   const [detectedFormats, setDetectedFormats] = useState<any[]>([])
@@ -709,7 +722,176 @@ export default function DashboardPage() {
     fetchPaymentHistory(activeWorker.id)
   }, [activeWorker?.id])
 
+  const fetchWorkerIssues = async (workerId: string) => {
+    try {
+      const [validatorRes, assignmentRes] = await Promise.all([
+        fetch(`/api/validator-issue-reports?worker_id=${workerId}`),
+        fetch(`/api/report-assignment-issue?worker_id=${workerId}`)
+      ])
+
+      const validatorData = await validatorRes.json()
+      const assignmentData = await assignmentRes.json()
+
+      setWorkerValidatorIssues(validatorData.reports || [])
+      setWorkerAssignmentIssues(assignmentData.issues || [])
+    } catch (error) {
+      console.error('Failed to fetch worker issues:', error)
+    }
+  }
+
   
+
+  const fetchAllValidatorReports = async () => {
+    setIsLoadingValidatorReports(true)
+    try {
+      const res = await fetch('/api/validator-issue-reports')
+      const data = await res.json()
+      setValidatorReports(data.reports || [])
+    } catch (error) {
+      console.error('Failed to fetch validator reports:', error)
+    } finally {
+      setIsLoadingValidatorReports(false)
+    }
+  }
+
+  const fetchAllAssignmentIssues = async () => {
+    setIsLoadingAssignmentIssues(true)
+    try {
+      const res = await fetch('/api/report-assignment-issue')
+      const data = await res.json()
+      setAssignmentIssues(data.issues || [])
+    } catch (error) {
+      console.error('Failed to fetch assignment issues:', error)
+    } finally {
+      setIsLoadingAssignmentIssues(false)
+    }
+  }
+
+  const handleResolveValidatorIssue = async (issueId: number) => {
+    if (!solutionText.trim()) {
+      alert('Please provide a solution')
+      return
+    }
+
+    if (!adminNameInput.trim()) {
+      alert('Please provide your name')
+      return
+    }
+
+    setIsSubmittingSolution(true)
+    try {
+      const res = await fetch('/api/validator-issue-reports', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: issueId,
+          status: 'resolved',
+          solution: solutionText.trim(),
+          resolved_by: adminNameInput.trim()
+        })
+      })
+
+      if (!res.ok) throw new Error('Failed to resolve issue')
+
+      setSolutionText('')
+      setAdminNameInput('')
+      setResolvingIssueId(null)
+      fetchAllValidatorReports()
+      setToastMessage('✅ Issue resolved successfully')
+      setShowToast(true)
+      setTimeout(() => { setShowToast(false); setToastMessage(null) }, 3000)
+    } catch (error) {
+      console.error('Failed to resolve issue:', error)
+      alert('Failed to resolve issue')
+    } finally {
+      setIsSubmittingSolution(false)
+    }
+  }
+
+  const handleDeleteValidatorIssue = async (issueId: number) => {
+    if (!confirm('Are you sure you want to delete this issue report?')) {
+      return
+    }
+
+    try {
+      const res = await fetch(`/api/validator-issue-reports?id=${issueId}`, {
+        method: 'DELETE'
+      })
+
+      if (!res.ok) throw new Error('Failed to delete issue')
+
+      fetchAllValidatorReports()
+      setToastMessage('✅ Issue deleted successfully')
+      setShowToast(true)
+      setTimeout(() => { setShowToast(false); setToastMessage(null) }, 3000)
+    } catch (error) {
+      console.error('Failed to delete issue:', error)
+      alert('Failed to delete issue')
+    }
+  }
+
+  const handleResolveAssignmentIssue = async (issueId: number) => {
+    if (!solutionText.trim()) {
+      alert('Please provide a solution')
+      return
+    }
+
+    if (!adminNameInput.trim()) {
+      alert('Please provide your name')
+      return
+    }
+
+    setIsSubmittingSolution(true)
+    try {
+      const res = await fetch('/api/report-assignment-issue', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: issueId,
+          status: 'resolved',
+          solution: solutionText.trim(),
+          resolved_by: adminNameInput.trim()
+        })
+      })
+
+      if (!res.ok) throw new Error('Failed to resolve issue')
+
+      setSolutionText('')
+      setAdminNameInput('')
+      setResolvingIssueId(null)
+      fetchAllAssignmentIssues()
+      setToastMessage('✅ Issue resolved successfully')
+      setShowToast(true)
+      setTimeout(() => { setShowToast(false); setToastMessage(null) }, 3000)
+    } catch (error) {
+      console.error('Failed to resolve issue:', error)
+      alert('Failed to resolve issue')
+    } finally {
+      setIsSubmittingSolution(false)
+    }
+  }
+
+  const handleDeleteAssignmentIssue = async (issueId: number) => {
+    if (!confirm('Are you sure you want to delete this issue report?')) {
+      return
+    }
+
+    try {
+      const res = await fetch(`/api/report-assignment-issue?id=${issueId}`, {
+        method: 'DELETE'
+      })
+
+      if (!res.ok) throw new Error('Failed to delete issue')
+
+      fetchAllAssignmentIssues()
+      setToastMessage('✅ Issue deleted successfully')
+      setShowToast(true)
+      setTimeout(() => { setShowToast(false); setToastMessage(null) }, 3000)
+    } catch (error) {
+      console.error('Failed to delete issue:', error)
+      alert('Failed to delete issue')
+    }
+  }
 
   useEffect(() => {
     if (profile && !activeWorker && profile.role !== "admin") {
@@ -2441,6 +2623,7 @@ export default function DashboardPage() {
           filename: filename.trim(),
           description: descriptionContent || null,
           attachmentUrl,
+          isPriority: isPriorityAssignment,
         }),
       })
       let data: any = null
@@ -2454,6 +2637,7 @@ export default function DashboardPage() {
       setNewAssignmentFilename("")
       setNewAssignmentDescription("")
       setNewAssignmentAttachment(null)
+      setIsPriorityAssignment(false)
       if (assignmentEditorRef) assignmentEditorRef.innerHTML = ''
       setIsAddAssignmentModalOpen(false)
       setEditAssignmentId(null)
@@ -3156,7 +3340,7 @@ export default function DashboardPage() {
 
                       {/* Validator Issue Reports */}
                       <button
-                        onClick={() => { setIsValidatorReportsModalOpen(true); fetchValidatorReports() }}
+                        onClick={() => { setIsValidatorReportsModalOpen(true); fetchAllValidatorReports() }}
                         className="group relative flex flex-col items-start gap-1 rounded-md border border-white/10 bg-white/5 p-2 text-left backdrop-blur-sm hover:bg-white/10 hover:border-red-400/40 transition-all duration-200 hover:shadow-xl hover:shadow-red-600/20"
                       >
                         <div className="flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br from-red-500 to-orange-600 shadow-lg shadow-red-500/30 group-hover:scale-110 transition-transform duration-200">
@@ -3168,6 +3352,23 @@ export default function DashboardPage() {
                         </div>
                         <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
                           <svg className="h-2.5 w-2.5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                        </div>
+                      </button>
+
+                      {/* Assignment Issues */}
+                      <button
+                        onClick={() => { setIsAssignmentIssuesModalOpen(true); fetchAllAssignmentIssues() }}
+                        className="group relative flex flex-col items-start gap-1 rounded-md border border-white/10 bg-white/5 p-2 text-left backdrop-blur-sm hover:bg-white/10 hover:border-cyan-400/40 transition-all duration-200 hover:shadow-xl hover:shadow-cyan-600/20"
+                      >
+                        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br from-cyan-500 to-sky-600 shadow-lg shadow-cyan-500/30 group-hover:scale-110 transition-transform duration-200">
+                          <FileText className="h-3 w-3 text-white" />
+                        </div>
+                        <div>
+                          <p className="text-[11px] font-semibold text-white">Assignment Issues</p>
+                          <p className="mt-0.5 text-[8px] text-zinc-400">View assignment issue reports</p>
+                        </div>
+                        <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <svg className="h-2.5 w-2.5 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
                         </div>
                       </button>
 
@@ -3573,14 +3774,32 @@ export default function DashboardPage() {
                         className="group relative flex flex-col items-start gap-1 rounded-md border border-white/10 bg-white/5 p-2 text-left backdrop-blur-sm hover:bg-white/10 hover:border-amber-400/40 transition-all duration-200 hover:shadow-xl hover:shadow-amber-600/20"
                       >
                         <div className="flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br from-amber-500 to-orange-600 shadow-lg shadow-amber-500/30 group-hover:scale-110 transition-transform duration-200">
-                          <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+                          <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5,7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
                         </div>
                         <div>
                           <p className="text-[11px] font-semibold text-white">Style Guides</p>
-                          <p className="mt-0.5 text-[8px] leading-relaxed text-zinc-400">Download formatting rules by department</p>
+                          <p className="mt-0.5 text-[8px] leading-relaxed text-zinc-400">View formatting rules &amp; style guides</p>
                         </div>
                         <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
                           <svg className="h-2.5 w-2.5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                        </div>
+                      </button>
+
+                      {/* Issue History */}
+                      <button
+                        type="button"
+                        onClick={() => { if (activeWorker?.id) fetchWorkerIssues(activeWorker.id); setIsIssueHistoryModalOpen(true) }}
+                        className="group relative flex flex-col items-start gap-1 rounded-md border border-white/10 bg-white/5 p-2 text-left backdrop-blur-sm hover:bg-white/10 hover:border-rose-400/40 transition-all duration-200 hover:shadow-xl hover:shadow-rose-600/20"
+                      >
+                        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br from-rose-500 to-pink-600 shadow-lg shadow-rose-500/30 group-hover:scale-110 transition-transform duration-200">
+                          <AlertCircle className="h-3 w-3 text-white" />
+                        </div>
+                        <div>
+                          <p className="text-[11px] font-semibold text-white">Issue History</p>
+                          <p className="mt-0.5 text-[8px] leading-relaxed text-zinc-400">View reported issues &amp; solutions</p>
+                        </div>
+                        <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <svg className="h-2.5 w-2.5 text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
                         </div>
                       </button>
 
@@ -3687,6 +3906,20 @@ export default function DashboardPage() {
                     <div>
                       <label className="block text-sm font-medium text-zinc-700 mb-1">Filename</label>
                       <input type="text" value={newAssignmentFilename} onChange={(e) => setNewAssignmentFilename(e.target.value)} placeholder="e.g., 771241201" className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900" required />
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        id="priority-assignment"
+                        checked={isPriorityAssignment}
+                        onChange={(e) => setIsPriorityAssignment(e.target.checked)}
+                        className="w-4 h-4 rounded border-zinc-300 text-red-600 focus:ring-red-500"
+                      />
+                      <label htmlFor="priority-assignment" className="flex items-center gap-2 text-sm font-medium text-zinc-700 cursor-pointer">
+                        <span className="text-red-600 font-bold">PRIORITY</span>
+                        <span>Assignment</span>
+                      </label>
                     </div>
 
                     <div>
@@ -5524,35 +5757,76 @@ export default function DashboardPage() {
                         </div>
                         <p className="text-[10px] text-zinc-600">{new Date(report.created_at).toLocaleString()}</p>
                       </div>
-                      {report.status === 'pending' && (
+                      <div className="flex gap-1">
+                        {report.status === 'pending' ? (
+                          <button
+                            onClick={() => { setResolvingIssueId(report.id); setSolutionText(''); setAdminNameInput('') }}
+                            className="text-[9px] bg-green-500 text-white px-2 py-1 rounded hover:bg-green-600 transition"
+                          >
+                            Resolve
+                          </button>
+                        ) : (
+                          <span className="text-[9px] text-green-600 font-semibold">✓ Resolved</span>
+                        )}
                         <button
-                          onClick={async () => {
-                            try {
-                              const res = await fetch('/api/validator-issue-reports', {
-                                method: 'PATCH',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ id: report.id, status: 'resolved' })
-                              })
-                              if (res.ok) {
-                                await fetchValidatorReports()
-                                setToastMessage('✅ Report marked as resolved')
-                                setShowToast(true)
-                                setTimeout(() => { setShowToast(false); setToastMessage(null) }, 3000)
-                              }
-                            } catch (err) {
-                              console.error('Error updating report status:', err)
-                            }
-                          }}
-                          className="text-[9px] bg-green-500 text-white px-2 py-1 rounded hover:bg-green-600 transition"
+                          onClick={() => handleDeleteValidatorIssue(report.id)}
+                          className="text-[9px] bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600 transition"
                         >
-                          Mark Resolved
+                          Delete
                         </button>
-                      )}
+                      </div>
                     </div>
                     <p className="text-[10px] text-zinc-700 bg-red-50 p-2 rounded mb-2">{report.issue_description}</p>
-                    <div className="bg-zinc-50 p-2 rounded max-h-24 overflow-y-auto">
+                    <div className="bg-zinc-50 p-2 rounded max-h-24 overflow-y-auto mb-2">
                       <p className="text-[9px] text-zinc-600 font-mono whitespace-pre-wrap">{report.transcript_content.substring(0, 200)}{report.transcript_content.length > 200 ? '...' : ''}</p>
                     </div>
+                    {report.status === 'resolved' && report.solution && (
+                      <div className="bg-green-50 border border-green-200 rounded p-2">
+                        <p className="text-[9px] font-semibold text-green-800 mb-1">Solution:</p>
+                        <p className="text-[9px] text-green-700">{report.solution}</p>
+                        {report.resolved_by && (
+                          <p className="text-[8px] text-green-600 mt-1">Resolved by: {report.resolved_by}</p>
+                        )}
+                      </div>
+                    )}
+                    {resolvingIssueId === report.id && (
+                      <div className="mt-2 pt-2 border-t border-zinc-200">
+                        <div className="mb-2">
+                          <label className="text-[9px] font-semibold text-zinc-700 mb-1 block">Your Name</label>
+                          <input
+                            type="text"
+                            value={adminNameInput}
+                            onChange={(e) => setAdminNameInput(e.target.value)}
+                            placeholder="Enter your name"
+                            className="w-full border border-zinc-300 rounded px-2 py-1 text-xs"
+                          />
+                        </div>
+                        <div className="mb-2">
+                          <label className="text-[9px] font-semibold text-zinc-700 mb-1 block">Solution</label>
+                          <textarea
+                            value={solutionText}
+                            onChange={(e) => setSolutionText(e.target.value)}
+                            placeholder="Provide a solution for this issue..."
+                            className="w-full border border-zinc-300 rounded px-2 py-1 text-xs resize-y min-h-[60px]"
+                          />
+                        </div>
+                        <div className="flex gap-2 mt-2">
+                          <button
+                            onClick={() => handleResolveValidatorIssue(report.id)}
+                            disabled={isSubmittingSolution}
+                            className="flex-1 text-[9px] bg-green-500 text-white px-2 py-1 rounded hover:bg-green-600 transition disabled:opacity-50"
+                          >
+                            {isSubmittingSolution ? 'Submitting...' : 'Submit Solution'}
+                          </button>
+                          <button
+                            onClick={() => { setResolvingIssueId(null); setSolutionText(''); setAdminNameInput('') }}
+                            className="flex-1 text-[9px] bg-zinc-200 text-zinc-700 px-2 py-1 rounded hover:bg-zinc-300 transition"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))
               )}
@@ -5562,6 +5836,129 @@ export default function DashboardPage() {
               <button 
                 onClick={() => setIsValidatorReportsModalOpen(false)} 
                 className="w-full rounded-xl border border-red-200 bg-red-50 px-5 py-2.5 text-sm font-semibold text-zinc-700 hover:bg-red-100 hover:text-zinc-900 hover:border-red-300 transition-all duration-300 shadow-sm"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Assignment Issues Modal ── */}
+      {isAssignmentIssuesModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
+          <div className="bg-gradient-to-br from-white to-cyan-50 rounded-3xl shadow-2xl shadow-cyan-500/20 w-full max-w-2xl p-4 relative border border-cyan-200 max-h-[90vh] flex flex-col">
+            <button 
+              onClick={() => setIsAssignmentIssuesModalOpen(false)} 
+              className="absolute right-3 top-3 text-cyan-400 hover:text-cyan-700 transition-colors"
+            >
+              <X className="h-4 w-4" />
+            </button>
+
+            <div className="mb-3">
+              <h3 className="text-lg font-bold text-cyan-900 mb-0.5">Assignment Issues</h3>
+              <p className="text-[10px] text-cyan-600">View and manage reported assignment issues from workers</p>
+            </div>
+
+            <div className="flex-1 overflow-y-auto space-y-2">
+              {isLoadingAssignmentIssues ? (
+                <div className="text-center text-zinc-500 text-xs py-8">Loading issues...</div>
+              ) : assignmentIssues.length === 0 ? (
+                <div className="text-center text-zinc-500 text-xs py-8">No assignment issues yet</div>
+              ) : (
+                assignmentIssues.map((issue: any) => (
+                  <div key={issue.id} className="bg-white border border-cyan-200 rounded-lg p-3">
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-[10px] font-semibold text-zinc-800">{issue.worker_name}</span>
+                          <span className={`text-[9px] px-1.5 py-0.5 rounded-full ${
+                            issue.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
+                            issue.status === 'resolved' ? 'bg-green-100 text-green-700' :
+                            'bg-zinc-100 text-zinc-700'
+                          }`}>
+                            {issue.status}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-zinc-600">{new Date(issue.created_at).toLocaleString()}</p>
+                      </div>
+                      <div className="flex gap-1">
+                        {issue.status === 'pending' ? (
+                          <button
+                            onClick={() => { setResolvingIssueId(issue.id); setSolutionText(''); setAdminNameInput('') }}
+                            className="text-[9px] bg-green-500 text-white px-2 py-1 rounded hover:bg-green-600 transition"
+                          >
+                            Resolve
+                          </button>
+                        ) : (
+                          <span className="text-[9px] text-green-600 font-semibold">✓ Resolved</span>
+                        )}
+                        <button
+                          onClick={() => handleDeleteAssignmentIssue(issue.id)}
+                          className="text-[9px] bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600 transition"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-zinc-700 mb-1"><strong>Assignment:</strong> {issue.assignment_filename}</p>
+                    <p className="text-[10px] text-zinc-700 bg-cyan-50 p-2 rounded mb-2">{issue.issue_description}</p>
+                    {issue.status === 'resolved' && issue.solution && (
+                      <div className="bg-green-50 border border-green-200 rounded p-2">
+                        <p className="text-[9px] font-semibold text-green-800 mb-1">Solution:</p>
+                        <p className="text-[9px] text-green-700">{issue.solution}</p>
+                        {issue.resolved_by && (
+                          <p className="text-[8px] text-green-600 mt-1">Resolved by: {issue.resolved_by}</p>
+                        )}
+                      </div>
+                    )}
+                    {resolvingIssueId === issue.id && (
+                      <div className="mt-2 pt-2 border-t border-zinc-200">
+                        <div className="mb-2">
+                          <label className="text-[9px] font-semibold text-zinc-700 mb-1 block">Your Name</label>
+                          <input
+                            type="text"
+                            value={adminNameInput}
+                            onChange={(e) => setAdminNameInput(e.target.value)}
+                            placeholder="Enter your name"
+                            className="w-full border border-zinc-300 rounded px-2 py-1 text-xs"
+                          />
+                        </div>
+                        <div className="mb-2">
+                          <label className="text-[9px] font-semibold text-zinc-700 mb-1 block">Solution</label>
+                          <textarea
+                            value={solutionText}
+                            onChange={(e) => setSolutionText(e.target.value)}
+                            placeholder="Provide a solution for this issue..."
+                            className="w-full border border-zinc-300 rounded px-2 py-1 text-xs resize-y min-h-[60px]"
+                          />
+                        </div>
+                        <div className="flex gap-2 mt-2">
+                          <button
+                            onClick={() => handleResolveAssignmentIssue(issue.id)}
+                            disabled={isSubmittingSolution}
+                            className="flex-1 text-[9px] bg-green-500 text-white px-2 py-1 rounded hover:bg-green-600 transition disabled:opacity-50"
+                          >
+                            {isSubmittingSolution ? 'Submitting...' : 'Submit Solution'}
+                          </button>
+                          <button
+                            onClick={() => { setResolvingIssueId(null); setSolutionText(''); setAdminNameInput('') }}
+                            className="flex-1 text-[9px] bg-zinc-200 text-zinc-700 px-2 py-1 rounded hover:bg-zinc-300 transition"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="flex-shrink-0 pt-4 border-t border-cyan-100 mt-4">
+              <button 
+                onClick={() => setIsAssignmentIssuesModalOpen(false)} 
+                className="w-full rounded-xl border border-cyan-200 bg-cyan-50 px-5 py-2.5 text-sm font-semibold text-zinc-700 hover:bg-cyan-100 hover:text-zinc-900 hover:border-cyan-300 transition-all duration-300 shadow-sm"
               >
                 Close
               </button>
@@ -5607,13 +6004,14 @@ export default function DashboardPage() {
                 ) : (
                   <div className="space-y-1">
                     {assignments.map((a: any) => (
-                      <div key={a.id} className="grid gap-1 items-center py-1.5 px-2.5 rounded-md border border-cyan-200/60 bg-white hover:bg-cyan-50/80 transition-all" style={{ gridTemplateColumns: effectiveRowTemplate }}>
+                      <div key={a.id} className={`grid gap-1 items-center py-1.5 px-2.5 rounded-md border bg-white hover:bg-cyan-50/80 transition-all ${a.is_priority ? 'border-red-400/80 bg-gradient-to-r from-red-50/50 to-white' : 'border-cyan-200/60'}`} style={{ gridTemplateColumns: effectiveRowTemplate }}>
                         <div>
-                          <button type="button" onClick={() => { setSelectedAssignment(a); setIsCurrentAssignmentsModalOpen(false); if (profile?.id) localStorage.setItem(`last_viewed_description_${profile.id}_${a.id}`, new Date().toISOString()); setAssignmentsWithUpdatedDescription(prev => { const newSet = new Set(prev); newSet.delete(a.id); return newSet }) }} className="text-xs font-bold text-cyan-900 underline-offset-4 hover:underline flex items-center gap-2">
-                            {getDisplayFileName(a.filename)}
+                          <button type="button" onClick={() => { setSelectedAssignment(a); setIsCurrentAssignmentsModalOpen(false); if (profile?.id) localStorage.setItem(`last_viewed_description_${profile.id}_${a.id}`, new Date().toISOString()) }} className="text-xs font-bold text-cyan-900 underline-offset-4 hover:underline flex items-center gap-2">
                             {assignmentsWithUpdatedDescription.has(a.id) && (
                               <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-red-500 text-white text-[10px] font-bold animate-pulse shadow-sm">REVISED</span>
                             )}
+                            {a.is_priority && <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-red-600 text-white text-[9px] font-bold">PRIORITY</span>}
+                            {getDisplayFileName(a.filename)}
                           </button>
                         </div>
                         <div className="flex items-center gap-1">
@@ -6442,6 +6840,100 @@ export default function DashboardPage() {
                 <button onClick={handleSubmitIssue} disabled={isSubmittingIssue || !issueDescription.trim()} className="flex-1 inline-flex items-center justify-center gap-2 rounded-md bg-red-700 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-red-600/20 hover:bg-red-800 disabled:opacity-50 transition">
                   {isSubmittingIssue ? 'Submitting...' : 'Submit Issue'}
                 </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Issue History Modal ── */}
+      {isIssueHistoryModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
+          <div className="bg-gradient-to-br from-white to-rose-50 rounded-3xl shadow-2xl shadow-rose-500/20 w-full max-w-xl p-4 relative border border-rose-200 max-h-[90vh] overflow-y-auto">
+            <button onClick={() => setIsIssueHistoryModalOpen(false)} className="absolute right-4 top-4 text-rose-400 hover:text-rose-700 transition-colors"><X className="h-4 w-4" /></button>
+            <h3 className="text-base font-bold text-rose-900 mb-3">Issue History</h3>
+            
+            <div className="space-y-4">
+              {/* Validator Issues */}
+              <div>
+                <h4 className="text-xs font-semibold text-rose-700 mb-2 flex items-center gap-2">
+                  <Check className="h-4 w-4 text-purple-500" />
+                  Transcript Validation Issues
+                </h4>
+                {workerValidatorIssues.length === 0 ? (
+                  <p className="text-xs text-zinc-500 italic">No transcript validation issues reported.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {workerValidatorIssues.map((issue: any) => (
+                      <div key={issue.id} className="border border-rose-200 rounded-lg p-3 bg-white">
+                        <div className="flex items-start justify-between mb-2">
+                          <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                            issue.status === 'resolved' 
+                              ? 'bg-green-100 text-green-800' 
+                              : 'bg-yellow-100 text-yellow-800'
+                          }`}>
+                            {issue.status === 'resolved' ? '✓ Resolved' : '⏳ Pending'}
+                          </span>
+                          <span className="text-xs text-zinc-500">
+                            {new Date(issue.created_at).toLocaleDateString()}
+                          </span>
+                        </div>
+                        <p className="text-xs text-zinc-700 mb-1"><strong>Issue:</strong> {issue.issue_description}</p>
+                        <p className="text-xs text-zinc-600 mb-1"><strong>Department:</strong> {issue.department}</p>
+                        {issue.status === 'resolved' && issue.solution && (
+                          <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded-md">
+                            <p className="text-xs font-semibold text-green-800 mb-1">Solution:</p>
+                            <p className="text-xs text-green-700">{issue.solution}</p>
+                            {issue.resolved_by && (
+                              <p className="text-[10px] text-green-600 mt-1">Resolved by: {issue.resolved_by}</p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Assignment Issues */}
+              <div>
+                <h4 className="text-xs font-semibold text-rose-700 mb-2 flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-cyan-500" />
+                  Assignment Issues
+                </h4>
+                {workerAssignmentIssues.length === 0 ? (
+                  <p className="text-xs text-zinc-500 italic">No assignment issues reported.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {workerAssignmentIssues.map((issue: any) => (
+                      <div key={issue.id} className="border border-rose-200 rounded-lg p-3 bg-white">
+                        <div className="flex items-start justify-between mb-2">
+                          <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                            issue.status === 'resolved' 
+                              ? 'bg-green-100 text-green-800' 
+                              : 'bg-yellow-100 text-yellow-800'
+                          }`}>
+                            {issue.status === 'resolved' ? '✓ Resolved' : '⏳ Pending'}
+                          </span>
+                          <span className="text-xs text-zinc-500">
+                            {new Date(issue.created_at).toLocaleDateString()}
+                          </span>
+                        </div>
+                        <p className="text-xs text-zinc-700 mb-1"><strong>Assignment:</strong> {issue.assignment_filename}</p>
+                        <p className="text-xs text-zinc-700 mb-1"><strong>Issue:</strong> {issue.issue_description}</p>
+                        {issue.status === 'resolved' && issue.solution && (
+                          <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded-md">
+                            <p className="text-xs font-semibold text-green-800 mb-1">Solution:</p>
+                            <p className="text-xs text-green-700">{issue.solution}</p>
+                            {issue.resolved_by && (
+                              <p className="text-[10px] text-green-600 mt-1">Resolved by: {issue.resolved_by}</p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </div>

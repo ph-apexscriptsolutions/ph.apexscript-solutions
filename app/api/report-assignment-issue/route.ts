@@ -123,3 +123,104 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: err.message || 'Failed to report issue' }, { status: 500 })
   }
 }
+
+export async function PATCH(request: Request) {
+  try {
+    const body = await request.json()
+    const { id, status, solution, resolved_by } = body
+
+    if (!id || !status) {
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+    }
+
+    const supabase = getSupabaseServerClient(true)
+
+    const updateData: any = { status }
+    
+    if (solution !== undefined) {
+      updateData.solution = solution
+    }
+    
+    if (resolved_by !== undefined) {
+      updateData.resolved_by = resolved_by
+    }
+    
+    if (status === 'resolved' && !updateData.resolved_at) {
+      updateData.resolved_at = new Date().toISOString()
+    }
+
+    const { data, error } = await supabase
+      .from('assignment_issues')
+      .update(updateData)
+      .eq('id', id)
+      .select()
+
+    if (error) {
+      console.error('Failed to update assignment issue:', error)
+      return NextResponse.json({ error: error.message || 'Failed to update issue' }, { status: 500 })
+    }
+
+    return NextResponse.json({ success: true, data }, { status: 200 })
+  } catch (err: any) {
+    console.error('Update assignment issue error:', err)
+    return NextResponse.json({ error: err.message || 'Failed to update issue' }, { status: 500 })
+  }
+}
+
+export async function GET(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url)
+    const workerId = searchParams.get('worker_id')
+
+    const supabase = getSupabaseServerClient(true)
+
+    let query = supabase
+      .from('assignment_issues')
+      .select('*')
+      .order('created_at', { ascending: false })
+
+    if (workerId) {
+      query = query.eq('worker_id', workerId)
+    }
+
+    const { data, error } = await query
+
+    if (error) {
+      console.error('Failed to fetch assignment issues:', error)
+      return NextResponse.json({ error: error.message || 'Failed to fetch issues' }, { status: 500 })
+    }
+
+    return NextResponse.json({ issues: data }, { status: 200 })
+  } catch (err: any) {
+    console.error('Fetch assignment issues error:', err)
+    return NextResponse.json({ error: err.message || 'Failed to fetch issues' }, { status: 500 })
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url)
+    const id = searchParams.get('id')
+
+    if (!id) {
+      return NextResponse.json({ error: 'Missing required field: id' }, { status: 400 })
+    }
+
+    const supabase = getSupabaseServerClient(true)
+
+    const { error } = await supabase
+      .from('assignment_issues')
+      .delete()
+      .eq('id', id)
+
+    if (error) {
+      console.error('Failed to delete assignment issue:', error)
+      return NextResponse.json({ error: error.message || 'Failed to delete issue' }, { status: 500 })
+    }
+
+    return NextResponse.json({ success: true }, { status: 200 })
+  } catch (err: any) {
+    console.error('Delete assignment issue error:', err)
+    return NextResponse.json({ error: err.message || 'Failed to delete issue' }, { status: 500 })
+  }
+}

@@ -29,6 +29,7 @@ export async function GET(request: Request) {
       .select('*')
       .eq('worker_id', workerId)
       .eq('admin_deleted', false)
+      .order('is_priority', { ascending: false })
       .order('created_at', { ascending: false })
 
     if (error) {
@@ -46,7 +47,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { workerId, filename, dueTime, description, attachmentUrl } = body
+    const { workerId, filename, dueTime, description, attachmentUrl, isPriority } = body
 
     if (!workerId || !filename) {
       return NextResponse.json({ error: 'Missing workerId or filename' }, { status: 400 })
@@ -65,6 +66,7 @@ export async function POST(request: Request) {
         due_time: formattedDueTime,
         description: description || null,
         attachment_url: attachmentUrl || null,
+        is_priority: isPriority || false,
       }])
       .select()
 
@@ -93,15 +95,28 @@ export async function POST(request: Request) {
       try {
         console.log('Attempting to send email to:', workerData.email)
         console.log('Using from email:', process.env.EMAIL_USER)
+        
+        const subject = isPriority 
+          ? '[URGENT] Priority Assignment Available' 
+          : '[ALERT] New Assignment Available'
+        
+        const priorityBadge = isPriority 
+          ? `<div style="background: linear-gradient(135deg, #ff6b6b, #ee5a5a); color: white; padding: 12px; border-radius: 8px; margin: 20px 0; text-align: center; font-weight: bold; font-size: 16px;">
+              PRIORITY ASSIGNMENT - Complete ASAP
+             </div>`
+          : ''
+
         const result = await transporter.sendMail({
           from: `"[WORKER] ApexScript Transcription Services" <${process.env.EMAIL_USER}>`,
           to: `"${workerData.full_name || 'Worker'}" <${workerData.email}>`,
-          subject: '[ALERT] New Assignment Available',
+          subject,
           html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-              <h2 style="color: #333;">New Assignment Available</h2>
+              ${priorityBadge}
+              <h2 style="color: #333;">${isPriority ? 'Priority Assignment' : 'New Assignment Available'}</h2>
               <p style="color: #666; line-height: 1.6;">Hello ${workerData.full_name || 'Worker'},</p>
-              <p style="color: #666; line-height: 1.6;">You have a new assignment available in your dashboard.</p>
+              <p style="color: #666; line-height: 1.6;">You have a ${isPriority ? '<strong>PRIORITY</strong>' : 'new'} assignment available in your dashboard.</p>
+              ${isPriority ? '<p style="color: #e74c3c; line-height: 1.6; font-weight: bold;">Please complete this assignment as soon as possible.</p>' : ''}
               <p style="color: #666; line-height: 1.6;">Please check your dashboard for more details.</p>
               <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 30px 0;">
               <p style="color: #999; font-size: 12px; margin: 0;">This is an automated message. Please do not reply.</p>
