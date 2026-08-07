@@ -160,6 +160,44 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: error.message || 'Failed to update issue' }, { status: 500 })
     }
 
+    // Send email notification to worker when issue is resolved
+    if (status === 'resolved' && data && data[0] && transporter) {
+      try {
+        const issue = data[0]
+        
+        // Fetch worker's email
+        const { data: workerData, error: workerError } = await supabase
+          .from('worker_profiles')
+          .select('email, full_name')
+          .eq('id', issue.worker_id)
+          .single()
+
+        if (!workerError && workerData?.email) {
+          await transporter.sendMail({
+            from: `"[RESOLVED] ApexScript Transcription Services" <${process.env.EMAIL_USER}>`,
+            to: `"${workerData.full_name || 'Worker'}" <${workerData.email}>`,
+            subject: '[RESOLVED] Your Assignment Issue Has Been Resolved',
+            html: `
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <h2 style="color: #333;">Your Assignment Issue Has Been Resolved</h2>
+                <p style="color: #666; line-height: 1.6;">Hello ${workerData.full_name || 'Worker'},</p>
+                <p style="color: #666; line-height: 1.6;">The issue you reported for your assignment has been resolved by our team.</p>
+                <p style="color: #666; line-height: 1.6;"><strong>Assignment:</strong> ${issue.assignment_filename}</p>
+                <p style="color: #666; line-height: 1.6;"><strong>Issue:</strong> ${issue.issue_description}</p>
+                ${resolved_by ? `<p style="color: #666; line-height: 1.6;"><strong>Resolved by:</strong> ${resolved_by}</p>` : ''}
+                <p style="color: #666; line-height: 1.6;">Please check your <strong>Issue History</strong> in the dashboard to view the solution.</p>
+                <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 30px 0;">
+                <p style="color: #999; font-size: 12px; margin: 0;">This is an automated message. Please do not reply.</p>
+              </div>
+            `,
+          })
+        }
+      } catch (emailError) {
+        console.error('Failed to send resolution email:', emailError)
+        // Don't fail the request if email sending fails
+      }
+    }
+
     return NextResponse.json({ success: true, data }, { status: 200 })
   } catch (err: any) {
     console.error('Update assignment issue error:', err)
