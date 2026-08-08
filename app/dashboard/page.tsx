@@ -3,9 +3,7 @@ export const dynamic = 'force-dynamic'
 import { useEffect, useState, FormEvent, useMemo, useCallback, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/utils/supabase/client"
-import { FileText, HardDrive, LogOut, Calendar, X, Pencil, Save, User, ArrowLeft, Upload, UserPlus, CreditCard, Trash2, Check, Bell, AlertCircle, Tv, Mic, Headphones, FileEdit, Newspaper, Radio, Video, BookOpen, Gavel, TrendingUp, Activity, Search, Loader2, Copy, ChevronDown, ChevronUp, Building2, Eye, MessageSquare } from "lucide-react"
-import AdminChat from '@/components/admin-chat'
-import WorkerRealtimeChat from '@/components/worker-realtime-chat'
+import { FileText, HardDrive, LogOut, Calendar, X, Pencil, Save, User, ArrowLeft, Upload, UserPlus, CreditCard, Trash2, Check, Bell, AlertCircle, Tv, Mic, Headphones, FileEdit, Newspaper, Radio, Video, BookOpen, Gavel, TrendingUp, Activity, Search, Loader2, Copy, ChevronDown, ChevronUp, Building2, Eye } from "lucide-react"
 import { FlagIcon } from "@/components/flag-icon"
 import TranscriptCleanup from '@/components/TranscriptCleanup'
 import { validateTranscript, replaceInTranscript, getHighlightClass, validationHighlightStyles, ValidationIssue, ValidationRule, Participant, extractParticipants, getValidUncommonWords, detectFillerWords, extractSenateSpeakers, detectTranscriptFormat } from '@/utils/transcript-validation'
@@ -2981,12 +2979,6 @@ export default function DashboardPage() {
 
 
       <main className="mx-auto max-w-6xl p-6 space-y-6">
-        {isAdmin && (
-          <AdminChat workerProfiles={workersList} />
-        )}
-        {!isAdmin && profile?.id && (
-          <WorkerRealtimeChat workerId={profile.id} initialName={profile.full_name || undefined} />
-        )}
         {announcementSchemaHint && (
           <div className="rounded-3xl border border-red-200 bg-red-50 p-5 text-red-900 shadow-sm">
             <div className="flex flex-col gap-2">
