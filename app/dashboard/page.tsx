@@ -917,6 +917,44 @@ export default function DashboardPage() {
     }
   }, [profile?.id])
 
+  // Admin realtime subscriptions for new issues
+  useEffect(() => {
+    if (!profile || profile.role !== 'admin') return
+
+    // Subscribe to new validator issue reports
+    const validatorIssuesAdminChannel = supabase.channel('admin_validator_issues', { config: { broadcast: { self: true } } })
+      .on('postgres_changes', { 
+        event: 'INSERT', 
+        schema: 'public', 
+        table: 'validator_issue_reports' 
+      }, (payload: any) => {
+        setToastMessage(`📋 New validator issue reported! Check Issue Reports.`)
+        setShowToast(true)
+        setTimeout(() => { setShowToast(false); setToastMessage(null) }, 5000)
+        fetchAllValidatorReports()
+      })
+      .subscribe()
+
+    // Subscribe to new assignment issues
+    const assignmentIssuesAdminChannel = supabase.channel('admin_assignment_issues', { config: { broadcast: { self: true } } })
+      .on('postgres_changes', { 
+        event: 'INSERT', 
+        schema: 'public', 
+        table: 'assignment_issues' 
+      }, (payload: any) => {
+        setToastMessage(`📋 New assignment issue reported! Check Assignment Issues.`)
+        setShowToast(true)
+        setTimeout(() => { setShowToast(false); setToastMessage(null) }, 5000)
+        fetchAllAssignmentIssues()
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(validatorIssuesAdminChannel)
+      supabase.removeChannel(assignmentIssuesAdminChannel)
+    }
+  }, [profile?.id, profile?.role])
+
 
 
   // Real-time subscriptions for automatic updates
@@ -1071,6 +1109,42 @@ export default function DashboardPage() {
         .subscribe()
     }
 
+    // Subscribe to validator_issue_reports changes for issue resolution notifications
+    const validatorIssuesChannel = supabase.channel(`validator_issues:${activeWorkerId}`, { config: { broadcast: { self: true } } })
+      .on('postgres_changes', { 
+        event: 'UPDATE', 
+        schema: 'public', 
+        table: 'validator_issue_reports', 
+        filter: `worker_id=eq.${activeWorkerId}` 
+      }, (payload: any) => {
+        const newRow = payload?.new
+        if (newRow?.status === 'resolved' && newRow?.solution) {
+          setToastMessage(`✅ Your validator issue has been resolved! Check Issue History for solution.`)
+          setShowToast(true)
+          setTimeout(() => { setShowToast(false); setToastMessage(null) }, 5000)
+          fetchWorkerIssues(activeWorkerId)
+        }
+      })
+      .subscribe()
+
+    // Subscribe to assignment_issues changes for issue resolution notifications
+    const assignmentIssuesChannel = supabase.channel(`assignment_issues:${activeWorkerId}`, { config: { broadcast: { self: true } } })
+      .on('postgres_changes', { 
+        event: 'UPDATE', 
+        schema: 'public', 
+        table: 'assignment_issues', 
+        filter: `worker_id=eq.${activeWorkerId}` 
+      }, (payload: any) => {
+        const newRow = payload?.new
+        if (newRow?.status === 'resolved' && newRow?.solution) {
+          setToastMessage(`✅ Your assignment issue has been resolved! Check Issue History for solution.`)
+          setShowToast(true)
+          setTimeout(() => { setShowToast(false); setToastMessage(null) }, 5000)
+          fetchWorkerIssues(activeWorkerId)
+        }
+      })
+      .subscribe()
+
     // After subscriptions are created, do a quick connectivity test and set status
     ;(async () => {
       try {
@@ -1095,6 +1169,8 @@ export default function DashboardPage() {
       supabase.removeChannel(workerChannel)
       if (payslipWorkerChannel) supabase.removeChannel(payslipWorkerChannel)
       if (payslipAdminChannel) supabase.removeChannel(payslipAdminChannel)
+      supabase.removeChannel(validatorIssuesChannel)
+      supabase.removeChannel(assignmentIssuesChannel)
     }
   }, [activeWorker?.id, filterApplied])
 
