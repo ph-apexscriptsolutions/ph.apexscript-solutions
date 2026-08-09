@@ -160,6 +160,38 @@ export default function DashboardPage() {
   const [isBankModalOpen, setIsBankModalOpen] = useState(false)
   const [bankForm, setBankForm] = useState({ bankName: "", accountNumber: "", accountType: "", routingNumber: "", employeeId: "" })
   const [isUpdatingBank, setIsUpdatingBank] = useState(false)
+  const [isBankStyleModalOpen, setIsBankStyleModalOpen] = useState(false)
+  const [bankStyle, setBankStyle] = useState({
+    bgGradient: 'from-cyan-50 to-blue-50/80',
+    borderColor: 'border-zinc-200/80',
+    borderWidth: 'border',
+    textColor: 'text-zinc-700',
+    headerColor: 'text-zinc-800',
+    labelColor: 'text-zinc-600',
+    valueColor: 'text-zinc-900',
+    fontFamily: 'font-sans'
+  })
+
+  const [isWorkerStyleModalOpen, setIsWorkerStyleModalOpen] = useState(false)
+  const [workerStyle, setWorkerStyle] = useState({
+    bgGradient: 'from-slate-800 to-slate-900',
+    borderColor: 'border-[#334155]',
+    textColor: 'text-gray-300',
+    headerColor: 'text-white',
+    labelColor: 'text-gray-400',
+    valueColor: 'text-white',
+    fontFamily: 'font-sans'
+  })
+
+  const [isStatsStyleModalOpen, setIsStatsStyleModalOpen] = useState(false)
+  const [statsStyle, setStatsStyle] = useState({
+    bgGradient: 'from-slate-800 to-slate-900',
+    borderColor: 'border-cyan-500/30',
+    textColor: 'text-white',
+    headerColor: 'text-white',
+    labelColor: 'text-cyan-100',
+    fontFamily: 'font-sans'
+  })
 
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
   const [selectedPaymentRate, setSelectedPaymentRate] = useState<number | null>(null)
@@ -3517,7 +3549,13 @@ export default function DashboardPage() {
         ) : (
           <div>
             <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
-              <div className="rounded-2xl border border-[#334155] bg-[#172033] backdrop-blur-sm transition-all duration-300">
+              <div className={`rounded-2xl ${workerStyle.borderColor} bg-gradient-to-br ${workerStyle.bgGradient} backdrop-blur-sm transition-all duration-300 relative ${workerStyle.fontFamily}`}>
+                {isAdmin && (
+                  <button onClick={() => setIsWorkerStyleModalOpen(true)} className="absolute top-4 right-4 inline-flex items-center gap-1 rounded-md border border-white/20 bg-white/10 px-2 py-1 text-xs font-semibold text-white hover:bg-white/20 transition">
+                    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" /></svg>
+                    Style
+                  </button>
+                )}
                 <div className="p-6">
                   <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
                     <div className="flex flex-col items-center gap-4 sm:items-start">
@@ -3527,7 +3565,7 @@ export default function DashboardPage() {
                     </div>
                     <div className="flex-1">
                       <div className="flex flex-wrap items-center gap-3">
-                        <h2 className="text-2xl md:text-4xl font-semibold tracking-tight text-white">{activeWorker?.full_name || "Worker Details"}</h2>
+                        <h2 className={`text-2xl md:text-4xl font-semibold tracking-tight ${workerStyle.headerColor}`}>{activeWorker?.full_name || "Worker Details"}</h2>
                         {activeWorker?.role && (
                           <span className="inline-flex items-center rounded-full bg-cyan-500/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.15em] text-cyan-300 border border-cyan-500/30">
                             {activeWorker.role}
@@ -3543,7 +3581,7 @@ export default function DashboardPage() {
                           </div>
                         )}
                       </div>
-                      <div className="mt-4 space-y-2 text-sm text-gray-300">
+                      <div className={`mt-4 space-y-2 text-sm ${workerStyle.textColor}`}>
                         <div className="flex items-center gap-2">
                           <span className="font-medium">📋</span>
                           <span>{activeWorker?.job_title || "Transcriber"}</span>
@@ -3570,39 +3608,47 @@ export default function DashboardPage() {
               </div>
 
               {hasBankColumns && (
-              <div className="rounded-2xl border-l-4 border-cyan-500 border border-[#334155] bg-[#172033] backdrop-blur-sm transition-all duration-300 relative">
-                <div className="flex items-start justify-between gap-4 p-6 border-b border-[#334155]">
+              <div className={`rounded-2xl border-l-4 border-cyan-500 ${bankStyle.borderWidth} ${bankStyle.borderColor} bg-gradient-to-br ${bankStyle.bgGradient} backdrop-blur-sm transition-all duration-300 relative ${bankStyle.fontFamily}`}>
+                <div className="flex items-start justify-between gap-4 p-6 border-b border-zinc-200/60">
                   <div>
-                    <h3 className="text-sm font-medium text-gray-300">Bank Details</h3>
-                    <p className="text-xs text-gray-400">Editable by authorized users.</p>
+                    <h3 className={`text-sm font-medium ${bankStyle.headerColor}`}>Bank Details</h3>
+                    <p className={`text-xs ${bankStyle.labelColor}`}>Editable by authorized users.</p>
                   </div>
                 </div>
-                {canEditBank && (
-                  <button onClick={() => setIsBankModalOpen(true)} className="absolute top-4 right-4 inline-flex items-center gap-1 rounded-md border border-white/20 bg-white/10 px-2 py-1 text-xs font-semibold text-white hover:bg-white/20 transition">
-                    <CreditCard className="h-3.5 w-3.5" /> Edit
-                  </button>
-                )}
+                <div className="absolute top-4 right-4 flex gap-2">
+                  {isAdmin && (
+                    <button onClick={() => setIsBankStyleModalOpen(true)} className="inline-flex items-center gap-1 rounded-md border border-zinc-300 bg-white/80 px-2 py-1 text-xs font-semibold text-zinc-700 hover:bg-white transition">
+                      <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" /></svg>
+                      Style
+                    </button>
+                  )}
+                  {canEditBank && (
+                    <button onClick={() => setIsBankModalOpen(true)} className="inline-flex items-center gap-1 rounded-md border border-zinc-300 bg-white/80 px-2 py-1 text-xs font-semibold text-zinc-700 hover:bg-white transition">
+                      <CreditCard className="h-3.5 w-3.5" /> Edit
+                    </button>
+                  )}
+                </div>
                 <div className="p-6 pt-4">
-                  <div className="space-y-1.5 text-sm text-gray-300">
+                  <div className={`space-y-1.5 text-sm ${bankStyle.textColor}`}>
                     <div className="flex items-center justify-between gap-2">
-                      <span className="font-medium text-gray-400">Bank Name</span>
-                      <span className="text-white">{activeWorker?.bank_name || "No bank name set"}</span>
+                      <span className={`font-medium ${bankStyle.labelColor}`}>Bank Name</span>
+                      <span className={bankStyle.valueColor}>{activeWorker?.bank_name || "No bank name set"}</span>
                     </div>
                     <div className="flex items-center justify-between gap-2">
-                      <span className="font-medium text-gray-400">Account Number</span>
-                      <span className="text-white">{activeWorker?.account_number || "Not provided"}</span>
+                      <span className={`font-medium ${bankStyle.labelColor}`}>Account Number</span>
+                      <span className={bankStyle.valueColor}>{activeWorker?.account_number || "Not provided"}</span>
                     </div>
                     <div className="flex items-center justify-between gap-2">
-                      <span className="font-medium text-gray-400">Account Type</span>
-                      <span className="text-white">{activeWorker?.account_type || "Not provided"}</span>
+                      <span className={`font-medium ${bankStyle.labelColor}`}>Account Type</span>
+                      <span className={bankStyle.valueColor}>{activeWorker?.account_type || "Not provided"}</span>
                     </div>
                     <div className="flex items-center justify-between gap-2">
-                      <span className="font-medium text-gray-400">Routing Number</span>
-                      <span className="text-white">{activeWorker?.routing_number || "Not provided"}</span>
+                      <span className={`font-medium ${bankStyle.labelColor}`}>Routing Number</span>
+                      <span className={bankStyle.valueColor}>{activeWorker?.routing_number || "Not provided"}</span>
                     </div>
                     <div className="flex items-center justify-between gap-2">
-                      <span className="font-medium text-gray-400">Employee ID</span>
-                      <span className="text-white">{activeWorker?.employee_id || "Not provided"}</span>
+                      <span className={`font-medium ${bankStyle.labelColor}`}>Employee ID</span>
+                      <span className={bankStyle.valueColor}>{activeWorker?.employee_id || "Not provided"}</span>
                     </div>
                   </div>
                 </div>
@@ -3691,40 +3737,46 @@ export default function DashboardPage() {
               </div>
 
               <div className="flex flex-col gap-3 sticky top-4 self-start">
-                <div className="rounded-2xl border border-cyan-500/30 bg-gradient-to-br from-slate-800 to-slate-900 backdrop-blur-sm shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:shadow-[0_0_30px_rgba(6,182,212,0.5)] transition-all duration-300 hover:-translate-y-0.5">
+                {isAdmin && (
+                  <button onClick={() => setIsStatsStyleModalOpen(true)} className="inline-flex items-center gap-1 rounded-md border border-white/20 bg-white/10 px-2 py-1 text-xs font-semibold text-white hover:bg-white/20 transition self-end">
+                    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" /></svg>
+                    Style Stats
+                  </button>
+                )}
+                <div className={`rounded-2xl ${statsStyle.borderColor} bg-gradient-to-br ${statsStyle.bgGradient} backdrop-blur-sm shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:shadow-[0_0_30px_rgba(6,182,212,0.5)] transition-all duration-300 hover:-translate-y-0.5 ${statsStyle.fontFamily}`}>
                   <div className="flex flex-row items-center justify-between space-y-0 p-3 pb-1 border-b border-white/10">
-                    <h3 className="text-xs font-bold text-white uppercase tracking-wider">Total Files</h3>
+                    <h3 className={`text-xs font-bold uppercase tracking-wider ${statsStyle.headerColor}`}>Total Files</h3>
                     <div className="h-7 w-7 rounded-md bg-white/20 flex items-center justify-center shadow-md shadow-white/10">
                       <FileText className="h-3.5 w-3.5 text-white" />
                     </div>
                   </div>
                   <div className="p-3 pt-0">
-                    <div className="text-xl font-extrabold text-white tracking-tight">{filteredTotalFiles}</div>
-                    <p className="text-[10px] text-cyan-100 mt-0.5">{filterApplied ? "Selected Period" : "All Time"}</p>
+                    <div className={`text-xl font-extrabold tracking-tight ${statsStyle.textColor}`}>{filteredTotalFiles}</div>
+                    <p className={`text-[10px] mt-0.5 ${statsStyle.labelColor}`}>{filterApplied ? "Selected Period" : "All Time"}</p>
                   </div>
                 </div>
-                <div className="rounded-2xl border border-cyan-500/30 bg-gradient-to-br from-slate-800 to-slate-900 backdrop-blur-sm shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:shadow-[0_0_30px_rgba(6,182,212,0.5)] transition-all duration-300 hover:-translate-y-0.5">
+                <div className={`rounded-2xl ${statsStyle.borderColor} bg-gradient-to-br ${statsStyle.bgGradient} backdrop-blur-sm shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:shadow-[0_0_30px_rgba(6,182,212,0.5)] transition-all duration-300 hover:-translate-y-0.5 ${statsStyle.fontFamily}`}>
                   <div className="flex flex-row items-center justify-between space-y-0 p-3 pb-1 border-b border-white/10">
-                    <h3 className="text-xs font-bold text-white uppercase tracking-wider">Total Kilobytes</h3>
+                    <h3 className={`text-xs font-bold uppercase tracking-wider ${statsStyle.headerColor}`}>Total Kilobytes</h3>
                     <div className="h-7 w-7 rounded-md bg-white/20 flex items-center justify-center shadow-md shadow-white/10">
                       <HardDrive className="h-3.5 w-3.5 text-white" />
                     </div>
                   </div>
                   <div className="p-3 pt-0">
-                    <div className="text-xl font-extrabold text-white tracking-tight">{filteredTotalKB}</div>
-                    <p className="text-[10px] text-cyan-100 mt-0.5">{filterApplied ? "Selected Period" : "All Time"}</p>
+                    <div className={`text-xl font-extrabold tracking-tight ${statsStyle.textColor}`}>{filteredTotalKB}</div>
+                    <p className={`text-[10px] mt-0.5 ${statsStyle.labelColor}`}>{filterApplied ? "Selected Period" : "All Time"}</p>
                   </div>
                 </div>
-                <div className="rounded-2xl border border-cyan-500/30 bg-gradient-to-br from-slate-800 to-slate-900 backdrop-blur-sm shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:shadow-[0_0_30px_rgba(6,182,212,0.5)] transition-all duration-300 hover:-translate-y-0.5">
+                <div className={`rounded-2xl ${statsStyle.borderColor} bg-gradient-to-br ${statsStyle.bgGradient} backdrop-blur-sm shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:shadow-[0_0_30px_rgba(6,182,212,0.5)] transition-all duration-300 hover:-translate-y-0.5 ${statsStyle.fontFamily}`}>
                   <div className="flex flex-row items-center justify-between space-y-0 p-3 pb-1 border-b border-white/10">
-                    <h3 className="text-xs font-bold text-white uppercase tracking-wider">Total Earnings</h3>
+                    <h3 className={`text-xs font-bold uppercase tracking-wider ${statsStyle.headerColor}`}>Total Earnings</h3>
                     <div className="h-7 w-7 rounded-md bg-white/20 flex items-center justify-center shadow-md shadow-white/10">
                       <CreditCard className="h-3.5 w-3.5 text-white" />
                     </div>
                   </div>
                   <div className="p-3 pt-0">
-                    <div className="text-xl font-extrabold text-white tracking-tight">{computedEarnings ?? '-'}</div>
-                    <p className="text-[10px] text-cyan-100 mt-0.5">{computedEarnings ? `Based on ${formatCurrency(activeWorker?.base_payment_per_60kb || 700, activeWorker?.location)} per 60KB` : ''}</p>
+                    <div className={`text-xl font-extrabold tracking-tight ${statsStyle.textColor}`}>{computedEarnings ?? '-'}</div>
+                    <p className={`text-[10px] mt-0.5 ${statsStyle.labelColor}`}>{computedEarnings ? `Based on ${formatCurrency(activeWorker?.base_payment_per_60kb || 700, activeWorker?.location)} per 60KB` : ''}</p>
                     <div className="flex gap-1.5 mt-2">
                       <button type="button" onClick={computeTotalEarnings} className="inline-flex items-center justify-center rounded-md bg-white/20 hover:bg-white/30 px-2.5 py-1 text-[10px] font-semibold text-white shadow-sm transition-all">
                         Compute Earnings
@@ -4251,6 +4303,517 @@ export default function DashboardPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {isBankStyleModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6 relative max-h-[90vh] overflow-y-auto">
+            <button onClick={() => setIsBankStyleModalOpen(false)} className="absolute right-4 top-4 text-zinc-400 hover:text-zinc-900"><X className="h-5 w-5" /></button>
+            <h3 className="text-lg font-semibold text-zinc-900 mb-4">Bank Details Styling</h3>
+            
+            <div className="space-y-6">
+              {/* Background Gradient */}
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 mb-2">Background Gradient</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { name: 'Cyan-Blue', value: 'from-cyan-50 to-blue-50/80' },
+                    { name: 'Emerald-Teal', value: 'from-emerald-50 to-teal-50/80' },
+                    { name: 'Violet-Purple', value: 'from-violet-50 to-purple-50/80' },
+                    { name: 'Rose-Pink', value: 'from-rose-50 to-pink-50/80' },
+                    { name: 'Amber-Yellow', value: 'from-amber-50 to-yellow-50/80' },
+                    { name: 'Slate-Gray', value: 'from-slate-50 to-slate-100/80' },
+                    { name: 'Orange-Red', value: 'from-orange-50 to-red-50/80' },
+                    { name: 'Indigo-Violet', value: 'from-indigo-50 to-violet-50/80' },
+                  ].map((gradient) => (
+                    <button
+                      key={gradient.value}
+                      onClick={() => setBankStyle({ ...bankStyle, bgGradient: gradient.value })}
+                      className={`p-3 rounded-lg border-2 text-xs font-medium transition-all ${
+                        bankStyle.bgGradient === gradient.value 
+                          ? 'border-cyan-500 bg-cyan-50 text-cyan-700' 
+                          : 'border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300'
+                      }`}
+                    >
+                      {gradient.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Border Width */}
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 mb-2">Border Width</label>
+                <div className="flex gap-2">
+                  {[
+                    { name: 'None', value: '' },
+                    { name: 'Thin', value: 'border' },
+                    { name: 'Medium', value: 'border-2' },
+                    { name: 'Thick', value: 'border-4' },
+                  ].map((border) => (
+                    <button
+                      key={border.value}
+                      onClick={() => setBankStyle({ ...bankStyle, borderWidth: border.value })}
+                      className={`flex-1 p-2 rounded-lg border-2 text-xs font-medium transition-all ${
+                        bankStyle.borderWidth === border.value 
+                          ? 'border-cyan-500 bg-cyan-50 text-cyan-700' 
+                          : 'border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300'
+                      }`}
+                    >
+                      {border.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Border Color */}
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 mb-2">Border Color</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { name: 'Gray', value: 'border-zinc-200/80' },
+                    { name: 'Blue', value: 'border-blue-300/80' },
+                    { name: 'Green', value: 'border-emerald-300/80' },
+                    { name: 'Purple', value: 'border-purple-300/80' },
+                    { name: 'Orange', value: 'border-orange-300/80' },
+                    { name: 'Red', value: 'border-red-300/80' },
+                  ].map((color) => (
+                    <button
+                      key={color.value}
+                      onClick={() => setBankStyle({ ...bankStyle, borderColor: color.value })}
+                      className={`p-2 rounded-lg border-2 text-xs font-medium transition-all ${
+                        bankStyle.borderColor === color.value 
+                          ? 'border-cyan-500 bg-cyan-50 text-cyan-700' 
+                          : 'border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300'
+                      }`}
+                    >
+                      {color.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Text Colors */}
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 mb-2">Text Colors</label>
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs text-zinc-500 mb-1">Header Color</label>
+                    <select 
+                      value={bankStyle.headerColor}
+                      onChange={(e) => setBankStyle({ ...bankStyle, headerColor: e.target.value })}
+                      className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm"
+                    >
+                      <option value="text-zinc-800">Dark Gray</option>
+                      <option value="text-zinc-900">Black</option>
+                      <option value="text-blue-900">Blue</option>
+                      <option value="text-emerald-900">Green</option>
+                      <option value="text-purple-900">Purple</option>
+                      <option value="text-orange-900">Orange</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-zinc-500 mb-1">Label Color</label>
+                    <select 
+                      value={bankStyle.labelColor}
+                      onChange={(e) => setBankStyle({ ...bankStyle, labelColor: e.target.value })}
+                      className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm"
+                    >
+                      <option value="text-zinc-600">Medium Gray</option>
+                      <option value="text-zinc-700">Dark Gray</option>
+                      <option value="text-blue-700">Blue</option>
+                      <option value="text-emerald-700">Green</option>
+                      <option value="text-purple-700">Purple</option>
+                      <option value="text-orange-700">Orange</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-zinc-500 mb-1">Value Color</label>
+                    <select 
+                      value={bankStyle.valueColor}
+                      onChange={(e) => setBankStyle({ ...bankStyle, valueColor: e.target.value })}
+                      className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm"
+                    >
+                      <option value="text-zinc-900">Black</option>
+                      <option value="text-zinc-800">Dark Gray</option>
+                      <option value="text-blue-900">Blue</option>
+                      <option value="text-emerald-900">Green</option>
+                      <option value="text-purple-900">Purple</option>
+                      <option value="text-orange-900">Orange</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Font Family */}
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 mb-2">Font Family</label>
+                <div className="flex gap-2">
+                  {[
+                    { name: 'Sans', value: 'font-sans' },
+                    { name: 'Serif', value: 'font-serif' },
+                    { name: 'Mono', value: 'font-mono' },
+                  ].map((font) => (
+                    <button
+                      key={font.value}
+                      onClick={() => setBankStyle({ ...bankStyle, fontFamily: font.value })}
+                      className={`flex-1 p-2 rounded-lg border-2 text-xs font-medium transition-all ${
+                        bankStyle.fontFamily === font.value 
+                          ? 'border-cyan-500 bg-cyan-50 text-cyan-700' 
+                          : 'border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300'
+                      }`}
+                    >
+                      {font.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Reset Button */}
+              <div className="flex gap-3 pt-4 border-t border-zinc-200">
+                <button 
+                  onClick={() => setBankStyle({
+                    bgGradient: 'from-cyan-50 to-blue-50/80',
+                    borderColor: 'border-zinc-200/80',
+                    borderWidth: 'border',
+                    textColor: 'text-zinc-700',
+                    headerColor: 'text-zinc-800',
+                    labelColor: 'text-zinc-600',
+                    valueColor: 'text-zinc-900',
+                    fontFamily: 'font-sans'
+                  })}
+                  className="flex-1 rounded-md border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-100 transition"
+                >
+                  Reset to Default
+                </button>
+                <button 
+                  onClick={() => setIsBankStyleModalOpen(false)}
+                  className="flex-1 rounded-md bg-gradient-to-r from-cyan-600 to-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-cyan-600/20 hover:from-cyan-700 hover:to-sky-700 transition"
+                >
+                  Apply & Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isWorkerStyleModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6 relative max-h-[90vh] overflow-y-auto">
+            <button onClick={() => setIsWorkerStyleModalOpen(false)} className="absolute right-4 top-4 text-zinc-400 hover:text-zinc-900"><X className="h-5 w-5" /></button>
+            <h3 className="text-lg font-semibold text-zinc-900 mb-4">Worker Details Styling</h3>
+            
+            <div className="space-y-6">
+              {/* Background Gradient */}
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 mb-2">Background Gradient</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { name: 'Slate Dark', value: 'from-slate-800 to-slate-900' },
+                    { name: 'Zinc Dark', value: 'from-zinc-800 to-zinc-900' },
+                    { name: 'Blue Dark', value: 'from-blue-900 to-slate-900' },
+                    { name: 'Purple Dark', value: 'from-purple-900 to-slate-900' },
+                    { name: 'Emerald Dark', value: 'from-emerald-900 to-slate-900' },
+                    { name: 'Cyan Dark', value: 'from-cyan-900 to-slate-900' },
+                    { name: 'Rose Dark', value: 'from-rose-900 to-slate-900' },
+                    { name: 'Orange Dark', value: 'from-orange-900 to-slate-900' },
+                  ].map((gradient) => (
+                    <button
+                      key={gradient.value}
+                      onClick={() => setWorkerStyle({ ...workerStyle, bgGradient: gradient.value })}
+                      className={`p-3 rounded-lg border-2 text-xs font-medium transition-all ${
+                        workerStyle.bgGradient === gradient.value 
+                          ? 'border-cyan-500 bg-cyan-50 text-cyan-700' 
+                          : 'border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300'
+                      }`}
+                    >
+                      {gradient.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Border Color */}
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 mb-2">Border Color</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { name: 'Slate', value: 'border-[#334155]' },
+                    { name: 'Zinc', value: 'border-zinc-600' },
+                    { name: 'Blue', value: 'border-blue-600' },
+                    { name: 'Purple', value: 'border-purple-600' },
+                    { name: 'Emerald', value: 'border-emerald-600' },
+                    { name: 'Cyan', value: 'border-cyan-600' },
+                  ].map((color) => (
+                    <button
+                      key={color.value}
+                      onClick={() => setWorkerStyle({ ...workerStyle, borderColor: color.value })}
+                      className={`p-2 rounded-lg border-2 text-xs font-medium transition-all ${
+                        workerStyle.borderColor === color.value 
+                          ? 'border-cyan-500 bg-cyan-50 text-cyan-700' 
+                          : 'border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300'
+                      }`}
+                    >
+                      {color.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Text Colors */}
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 mb-2">Text Colors</label>
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs text-zinc-500 mb-1">Header Color</label>
+                    <select 
+                      value={workerStyle.headerColor}
+                      onChange={(e) => setWorkerStyle({ ...workerStyle, headerColor: e.target.value })}
+                      className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm"
+                    >
+                      <option value="text-white">White</option>
+                      <option value="text-zinc-100">Light Gray</option>
+                      <option value="text-zinc-200">Gray</option>
+                      <option value="text-cyan-100">Cyan Light</option>
+                      <option value="text-emerald-100">Emerald Light</option>
+                      <option value="text-purple-100">Purple Light</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-zinc-500 mb-1">Text Color</label>
+                    <select 
+                      value={workerStyle.textColor}
+                      onChange={(e) => setWorkerStyle({ ...workerStyle, textColor: e.target.value })}
+                      className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm"
+                    >
+                      <option value="text-gray-300">Light Gray</option>
+                      <option value="text-gray-200">Gray</option>
+                      <option value="text-white">White</option>
+                      <option value="text-zinc-300">Zinc Light</option>
+                      <option value="text-cyan-200">Cyan</option>
+                      <option value="text-emerald-200">Emerald</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Font Family */}
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 mb-2">Font Family</label>
+                <div className="flex gap-2">
+                  {[
+                    { name: 'Sans', value: 'font-sans' },
+                    { name: 'Serif', value: 'font-serif' },
+                    { name: 'Mono', value: 'font-mono' },
+                  ].map((font) => (
+                    <button
+                      key={font.value}
+                      onClick={() => setWorkerStyle({ ...workerStyle, fontFamily: font.value })}
+                      className={`flex-1 p-2 rounded-lg border-2 text-xs font-medium transition-all ${
+                        workerStyle.fontFamily === font.value 
+                          ? 'border-cyan-500 bg-cyan-50 text-cyan-700' 
+                          : 'border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300'
+                      }`}
+                    >
+                      {font.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Reset Button */}
+              <div className="flex gap-3 pt-4 border-t border-zinc-200">
+                <button 
+                  onClick={() => setWorkerStyle({
+                    bgGradient: 'from-slate-800 to-slate-900',
+                    borderColor: 'border-[#334155]',
+                    textColor: 'text-gray-300',
+                    headerColor: 'text-white',
+                    labelColor: 'text-gray-400',
+                    valueColor: 'text-white',
+                    fontFamily: 'font-sans'
+                  })}
+                  className="flex-1 rounded-md border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-100 transition"
+                >
+                  Reset to Default
+                </button>
+                <button 
+                  onClick={() => setIsWorkerStyleModalOpen(false)}
+                  className="flex-1 rounded-md bg-gradient-to-r from-cyan-600 to-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-cyan-600/20 hover:from-cyan-700 hover:to-sky-700 transition"
+                >
+                  Apply & Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isStatsStyleModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6 relative max-h-[90vh] overflow-y-auto">
+            <button onClick={() => setIsStatsStyleModalOpen(false)} className="absolute right-4 top-4 text-zinc-400 hover:text-zinc-900"><X className="h-5 w-5" /></button>
+            <h3 className="text-lg font-semibold text-zinc-900 mb-4">Stats Cards Styling</h3>
+            
+            <div className="space-y-6">
+              {/* Background Gradient */}
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 mb-2">Background Gradient</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { name: 'Slate Dark', value: 'from-slate-800 to-slate-900' },
+                    { name: 'Zinc Dark', value: 'from-zinc-800 to-zinc-900' },
+                    { name: 'Blue Dark', value: 'from-blue-900 to-slate-900' },
+                    { name: 'Purple Dark', value: 'from-purple-900 to-slate-900' },
+                    { name: 'Emerald Dark', value: 'from-emerald-900 to-slate-900' },
+                    { name: 'Cyan Dark', value: 'from-cyan-900 to-slate-900' },
+                    { name: 'Rose Dark', value: 'from-rose-900 to-slate-900' },
+                    { name: 'Orange Dark', value: 'from-orange-900 to-slate-900' },
+                  ].map((gradient) => (
+                    <button
+                      key={gradient.value}
+                      onClick={() => setStatsStyle({ ...statsStyle, bgGradient: gradient.value })}
+                      className={`p-3 rounded-lg border-2 text-xs font-medium transition-all ${
+                        statsStyle.bgGradient === gradient.value 
+                          ? 'border-cyan-500 bg-cyan-50 text-cyan-700' 
+                          : 'border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300'
+                      }`}
+                    >
+                      {gradient.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Border Color */}
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 mb-2">Border Color</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { name: 'Cyan', value: 'border-cyan-500/30' },
+                    { name: 'Blue', value: 'border-blue-500/30' },
+                    { name: 'Purple', value: 'border-purple-500/30' },
+                    { name: 'Emerald', value: 'border-emerald-500/30' },
+                    { name: 'Rose', value: 'border-rose-500/30' },
+                    { name: 'Orange', value: 'border-orange-500/30' },
+                  ].map((color) => (
+                    <button
+                      key={color.value}
+                      onClick={() => setStatsStyle({ ...statsStyle, borderColor: color.value })}
+                      className={`p-2 rounded-lg border-2 text-xs font-medium transition-all ${
+                        statsStyle.borderColor === color.value 
+                          ? 'border-cyan-500 bg-cyan-50 text-cyan-700' 
+                          : 'border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300'
+                      }`}
+                    >
+                      {color.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Text Colors */}
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 mb-2">Text Colors</label>
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs text-zinc-500 mb-1">Header Color</label>
+                    <select 
+                      value={statsStyle.headerColor}
+                      onChange={(e) => setStatsStyle({ ...statsStyle, headerColor: e.target.value })}
+                      className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm"
+                    >
+                      <option value="text-white">White</option>
+                      <option value="text-zinc-100">Light Gray</option>
+                      <option value="text-cyan-100">Cyan Light</option>
+                      <option value="text-emerald-100">Emerald Light</option>
+                      <option value="text-purple-100">Purple Light</option>
+                      <option value="text-rose-100">Rose Light</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-zinc-500 mb-1">Text Color</label>
+                    <select 
+                      value={statsStyle.textColor}
+                      onChange={(e) => setStatsStyle({ ...statsStyle, textColor: e.target.value })}
+                      className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm"
+                    >
+                      <option value="text-white">White</option>
+                      <option value="text-zinc-100">Light Gray</option>
+                      <option value="text-cyan-100">Cyan Light</option>
+                      <option value="text-emerald-100">Emerald Light</option>
+                      <option value="text-purple-100">Purple Light</option>
+                      <option value="text-rose-100">Rose Light</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-zinc-500 mb-1">Label Color</label>
+                    <select 
+                      value={statsStyle.labelColor}
+                      onChange={(e) => setStatsStyle({ ...statsStyle, labelColor: e.target.value })}
+                      className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm"
+                    >
+                      <option value="text-cyan-100">Cyan Light</option>
+                      <option value="text-zinc-100">Light Gray</option>
+                      <option value="text-emerald-100">Emerald Light</option>
+                      <option value="text-purple-100">Purple Light</option>
+                      <option value="text-rose-100">Rose Light</option>
+                      <option value="text-orange-100">Orange Light</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Font Family */}
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 mb-2">Font Family</label>
+                <div className="flex gap-2">
+                  {[
+                    { name: 'Sans', value: 'font-sans' },
+                    { name: 'Serif', value: 'font-serif' },
+                    { name: 'Mono', value: 'font-mono' },
+                  ].map((font) => (
+                    <button
+                      key={font.value}
+                      onClick={() => setStatsStyle({ ...statsStyle, fontFamily: font.value })}
+                      className={`flex-1 p-2 rounded-lg border-2 text-xs font-medium transition-all ${
+                        statsStyle.fontFamily === font.value 
+                          ? 'border-cyan-500 bg-cyan-50 text-cyan-700' 
+                          : 'border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300'
+                      }`}
+                    >
+                      {font.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Reset Button */}
+              <div className="flex gap-3 pt-4 border-t border-zinc-200">
+                <button 
+                  onClick={() => setStatsStyle({
+                    bgGradient: 'from-slate-800 to-slate-900',
+                    borderColor: 'border-cyan-500/30',
+                    textColor: 'text-white',
+                    headerColor: 'text-white',
+                    labelColor: 'text-cyan-100',
+                    fontFamily: 'font-sans'
+                  })}
+                  className="flex-1 rounded-md border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-100 transition"
+                >
+                  Reset to Default
+                </button>
+                <button 
+                  onClick={() => setIsStatsStyleModalOpen(false)}
+                  className="flex-1 rounded-md bg-gradient-to-r from-cyan-600 to-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-cyan-600/20 hover:from-cyan-700 hover:to-sky-700 transition"
+                >
+                  Apply & Close
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
