@@ -161,56 +161,96 @@ export default function DashboardPage() {
   const [bankForm, setBankForm] = useState({ bankName: "", accountNumber: "", accountType: "", routingNumber: "", employeeId: "" })
   const [isUpdatingBank, setIsUpdatingBank] = useState(false)
   const [isBankStyleModalOpen, setIsBankStyleModalOpen] = useState(false)
-  const [bankStyle, setBankStyle] = useState({
-    bgGradient: 'from-cyan-50 to-blue-50/80',
-    borderColor: 'border-zinc-200/80',
-    borderWidth: 'border',
-    textColor: 'text-zinc-700',
-    headerColor: 'text-zinc-800',
-    labelColor: 'text-zinc-600',
-    valueColor: 'text-zinc-900',
-    fontFamily: 'font-sans',
-    customBorderColor: '#e4e4e7',
-    customHeaderColor: '#27272a',
-    customTextColor: '#52525b',
-    customLabelColor: '#52525b',
-    customValueColor: '#18181b'
+  const [bankStyle, setBankStyle] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('bankStyle')
+      if (saved) return JSON.parse(saved)
+    }
+    return {
+      bgGradient: 'from-cyan-50 to-blue-50/80',
+      borderColor: 'border-zinc-200/80',
+      borderWidth: 'border',
+      textColor: 'text-zinc-700',
+      headerColor: 'text-zinc-800',
+      labelColor: 'text-zinc-600',
+      valueColor: 'text-zinc-900',
+      fontFamily: 'font-sans',
+      customBorderColor: '#e4e4e7',
+      customHeaderColor: '#27272a',
+      customTextColor: '#52525b',
+      customLabelColor: '#52525b',
+      customValueColor: '#18181b'
+    }
   })
+
+  useEffect(() => {
+    localStorage.setItem('bankStyle', JSON.stringify(bankStyle))
+  }, [bankStyle])
 
   const [isWorkerStyleModalOpen, setIsWorkerStyleModalOpen] = useState(false)
-  const [workerTitle, setWorkerTitle] = useState('WORKER')
-  const [workerStyle, setWorkerStyle] = useState({
-    bgGradient: 'from-slate-800 to-slate-900',
-    borderColor: 'border-[#334155]',
-    borderWidth: 'border',
-    textColor: 'text-gray-300',
-    headerColor: 'text-white',
-    labelColor: 'text-gray-400',
-    valueColor: 'text-white',
-    fontFamily: 'font-sans',
-    customBorderColor: '#334155',
-    customHeaderColor: '#ffffff',
-    customTextColor: '#d1d5db',
-    customLabelColor: '#9ca3af',
-    customValueColor: '#ffffff'
+  const [workerTitle, setWorkerTitle] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('workerTitle')
+      if (saved) return saved
+    }
+    return 'WORKER'
+  })
+  const [workerStyle, setWorkerStyle] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('workerStyle')
+      if (saved) return JSON.parse(saved)
+    }
+    return {
+      bgGradient: 'from-slate-800 to-slate-900',
+      borderColor: 'border-[#334155]',
+      borderWidth: 'border',
+      textColor: 'text-gray-300',
+      headerColor: 'text-white',
+      labelColor: 'text-gray-400',
+      valueColor: 'text-white',
+      fontFamily: 'font-sans',
+      customBorderColor: '#334155',
+      customHeaderColor: '#ffffff',
+      customTextColor: '#d1d5db',
+      customLabelColor: '#9ca3af',
+      customValueColor: '#ffffff'
+    }
   })
 
+  useEffect(() => {
+    localStorage.setItem('workerTitle', workerTitle)
+  }, [workerTitle])
+
+  useEffect(() => {
+    localStorage.setItem('workerStyle', JSON.stringify(workerStyle))
+  }, [workerStyle])
+
   const [isStatsStyleModalOpen, setIsStatsStyleModalOpen] = useState(false)
-  const [statsStyle, setStatsStyle] = useState({
-    bgGradient: 'from-slate-800 to-slate-900',
-    borderColor: 'border-cyan-500/30',
-    borderWidth: 'border',
-    textColor: 'text-white',
-    headerColor: 'text-white',
-    labelColor: 'text-cyan-100',
-    valueColor: 'text-white',
-    fontFamily: 'font-sans',
-    customBorderColor: '#06b6d4',
-    customHeaderColor: '#ffffff',
-    customTextColor: '#ffffff',
-    customLabelColor: '#67e8f9',
-    customValueColor: '#ffffff'
+  const [statsStyle, setStatsStyle] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('statsStyle')
+      if (saved) return JSON.parse(saved)
+    }
+    return {
+      bgGradient: 'from-slate-800 to-slate-900',
+      borderColor: 'border-cyan-500/30',
+      borderWidth: 'border',
+      textColor: 'text-white',
+      headerColor: 'text-white',
+      labelColor: 'text-cyan-100',
+      valueColor: 'text-white',
+      fontFamily: 'font-sans',
+      customBorderColor: '#06b6d4',
+      customHeaderColor: '#ffffff',
+      customTextColor: '#ffffff',
+      customLabelColor: '#67e8f9',
+      customValueColor: '#ffffff'
+    }
   })
+
+  useEffect(() => {
+    localStorage.setItem('statsStyle', JSON.stringify(statsStyle))
+  }, [statsStyle])
 
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
   const [selectedPaymentRate, setSelectedPaymentRate] = useState<number | null>(null)
