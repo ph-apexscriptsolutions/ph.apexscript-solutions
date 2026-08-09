@@ -169,28 +169,47 @@ export default function DashboardPage() {
     headerColor: 'text-zinc-800',
     labelColor: 'text-zinc-600',
     valueColor: 'text-zinc-900',
-    fontFamily: 'font-sans'
+    fontFamily: 'font-sans',
+    customBorderColor: '#e4e4e7',
+    customHeaderColor: '#27272a',
+    customTextColor: '#52525b',
+    customLabelColor: '#52525b',
+    customValueColor: '#18181b'
   })
 
   const [isWorkerStyleModalOpen, setIsWorkerStyleModalOpen] = useState(false)
+  const [workerTitle, setWorkerTitle] = useState('WORKER')
   const [workerStyle, setWorkerStyle] = useState({
     bgGradient: 'from-slate-800 to-slate-900',
     borderColor: 'border-[#334155]',
+    borderWidth: 'border',
     textColor: 'text-gray-300',
     headerColor: 'text-white',
     labelColor: 'text-gray-400',
     valueColor: 'text-white',
-    fontFamily: 'font-sans'
+    fontFamily: 'font-sans',
+    customBorderColor: '#334155',
+    customHeaderColor: '#ffffff',
+    customTextColor: '#d1d5db',
+    customLabelColor: '#9ca3af',
+    customValueColor: '#ffffff'
   })
 
   const [isStatsStyleModalOpen, setIsStatsStyleModalOpen] = useState(false)
   const [statsStyle, setStatsStyle] = useState({
     bgGradient: 'from-slate-800 to-slate-900',
     borderColor: 'border-cyan-500/30',
+    borderWidth: 'border',
     textColor: 'text-white',
     headerColor: 'text-white',
     labelColor: 'text-cyan-100',
-    fontFamily: 'font-sans'
+    valueColor: 'text-white',
+    fontFamily: 'font-sans',
+    customBorderColor: '#06b6d4',
+    customHeaderColor: '#ffffff',
+    customTextColor: '#ffffff',
+    customLabelColor: '#67e8f9',
+    customValueColor: '#ffffff'
   })
 
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
@@ -3549,7 +3568,7 @@ export default function DashboardPage() {
         ) : (
           <div>
             <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
-              <div className={`rounded-2xl ${workerStyle.borderColor} bg-gradient-to-br ${workerStyle.bgGradient} backdrop-blur-sm transition-all duration-300 relative ${workerStyle.fontFamily}`}>
+              <div className={`rounded-2xl ${workerStyle.borderWidth} ${workerStyle.borderColor} bg-gradient-to-br ${workerStyle.bgGradient} backdrop-blur-sm transition-all duration-300 relative ${workerStyle.fontFamily}`}>
                 <div className="p-6">
                   <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
                     <div className="flex flex-col items-center gap-4 sm:items-start">
@@ -3559,7 +3578,7 @@ export default function DashboardPage() {
                     </div>
                     <div className="flex-1">
                       <div className="flex flex-wrap items-center gap-3">
-                        <h2 className={`text-2xl md:text-4xl font-semibold tracking-tight ${workerStyle.headerColor}`}>{activeWorker?.full_name || "Worker Details"}</h2>
+                        <h2 className={`text-2xl md:text-4xl font-semibold tracking-tight ${workerStyle.headerColor}`}>{activeWorker?.full_name || workerTitle}</h2>
                         {activeWorker?.role && (
                           <span className="inline-flex items-center rounded-full bg-cyan-500/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.15em] text-cyan-300 border border-cyan-500/30">
                             {activeWorker.role}
@@ -3569,11 +3588,11 @@ export default function DashboardPage() {
                           <div className="ml-auto flex items-center gap-2">
                             {isAdmin && (
                               <>
-                                <button onClick={() => setIsWorkerStyleModalOpen(true)} className="inline-flex items-center gap-1 rounded-md border border-white/20 bg-white/10 px-2 py-1 text-xs font-semibold text-white hover:bg-white/20 transition">
+                                <button onClick={() => setIsWorkerStyleModalOpen(true)} className="inline-flex items-center gap-1 rounded-md border border-zinc-300 bg-white/80 px-2 py-1 text-xs font-semibold text-zinc-700 hover:bg-white transition">
                                   <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" /></svg>
                                   Style
                                 </button>
-                                <button onClick={openEditWorkerModal} className="inline-flex items-center gap-1 rounded-md border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold text-white hover:bg-white/20 transition">
+                                <button onClick={openEditWorkerModal} className="inline-flex items-center gap-1 rounded-md border border-zinc-300 bg-white/80 px-3 py-1 text-xs font-semibold text-zinc-700 hover:bg-white transition">
                                   <Pencil className="h-3.5 w-3.5" /> Edit
                                 </button>
                               </>
@@ -3737,9 +3756,9 @@ export default function DashboardPage() {
               </div>
 
               <div className="flex flex-col gap-3 sticky top-4 self-start">
-                <div className={`rounded-2xl ${statsStyle.borderColor} bg-gradient-to-br ${statsStyle.bgGradient} backdrop-blur-sm shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:shadow-[0_0_30px_rgba(6,182,212,0.5)] transition-all duration-300 hover:-translate-y-0.5 ${statsStyle.fontFamily} relative`}>
+                <div className={`rounded-2xl ${statsStyle.borderWidth} ${statsStyle.borderColor} bg-gradient-to-br ${statsStyle.bgGradient} backdrop-blur-sm shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:shadow-[0_0_30px_rgba(6,182,212,0.5)] transition-all duration-300 hover:-translate-y-0.5 ${statsStyle.fontFamily} relative`}>
                   {isAdmin && (
-                    <button onClick={() => setIsStatsStyleModalOpen(true)} className="absolute top-2 right-2 inline-flex items-center gap-1 rounded-md border border-white/20 bg-white/10 px-2 py-1 text-[10px] font-semibold text-white hover:bg-white/20 transition">
+                    <button onClick={() => setIsStatsStyleModalOpen(true)} className="absolute top-2 right-2 inline-flex items-center gap-1 rounded-md border border-zinc-300 bg-white/80 px-2 py-1 text-[10px] font-semibold text-zinc-700 hover:bg-white transition">
                       <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" /></svg>
                       Style
                     </button>
@@ -3755,9 +3774,9 @@ export default function DashboardPage() {
                     <p className={`text-[10px] mt-0.5 ${statsStyle.labelColor}`}>{filterApplied ? "Selected Period" : "All Time"}</p>
                   </div>
                 </div>
-                <div className={`rounded-2xl ${statsStyle.borderColor} bg-gradient-to-br ${statsStyle.bgGradient} backdrop-blur-sm shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:shadow-[0_0_30px_rgba(6,182,212,0.5)] transition-all duration-300 hover:-translate-y-0.5 ${statsStyle.fontFamily} relative`}>
+                <div className={`rounded-2xl ${statsStyle.borderWidth} ${statsStyle.borderColor} bg-gradient-to-br ${statsStyle.bgGradient} backdrop-blur-sm shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:shadow-[0_0_30px_rgba(6,182,212,0.5)] transition-all duration-300 hover:-translate-y-0.5 ${statsStyle.fontFamily} relative`}>
                   {isAdmin && (
-                    <button onClick={() => setIsStatsStyleModalOpen(true)} className="absolute top-2 right-2 inline-flex items-center gap-1 rounded-md border border-white/20 bg-white/10 px-2 py-1 text-[10px] font-semibold text-white hover:bg-white/20 transition">
+                    <button onClick={() => setIsStatsStyleModalOpen(true)} className="absolute top-2 right-2 inline-flex items-center gap-1 rounded-md border border-zinc-300 bg-white/80 px-2 py-1 text-[10px] font-semibold text-zinc-700 hover:bg-white transition">
                       <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" /></svg>
                       Style
                     </button>
@@ -3773,9 +3792,9 @@ export default function DashboardPage() {
                     <p className={`text-[10px] mt-0.5 ${statsStyle.labelColor}`}>{filterApplied ? "Selected Period" : "All Time"}</p>
                   </div>
                 </div>
-                <div className={`rounded-2xl ${statsStyle.borderColor} bg-gradient-to-br ${statsStyle.bgGradient} backdrop-blur-sm shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:shadow-[0_0_30px_rgba(6,182,212,0.5)] transition-all duration-300 hover:-translate-y-0.5 ${statsStyle.fontFamily} relative`}>
+                <div className={`rounded-2xl ${statsStyle.borderWidth} ${statsStyle.borderColor} bg-gradient-to-br ${statsStyle.bgGradient} backdrop-blur-sm shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:shadow-[0_0_30px_rgba(6,182,212,0.5)] transition-all duration-300 hover:-translate-y-0.5 ${statsStyle.fontFamily} relative`}>
                   {isAdmin && (
-                    <button onClick={() => setIsStatsStyleModalOpen(true)} className="absolute top-2 right-2 inline-flex items-center gap-1 rounded-md border border-white/20 bg-white/10 px-2 py-1 text-[10px] font-semibold text-white hover:bg-white/20 transition">
+                    <button onClick={() => setIsStatsStyleModalOpen(true)} className="absolute top-2 right-2 inline-flex items-center gap-1 rounded-md border border-zinc-300 bg-white/80 px-2 py-1 text-[10px] font-semibold text-zinc-700 hover:bg-white transition">
                       <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" /></svg>
                       Style
                     </button>
@@ -4391,7 +4410,7 @@ export default function DashboardPage() {
               {/* Border Color */}
               <div>
                 <label className="block text-sm font-medium text-zinc-700 mb-2">Border Color</label>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-3 gap-2 mb-3">
                   {[
                     { name: 'Gray', value: 'border-zinc-200/80' },
                     { name: 'Blue', value: 'border-blue-300/80' },
@@ -4413,6 +4432,15 @@ export default function DashboardPage() {
                     </button>
                   ))}
                 </div>
+                <div className="flex items-center gap-2">
+                  <label className="text-xs text-zinc-500">Custom:</label>
+                  <input
+                    type="color"
+                    value={bankStyle.customBorderColor}
+                    onChange={(e) => setBankStyle({ ...bankStyle, borderColor: `border-[${e.target.value}]`, customBorderColor: e.target.value })}
+                    className="h-8 w-16 rounded cursor-pointer border border-zinc-300"
+                  />
+                </div>
               </div>
 
               {/* Text Colors */}
@@ -4421,51 +4449,99 @@ export default function DashboardPage() {
                 <div className="space-y-3">
                   <div>
                     <label className="block text-xs text-zinc-500 mb-1">Header Color</label>
-                    <select 
-                      value={bankStyle.headerColor}
-                      onChange={(e) => setBankStyle({ ...bankStyle, headerColor: e.target.value })}
-                      className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm"
-                    >
-                      <option value="text-black">Black</option>
-                      <option value="text-zinc-800">Dark Gray</option>
-                      <option value="text-zinc-900">Near Black</option>
-                      <option value="text-blue-900">Blue</option>
-                      <option value="text-emerald-900">Green</option>
-                      <option value="text-purple-900">Purple</option>
-                      <option value="text-orange-900">Orange</option>
-                    </select>
+                    <div className="flex gap-2">
+                      <select 
+                        value={bankStyle.headerColor}
+                        onChange={(e) => setBankStyle({ ...bankStyle, headerColor: e.target.value })}
+                        className="flex-1 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm"
+                      >
+                        <option value="text-black">Black</option>
+                        <option value="text-zinc-800">Dark Gray</option>
+                        <option value="text-zinc-900">Near Black</option>
+                        <option value="text-blue-900">Blue</option>
+                        <option value="text-emerald-900">Green</option>
+                        <option value="text-purple-900">Purple</option>
+                        <option value="text-orange-900">Orange</option>
+                      </select>
+                      <input
+                        type="color"
+                        value={bankStyle.customHeaderColor}
+                        onChange={(e) => setBankStyle({ ...bankStyle, headerColor: `text-[${e.target.value}]`, customHeaderColor: e.target.value })}
+                        className="h-9 w-12 rounded cursor-pointer border border-zinc-300"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-zinc-500 mb-1">Text Color</label>
+                    <div className="flex gap-2">
+                      <select 
+                        value={bankStyle.textColor}
+                        onChange={(e) => setBankStyle({ ...bankStyle, textColor: e.target.value })}
+                        className="flex-1 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm"
+                      >
+                        <option value="text-black">Black</option>
+                        <option value="text-zinc-700">Dark Gray</option>
+                        <option value="text-zinc-800">Near Black</option>
+                        <option value="text-blue-700">Blue</option>
+                        <option value="text-emerald-700">Green</option>
+                        <option value="text-purple-700">Purple</option>
+                        <option value="text-orange-700">Orange</option>
+                      </select>
+                      <input
+                        type="color"
+                        value={bankStyle.customTextColor}
+                        onChange={(e) => setBankStyle({ ...bankStyle, textColor: `text-[${e.target.value}]`, customTextColor: e.target.value })}
+                        className="h-9 w-12 rounded cursor-pointer border border-zinc-300"
+                      />
+                    </div>
                   </div>
                   <div>
                     <label className="block text-xs text-zinc-500 mb-1">Label Color</label>
-                    <select 
-                      value={bankStyle.labelColor}
-                      onChange={(e) => setBankStyle({ ...bankStyle, labelColor: e.target.value })}
-                      className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm"
-                    >
-                      <option value="text-black">Black</option>
-                      <option value="text-zinc-600">Medium Gray</option>
-                      <option value="text-zinc-700">Dark Gray</option>
-                      <option value="text-blue-700">Blue</option>
-                      <option value="text-emerald-700">Green</option>
-                      <option value="text-purple-700">Purple</option>
-                      <option value="text-orange-700">Orange</option>
-                    </select>
+                    <div className="flex gap-2">
+                      <select 
+                        value={bankStyle.labelColor}
+                        onChange={(e) => setBankStyle({ ...bankStyle, labelColor: e.target.value })}
+                        className="flex-1 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm"
+                      >
+                        <option value="text-black">Black</option>
+                        <option value="text-zinc-600">Medium Gray</option>
+                        <option value="text-zinc-700">Dark Gray</option>
+                        <option value="text-blue-700">Blue</option>
+                        <option value="text-emerald-700">Green</option>
+                        <option value="text-purple-700">Purple</option>
+                        <option value="text-orange-700">Orange</option>
+                      </select>
+                      <input
+                        type="color"
+                        value={bankStyle.customLabelColor}
+                        onChange={(e) => setBankStyle({ ...bankStyle, labelColor: `text-[${e.target.value}]`, customLabelColor: e.target.value })}
+                        className="h-9 w-12 rounded cursor-pointer border border-zinc-300"
+                      />
+                    </div>
                   </div>
                   <div>
                     <label className="block text-xs text-zinc-500 mb-1">Value Color</label>
-                    <select 
-                      value={bankStyle.valueColor}
-                      onChange={(e) => setBankStyle({ ...bankStyle, valueColor: e.target.value })}
-                      className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm"
-                    >
-                      <option value="text-black">Black</option>
-                      <option value="text-zinc-900">Near Black</option>
-                      <option value="text-zinc-800">Dark Gray</option>
-                      <option value="text-blue-900">Blue</option>
-                      <option value="text-emerald-900">Green</option>
-                      <option value="text-purple-900">Purple</option>
-                      <option value="text-orange-900">Orange</option>
-                    </select>
+                    <div className="flex gap-2">
+                      <select 
+                        value={bankStyle.valueColor}
+                        onChange={(e) => setBankStyle({ ...bankStyle, valueColor: e.target.value })}
+                        className="flex-1 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm"
+                      >
+                        <option value="text-black">Black</option>
+                        <option value="text-zinc-900">Near Black</option>
+                        <option value="text-zinc-800">Dark Gray</option>
+                        <option value="text-blue-900">Blue</option>
+                        <option value="text-emerald-900">Green</option>
+                        <option value="text-purple-900">Purple</option>
+                        <option value="text-orange-900">Orange</option>
+                      </select>
+                      <input
+                        type="color"
+                        value={bankStyle.customValueColor}
+                        onChange={(e) => setBankStyle({ ...bankStyle, valueColor: `text-[${e.target.value}]`, customValueColor: e.target.value })}
+                        className="h-9 w-12 rounded cursor-pointer border border-zinc-300"
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
@@ -4530,6 +4606,18 @@ export default function DashboardPage() {
             <h3 className="text-lg font-semibold text-zinc-900 mb-4">Worker Details Styling</h3>
             
             <div className="space-y-6">
+              {/* Worker Title */}
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 mb-2">Worker Title</label>
+                <input
+                  type="text"
+                  value={workerTitle}
+                  onChange={(e) => setWorkerTitle(e.target.value)}
+                  className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm"
+                  placeholder="WORKER"
+                />
+              </div>
+
               {/* Background Gradient */}
               <div>
                 <label className="block text-sm font-medium text-zinc-700 mb-2">Background Gradient</label>
@@ -4567,17 +4655,42 @@ export default function DashboardPage() {
                 </div>
               </div>
 
+              {/* Border Width */}
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 mb-2">Border Width</label>
+                <div className="flex gap-2">
+                  {[
+                    { name: 'None', value: '' },
+                    { name: 'Thin', value: 'border' },
+                    { name: 'Medium', value: 'border-2' },
+                    { name: 'Thick', value: 'border-4' },
+                  ].map((border) => (
+                    <button
+                      key={border.value}
+                      onClick={() => setWorkerStyle({ ...workerStyle, borderWidth: border.value })}
+                      className={`flex-1 p-2 rounded-lg border-2 text-xs font-medium transition-all ${
+                        workerStyle.borderWidth === border.value 
+                          ? 'border-cyan-500 bg-cyan-50 text-cyan-700' 
+                          : 'border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300'
+                      }`}
+                    >
+                      {border.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {/* Border Color */}
               <div>
                 <label className="block text-sm font-medium text-zinc-700 mb-2">Border Color</label>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-3 gap-2 mb-3">
                   {[
-                    { name: 'Slate', value: 'border-[#334155]' },
-                    { name: 'Zinc', value: 'border-zinc-600' },
-                    { name: 'Blue', value: 'border-blue-600' },
-                    { name: 'Purple', value: 'border-purple-600' },
-                    { name: 'Emerald', value: 'border-emerald-600' },
-                    { name: 'Cyan', value: 'border-cyan-600' },
+                    { name: 'Gray', value: 'border-zinc-200/80' },
+                    { name: 'Blue', value: 'border-blue-300/80' },
+                    { name: 'Green', value: 'border-emerald-300/80' },
+                    { name: 'Purple', value: 'border-purple-300/80' },
+                    { name: 'Orange', value: 'border-orange-300/80' },
+                    { name: 'Red', value: 'border-red-300/80' },
                   ].map((color) => (
                     <button
                       key={color.value}
@@ -4592,6 +4705,15 @@ export default function DashboardPage() {
                     </button>
                   ))}
                 </div>
+                <div className="flex items-center gap-2">
+                  <label className="text-xs text-zinc-500">Custom:</label>
+                  <input
+                    type="color"
+                    value={workerStyle.customBorderColor}
+                    onChange={(e) => setWorkerStyle({ ...workerStyle, borderColor: `border-[${e.target.value}]`, customBorderColor: e.target.value })}
+                    className="h-8 w-16 rounded cursor-pointer border border-zinc-300"
+                  />
+                </div>
               </div>
 
               {/* Text Colors */}
@@ -4600,35 +4722,99 @@ export default function DashboardPage() {
                 <div className="space-y-3">
                   <div>
                     <label className="block text-xs text-zinc-500 mb-1">Header Color</label>
-                    <select 
-                      value={workerStyle.headerColor}
-                      onChange={(e) => setWorkerStyle({ ...workerStyle, headerColor: e.target.value })}
-                      className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm"
-                    >
-                      <option value="text-black">Black</option>
-                      <option value="text-white">White</option>
-                      <option value="text-zinc-100">Light Gray</option>
-                      <option value="text-zinc-200">Gray</option>
-                      <option value="text-cyan-100">Cyan Light</option>
-                      <option value="text-emerald-100">Emerald Light</option>
-                      <option value="text-purple-100">Purple Light</option>
-                    </select>
+                    <div className="flex gap-2">
+                      <select 
+                        value={workerStyle.headerColor}
+                        onChange={(e) => setWorkerStyle({ ...workerStyle, headerColor: e.target.value })}
+                        className="flex-1 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm"
+                      >
+                        <option value="text-black">Black</option>
+                        <option value="text-white">White</option>
+                        <option value="text-zinc-100">Light Gray</option>
+                        <option value="text-zinc-200">Gray</option>
+                        <option value="text-cyan-100">Cyan Light</option>
+                        <option value="text-emerald-100">Emerald Light</option>
+                        <option value="text-purple-100">Purple Light</option>
+                      </select>
+                      <input
+                        type="color"
+                        value={workerStyle.customHeaderColor}
+                        onChange={(e) => setWorkerStyle({ ...workerStyle, headerColor: `text-[${e.target.value}]`, customHeaderColor: e.target.value })}
+                        className="h-9 w-12 rounded cursor-pointer border border-zinc-300"
+                      />
+                    </div>
                   </div>
                   <div>
                     <label className="block text-xs text-zinc-500 mb-1">Text Color</label>
-                    <select 
-                      value={workerStyle.textColor}
-                      onChange={(e) => setWorkerStyle({ ...workerStyle, textColor: e.target.value })}
-                      className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm"
-                    >
-                      <option value="text-black">Black</option>
-                      <option value="text-gray-300">Light Gray</option>
-                      <option value="text-gray-200">Gray</option>
-                      <option value="text-white">White</option>
-                      <option value="text-zinc-300">Zinc Light</option>
-                      <option value="text-cyan-200">Cyan</option>
-                      <option value="text-emerald-200">Emerald</option>
-                    </select>
+                    <div className="flex gap-2">
+                      <select 
+                        value={workerStyle.textColor}
+                        onChange={(e) => setWorkerStyle({ ...workerStyle, textColor: e.target.value })}
+                        className="flex-1 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm"
+                      >
+                        <option value="text-black">Black</option>
+                        <option value="text-gray-300">Light Gray</option>
+                        <option value="text-gray-200">Gray</option>
+                        <option value="text-white">White</option>
+                        <option value="text-zinc-300">Zinc Light</option>
+                        <option value="text-cyan-200">Cyan</option>
+                        <option value="text-emerald-200">Emerald</option>
+                      </select>
+                      <input
+                        type="color"
+                        value={workerStyle.customTextColor}
+                        onChange={(e) => setWorkerStyle({ ...workerStyle, textColor: `text-[${e.target.value}]`, customTextColor: e.target.value })}
+                        className="h-9 w-12 rounded cursor-pointer border border-zinc-300"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-zinc-500 mb-1">Label Color</label>
+                    <div className="flex gap-2">
+                      <select 
+                        value={workerStyle.labelColor}
+                        onChange={(e) => setWorkerStyle({ ...workerStyle, labelColor: e.target.value })}
+                        className="flex-1 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm"
+                      >
+                        <option value="text-black">Black</option>
+                        <option value="text-zinc-600">Medium Gray</option>
+                        <option value="text-zinc-700">Dark Gray</option>
+                        <option value="text-blue-700">Blue</option>
+                        <option value="text-emerald-700">Green</option>
+                        <option value="text-purple-700">Purple</option>
+                        <option value="text-orange-700">Orange</option>
+                      </select>
+                      <input
+                        type="color"
+                        value={workerStyle.customLabelColor}
+                        onChange={(e) => setWorkerStyle({ ...workerStyle, labelColor: `text-[${e.target.value}]`, customLabelColor: e.target.value })}
+                        className="h-9 w-12 rounded cursor-pointer border border-zinc-300"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-zinc-500 mb-1">Value Color</label>
+                    <div className="flex gap-2">
+                      <select 
+                        value={workerStyle.valueColor}
+                        onChange={(e) => setWorkerStyle({ ...workerStyle, valueColor: e.target.value })}
+                        className="flex-1 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm"
+                      >
+                        <option value="text-black">Black</option>
+                        <option value="text-zinc-900">Near Black</option>
+                        <option value="text-zinc-800">Dark Gray</option>
+                        <option value="text-blue-900">Blue</option>
+                        <option value="text-emerald-900">Green</option>
+                        <option value="text-purple-900">Purple</option>
+                        <option value="text-orange-900">Orange</option>
+                      </select>
+                      <input
+                        type="color"
+                        value={workerStyle.customValueColor}
+                        onChange={(e) => setWorkerStyle({ ...workerStyle, valueColor: `text-[${e.target.value}]`, customValueColor: e.target.value })}
+                        className="h-9 w-12 rounded cursor-pointer border border-zinc-300"
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
@@ -4729,17 +4915,42 @@ export default function DashboardPage() {
                 </div>
               </div>
 
+              {/* Border Width */}
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 mb-2">Border Width</label>
+                <div className="flex gap-2">
+                  {[
+                    { name: 'None', value: '' },
+                    { name: 'Thin', value: 'border' },
+                    { name: 'Medium', value: 'border-2' },
+                    { name: 'Thick', value: 'border-4' },
+                  ].map((border) => (
+                    <button
+                      key={border.value}
+                      onClick={() => setStatsStyle({ ...statsStyle, borderWidth: border.value })}
+                      className={`flex-1 p-2 rounded-lg border-2 text-xs font-medium transition-all ${
+                        statsStyle.borderWidth === border.value 
+                          ? 'border-cyan-500 bg-cyan-50 text-cyan-700' 
+                          : 'border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300'
+                      }`}
+                    >
+                      {border.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {/* Border Color */}
               <div>
                 <label className="block text-sm font-medium text-zinc-700 mb-2">Border Color</label>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-3 gap-2 mb-3">
                   {[
-                    { name: 'Cyan', value: 'border-cyan-500/30' },
-                    { name: 'Blue', value: 'border-blue-500/30' },
-                    { name: 'Purple', value: 'border-purple-500/30' },
-                    { name: 'Emerald', value: 'border-emerald-500/30' },
-                    { name: 'Rose', value: 'border-rose-500/30' },
-                    { name: 'Orange', value: 'border-orange-500/30' },
+                    { name: 'Gray', value: 'border-zinc-200/80' },
+                    { name: 'Blue', value: 'border-blue-300/80' },
+                    { name: 'Green', value: 'border-emerald-300/80' },
+                    { name: 'Purple', value: 'border-purple-300/80' },
+                    { name: 'Orange', value: 'border-orange-300/80' },
+                    { name: 'Red', value: 'border-red-300/80' },
                   ].map((color) => (
                     <button
                       key={color.value}
@@ -4754,6 +4965,15 @@ export default function DashboardPage() {
                     </button>
                   ))}
                 </div>
+                <div className="flex items-center gap-2">
+                  <label className="text-xs text-zinc-500">Custom:</label>
+                  <input
+                    type="color"
+                    value={statsStyle.customBorderColor}
+                    onChange={(e) => setStatsStyle({ ...statsStyle, borderColor: `border-[${e.target.value}]`, customBorderColor: e.target.value })}
+                    className="h-8 w-16 rounded cursor-pointer border border-zinc-300"
+                  />
+                </div>
               </div>
 
               {/* Text Colors */}
@@ -4762,51 +4982,99 @@ export default function DashboardPage() {
                 <div className="space-y-3">
                   <div>
                     <label className="block text-xs text-zinc-500 mb-1">Header Color</label>
-                    <select 
-                      value={statsStyle.headerColor}
-                      onChange={(e) => setStatsStyle({ ...statsStyle, headerColor: e.target.value })}
-                      className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm"
-                    >
-                      <option value="text-black">Black</option>
-                      <option value="text-white">White</option>
-                      <option value="text-zinc-100">Light Gray</option>
-                      <option value="text-cyan-100">Cyan Light</option>
-                      <option value="text-emerald-100">Emerald Light</option>
-                      <option value="text-purple-100">Purple Light</option>
-                      <option value="text-rose-100">Rose Light</option>
-                    </select>
+                    <div className="flex gap-2">
+                      <select 
+                        value={statsStyle.headerColor}
+                        onChange={(e) => setStatsStyle({ ...statsStyle, headerColor: e.target.value })}
+                        className="flex-1 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm"
+                      >
+                        <option value="text-black">Black</option>
+                        <option value="text-white">White</option>
+                        <option value="text-zinc-100">Light Gray</option>
+                        <option value="text-cyan-100">Cyan Light</option>
+                        <option value="text-emerald-100">Emerald Light</option>
+                        <option value="text-purple-100">Purple Light</option>
+                        <option value="text-rose-100">Rose Light</option>
+                      </select>
+                      <input
+                        type="color"
+                        value={statsStyle.customHeaderColor}
+                        onChange={(e) => setStatsStyle({ ...statsStyle, headerColor: `text-[${e.target.value}]`, customHeaderColor: e.target.value })}
+                        className="h-9 w-12 rounded cursor-pointer border border-zinc-300"
+                      />
+                    </div>
                   </div>
                   <div>
                     <label className="block text-xs text-zinc-500 mb-1">Text Color</label>
-                    <select 
-                      value={statsStyle.textColor}
-                      onChange={(e) => setStatsStyle({ ...statsStyle, textColor: e.target.value })}
-                      className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm"
-                    >
-                      <option value="text-black">Black</option>
-                      <option value="text-white">White</option>
-                      <option value="text-zinc-100">Light Gray</option>
-                      <option value="text-cyan-100">Cyan Light</option>
-                      <option value="text-emerald-100">Emerald Light</option>
-                      <option value="text-purple-100">Purple Light</option>
-                      <option value="text-rose-100">Rose Light</option>
-                    </select>
+                    <div className="flex gap-2">
+                      <select 
+                        value={statsStyle.textColor}
+                        onChange={(e) => setStatsStyle({ ...statsStyle, textColor: e.target.value })}
+                        className="flex-1 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm"
+                      >
+                        <option value="text-black">Black</option>
+                        <option value="text-white">White</option>
+                        <option value="text-zinc-100">Light Gray</option>
+                        <option value="text-cyan-100">Cyan Light</option>
+                        <option value="text-emerald-100">Emerald Light</option>
+                        <option value="text-purple-100">Purple Light</option>
+                        <option value="text-rose-100">Rose Light</option>
+                      </select>
+                      <input
+                        type="color"
+                        value={statsStyle.customTextColor}
+                        onChange={(e) => setStatsStyle({ ...statsStyle, textColor: `text-[${e.target.value}]`, customTextColor: e.target.value })}
+                        className="h-9 w-12 rounded cursor-pointer border border-zinc-300"
+                      />
+                    </div>
                   </div>
                   <div>
                     <label className="block text-xs text-zinc-500 mb-1">Label Color</label>
-                    <select 
-                      value={statsStyle.labelColor}
-                      onChange={(e) => setStatsStyle({ ...statsStyle, labelColor: e.target.value })}
-                      className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm"
-                    >
-                      <option value="text-black">Black</option>
-                      <option value="text-cyan-100">Cyan Light</option>
-                      <option value="text-zinc-100">Light Gray</option>
-                      <option value="text-emerald-100">Emerald Light</option>
-                      <option value="text-purple-100">Purple Light</option>
-                      <option value="text-rose-100">Rose Light</option>
-                      <option value="text-orange-100">Orange Light</option>
-                    </select>
+                    <div className="flex gap-2">
+                      <select 
+                        value={statsStyle.labelColor}
+                        onChange={(e) => setStatsStyle({ ...statsStyle, labelColor: e.target.value })}
+                        className="flex-1 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm"
+                      >
+                        <option value="text-black">Black</option>
+                        <option value="text-zinc-600">Medium Gray</option>
+                        <option value="text-zinc-700">Dark Gray</option>
+                        <option value="text-blue-700">Blue</option>
+                        <option value="text-emerald-700">Green</option>
+                        <option value="text-purple-700">Purple</option>
+                        <option value="text-orange-700">Orange</option>
+                      </select>
+                      <input
+                        type="color"
+                        value={statsStyle.customLabelColor}
+                        onChange={(e) => setStatsStyle({ ...statsStyle, labelColor: `text-[${e.target.value}]`, customLabelColor: e.target.value })}
+                        className="h-9 w-12 rounded cursor-pointer border border-zinc-300"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-zinc-500 mb-1">Value Color</label>
+                    <div className="flex gap-2">
+                      <select 
+                        value={statsStyle.valueColor}
+                        onChange={(e) => setStatsStyle({ ...statsStyle, valueColor: e.target.value })}
+                        className="flex-1 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm"
+                      >
+                        <option value="text-black">Black</option>
+                        <option value="text-zinc-900">Near Black</option>
+                        <option value="text-zinc-800">Dark Gray</option>
+                        <option value="text-blue-900">Blue</option>
+                        <option value="text-emerald-900">Green</option>
+                        <option value="text-purple-900">Purple</option>
+                        <option value="text-orange-900">Orange</option>
+                      </select>
+                      <input
+                        type="color"
+                        value={statsStyle.customValueColor}
+                        onChange={(e) => setStatsStyle({ ...statsStyle, valueColor: `text-[${e.target.value}]`, customValueColor: e.target.value })}
+                        className="h-9 w-12 rounded cursor-pointer border border-zinc-300"
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
