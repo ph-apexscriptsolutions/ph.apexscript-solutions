@@ -4426,8 +4426,9 @@ export default function DashboardPage() {
                       onChange={(e) => setBankStyle({ ...bankStyle, headerColor: e.target.value })}
                       className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm"
                     >
+                      <option value="text-black">Black</option>
                       <option value="text-zinc-800">Dark Gray</option>
-                      <option value="text-zinc-900">Black</option>
+                      <option value="text-zinc-900">Near Black</option>
                       <option value="text-blue-900">Blue</option>
                       <option value="text-emerald-900">Green</option>
                       <option value="text-purple-900">Purple</option>
@@ -4441,6 +4442,7 @@ export default function DashboardPage() {
                       onChange={(e) => setBankStyle({ ...bankStyle, labelColor: e.target.value })}
                       className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm"
                     >
+                      <option value="text-black">Black</option>
                       <option value="text-zinc-600">Medium Gray</option>
                       <option value="text-zinc-700">Dark Gray</option>
                       <option value="text-blue-700">Blue</option>
@@ -4456,7 +4458,8 @@ export default function DashboardPage() {
                       onChange={(e) => setBankStyle({ ...bankStyle, valueColor: e.target.value })}
                       className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm"
                     >
-                      <option value="text-zinc-900">Black</option>
+                      <option value="text-black">Black</option>
+                      <option value="text-zinc-900">Near Black</option>
                       <option value="text-zinc-800">Dark Gray</option>
                       <option value="text-blue-900">Blue</option>
                       <option value="text-emerald-900">Green</option>
@@ -4602,6 +4605,7 @@ export default function DashboardPage() {
                       onChange={(e) => setWorkerStyle({ ...workerStyle, headerColor: e.target.value })}
                       className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm"
                     >
+                      <option value="text-black">Black</option>
                       <option value="text-white">White</option>
                       <option value="text-zinc-100">Light Gray</option>
                       <option value="text-zinc-200">Gray</option>
@@ -4617,6 +4621,7 @@ export default function DashboardPage() {
                       onChange={(e) => setWorkerStyle({ ...workerStyle, textColor: e.target.value })}
                       className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm"
                     >
+                      <option value="text-black">Black</option>
                       <option value="text-gray-300">Light Gray</option>
                       <option value="text-gray-200">Gray</option>
                       <option value="text-white">White</option>
@@ -4762,6 +4767,7 @@ export default function DashboardPage() {
                       onChange={(e) => setStatsStyle({ ...statsStyle, headerColor: e.target.value })}
                       className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm"
                     >
+                      <option value="text-black">Black</option>
                       <option value="text-white">White</option>
                       <option value="text-zinc-100">Light Gray</option>
                       <option value="text-cyan-100">Cyan Light</option>
@@ -4777,6 +4783,7 @@ export default function DashboardPage() {
                       onChange={(e) => setStatsStyle({ ...statsStyle, textColor: e.target.value })}
                       className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm"
                     >
+                      <option value="text-black">Black</option>
                       <option value="text-white">White</option>
                       <option value="text-zinc-100">Light Gray</option>
                       <option value="text-cyan-100">Cyan Light</option>
@@ -4792,6 +4799,7 @@ export default function DashboardPage() {
                       onChange={(e) => setStatsStyle({ ...statsStyle, labelColor: e.target.value })}
                       className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm"
                     >
+                      <option value="text-black">Black</option>
                       <option value="text-cyan-100">Cyan Light</option>
                       <option value="text-zinc-100">Light Gray</option>
                       <option value="text-emerald-100">Emerald Light</option>
