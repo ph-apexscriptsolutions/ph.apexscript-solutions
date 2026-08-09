@@ -3550,12 +3550,6 @@ export default function DashboardPage() {
           <div>
             <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
               <div className={`rounded-2xl ${workerStyle.borderColor} bg-gradient-to-br ${workerStyle.bgGradient} backdrop-blur-sm transition-all duration-300 relative ${workerStyle.fontFamily}`}>
-                {isAdmin && (
-                  <button onClick={() => setIsWorkerStyleModalOpen(true)} className="absolute top-4 right-4 inline-flex items-center gap-1 rounded-md border border-white/20 bg-white/10 px-2 py-1 text-xs font-semibold text-white hover:bg-white/20 transition">
-                    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" /></svg>
-                    Style
-                  </button>
-                )}
                 <div className="p-6">
                   <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
                     <div className="flex flex-col items-center gap-4 sm:items-start">
@@ -3574,9 +3568,15 @@ export default function DashboardPage() {
                         {activeWorker && (
                           <div className="ml-auto flex items-center gap-2">
                             {isAdmin && (
-                              <button onClick={openEditWorkerModal} className="inline-flex items-center gap-1 rounded-md border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold text-white hover:bg-white/20 transition">
-                                <Pencil className="h-3.5 w-3.5" /> Edit
-                              </button>
+                              <>
+                                <button onClick={() => setIsWorkerStyleModalOpen(true)} className="inline-flex items-center gap-1 rounded-md border border-white/20 bg-white/10 px-2 py-1 text-xs font-semibold text-white hover:bg-white/20 transition">
+                                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" /></svg>
+                                  Style
+                                </button>
+                                <button onClick={openEditWorkerModal} className="inline-flex items-center gap-1 rounded-md border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold text-white hover:bg-white/20 transition">
+                                  <Pencil className="h-3.5 w-3.5" /> Edit
+                                </button>
+                              </>
                             )}
                           </div>
                         )}
@@ -3737,13 +3737,13 @@ export default function DashboardPage() {
               </div>
 
               <div className="flex flex-col gap-3 sticky top-4 self-start">
-                {isAdmin && (
-                  <button onClick={() => setIsStatsStyleModalOpen(true)} className="inline-flex items-center gap-1 rounded-md border border-white/20 bg-white/10 px-2 py-1 text-xs font-semibold text-white hover:bg-white/20 transition self-end">
-                    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" /></svg>
-                    Style Stats
-                  </button>
-                )}
-                <div className={`rounded-2xl ${statsStyle.borderColor} bg-gradient-to-br ${statsStyle.bgGradient} backdrop-blur-sm shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:shadow-[0_0_30px_rgba(6,182,212,0.5)] transition-all duration-300 hover:-translate-y-0.5 ${statsStyle.fontFamily}`}>
+                <div className={`rounded-2xl ${statsStyle.borderColor} bg-gradient-to-br ${statsStyle.bgGradient} backdrop-blur-sm shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:shadow-[0_0_30px_rgba(6,182,212,0.5)] transition-all duration-300 hover:-translate-y-0.5 ${statsStyle.fontFamily} relative`}>
+                  {isAdmin && (
+                    <button onClick={() => setIsStatsStyleModalOpen(true)} className="absolute top-2 right-2 inline-flex items-center gap-1 rounded-md border border-white/20 bg-white/10 px-2 py-1 text-[10px] font-semibold text-white hover:bg-white/20 transition">
+                      <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" /></svg>
+                      Style
+                    </button>
+                  )}
                   <div className="flex flex-row items-center justify-between space-y-0 p-3 pb-1 border-b border-white/10">
                     <h3 className={`text-xs font-bold uppercase tracking-wider ${statsStyle.headerColor}`}>Total Files</h3>
                     <div className="h-7 w-7 rounded-md bg-white/20 flex items-center justify-center shadow-md shadow-white/10">
@@ -3755,7 +3755,13 @@ export default function DashboardPage() {
                     <p className={`text-[10px] mt-0.5 ${statsStyle.labelColor}`}>{filterApplied ? "Selected Period" : "All Time"}</p>
                   </div>
                 </div>
-                <div className={`rounded-2xl ${statsStyle.borderColor} bg-gradient-to-br ${statsStyle.bgGradient} backdrop-blur-sm shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:shadow-[0_0_30px_rgba(6,182,212,0.5)] transition-all duration-300 hover:-translate-y-0.5 ${statsStyle.fontFamily}`}>
+                <div className={`rounded-2xl ${statsStyle.borderColor} bg-gradient-to-br ${statsStyle.bgGradient} backdrop-blur-sm shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:shadow-[0_0_30px_rgba(6,182,212,0.5)] transition-all duration-300 hover:-translate-y-0.5 ${statsStyle.fontFamily} relative`}>
+                  {isAdmin && (
+                    <button onClick={() => setIsStatsStyleModalOpen(true)} className="absolute top-2 right-2 inline-flex items-center gap-1 rounded-md border border-white/20 bg-white/10 px-2 py-1 text-[10px] font-semibold text-white hover:bg-white/20 transition">
+                      <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" /></svg>
+                      Style
+                    </button>
+                  )}
                   <div className="flex flex-row items-center justify-between space-y-0 p-3 pb-1 border-b border-white/10">
                     <h3 className={`text-xs font-bold uppercase tracking-wider ${statsStyle.headerColor}`}>Total Kilobytes</h3>
                     <div className="h-7 w-7 rounded-md bg-white/20 flex items-center justify-center shadow-md shadow-white/10">
@@ -3767,7 +3773,13 @@ export default function DashboardPage() {
                     <p className={`text-[10px] mt-0.5 ${statsStyle.labelColor}`}>{filterApplied ? "Selected Period" : "All Time"}</p>
                   </div>
                 </div>
-                <div className={`rounded-2xl ${statsStyle.borderColor} bg-gradient-to-br ${statsStyle.bgGradient} backdrop-blur-sm shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:shadow-[0_0_30px_rgba(6,182,212,0.5)] transition-all duration-300 hover:-translate-y-0.5 ${statsStyle.fontFamily}`}>
+                <div className={`rounded-2xl ${statsStyle.borderColor} bg-gradient-to-br ${statsStyle.bgGradient} backdrop-blur-sm shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:shadow-[0_0_30px_rgba(6,182,212,0.5)] transition-all duration-300 hover:-translate-y-0.5 ${statsStyle.fontFamily} relative`}>
+                  {isAdmin && (
+                    <button onClick={() => setIsStatsStyleModalOpen(true)} className="absolute top-2 right-2 inline-flex items-center gap-1 rounded-md border border-white/20 bg-white/10 px-2 py-1 text-[10px] font-semibold text-white hover:bg-white/20 transition">
+                      <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" /></svg>
+                      Style
+                    </button>
+                  )}
                   <div className="flex flex-row items-center justify-between space-y-0 p-3 pb-1 border-b border-white/10">
                     <h3 className={`text-xs font-bold uppercase tracking-wider ${statsStyle.headerColor}`}>Total Earnings</h3>
                     <div className="h-7 w-7 rounded-md bg-white/20 flex items-center justify-center shadow-md shadow-white/10">
@@ -4327,6 +4339,14 @@ export default function DashboardPage() {
                     { name: 'Slate-Gray', value: 'from-slate-50 to-slate-100/80' },
                     { name: 'Orange-Red', value: 'from-orange-50 to-red-50/80' },
                     { name: 'Indigo-Violet', value: 'from-indigo-50 to-violet-50/80' },
+                    { name: 'Slate Dark', value: 'from-slate-800 to-slate-900' },
+                    { name: 'Zinc Dark', value: 'from-zinc-800 to-zinc-900' },
+                    { name: 'Blue Dark', value: 'from-blue-900 to-slate-900' },
+                    { name: 'Purple Dark', value: 'from-purple-900 to-slate-900' },
+                    { name: 'Emerald Dark', value: 'from-emerald-900 to-slate-900' },
+                    { name: 'Cyan Dark', value: 'from-cyan-900 to-slate-900' },
+                    { name: 'Rose Dark', value: 'from-rose-900 to-slate-900' },
+                    { name: 'Orange Dark', value: 'from-orange-900 to-slate-900' },
                   ].map((gradient) => (
                     <button
                       key={gradient.value}
@@ -4512,6 +4532,14 @@ export default function DashboardPage() {
                 <label className="block text-sm font-medium text-zinc-700 mb-2">Background Gradient</label>
                 <div className="grid grid-cols-2 gap-2">
                   {[
+                    { name: 'Cyan-Blue', value: 'from-cyan-50 to-blue-50/80' },
+                    { name: 'Emerald-Teal', value: 'from-emerald-50 to-teal-50/80' },
+                    { name: 'Violet-Purple', value: 'from-violet-50 to-purple-50/80' },
+                    { name: 'Rose-Pink', value: 'from-rose-50 to-pink-50/80' },
+                    { name: 'Amber-Yellow', value: 'from-amber-50 to-yellow-50/80' },
+                    { name: 'Slate-Gray', value: 'from-slate-50 to-slate-100/80' },
+                    { name: 'Orange-Red', value: 'from-orange-50 to-red-50/80' },
+                    { name: 'Indigo-Violet', value: 'from-indigo-50 to-violet-50/80' },
                     { name: 'Slate Dark', value: 'from-slate-800 to-slate-900' },
                     { name: 'Zinc Dark', value: 'from-zinc-800 to-zinc-900' },
                     { name: 'Blue Dark', value: 'from-blue-900 to-slate-900' },
@@ -4664,6 +4692,14 @@ export default function DashboardPage() {
                 <label className="block text-sm font-medium text-zinc-700 mb-2">Background Gradient</label>
                 <div className="grid grid-cols-2 gap-2">
                   {[
+                    { name: 'Cyan-Blue', value: 'from-cyan-50 to-blue-50/80' },
+                    { name: 'Emerald-Teal', value: 'from-emerald-50 to-teal-50/80' },
+                    { name: 'Violet-Purple', value: 'from-violet-50 to-purple-50/80' },
+                    { name: 'Rose-Pink', value: 'from-rose-50 to-pink-50/80' },
+                    { name: 'Amber-Yellow', value: 'from-amber-50 to-yellow-50/80' },
+                    { name: 'Slate-Gray', value: 'from-slate-50 to-slate-100/80' },
+                    { name: 'Orange-Red', value: 'from-orange-50 to-red-50/80' },
+                    { name: 'Indigo-Violet', value: 'from-indigo-50 to-violet-50/80' },
                     { name: 'Slate Dark', value: 'from-slate-800 to-slate-900' },
                     { name: 'Zinc Dark', value: 'from-zinc-800 to-zinc-900' },
                     { name: 'Blue Dark', value: 'from-blue-900 to-slate-900' },
