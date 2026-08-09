@@ -4581,7 +4581,12 @@ export default function DashboardPage() {
                     headerColor: 'text-zinc-800',
                     labelColor: 'text-zinc-600',
                     valueColor: 'text-zinc-900',
-                    fontFamily: 'font-sans'
+                    fontFamily: 'font-sans',
+                    customBorderColor: '#e4e4e7',
+                    customHeaderColor: '#27272a',
+                    customTextColor: '#52525b',
+                    customLabelColor: '#52525b',
+                    customValueColor: '#18181b'
                   })}
                   className="flex-1 rounded-md border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-100 transition"
                 >
@@ -4849,11 +4854,17 @@ export default function DashboardPage() {
                   onClick={() => setWorkerStyle({
                     bgGradient: 'from-slate-800 to-slate-900',
                     borderColor: 'border-[#334155]',
+                    borderWidth: 'border',
                     textColor: 'text-gray-300',
                     headerColor: 'text-white',
                     labelColor: 'text-gray-400',
                     valueColor: 'text-white',
-                    fontFamily: 'font-sans'
+                    fontFamily: 'font-sans',
+                    customBorderColor: '#334155',
+                    customHeaderColor: '#ffffff',
+                    customTextColor: '#d1d5db',
+                    customLabelColor: '#9ca3af',
+                    customValueColor: '#ffffff'
                   })}
                   className="flex-1 rounded-md border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-100 transition"
                 >
@@ -5109,10 +5120,17 @@ export default function DashboardPage() {
                   onClick={() => setStatsStyle({
                     bgGradient: 'from-slate-800 to-slate-900',
                     borderColor: 'border-cyan-500/30',
+                    borderWidth: 'border',
                     textColor: 'text-white',
                     headerColor: 'text-white',
                     labelColor: 'text-cyan-100',
-                    fontFamily: 'font-sans'
+                    valueColor: 'text-white',
+                    fontFamily: 'font-sans',
+                    customBorderColor: '#06b6d4',
+                    customHeaderColor: '#ffffff',
+                    customTextColor: '#ffffff',
+                    customLabelColor: '#67e8f9',
+                    customValueColor: '#ffffff'
                   })}
                   className="flex-1 rounded-md border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-100 transition"
                 >
