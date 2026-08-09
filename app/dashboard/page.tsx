@@ -3676,9 +3676,17 @@ export default function DashboardPage() {
             </div>
 
             <div className="grid gap-6 xl:grid-cols-[2fr_1fr] xl:items-stretch mt-4">
-              <div className="rounded-2xl border border-[#334155] bg-[#172033] backdrop-blur-sm transition-all duration-300">
+              <div className="rounded-2xl border border-[#334155] bg-[#172033] backdrop-blur-sm transition-all duration-300 relative">
                 <div className="flex flex-col space-y-1.5 p-6 border-b border-[#334155]">
-                  <h3 className="font-bold text-lg leading-none tracking-tight text-white">Production Records</h3>
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-bold text-lg leading-none tracking-tight text-white">Production Records</h3>
+                    {isAdmin && (
+                      <button onClick={() => setIsStatsStyleModalOpen(true)} className="inline-flex items-center gap-1 rounded-md border border-zinc-300 bg-white/80 px-2 py-1 text-xs font-semibold text-zinc-700 hover:bg-white transition">
+                        <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" /></svg>
+                        Style
+                      </button>
+                    )}
+                  </div>
                 </div>
                 <div className="p-6 pt-4 bg-[#1E293B]">
                   <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:gap-2">
@@ -3809,11 +3817,11 @@ export default function DashboardPage() {
                     <div className={`text-xl font-extrabold tracking-tight ${statsStyle.textColor}`}>{computedEarnings ?? '-'}</div>
                     <p className={`text-[10px] mt-0.5 ${statsStyle.labelColor}`}>{computedEarnings ? `Based on ${formatCurrency(activeWorker?.base_payment_per_60kb || 700, activeWorker?.location)} per 60KB` : ''}</p>
                     <div className="flex gap-1.5 mt-2">
-                      <button type="button" onClick={computeTotalEarnings} className="inline-flex items-center justify-center rounded-md bg-white/20 hover:bg-white/30 px-2.5 py-1 text-[10px] font-semibold text-white shadow-sm transition-all">
+                      <button type="button" onClick={computeTotalEarnings} className="inline-flex items-center justify-center rounded-lg bg-gradient-to-r from-black to-zinc-900 px-2.5 py-1 text-[10px] font-semibold text-white shadow-[0_0_15px_rgba(0,0,0,0.5)] hover:shadow-[0_0_25px_rgba(0,0,0,0.7)] transition-all">
                         Compute Earnings
                       </button>
                       {isAdmin && (
-                        <button type="button" onClick={() => { setIsPaymentModalOpen(true); setSelectedPaymentRate(activeWorker?.base_payment_per_60kb || 700) }} className="inline-flex items-center gap-1 rounded-md border border-white/30 px-2 py-1 text-[10px] font-semibold text-white hover:bg-white/20 transition-all">
+                        <button type="button" onClick={() => { setIsPaymentModalOpen(true); setSelectedPaymentRate(activeWorker?.base_payment_per_60kb || 700) }} className="inline-flex items-center gap-1 rounded-lg bg-gradient-to-r from-black to-zinc-900 px-2 py-1 text-[10px] font-semibold text-white shadow-[0_0_15px_rgba(0,0,0,0.5)] hover:shadow-[0_0_25px_rgba(0,0,0,0.7)] transition-all">
                           <Pencil className="h-2.5 w-2.5" /> Rate
                         </button>
                       )}
