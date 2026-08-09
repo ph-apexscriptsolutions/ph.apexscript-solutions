@@ -252,6 +252,33 @@ export default function DashboardPage() {
     localStorage.setItem('statsStyle', JSON.stringify(statsStyle))
   }, [statsStyle])
 
+  const [isProductionStyleModalOpen, setIsProductionStyleModalOpen] = useState(false)
+  const [productionStyle, setProductionStyle] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('productionStyle')
+      if (saved) return JSON.parse(saved)
+    }
+    return {
+      bgGradient: 'from-slate-800 to-slate-900',
+      borderColor: 'border-[#334155]',
+      borderWidth: 'border',
+      textColor: 'text-white',
+      headerColor: 'text-white',
+      labelColor: 'text-gray-400',
+      valueColor: 'text-white',
+      fontFamily: 'font-sans',
+      customBorderColor: '#334155',
+      customHeaderColor: '#ffffff',
+      customTextColor: '#d1d5db',
+      customLabelColor: '#9ca3af',
+      customValueColor: '#ffffff'
+    }
+  })
+
+  useEffect(() => {
+    localStorage.setItem('productionStyle', JSON.stringify(productionStyle))
+  }, [productionStyle])
+
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
   const [selectedPaymentRate, setSelectedPaymentRate] = useState<number | null>(null)
   const [isUpdatingPayment, setIsUpdatingPayment] = useState(false)
@@ -3716,12 +3743,12 @@ export default function DashboardPage() {
             </div>
 
             <div className="grid gap-6 xl:grid-cols-[2fr_1fr] xl:items-stretch mt-4">
-              <div className={`rounded-2xl ${statsStyle.borderWidth} ${statsStyle.borderColor} bg-gradient-to-br ${statsStyle.bgGradient} backdrop-blur-sm transition-all duration-300 relative ${statsStyle.fontFamily}`}>
+              <div className={`rounded-2xl ${productionStyle.borderWidth} ${productionStyle.borderColor} bg-gradient-to-br ${productionStyle.bgGradient} backdrop-blur-sm transition-all duration-300 relative ${productionStyle.fontFamily}`}>
                 <div className="flex flex-col space-y-1.5 p-6 border-b border-white/10">
                   <div className="flex items-center justify-between">
-                    <h3 className={`font-bold text-lg leading-none tracking-tight ${statsStyle.headerColor}`}>Production Records</h3>
+                    <h3 className={`font-bold text-lg leading-none tracking-tight ${productionStyle.headerColor}`}>Production Records</h3>
                     {isAdmin && (
-                      <button onClick={() => setIsStatsStyleModalOpen(true)} className="inline-flex items-center gap-1 rounded-md border border-zinc-300 bg-white/80 px-2 py-1 text-xs font-semibold text-zinc-700 hover:bg-white transition">
+                      <button onClick={() => setIsProductionStyleModalOpen(true)} className="inline-flex items-center gap-1 rounded-md border border-zinc-300 bg-white/80 px-2 py-1 text-xs font-semibold text-zinc-700 hover:bg-white transition">
                         <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" /></svg>
                         Style
                       </button>
@@ -3732,16 +3759,16 @@ export default function DashboardPage() {
                   <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:gap-2">
                     <div className="flex flex-wrap items-end gap-2">
                       <div className="flex flex-col">
-                        <label className={`text-[10px] font-semibold ${statsStyle.labelColor} mb-1.5`}>Start Date</label>
-                        <input type="date" value={startDate} onChange={(e) => { setStartDate(e.target.value); setFilterApplied(false); }} className="border border-white/20 rounded-lg px-2 py-1.5 text-xs text-white outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all bg-white/5" placeholder="mm/dd/yyyy" />
+                        <label className={`text-[10px] font-semibold ${productionStyle.labelColor} mb-1.5`}>Start Date</label>
+                        <input type="date" value={startDate} onChange={(e) => { setStartDate(e.target.value); setFilterApplied(false); }} className="border border-zinc-300 rounded-lg px-2 py-1.5 text-xs text-zinc-900 outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all bg-white" placeholder="mm/dd/yyyy" />
                       </div>
                       <div className="flex flex-col">
-                        <label className={`text-[10px] font-semibold ${statsStyle.labelColor} mb-1.5`}>End Date</label>
-                        <input type="date" value={endDate} onChange={(e) => { setEndDate(e.target.value); setFilterApplied(false); }} className="border border-white/20 rounded-lg px-2 py-1.5 text-xs text-white outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all bg-white/5" placeholder="mm/dd/yyyy" />
+                        <label className={`text-[10px] font-semibold ${productionStyle.labelColor} mb-1.5`}>End Date</label>
+                        <input type="date" value={endDate} onChange={(e) => { setEndDate(e.target.value); setFilterApplied(false); }} className="border border-zinc-300 rounded-lg px-2 py-1.5 text-xs text-zinc-900 outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all bg-white" placeholder="mm/dd/yyyy" />
                       </div>
                       <div className="flex flex-col">
-                        <label className={`text-[10px] font-semibold ${statsStyle.labelColor} mb-1.5`}>Search Files</label>
-                        <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="border border-white/20 rounded-lg px-2 py-1.5 text-xs text-white outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all bg-white/5" placeholder="Search by file name..." />
+                        <label className={`text-[10px] font-semibold ${productionStyle.labelColor} mb-1.5`}>Search Files</label>
+                        <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="border border-zinc-300 rounded-lg px-2 py-1.5 text-xs text-zinc-900 outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all bg-white" placeholder="Search by file name..." />
                       </div>
                       <button onClick={applyFilters} className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-zinc-900 to-slate-900 px-3 py-1.5 text-xs font-semibold text-white shadow-lg shadow-black/40 ring-1 ring-white/10 hover:from-black hover:to-zinc-900 hover:shadow-black/60 hover:shadow-xl transition-all">
                         <span>⊡</span> Filter
@@ -5186,6 +5213,288 @@ export default function DashboardPage() {
                 </button>
                 <button 
                   onClick={() => setIsStatsStyleModalOpen(false)}
+                  className="flex-1 rounded-md bg-gradient-to-r from-cyan-600 to-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-cyan-600/20 hover:from-cyan-700 hover:to-sky-700 transition"
+                >
+                  Apply & Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isProductionStyleModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6 relative max-h-[90vh] overflow-y-auto">
+            <button onClick={() => setIsProductionStyleModalOpen(false)} className="absolute right-4 top-4 text-zinc-400 hover:text-zinc-900"><X className="h-5 w-5" /></button>
+            <h3 className="text-lg font-semibold text-zinc-900 mb-4">Production Records Styling</h3>
+            
+            <div className="space-y-6">
+              {/* Background Gradient */}
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 mb-2">Background Gradient</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { name: 'Cyan-Blue', value: 'from-cyan-50 to-blue-50/80' },
+                    { name: 'Emerald-Teal', value: 'from-emerald-50 to-teal-50/80' },
+                    { name: 'Violet-Purple', value: 'from-violet-50 to-purple-50/80' },
+                    { name: 'Rose-Pink', value: 'from-rose-50 to-pink-50/80' },
+                    { name: 'Amber-Yellow', value: 'from-amber-50 to-yellow-50/80' },
+                    { name: 'Slate-Gray', value: 'from-slate-50 to-slate-100/80' },
+                    { name: 'Orange-Red', value: 'from-orange-50 to-red-50/80' },
+                    { name: 'Indigo-Violet', value: 'from-indigo-50 to-violet-50/80' },
+                    { name: 'Slate Dark', value: 'from-slate-800 to-slate-900' },
+                    { name: 'Zinc Dark', value: 'from-zinc-800 to-zinc-900' },
+                    { name: 'Blue Dark', value: 'from-blue-900 to-slate-900' },
+                    { name: 'Purple Dark', value: 'from-purple-900 to-slate-900' },
+                    { name: 'Emerald Dark', value: 'from-emerald-900 to-slate-900' },
+                    { name: 'Cyan Dark', value: 'from-cyan-900 to-slate-900' },
+                    { name: 'Rose Dark', value: 'from-rose-900 to-slate-900' },
+                    { name: 'Orange Dark', value: 'from-orange-900 to-slate-900' },
+                  ].map((gradient) => (
+                    <button
+                      key={gradient.value}
+                      onClick={() => setProductionStyle({ ...productionStyle, bgGradient: gradient.value })}
+                      className={`p-3 rounded-lg border-2 text-xs font-medium transition-all ${
+                        productionStyle.bgGradient === gradient.value 
+                          ? 'border-cyan-500 bg-cyan-50 text-cyan-700' 
+                          : 'border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300'
+                      }`}
+                    >
+                      {gradient.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Border Width */}
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 mb-2">Border Width</label>
+                <div className="flex gap-2">
+                  {[
+                    { name: 'None', value: '' },
+                    { name: 'Thin', value: 'border' },
+                    { name: 'Medium', value: 'border-2' },
+                    { name: 'Thick', value: 'border-4' },
+                  ].map((width) => (
+                    <button
+                      key={width.value}
+                      onClick={() => setProductionStyle({ ...productionStyle, borderWidth: width.value })}
+                      className={`flex-1 p-2 rounded-lg border-2 text-xs font-medium transition-all ${
+                        productionStyle.borderWidth === width.value 
+                          ? 'border-cyan-500 bg-cyan-50 text-cyan-700' 
+                          : 'border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300'
+                      }`}
+                    >
+                      {width.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Border Color */}
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 mb-2">Border Color</label>
+                <div className="flex gap-2">
+                  <select 
+                    value={productionStyle.borderColor}
+                    onChange={(e) => setProductionStyle({ ...productionStyle, borderColor: e.target.value })}
+                    className="flex-1 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm"
+                  >
+                    <option value="border-zinc-200">Light Gray</option>
+                    <option value="border-zinc-300">Medium Gray</option>
+                    <option value="border-zinc-400">Dark Gray</option>
+                    <option value="border-cyan-300">Cyan</option>
+                    <option value="border-emerald-300">Emerald</option>
+                    <option value="border-purple-300">Purple</option>
+                    <option value="border-orange-300">Orange</option>
+                    <option value="border-rose-300">Rose</option>
+                    <option value="border-blue-300">Blue</option>
+                    <option value="border-indigo-300">Indigo</option>
+                    <option value="border-teal-300">Teal</option>
+                    <option value="border-pink-300">Pink</option>
+                    <option value="border-violet-300">Violet</option>
+                    <option value="border-amber-300">Amber</option>
+                    <option value="border-lime-300">Lime</option>
+                    <option value="border-sky-300">Sky</option>
+                    <option value="border-slate-300">Slate</option>
+                    <option value="border-stone-300">Stone</option>
+                    <option value="border-neutral-300">Neutral</option>
+                    <option value="border-gray-300">Gray</option>
+                    <option value="border-red-300">Red</option>
+                    <option value="border-yellow-300">Yellow</option>
+                    <option value="border-green-300">Green</option>
+                    <option value="border-blue-300">Blue</option>
+                    <option value="border-indigo-300">Indigo</option>
+                    <option value="border-purple-300">Purple</option>
+                    <option value="border-pink-300">Pink</option>
+                    <option value="border-[#334155]">Slate Dark</option>
+                    <option value="border-cyan-500/30">Cyan Transparent</option>
+                    <option value="border-emerald-500/30">Emerald Transparent</option>
+                    <option value="border-purple-500/30">Purple Transparent</option>
+                    <option value="border-rose-500/30">Rose Transparent</option>
+                    <option value="border-orange-500/30">Orange Transparent</option>
+                  </select>
+                  <input
+                    type="color"
+                    value={productionStyle.customBorderColor}
+                    onChange={(e) => setProductionStyle({ ...productionStyle, borderColor: `border-[${e.target.value}]`, customBorderColor: e.target.value })}
+                    className="h-9 w-12 rounded cursor-pointer border border-zinc-300"
+                  />
+                </div>
+              </div>
+
+              {/* Text Colors */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs text-zinc-500 mb-1">Header Color</label>
+                  <div className="flex gap-2">
+                    <select 
+                      value={productionStyle.headerColor}
+                      onChange={(e) => setProductionStyle({ ...productionStyle, headerColor: e.target.value })}
+                      className="flex-1 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm"
+                    >
+                      <option value="text-black">Black</option>
+                      <option value="text-zinc-900">Near Black</option>
+                      <option value="text-zinc-800">Dark Gray</option>
+                      <option value="text-zinc-700">Medium Gray</option>
+                      <option value="text-white">White</option>
+                      <option value="text-zinc-100">Light Gray</option>
+                      <option value="text-cyan-100">Cyan Light</option>
+                      <option value="text-emerald-100">Emerald Light</option>
+                      <option value="text-purple-100">Purple Light</option>
+                      <option value="text-rose-100">Rose Light</option>
+                    </select>
+                    <input
+                      type="color"
+                      value={productionStyle.customHeaderColor}
+                      onChange={(e) => setProductionStyle({ ...productionStyle, headerColor: `text-[${e.target.value}]`, customHeaderColor: e.target.value })}
+                      className="h-9 w-12 rounded cursor-pointer border border-zinc-300"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs text-zinc-500 mb-1">Text Color</label>
+                  <div className="flex gap-2">
+                    <select 
+                      value={productionStyle.textColor}
+                      onChange={(e) => setProductionStyle({ ...productionStyle, textColor: e.target.value })}
+                      className="flex-1 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm"
+                    >
+                      <option value="text-black">Black</option>
+                      <option value="text-white">White</option>
+                      <option value="text-zinc-100">Light Gray</option>
+                      <option value="text-cyan-100">Cyan Light</option>
+                      <option value="text-emerald-100">Emerald Light</option>
+                      <option value="text-purple-100">Purple Light</option>
+                      <option value="text-rose-100">Rose Light</option>
+                    </select>
+                    <input
+                      type="color"
+                      value={productionStyle.customTextColor}
+                      onChange={(e) => setProductionStyle({ ...productionStyle, textColor: `text-[${e.target.value}]`, customTextColor: e.target.value })}
+                      className="h-9 w-12 rounded cursor-pointer border border-zinc-300"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs text-zinc-500 mb-1">Label Color</label>
+                  <div className="flex gap-2">
+                    <select 
+                      value={productionStyle.labelColor}
+                      onChange={(e) => setProductionStyle({ ...productionStyle, labelColor: e.target.value })}
+                      className="flex-1 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm"
+                    >
+                      <option value="text-black">Black</option>
+                      <option value="text-zinc-600">Medium Gray</option>
+                      <option value="text-zinc-700">Dark Gray</option>
+                      <option value="text-blue-700">Blue</option>
+                      <option value="text-emerald-700">Green</option>
+                      <option value="text-purple-700">Purple</option>
+                      <option value="text-orange-700">Orange</option>
+                    </select>
+                    <input
+                      type="color"
+                      value={productionStyle.customLabelColor}
+                      onChange={(e) => setProductionStyle({ ...productionStyle, labelColor: `text-[${e.target.value}]`, customLabelColor: e.target.value })}
+                      className="h-9 w-12 rounded cursor-pointer border border-zinc-300"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs text-zinc-500 mb-1">Value Color</label>
+                  <div className="flex gap-2">
+                    <select 
+                      value={productionStyle.valueColor}
+                      onChange={(e) => setProductionStyle({ ...productionStyle, valueColor: e.target.value })}
+                      className="flex-1 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm"
+                    >
+                      <option value="text-black">Black</option>
+                      <option value="text-zinc-900">Near Black</option>
+                      <option value="text-zinc-800">Dark Gray</option>
+                      <option value="text-blue-900">Blue</option>
+                      <option value="text-emerald-900">Green</option>
+                      <option value="text-purple-900">Purple</option>
+                      <option value="text-orange-900">Orange</option>
+                    </select>
+                    <input
+                      type="color"
+                      value={productionStyle.customValueColor}
+                      onChange={(e) => setProductionStyle({ ...productionStyle, valueColor: `text-[${e.target.value}]`, customValueColor: e.target.value })}
+                      className="h-9 w-12 rounded cursor-pointer border border-zinc-300"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Font Family */}
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 mb-2">Font Family</label>
+                <div className="flex gap-2">
+                  {[
+                    { name: 'Sans', value: 'font-sans' },
+                    { name: 'Serif', value: 'font-serif' },
+                    { name: 'Mono', value: 'font-mono' },
+                  ].map((font) => (
+                    <button
+                      key={font.value}
+                      onClick={() => setProductionStyle({ ...productionStyle, fontFamily: font.value })}
+                      className={`flex-1 p-2 rounded-lg border-2 text-xs font-medium transition-all ${
+                        productionStyle.fontFamily === font.value 
+                          ? 'border-cyan-500 bg-cyan-50 text-cyan-700' 
+                          : 'border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300'
+                      }`}
+                    >
+                      {font.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Reset Button */}
+              <div className="flex gap-3 pt-4 border-t border-zinc-200">
+                <button 
+                  onClick={() => setProductionStyle({
+                    bgGradient: 'from-slate-800 to-slate-900',
+                    borderColor: 'border-[#334155]',
+                    borderWidth: 'border',
+                    textColor: 'text-white',
+                    headerColor: 'text-white',
+                    labelColor: 'text-gray-400',
+                    valueColor: 'text-white',
+                    fontFamily: 'font-sans',
+                    customBorderColor: '#334155',
+                    customHeaderColor: '#ffffff',
+                    customTextColor: '#d1d5db',
+                    customLabelColor: '#9ca3af',
+                    customValueColor: '#ffffff'
+                  })}
+                  className="flex-1 rounded-md border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-100 transition"
+                >
+                  Reset to Default
+                </button>
+                <button 
+                  onClick={() => setIsProductionStyleModalOpen(false)}
                   className="flex-1 rounded-md bg-gradient-to-r from-cyan-600 to-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-cyan-600/20 hover:from-cyan-700 hover:to-sky-700 transition"
                 >
                   Apply & Close
