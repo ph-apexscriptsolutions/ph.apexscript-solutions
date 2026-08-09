@@ -3676,10 +3676,10 @@ export default function DashboardPage() {
             </div>
 
             <div className="grid gap-6 xl:grid-cols-[2fr_1fr] xl:items-stretch mt-4">
-              <div className="rounded-2xl border border-[#334155] bg-[#172033] backdrop-blur-sm transition-all duration-300 relative">
-                <div className="flex flex-col space-y-1.5 p-6 border-b border-[#334155]">
+              <div className={`rounded-2xl ${statsStyle.borderWidth} ${statsStyle.borderColor} bg-gradient-to-br ${statsStyle.bgGradient} backdrop-blur-sm transition-all duration-300 relative ${statsStyle.fontFamily}`}>
+                <div className="flex flex-col space-y-1.5 p-6 border-b border-white/10">
                   <div className="flex items-center justify-between">
-                    <h3 className="font-bold text-lg leading-none tracking-tight text-white">Production Records</h3>
+                    <h3 className={`font-bold text-lg leading-none tracking-tight ${statsStyle.headerColor}`}>Production Records</h3>
                     {isAdmin && (
                       <button onClick={() => setIsStatsStyleModalOpen(true)} className="inline-flex items-center gap-1 rounded-md border border-zinc-300 bg-white/80 px-2 py-1 text-xs font-semibold text-zinc-700 hover:bg-white transition">
                         <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" /></svg>
@@ -3688,19 +3688,19 @@ export default function DashboardPage() {
                     )}
                   </div>
                 </div>
-                <div className="p-6 pt-4 bg-[#1E293B]">
+                <div className="p-6 pt-4">
                   <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:gap-2">
                     <div className="flex flex-wrap items-end gap-2">
                       <div className="flex flex-col">
-                        <label className="text-[10px] font-semibold text-white mb-1.5">Start Date</label>
+                        <label className={`text-[10px] font-semibold ${statsStyle.labelColor} mb-1.5`}>Start Date</label>
                         <input type="date" value={startDate} onChange={(e) => { setStartDate(e.target.value); setFilterApplied(false); }} className="border border-white/20 rounded-lg px-2 py-1.5 text-xs text-white outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all bg-white/5" placeholder="mm/dd/yyyy" />
                       </div>
                       <div className="flex flex-col">
-                        <label className="text-[10px] font-semibold text-white mb-1.5">End Date</label>
+                        <label className={`text-[10px] font-semibold ${statsStyle.labelColor} mb-1.5`}>End Date</label>
                         <input type="date" value={endDate} onChange={(e) => { setEndDate(e.target.value); setFilterApplied(false); }} className="border border-white/20 rounded-lg px-2 py-1.5 text-xs text-white outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all bg-white/5" placeholder="mm/dd/yyyy" />
                       </div>
                       <div className="flex flex-col">
-                        <label className="text-[10px] font-semibold text-white mb-1.5">Search Files</label>
+                        <label className={`text-[10px] font-semibold ${statsStyle.labelColor} mb-1.5`}>Search Files</label>
                         <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="border border-white/20 rounded-lg px-2 py-1.5 text-xs text-white outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all bg-white/5" placeholder="Search by file name..." />
                       </div>
                       <button onClick={applyFilters} className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-zinc-900 to-slate-900 px-3 py-1.5 text-xs font-semibold text-white shadow-lg shadow-black/40 ring-1 ring-white/10 hover:from-black hover:to-zinc-900 hover:shadow-black/60 hover:shadow-xl transition-all">
@@ -3713,9 +3713,9 @@ export default function DashboardPage() {
                       )}
                     </div>
                   </div>
-                  <div className="overflow-x-auto rounded-xl border border-[#334155]">
+                  <div className="overflow-x-auto rounded-xl border border-white/10">
                     <table className="w-full text-xs text-left">
-                      <thead className="bg-[#293548] text-white uppercase text-[10px] font-semibold tracking-wider">
+                      <thead className="bg-white/10 text-white uppercase text-[10px] font-semibold tracking-wider">
                         <tr>
                           <th className="px-3 py-2 text-left rounded-tl-lg">File Name</th>
                           <th className="px-3 py-2 text-left">Date Completed</th>
@@ -3723,7 +3723,7 @@ export default function DashboardPage() {
                           {isAdmin && <th className="px-3 py-2 text-left rounded-tr-lg">Actions</th>}
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-[#334155] bg-[#1E293B]">
+                      <tbody className="divide-y divide-white/10">
                         {records.length > 0 ? records.map((r: any) => (
                           <tr key={r.id} className="hover:bg-[#293548] transition-colors">
                             <td className="px-3 py-2 font-semibold text-white">{getDisplayFileName(r.file_name)}</td>
