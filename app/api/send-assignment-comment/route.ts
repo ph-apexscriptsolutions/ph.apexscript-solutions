@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import nodemailer from 'nodemailer'
-import { getDesignOption4 } from './email-designs'
+import { getRoseTheme } from './email-designs'
 
 const transporter = process.env.EMAIL_USER && process.env.EMAIL_PASS
   ? nodemailer.createTransport({
@@ -25,8 +25,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Email service not configured' }, { status: 500 })
     }
 
-    // Professional email template - Bold Dark Theme (Design Option 4)
-    const emailHtml = getDesignOption4(workerName, filename, comment, adminName)
+    // Professional email template - Light Soft Rose Theme
+    const emailHtml = getRoseTheme(workerName, filename, comment, adminName)
 
     // Send email
     await transporter.sendMail({

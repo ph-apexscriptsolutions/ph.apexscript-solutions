@@ -675,3 +675,160 @@ export function getDesignOption4(workerName: string, filename: string | undefine
     </html>
   `
 }
+
+export function getRoseTheme(workerName: string, filename: string | undefined, comment: string, adminName: string): string {
+  // Elegant Soft Rose Light Theme
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Assignment Feedback</title>
+      <style>
+        body {
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+          line-height: 1.6;
+          color: #334155;
+          margin: 0;
+          padding: 0;
+          background-color: #fff1f2;
+        }
+        .email-wrapper {
+          max-width: 600px;
+          margin: 40px auto;
+          background: #ffffff;
+          border: 1px solid #fecdd3;
+          border-radius: 16px;
+          overflow: hidden;
+          box-shadow: 0 10px 25px -5px rgba(225, 29, 72, 0.08), 0 8px 10px -6px rgba(225, 29, 72, 0.05);
+        }
+        .header {
+          background: linear-gradient(135deg, #e11d48 0%, #be123c 100%);
+          padding: 38px 40px;
+          text-align: center;
+        }
+        .logo {
+          font-size: 24px;
+          font-weight: 700;
+          color: #ffffff;
+          letter-spacing: -0.3px;
+          margin-bottom: 6px;
+        }
+        .header-subtitle {
+          font-size: 12px;
+          color: rgba(255, 255, 255, 0.95);
+          font-weight: 600;
+          letter-spacing: 2px;
+          text-transform: uppercase;
+        }
+        .content {
+          padding: 40px;
+        }
+        .greeting {
+          font-size: 21px;
+          font-weight: 600;
+          color: #1e293b;
+          margin-bottom: 18px;
+        }
+        .intro-text {
+          font-size: 15px;
+          color: #475569;
+          margin-bottom: 24px;
+          line-height: 1.7;
+        }
+        .comment-card {
+          background: #fff5f5;
+          border: 1px solid #ffe4e6;
+          border-left: 4px solid #e11d48;
+          border-radius: 10px;
+          padding: 26px;
+          margin: 26px 0;
+        }
+        .filename-section {
+          background: #ffe4e6;
+          padding: 12px 16px;
+          border-radius: 6px;
+          margin-bottom: 16px;
+        }
+        .filename-label {
+          font-size: 10px;
+          font-weight: 700;
+          color: #9f1239;
+          text-transform: uppercase;
+          letter-spacing: 1.5px;
+          margin-bottom: 4px;
+        }
+        .filename-value {
+          font-size: 14px;
+          font-weight: 600;
+          color: #881337;
+        }
+        .comment-text {
+          font-size: 15px;
+          color: #1e293b;
+          line-height: 1.7;
+          white-space: pre-wrap;
+          word-break: break-word;
+        }
+        .divider {
+          height: 1px;
+          background: #ffe4e6;
+          margin: 28px 0;
+        }
+        .footer {
+          text-align: center;
+          padding: 24px 40px;
+          background: #fff1f2;
+          border-top: 1px solid #fecdd3;
+        }
+        .disclaimer {
+          font-size: 11px;
+          color: #9f1239;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="email-wrapper">
+        <div class="header">
+          <div class="logo">ApexScript Transcription Services</div>
+          <div class="header-subtitle">Assignment Feedback</div>
+        </div>
+        
+        <div class="content">
+          <p class="greeting">Dear ${workerName},</p>
+          
+          <p class="intro-text">
+            We hope this message finds you well. An administrator has reviewed your recent assignment submission and would like to share some feedback with you.
+          </p>
+
+          <div class="comment-card">
+            ${filename ? `
+            <div class="filename-section">
+              <div class="filename-label">Assignment Filename</div>
+              <div class="filename-value">${filename}</div>
+            </div>
+            ` : ''}
+            <div class="comment-text">${comment}</div>
+          </div>
+          
+          <p class="intro-text">
+            Please review this feedback and incorporate it into your future assignments. If you have any questions or need clarification, please don't hesitate to reach out to the administration team.
+          </p>
+          
+          <p class="intro-text" style="margin-bottom: 0;">
+            Thank you for your continued dedication and hard work.
+          </p>
+        </div>
+        
+        <div class="divider"></div>
+
+        <div class="footer">
+          <p class="disclaimer">Please do not reply directly to this email.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `
+}
+
