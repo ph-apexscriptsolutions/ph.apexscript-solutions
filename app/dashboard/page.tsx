@@ -328,6 +328,7 @@ export default function DashboardPage() {
   const [showAnnouncementPreview, setShowAnnouncementPreview] = useState(false)
   const [editorRef, setEditorRef] = useState<HTMLDivElement | null>(null)
   const [assignmentEditorRef, setAssignmentEditorRef] = useState<HTMLDivElement | null>(null)
+  const [commentEditorRef, setCommentEditorRef] = useState<HTMLDivElement | null>(null)
   const [isEditingAnnouncement, setIsEditingAnnouncement] = useState(false)
   const [editingAnnouncementId, setEditingAnnouncementId] = useState<number | null>(null)
   const [announcementSchemaHint, setAnnouncementSchemaHint] = useState<string | null>(null)
@@ -2705,7 +2706,8 @@ export default function DashboardPage() {
   }
 
   const sendAssignmentComment = async () => {
-    if (!selectedWorkerForComment || !assignmentComment.trim()) return
+    const commentContent = commentEditorRef?.innerHTML || assignmentComment
+    if (!selectedWorkerForComment || !commentContent.trim() || commentContent === '<br>') return
 
     setIsSendingComment(true)
     try {
@@ -2716,7 +2718,7 @@ export default function DashboardPage() {
           workerId: selectedWorkerForComment.id,
           workerName: selectedWorkerForComment.full_name,
           workerEmail: selectedWorkerForComment.email,
-          comment: assignmentComment,
+          comment: commentContent,
           filename: assignmentFilename,
           adminName: user?.full_name || 'Admin'
         }),
@@ -2732,6 +2734,7 @@ export default function DashboardPage() {
       setAssignmentComment('')
       setAssignmentFilename('')
       setSelectedWorkerForComment(null)
+      if (commentEditorRef) commentEditorRef.innerHTML = ''
     } catch (err: any) {
       console.error('Error sending comment:', err)
       alert(`Failed to send comment: ${err.message}`)
@@ -7844,6 +7847,7 @@ export default function DashboardPage() {
               setAssignmentComment('')
               setAssignmentFilename('')
               setSelectedWorkerForComment(null)
+              if (commentEditorRef) commentEditorRef.innerHTML = ''
             }} className="absolute right-4 top-4 text-zinc-400 hover:text-zinc-900"><X className="h-5 w-5" /></button>
             <h3 className="text-lg font-semibold text-zinc-900 mb-4">Send Assignment Comment</h3>
 
@@ -7879,17 +7883,82 @@ export default function DashboardPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-zinc-700 mb-2">Comment</label>
-                <textarea
-                  value={assignmentComment}
-                  onChange={(e) => setAssignmentComment(e.target.value)}
-                  rows={6}
-                  className="w-full rounded-md border border-zinc-300 px-3 py-3 text-sm text-zinc-800 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                  placeholder="Write your comment about the assignment..."
+                <label className="block text-sm font-medium text-zinc-700 mb-1">Comment</label>
+                {/* Formatting Toolbar */}
+                <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-2 mb-2">
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => document.execCommand('bold', false, undefined)}
+                      className="px-3 py-1.5 rounded-md text-sm font-semibold bg-white border border-zinc-300 text-zinc-700 hover:bg-zinc-50 transition"
+                      title="Bold (Ctrl+B)"
+                    >
+                      B
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => document.execCommand('italic', false, undefined)}
+                      className="px-3 py-1.5 rounded-md text-sm italic bg-white border border-zinc-300 text-zinc-700 hover:bg-zinc-50 transition"
+                      title="Italic (Ctrl+I)"
+                    >
+                      I
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => document.execCommand('underline', false, undefined)}
+                      className="px-3 py-1.5 rounded-md text-sm underline bg-white border border-zinc-300 text-zinc-700 hover:bg-zinc-50 transition"
+                      title="Underline (Ctrl+U)"
+                    >
+                      U
+                    </button>
+                    <div className="w-px bg-zinc-300 mx-1"></div>
+                    <select
+                      onChange={(e) => document.execCommand('fontName', false, e.target.value)}
+                      className="px-2 py-1.5 rounded-md text-sm bg-white border border-zinc-300 text-zinc-700 outline-none"
+                    >
+                      <option value="Arial">Arial</option>
+                      <option value="Georgia">Georgia</option>
+                      <option value="Times New Roman">Times New Roman</option>
+                      <option value="Courier New">Courier New</option>
+                      <option value="Verdana">Verdana</option>
+                      <option value="Tahoma">Tahoma</option>
+                    </select>
+                    <select
+                      onChange={(e) => document.execCommand('fontSize', false, e.target.value)}
+                      className="px-2 py-1.5 rounded-md text-sm bg-white border border-zinc-300 text-zinc-700 outline-none"
+                    >
+                      <option value="1">Small</option>
+                      <option value="3">Normal</option>
+                      <option value="5">Large</option>
+                      <option value="7">Extra Large</option>
+                    </select>
+                    <input
+                      type="color"
+                      onChange={(e) => document.execCommand('foreColor', false, e.target.value)}
+                      className="h-8 w-10 rounded-md border border-zinc-300 cursor-pointer"
+                      title="Text Color"
+                    />
+                    <input
+                      type="color"
+                      onChange={(e) => document.execCommand('hiliteColor', false, e.target.value)}
+                      className="h-8 w-10 rounded-md border border-zinc-300 cursor-pointer"
+                      title="Highlight Color"
+                    />
+                  </div>
+                </div>
+                <div
+                  ref={(ref) => setCommentEditorRef(ref)}
+                  contentEditable={true}
+                  className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm text-zinc-800 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 min-h-[150px] max-h-[300px] overflow-y-auto"
+                  style={{ fontFamily: 'Arial', fontSize: '14px' }}
+                  onInput={(e) => {
+                    const content = (e.target as HTMLElement).innerHTML
+                    setAssignmentComment(content)
+                  }}
                 />
               </div>
               <div className="text-xs text-zinc-500">
-                {assignmentComment.length} characters
+                {commentEditorRef?.innerText?.length || 0} characters
               </div>
             </div>
 
@@ -7899,8 +7968,9 @@ export default function DashboardPage() {
                 setAssignmentComment('')
                 setAssignmentFilename('')
                 setSelectedWorkerForComment(null)
+                if (commentEditorRef) commentEditorRef.innerHTML = ''
               }} className="rounded-md border border-zinc-200 bg-white px-5 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 transition">Cancel</button>
-              <button type="button" onClick={sendAssignmentComment} disabled={!selectedWorkerForComment || !assignmentComment.trim() || isSendingComment} className="inline-flex items-center justify-center rounded-md bg-blue-500 px-5 py-2 text-sm font-semibold text-white hover:bg-blue-600 transition disabled:opacity-50">
+              <button type="button" onClick={sendAssignmentComment} disabled={!selectedWorkerForComment || !assignmentComment.trim() || assignmentComment === '<br>' || isSendingComment} className="inline-flex items-center justify-center rounded-md bg-blue-500 px-5 py-2 text-sm font-semibold text-white hover:bg-blue-600 transition disabled:opacity-50">
                 {isSendingComment ? 'Sending...' : 'Send Comment'}
               </button>
             </div>
