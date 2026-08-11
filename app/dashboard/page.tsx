@@ -161,123 +161,113 @@ export default function DashboardPage() {
   const [bankForm, setBankForm] = useState({ bankName: "", accountNumber: "", accountType: "", routingNumber: "", employeeId: "" })
   const [isUpdatingBank, setIsUpdatingBank] = useState(false)
   const [isBankStyleModalOpen, setIsBankStyleModalOpen] = useState(false)
-  const [bankStyle, setBankStyle] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('bankStyle')
-      if (saved) return JSON.parse(saved)
-    }
-    return {
-      bgGradient: 'from-cyan-50 to-blue-50/80',
-      borderColor: 'border-zinc-200/80',
-      borderWidth: 'border',
-      textColor: 'text-zinc-700',
-      headerColor: 'text-zinc-800',
-      labelColor: 'text-zinc-600',
-      valueColor: 'text-zinc-900',
-      fontFamily: 'font-sans',
-      customBorderColor: '#e4e4e7',
-      customHeaderColor: '#27272a',
-      customTextColor: '#52525b',
-      customLabelColor: '#52525b',
-      customValueColor: '#18181b'
-    }
+  const [bankStyle, setBankStyle] = useState({
+    bgGradient: 'from-cyan-50 to-blue-50/80',
+    borderColor: 'border-zinc-200/80',
+    borderWidth: 'border',
+    textColor: 'text-zinc-700',
+    headerColor: 'text-zinc-800',
+    labelColor: 'text-zinc-600',
+    valueColor: 'text-zinc-900',
+    fontFamily: 'font-sans',
+    customBorderColor: '#e4e4e7',
+    customHeaderColor: '#27272a',
+    customTextColor: '#52525b',
+    customLabelColor: '#52525b',
+    customValueColor: '#18181b'
   })
-
-  useEffect(() => {
-    localStorage.setItem('bankStyle', JSON.stringify(bankStyle))
-  }, [bankStyle])
 
   const [isWorkerStyleModalOpen, setIsWorkerStyleModalOpen] = useState(false)
-  const [workerTitle, setWorkerTitle] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('workerTitle')
-      if (saved) return saved
-    }
-    return 'WORKER'
+  const [workerTitle, setWorkerTitle] = useState('WORKER')
+  const [workerStyle, setWorkerStyle] = useState({
+    bgGradient: 'from-slate-800 to-slate-900',
+    borderColor: 'border-[#334155]',
+    borderWidth: 'border',
+    textColor: 'text-gray-300',
+    headerColor: 'text-white',
+    labelColor: 'text-gray-400',
+    valueColor: 'text-white',
+    fontFamily: 'font-sans',
+    customBorderColor: '#334155',
+    customHeaderColor: '#ffffff',
+    customTextColor: '#d1d5db',
+    customLabelColor: '#9ca3af',
+    customValueColor: '#ffffff'
   })
-  const [workerStyle, setWorkerStyle] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('workerStyle')
-      if (saved) return JSON.parse(saved)
-    }
-    return {
-      bgGradient: 'from-slate-800 to-slate-900',
-      borderColor: 'border-[#334155]',
-      borderWidth: 'border',
-      textColor: 'text-gray-300',
-      headerColor: 'text-white',
-      labelColor: 'text-gray-400',
-      valueColor: 'text-white',
-      fontFamily: 'font-sans',
-      customBorderColor: '#334155',
-      customHeaderColor: '#ffffff',
-      customTextColor: '#d1d5db',
-      customLabelColor: '#9ca3af',
-      customValueColor: '#ffffff'
-    }
-  })
-
-  useEffect(() => {
-    localStorage.setItem('workerTitle', workerTitle)
-  }, [workerTitle])
-
-  useEffect(() => {
-    localStorage.setItem('workerStyle', JSON.stringify(workerStyle))
-  }, [workerStyle])
 
   const [isStatsStyleModalOpen, setIsStatsStyleModalOpen] = useState(false)
-  const [statsStyle, setStatsStyle] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('statsStyle')
-      if (saved) return JSON.parse(saved)
-    }
-    return {
-      bgGradient: 'from-slate-800 to-slate-900',
-      borderColor: 'border-cyan-500/30',
-      borderWidth: 'border',
-      textColor: 'text-white',
-      headerColor: 'text-white',
-      labelColor: 'text-cyan-100',
-      valueColor: 'text-white',
-      fontFamily: 'font-sans',
-      customBorderColor: '#06b6d4',
-      customHeaderColor: '#ffffff',
-      customTextColor: '#ffffff',
-      customLabelColor: '#67e8f9',
-      customValueColor: '#ffffff'
-    }
+  const [statsStyle, setStatsStyle] = useState({
+    bgGradient: 'from-slate-800 to-slate-900',
+    borderColor: 'border-cyan-500/30',
+    borderWidth: 'border',
+    textColor: 'text-white',
+    headerColor: 'text-white',
+    labelColor: 'text-cyan-100',
+    valueColor: 'text-white',
+    fontFamily: 'font-sans',
+    customBorderColor: '#06b6d4',
+    customHeaderColor: '#ffffff',
+    customTextColor: '#ffffff',
+    customLabelColor: '#67e8f9',
+    customValueColor: '#ffffff'
   })
-
-  useEffect(() => {
-    localStorage.setItem('statsStyle', JSON.stringify(statsStyle))
-  }, [statsStyle])
 
   const [isProductionStyleModalOpen, setIsProductionStyleModalOpen] = useState(false)
-  const [productionStyle, setProductionStyle] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('productionStyle')
-      if (saved) return JSON.parse(saved)
-    }
-    return {
-      bgGradient: 'from-slate-800 to-slate-900',
-      borderColor: 'border-[#334155]',
-      borderWidth: 'border',
-      textColor: 'text-white',
-      headerColor: 'text-white',
-      labelColor: 'text-gray-400',
-      valueColor: 'text-white',
-      fontFamily: 'font-sans',
-      customBorderColor: '#334155',
-      customHeaderColor: '#ffffff',
-      customTextColor: '#d1d5db',
-      customLabelColor: '#9ca3af',
-      customValueColor: '#ffffff'
-    }
+  const [productionStyle, setProductionStyle] = useState({
+    bgGradient: 'from-slate-800 to-slate-900',
+    borderColor: 'border-[#334155]',
+    borderWidth: 'border',
+    textColor: 'text-white',
+    headerColor: 'text-white',
+    labelColor: 'text-gray-400',
+    valueColor: 'text-white',
+    fontFamily: 'font-sans',
+    customBorderColor: '#334155',
+    customHeaderColor: '#ffffff',
+    customTextColor: '#d1d5db',
+    customLabelColor: '#9ca3af',
+    customValueColor: '#ffffff'
   })
 
+  // Fetch global dashboard styles from DB on mount (applies to all users)
   useEffect(() => {
-    localStorage.setItem('productionStyle', JSON.stringify(productionStyle))
-  }, [productionStyle])
+    const fetchDashboardStyles = async () => {
+      try {
+        const res = await fetch('/api/dashboard-styles')
+        if (!res.ok) return
+        const data = await res.json()
+        if (!data.styles) return
+        const s = data.styles
+        if (s.production_style) setProductionStyle(s.production_style)
+        if (s.worker_style) setWorkerStyle(s.worker_style)
+        if (s.bank_style) setBankStyle(s.bank_style)
+        if (s.stats_style) setStatsStyle(s.stats_style)
+        if (s.worker_title) setWorkerTitle(s.worker_title)
+      } catch (err) {
+        console.error('Failed to fetch dashboard styles:', err)
+      }
+    }
+    fetchDashboardStyles()
+  }, [])
+
+  // Save all styles to DB (admin only — called when each style modal is applied)
+  const saveDashboardStyles = async (patch: {
+    productionStyle?: object
+    workerStyle?: object
+    bankStyle?: object
+    statsStyle?: object
+    workerTitle?: string
+  }) => {
+    try {
+      await fetch('/api/dashboard-styles', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(patch),
+      })
+    } catch (err) {
+      console.error('Failed to save dashboard styles:', err)
+    }
+  }
 
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
   const [selectedPaymentRate, setSelectedPaymentRate] = useState<number | null>(null)
@@ -4677,7 +4667,7 @@ export default function DashboardPage() {
                   Reset to Default
                 </button>
                 <button 
-                  onClick={() => setIsBankStyleModalOpen(false)}
+                  onClick={() => { saveDashboardStyles({ bankStyle }); setIsBankStyleModalOpen(false) }}
                   className="flex-1 rounded-md bg-gradient-to-r from-cyan-600 to-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-cyan-600/20 hover:from-cyan-700 hover:to-sky-700 transition"
                 >
                   Apply & Close
@@ -4955,7 +4945,7 @@ export default function DashboardPage() {
                   Reset to Default
                 </button>
                 <button 
-                  onClick={() => setIsWorkerStyleModalOpen(false)}
+                  onClick={() => { saveDashboardStyles({ workerStyle, workerTitle }); setIsWorkerStyleModalOpen(false) }}
                   className="flex-1 rounded-md bg-gradient-to-r from-cyan-600 to-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-cyan-600/20 hover:from-cyan-700 hover:to-sky-700 transition"
                 >
                   Apply & Close
@@ -5221,7 +5211,7 @@ export default function DashboardPage() {
                   Reset to Default
                 </button>
                 <button 
-                  onClick={() => setIsStatsStyleModalOpen(false)}
+                  onClick={() => { saveDashboardStyles({ statsStyle }); setIsStatsStyleModalOpen(false) }}
                   className="flex-1 rounded-md bg-gradient-to-r from-cyan-600 to-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-cyan-600/20 hover:from-cyan-700 hover:to-sky-700 transition"
                 >
                   Apply & Close
@@ -5576,7 +5566,7 @@ export default function DashboardPage() {
                   Reset to Default
                 </button>
                 <button 
-                  onClick={() => setIsProductionStyleModalOpen(false)}
+                  onClick={() => { saveDashboardStyles({ productionStyle }); setIsProductionStyleModalOpen(false) }}
                   className="flex-1 rounded-md bg-gradient-to-r from-cyan-600 to-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-cyan-600/20 hover:from-cyan-700 hover:to-sky-700 transition"
                 >
                   Apply & Close
