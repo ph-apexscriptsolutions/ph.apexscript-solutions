@@ -211,8 +211,46 @@ export default function AdminPriorityAnnouncementModal({
           {activeTab === 'create' ? (
             <form onSubmit={handleSubmit} className="space-y-4">
               {errorMessage && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700 font-medium">
-                  {errorMessage}
+                <div className="p-4 bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800 rounded-xl text-xs text-red-800 dark:text-red-300 space-y-2">
+                  <p className="font-bold flex items-center gap-1.5">
+                    <AlertTriangle className="h-4 w-4 text-red-600 shrink-0" />
+                    <span>{errorMessage}</span>
+                  </p>
+                  {(errorMessage.includes('priority_announcements') || errorMessage.includes('schema cache') || errorMessage.includes('does not exist')) && (
+                    <div className="pt-2 border-t border-red-200 dark:border-red-800/60 space-y-2">
+                      <p className="text-[11px] font-semibold text-red-700 dark:text-red-300">
+                        To enable this feature, copy and run the SQL query below in your <strong>Supabase SQL Editor</strong>:
+                      </p>
+                      <pre className="p-3 bg-zinc-900 text-emerald-400 font-mono text-[11px] rounded-lg overflow-x-auto select-all">
+{`CREATE TABLE IF NOT EXISTS public.priority_announcements (
+  id serial PRIMARY KEY,
+  admin_id text,
+  admin_name text DEFAULT 'Admin',
+  title text NOT NULL,
+  description text NOT NULL DEFAULT '',
+  target_type text NOT NULL DEFAULT 'all',
+  target_worker_ids jsonb DEFAULT '[]'::jsonb,
+  first_come_first_served boolean NOT NULL DEFAULT false,
+  status text NOT NULL DEFAULT 'active',
+  claimed_by_worker_id text,
+  claimed_by_worker_name text,
+  expires_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.priority_announcement_responses (
+  id serial PRIMARY KEY,
+  announcement_id integer REFERENCES public.priority_announcements(id) ON DELETE CASCADE,
+  worker_id text NOT NULL,
+  worker_name text NOT NULL DEFAULT '',
+  worker_email text DEFAULT '',
+  response text NOT NULL,
+  note text DEFAULT '',
+  responded_at timestamptz NOT NULL DEFAULT now()
+);`}
+                      </pre>
+                    </div>
+                  )}
                 </div>
               )}
               {successMessage && (

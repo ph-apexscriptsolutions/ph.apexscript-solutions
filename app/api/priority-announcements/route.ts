@@ -58,7 +58,6 @@ async function ensureTablesExist(supabase: any) {
 export async function GET(request: Request) {
   try {
     const supabase = getSupabaseServerClient(true)
-    await ensureTablesExist(supabase)
 
     const { searchParams } = new URL(request.url)
     const workerId = searchParams.get('workerId')
@@ -73,8 +72,34 @@ export async function GET(request: Request) {
     const { data, error } = await query
 
     if (error) {
-      console.error('Priority Announcements GET error:', error)
-      return NextResponse.json({ announcements: [] })
+      console.warn('Priority Announcements query warning (table may need creation in Supabase SQL Editor):', error.message)
+      const schemaHint = `CREATE TABLE IF NOT EXISTS public.priority_announcements (
+  id serial PRIMARY KEY,
+  admin_id text,
+  admin_name text DEFAULT 'Admin',
+  title text NOT NULL,
+  description text NOT NULL DEFAULT '',
+  target_type text NOT NULL DEFAULT 'all',
+  target_worker_ids jsonb DEFAULT '[]'::jsonb,
+  first_come_first_served boolean NOT NULL DEFAULT false,
+  status text NOT NULL DEFAULT 'active',
+  claimed_by_worker_id text,
+  claimed_by_worker_name text,
+  expires_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.priority_announcement_responses (
+  id serial PRIMARY KEY,
+  announcement_id integer REFERENCES public.priority_announcements(id) ON DELETE CASCADE,
+  worker_id text NOT NULL,
+  worker_name text NOT NULL DEFAULT '',
+  worker_email text DEFAULT '',
+  response text NOT NULL,
+  note text DEFAULT '',
+  responded_at timestamptz NOT NULL DEFAULT now()
+);`
+      return NextResponse.json({ announcements: [], schemaHint })
     }
 
     let filtered = data || []
@@ -152,6 +177,13 @@ export async function POST(request: Request) {
 
     if (error) {
       console.error('Priority Announcement POST error:', error)
+      const msg = error.message || ''
+      if (error.code === '42P01' || msg.includes('does not exist') || msg.includes('relation') || msg.includes('schema cache')) {
+        return NextResponse.json({
+          error: "Table 'priority_announcements' does not exist in your Supabase database yet. Please execute the migration SQL in your Supabase SQL Editor to create it.",
+          needsMigration: true,
+        }, { status: 500 })
+      }
       return NextResponse.json({ error: error.message || 'Failed to publish priority announcement' }, { status: 500 })
     }
 
