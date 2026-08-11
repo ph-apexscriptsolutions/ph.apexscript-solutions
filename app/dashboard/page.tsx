@@ -8558,7 +8558,7 @@ export default function DashboardPage() {
         <AdminPriorityAnnouncementModal
           adminId={profile.id}
           adminName={profile.full_name || 'Admin'}
-          workers={workers}
+          workers={allWorkers}
           isOpen={isAdminPriorityModalOpen}
           onClose={() => setIsAdminPriorityModalOpen(false)}
           onCreated={() => {
