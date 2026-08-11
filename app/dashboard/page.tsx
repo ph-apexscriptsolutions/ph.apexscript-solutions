@@ -324,25 +324,6 @@ export default function DashboardPage() {
   const [announcementSchemaHint, setAnnouncementSchemaHint] = useState<string | null>(null)
   const [announcementErrorMessage, setAnnouncementErrorMessage] = useState<string | null>(null)
 
-  // New assignment announcement system
-  const [isAssignmentAnnouncementModalOpen, setIsAssignmentAnnouncementModalOpen] = useState(false)
-  const [assignmentForm, setAssignmentForm] = useState({
-    title: "",
-    description: "",
-    priority: "normal",
-    deadline: "",
-    targetType: "all",
-    selectedWorkerIds: [] as string[]
-  })
-  const [isCreatingAssignment, setIsCreatingAssignment] = useState(false)
-  const [activeAssignment, setActiveAssignment] = useState<any | null>(null)
-  const [assignmentResponses, setAssignmentResponses] = useState<any[]>([])
-  const [notificationSound, setNotificationSound] = useState<HTMLAudioElement | null>(null)
-  const [hasPlayedNotification, setHasPlayedNotification] = useState<Set<string>>(new Set())
-  const [isAssignmentResponsesModalOpen, setIsAssignmentResponsesModalOpen] = useState(false)
-  const [allAnnouncements, setAllAnnouncements] = useState<any[]>([])
-  const [selectedAnnouncementForResponses, setSelectedAnnouncementForResponses] = useState<any | null>(null)
-
   const [isAddWorkerModalOpen, setIsAddWorkerModalOpen] = useState(false)
   const [newWorkerForm, setNewWorkerForm] = useState({ fullName: "", jobTitle: "", department: "", email: "", password: "", role: "worker", location: "United States" })
   const [isAddingWorker, setIsAddingWorker] = useState(false)
@@ -1043,62 +1024,6 @@ export default function DashboardPage() {
     }
   }, [profile?.id])
 
-  // Real-time subscription for assignment announcements (workers)
-  useEffect(() => {
-    if (!profile || isAdmin) return
-
-    const assignmentsChannel = supabase
-      .channel('assignment_announcements')
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'announcements'
-      }, async (payload: any) => {
-        const newAnnouncement = payload.new
-        
-        // Check if this announcement is targeted to this worker
-        const isTargeted = newAnnouncement.target_type === 'all' || 
-                         (newAnnouncement.target_type === 'specific' && 
-                          newAnnouncement.target_worker_ids?.includes(profile.id))
-        
-        if (isTargeted) {
-          // Play notification sound using Web Audio API
-          if (!hasPlayedNotification.has(newAnnouncement.id)) {
-            try {
-              const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
-              const oscillator = audioContext.createOscillator()
-              const gainNode = audioContext.createGain()
-              
-              oscillator.connect(gainNode)
-              gainNode.connect(audioContext.destination)
-              
-              oscillator.frequency.value = 800
-              oscillator.type = 'sine'
-              gainNode.gain.value = 0.3
-              
-              oscillator.start()
-              setTimeout(() => {
-                oscillator.stop()
-                audioContext.close()
-              }, 200)
-              
-              setHasPlayedNotification(prev => new Set([...prev, newAnnouncement.id]))
-            } catch (err) {
-              console.log('Audio play failed:', err)
-            }
-          }
-          
-          // Show the assignment modal
-          setActiveAssignment(newAnnouncement)
-        }
-      })
-      .subscribe()
-
-    return () => {
-      supabase.removeChannel(assignmentsChannel)
-    }
-  }, [profile?.id, isAdmin])
-
   // Admin realtime subscriptions for new issues
   useEffect(() => {
     if (!profile || profile.role !== 'admin') return
@@ -1782,97 +1707,6 @@ export default function DashboardPage() {
     }
   }
 
-  const handleCreateAssignment = async () => {
-    if (!assignmentForm.title || !assignmentForm.description) return
-
-    setIsCreatingAssignment(true)
-    try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('Not authenticated')
-
-      const announcementData = {
-        title: assignmentForm.title,
-        description: assignmentForm.description,
-        priority: assignmentForm.priority,
-        deadline: assignmentForm.deadline || null,
-        created_by: user.id,
-        target_type: assignmentForm.targetType,
-        target_worker_ids: assignmentForm.targetType === 'specific' ? assignmentForm.selectedWorkerIds : []
-      }
-
-      const { error } = await supabase.from('announcements').insert(announcementData)
-      if (error) throw error
-
-      setAssignmentForm({
-        title: "",
-        description: "",
-        priority: "normal",
-        deadline: "",
-        targetType: "all",
-        selectedWorkerIds: []
-      })
-      setIsAssignmentAnnouncementModalOpen(false)
-      setToastMessage('✅ Assignment sent successfully!')
-      setShowToast(true)
-      setTimeout(() => { setShowToast(false); setToastMessage(null) }, 3000)
-    } catch (err: any) {
-      console.error('Assignment creation error:', err)
-      alert(`Failed to create assignment: ${err.message}`)
-    } finally {
-      setIsCreatingAssignment(false)
-    }
-  }
-
-  const handleAssignmentResponse = async (response: 'accepted' | 'declined') => {
-    if (!activeAssignment || !user) return
-
-    try {
-      const { error } = await supabase.from('announcement_responses').insert({
-        announcement_id: activeAssignment.id,
-        worker_id: user.id,
-        response: response,
-        response_note: null
-      })
-
-      if (error) throw error
-
-      setActiveAssignment(null)
-      setToastMessage(`✅ Assignment ${response}!`)
-      setShowToast(true)
-      setTimeout(() => { setShowToast(false); setToastMessage(null) }, 3000)
-    } catch (err: any) {
-      console.error('Assignment response error:', err)
-      alert(`Failed to respond to assignment: ${err.message}`)
-    }
-  }
-
-  const fetchAllAnnouncements = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('announcements')
-        .select('*')
-        .order('created_at', { ascending: false })
-      
-      if (error) throw error
-      setAllAnnouncements(data || [])
-    } catch (err: any) {
-      console.error('Error fetching announcements:', err)
-    }
-  }
-
-  const fetchAnnouncementResponses = async (announcementId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('announcement_responses')
-        .select('*, worker:worker_profiles(full_name, email)')
-        .eq('announcement_id', announcementId)
-      
-      if (error) throw error
-      setAssignmentResponses(data || [])
-    } catch (err: any) {
-      console.error('Error fetching responses:', err)
-    }
-  }
 
   const openEditWorkerModal = () => {
     if (!activeWorker) return
@@ -3633,44 +3467,6 @@ export default function DashboardPage() {
                           <svg className="h-2.5 w-2.5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
                         </div>
                       </button>
-
-                      {/* Assignment Announcement */}
-                      {isAdmin && (
-                        <button
-                          onClick={() => setIsAssignmentAnnouncementModalOpen(true)}
-                          className="group relative flex flex-col items-start gap-1 rounded-md border border-white/10 bg-white/5 p-2 text-left backdrop-blur-sm hover:bg-white/10 hover:border-rose-400/40 transition-all duration-200 hover:shadow-xl hover:shadow-rose-600/20"
-                        >
-                          <div className="flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br from-rose-500 to-red-600 shadow-lg shadow-rose-500/30 group-hover:scale-110 transition-transform duration-200">
-                            <AlertCircle className="h-3 w-3 text-white" />
-                          </div>
-                          <div>
-                            <p className="text-[11px] font-semibold text-white">Assignment</p>
-                            <p className="mt-0.5 text-[8px] text-zinc-400">Send rush/priority assignments</p>
-                          </div>
-                          <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <svg className="h-2.5 w-2.5 text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
-                          </div>
-                        </button>
-                      )}
-
-                      {/* Assignment Responses */}
-                      {isAdmin && (
-                        <button
-                          onClick={() => { setIsAssignmentResponsesModalOpen(true); fetchAllAnnouncements() }}
-                          className="group relative flex flex-col items-start gap-1 rounded-md border border-white/10 bg-white/5 p-2 text-left backdrop-blur-sm hover:bg-white/10 hover:border-purple-400/40 transition-all duration-200 hover:shadow-xl hover:shadow-purple-600/20"
-                        >
-                          <div className="flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br from-purple-500 to-violet-600 shadow-lg shadow-purple-500/30 group-hover:scale-110 transition-transform duration-200">
-                            <MessageSquare className="h-3 w-3 text-white" />
-                          </div>
-                          <div>
-                            <p className="text-[11px] font-semibold text-white">Responses</p>
-                            <p className="mt-0.5 text-[8px] text-zinc-400">View assignment responses</p>
-                          </div>
-                          <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <svg className="h-2.5 w-2.5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
-                          </div>
-                        </button>
-                      )}
 
                       {/* Payslip Requests */}
                       <button
@@ -5782,308 +5578,53 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {isAssignmentAnnouncementModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl p-6 relative max-h-[90vh] overflow-y-auto">
-            <button onClick={() => setIsAssignmentAnnouncementModalOpen(false)} className="absolute right-4 top-4 text-zinc-400 hover:text-zinc-900"><X className="h-5 w-5" /></button>
-            <div className="flex items-center gap-3 mb-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-rose-500 to-red-600 shadow-lg shadow-rose-500/30">
-                <AlertCircle className="h-5 w-5 text-white" />
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-zinc-900">Create Assignment Announcement</h3>
-                <p className="text-xs text-zinc-600">Send rush/priority assignments to workers</p>
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-zinc-700 mb-1.5">Title *</label>
-                <input
-                  type="text"
-                  value={assignmentForm.title}
-                  onChange={(e) => setAssignmentForm({ ...assignmentForm, title: e.target.value })}
-                  className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20 outline-none"
-                  placeholder="e.g., Urgent Transcript Assignment"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-zinc-700 mb-1.5">Description *</label>
-                <textarea
-                  value={assignmentForm.description}
-                  onChange={(e) => setAssignmentForm({ ...assignmentForm, description: e.target.value })}
-                  className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20 outline-none resize-none"
-                  rows={4}
-                  placeholder="Describe the assignment details, deadline, and requirements..."
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-zinc-700 mb-1.5">Priority</label>
-                  <select
-                    value={assignmentForm.priority}
-                    onChange={(e) => setAssignmentForm({ ...assignmentForm, priority: e.target.value })}
-                    className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20 outline-none"
-                  >
-                    <option value="normal">Normal</option>
-                    <option value="high">High</option>
-                    <option value="urgent">Urgent</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-zinc-700 mb-1.5">Response Deadline (Optional)</label>
-                  <input
-                    type="datetime-local"
-                    value={assignmentForm.deadline}
-                    onChange={(e) => setAssignmentForm({ ...assignmentForm, deadline: e.target.value })}
-                    className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20 outline-none"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-zinc-700 mb-1.5">Send To</label>
-                <div className="flex gap-2 mb-2">
-                  <button
-                    type="button"
-                    onClick={() => setAssignmentForm({ ...assignmentForm, targetType: 'all', selectedWorkerIds: [] })}
-                    className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition ${
-                      assignmentForm.targetType === 'all'
-                        ? 'border-rose-500 bg-rose-50 text-rose-700'
-                        : 'border-zinc-300 bg-white text-zinc-700 hover:border-zinc-400'
-                    }`}
-                  >
-                    All Workers
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setAssignmentForm({ ...assignmentForm, targetType: 'specific' })}
-                    className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition ${
-                      assignmentForm.targetType === 'specific'
-                        ? 'border-rose-500 bg-rose-50 text-rose-700'
-                        : 'border-zinc-300 bg-white text-zinc-700 hover:border-zinc-400'
-                    }`}
-                  >
-                    Specific Workers
-                  </button>
-                </div>
-
-                {assignmentForm.targetType === 'specific' && (
-                  <div className="mt-2 max-h-40 overflow-y-auto border border-zinc-300 rounded-lg p-2">
-                    {workers.filter((w: any) => w.role === 'worker').map((worker: any) => (
-                      <label key={worker.id} className="flex items-center gap-2 p-2 hover:bg-zinc-50 rounded cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={assignmentForm.selectedWorkerIds.includes(worker.id)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setAssignmentForm({
-                                ...assignmentForm,
-                                selectedWorkerIds: [...assignmentForm.selectedWorkerIds, worker.id]
-                              })
-                            } else {
-                              setAssignmentForm({
-                                ...assignmentForm,
-                                selectedWorkerIds: assignmentForm.selectedWorkerIds.filter(id => id !== worker.id)
-                              })
-                            }
-                          }}
-                          className="rounded border-zinc-300 text-rose-500 focus:ring-rose-500"
-                        />
-                        <span className="text-sm text-zinc-700">{worker.full_name}</span>
-                      </label>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="flex gap-3 mt-6">
-              <button
-                type="button"
-                onClick={() => setIsAssignmentAnnouncementModalOpen(false)}
-                className="flex-1 rounded-md border border-zinc-300 bg-white px-5 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-100 transition"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleCreateAssignment}
-                disabled={isCreatingAssignment || !assignmentForm.title || !assignmentForm.description}
-                className="flex-1 rounded-md bg-gradient-to-r from-rose-600 to-red-600 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-rose-600/20 hover:from-rose-700 hover:to-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isCreatingAssignment ? 'Creating...' : 'Send Assignment'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {activeAssignment && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6 relative animate-in fade-in zoom-in duration-300">
-            <div className="flex items-start gap-4 mb-4">
-              <div className={`flex h-12 w-12 items-center justify-center rounded-xl shadow-lg ${
-                activeAssignment.priority === 'urgent' ? 'bg-gradient-to-br from-red-500 to-rose-600 shadow-red-500/30' :
-                activeAssignment.priority === 'high' ? 'bg-gradient-to-br from-orange-500 to-amber-600 shadow-orange-500/30' :
-                'bg-gradient-to-br from-blue-500 to-cyan-600 shadow-blue-500/30'
-              }`}>
-                <AlertCircle className="h-6 w-6 text-white" />
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                    activeAssignment.priority === 'urgent' ? 'bg-red-100 text-red-700' :
-                    activeAssignment.priority === 'high' ? 'bg-orange-100 text-orange-700' :
-                    'bg-blue-100 text-blue-700'
-                  }`}>
-                    {activeAssignment.priority.toUpperCase()}
-                  </span>
-                  {activeAssignment.deadline && (
-                    <span className="text-xs text-zinc-500">
-                      Due: {new Date(activeAssignment.deadline).toLocaleString()}
-                    </span>
-                  )}
-                </div>
-                <h3 className="text-lg font-bold text-zinc-900">{activeAssignment.title}</h3>
-              </div>
-            </div>
-
-            <p className="text-sm text-zinc-700 mb-6 whitespace-pre-wrap">{activeAssignment.description}</p>
-
-            <div className="flex gap-3">
-              <button
-                onClick={() => handleAssignmentResponse('declined')}
-                className="flex-1 rounded-lg border border-zinc-300 bg-white px-4 py-2.5 text-sm font-semibold text-zinc-700 hover:bg-zinc-50 transition"
-              >
-                Decline
-              </button>
-              <button
-                onClick={() => handleAssignmentResponse('accepted')}
-                className="flex-1 rounded-lg bg-gradient-to-r from-emerald-600 to-green-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-emerald-600/20 hover:from-emerald-700 hover:to-green-700 transition"
-              >
-                Accept Assignment
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {isAssignmentResponsesModalOpen && (
+      {isPayslipAdminModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl p-6 relative max-h-[90vh] overflow-y-auto">
-            <button onClick={() => setIsAssignmentResponsesModalOpen(false)} className="absolute right-4 top-4 text-zinc-400 hover:text-zinc-900"><X className="h-5 w-5" /></button>
+            <button onClick={() => setIsPayslipAdminModalOpen(false)} className="absolute right-4 top-4 text-zinc-400 hover:text-zinc-900"><X className="h-5 w-5" /></button>
             <div className="flex items-center gap-3 mb-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-violet-600 shadow-lg shadow-purple-500/30">
-                <MessageSquare className="h-5 w-5 text-white" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-green-600 shadow-lg shadow-emerald-500/30">
+                <FileText className="h-5 w-5 text-white" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-zinc-900">Assignment Responses</h3>
-                <p className="text-xs text-zinc-600">View worker responses to assignments</p>
+                <h3 className="text-lg font-semibold text-zinc-900">Payslip Requests</h3>
+                <p className="text-xs text-zinc-600">Manage worker payslip requests</p>
               </div>
             </div>
 
-            {!selectedAnnouncementForResponses ? (
-              <div>
-                <h4 className="text-sm font-semibold text-zinc-700 mb-3">Select an Assignment</h4>
-                <div className="space-y-2 max-h-96 overflow-y-auto">
-                  {allAnnouncements.length === 0 ? (
-                    <p className="text-sm text-zinc-500 text-center py-8">No assignments found</p>
-                  ) : (
-                    allAnnouncements.map((announcement: any) => (
-                      <button
-                        key={announcement.id}
-                        onClick={() => {
-                          setSelectedAnnouncementForResponses(announcement)
-                          fetchAnnouncementResponses(announcement.id)
-                        }}
-                        className="w-full text-left p-4 rounded-lg border border-zinc-200 hover:border-purple-400 hover:bg-purple-50 transition-all"
-                      >
-                        <div className="flex items-center justify-between mb-2">
-                          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                            announcement.priority === 'urgent' ? 'bg-red-100 text-red-700' :
-                            announcement.priority === 'high' ? 'bg-orange-100 text-orange-700' :
-                            'bg-blue-100 text-blue-700'
-                          }`}>
-                            {announcement.priority.toUpperCase()}
-                          </span>
-                          <span className="text-xs text-zinc-500">
-                            {new Date(announcement.created_at).toLocaleString()}
-                          </span>
-                        </div>
-                        <h5 className="font-semibold text-zinc-900">{announcement.title}</h5>
-                        <p className="text-sm text-zinc-600 mt-1 line-clamp-2">{announcement.description}</p>
-                      </button>
-                    ))
-                  )}
-                </div>
-              </div>
-            ) : (
-              <div>
-                <button
-                  onClick={() => {
-                    setSelectedAnnouncementForResponses(null)
-                    setAssignmentResponses([])
-                  }}
-                  className="text-sm text-purple-600 hover:text-purple-700 mb-4 flex items-center gap-1"
-                >
-                  <ArrowLeft className="h-4 w-4" /> Back to assignments
-                </button>
-                
-                <div className="mb-4 p-4 rounded-lg bg-zinc-50 border border-zinc-200">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                      selectedAnnouncementForResponses.priority === 'urgent' ? 'bg-red-100 text-red-700' :
-                      selectedAnnouncementForResponses.priority === 'high' ? 'bg-orange-100 text-orange-700' :
-                      'bg-blue-100 text-blue-700'
-                    }`}>
-                      {selectedAnnouncementForResponses.priority.toUpperCase()}
-                    </span>
-                    <span className="text-xs text-zinc-500">
-                      {new Date(selectedAnnouncementForResponses.created_at).toLocaleString()}
-                    </span>
-                  </div>
-                  <h4 className="font-bold text-zinc-900">{selectedAnnouncementForResponses.title}</h4>
-                  <p className="text-sm text-zinc-700 mt-2">{selectedAnnouncementForResponses.description}</p>
-                  {selectedAnnouncementForResponses.deadline && (
-                    <p className="text-xs text-zinc-500 mt-2">
-                      Deadline: {new Date(selectedAnnouncementForResponses.deadline).toLocaleString()}
-                    </p>
-                  )}
-                </div>
-
-                <h4 className="text-sm font-semibold text-zinc-700 mb-3">Responses</h4>
-                {assignmentResponses.length === 0 ? (
-                  <p className="text-sm text-zinc-500 text-center py-8">No responses yet</p>
-                ) : (
-                  <div className="space-y-2">
-                    {assignmentResponses.map((response: any) => (
-                      <div key={response.id} className="p-4 rounded-lg border border-zinc-200">
-                        <div className="flex items-center justify-between mb-2">
-                          <div>
-                            <p className="font-semibold text-zinc-900">{response.worker?.full_name || 'Unknown'}</p>
-                            <p className="text-xs text-zinc-500">{response.worker?.email || ''}</p>
-                          </div>
-                          <span className={`text-xs font-semibold px-3 py-1 rounded-full ${
-                            response.response === 'accepted' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'
-                          }`}>
-                            {response.response.toUpperCase()}
-                          </span>
-                        </div>
-                        <p className="text-xs text-zinc-500">
-                          Responded: {new Date(response.responded_at).toLocaleString()}
+            <div className="space-y-2">
+              {adminPayslipRequests.length === 0 ? (
+                <p className="text-sm text-zinc-500 text-center py-8">No payslip requests</p>
+              ) : (
+                adminPayslipRequests.map((request: any) => (
+                  <div key={request.id} className="p-4 rounded-lg border border-zinc-200 hover:border-emerald-400 transition-all">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-semibold text-zinc-900">{request.worker_name || request.worker?.full_name || 'Unknown'}</p>
+                        <p className="text-xs text-zinc-500">{request.worker_email || request.worker?.email || ''}</p>
+                        <p className="text-xs text-zinc-500 mt-1">
+                          Requested: {new Date(request.created_at).toLocaleString()}
                         </p>
-                        {response.response_note && (
-                          <p className="text-sm text-zinc-700 mt-2 italic">"{response.response_note}"</p>
-                        )}
                       </div>
-                    ))}
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => updatePayslipRequestStatus(request.id, 'approved')}
+                          className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-emerald-100 text-emerald-700 hover:bg-emerald-200 transition"
+                        >
+                          Approve
+                        </button>
+                        <button
+                          onClick={() => updatePayslipRequestStatus(request.id, 'rejected')}
+                          className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-red-100 text-red-700 hover:bg-red-200 transition"
+                        >
+                          Reject
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                )}
-              </div>
-            )}
+                ))
+              )}
+            </div>
           </div>
         </div>
       )}
