@@ -3967,7 +3967,7 @@ export default function DashboardPage() {
                   </div>
                 </div>
                 <div className="border-t border-black/10 dark:border-white/10 px-6 py-4 flex flex-col sm:flex-row items-center justify-center gap-2 bg-black/10 dark:bg-white/5">
-                  {canEditRecord && (
+                  {isAdmin && (
                     <button onClick={() => setIsManualAddModalOpen(true)} className="inline-flex items-center gap-2 rounded-xl border border-black/20 dark:border-white/20 bg-black/10 dark:bg-white/10 px-4 py-2.5 text-sm font-semibold text-current shadow-sm hover:bg-black/20 dark:hover:bg-white/20 transition-all">
                       <FileText className="h-4 w-4" /> Add File Manually
                     </button>
@@ -5846,7 +5846,7 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {isManualAddModalOpen && activeWorker && (
+      {isManualAddModalOpen && activeWorker && isAdmin && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 relative">
             <button onClick={() => { setIsManualAddModalOpen(false); setManualFileForm({ fileName: '', dateCompleted: '', byteSize: '' }) }} className="absolute right-4 top-4 text-zinc-400 hover:text-zinc-900"><X className="h-5 w-5" /></button>
