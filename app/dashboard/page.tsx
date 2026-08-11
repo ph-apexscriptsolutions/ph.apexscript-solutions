@@ -1533,19 +1533,52 @@ export default function DashboardPage() {
 
   
   const saveEdit = async () => {
-    if (!editingRecord) return
+    if (!editingRecord || !activeWorker) return
     setIsSaving(true)
-    const fileNameToSave = editingRecord.file_name?.toLowerCase().endsWith('.txt') && !editForm.file_name.toLowerCase().endsWith('.txt')
-      ? `${editForm.file_name}.txt`
-      : editForm.file_name
-    await supabase.from("production_records").update({ date_completed: editForm.date_completed, file_name: fileNameToSave, byte_size: editForm.byte_size }).eq("id", editingRecord.id)
-    setIsEditModalOpen(false)
-    let q: any = supabase.from("production_records").select("*").eq("worker_id", activeWorker.id)
-    if (startDate) q = q.gte("date_completed", startDate)
-    if (endDate) q = q.lte("date_completed", endDate)
-    const { data } = await q.order("date_completed", { ascending: false })
-    if (data) setRecords(data)
-    setIsSaving(false)
+    try {
+      const fileNameToSave = editingRecord.file_name?.toLowerCase().endsWith('.txt') && !editForm.file_name.toLowerCase().endsWith('.txt')
+        ? `${editForm.file_name}.txt`
+        : editForm.file_name
+
+      const res = await fetch('/api/edit-production-record', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          recordId: editingRecord.id,
+          fileName: fileNameToSave,
+          dateCompleted: editForm.date_completed,
+          byteSize: editForm.byte_size,
+          workerId: activeWorker.id,
+        }),
+      })
+
+      const data = await res.json()
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to update record')
+      }
+
+      setIsEditModalOpen(false)
+      setEditingRecord(null)
+
+      let q: any = supabase.from("production_records").select("*").eq("worker_id", activeWorker.id)
+      if (startDate) q = q.gte("date_completed", startDate)
+      if (endDate) q = q.lte("date_completed", endDate)
+      const { data: refetchedRecords } = await q.order("date_completed", { ascending: false })
+      if (refetchedRecords) setRecords(refetchedRecords)
+
+      if (activeWorker?.id) {
+        await fetchAssignments(activeWorker.id)
+      }
+
+      setToastMessage('✅ Record updated successfully')
+      setShowToast(true)
+      setTimeout(() => { setShowToast(false); setToastMessage(null) }, 3000)
+    } catch (err: any) {
+      console.error('saveEdit error:', err)
+      alert(`Failed to save edits: ${err.message}`)
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   const handleFileUpload = async (e: FormEvent) => {
