@@ -4075,8 +4075,19 @@ export default function DashboardPage() {
                         onClick={() => setIsCurrentAssignmentsModalOpen(true)}
                         className="group relative flex flex-col items-start gap-1 rounded-md border border-white/10 bg-white/5 p-2 text-left backdrop-blur-sm hover:bg-white/10 hover:border-cyan-400/40 transition-all duration-200 hover:shadow-xl hover:shadow-cyan-600/20"
                       >
-                        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br from-cyan-500 to-sky-600 shadow-lg shadow-cyan-500/30 group-hover:scale-110 transition-transform duration-200">
-                          <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+                        <div className="flex items-center justify-between w-full">
+                          <div className="flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br from-cyan-500 to-sky-600 shadow-lg shadow-cyan-500/30 group-hover:scale-110 transition-transform duration-200">
+                            <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+                          </div>
+                          {assignments.filter((a: any) => a.status === 'needs_revision').length > 0 ? (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-amber-500 text-slate-950 text-[9px] font-extrabold animate-pulse shadow-sm">
+                              ⚠️ {assignments.filter((a: any) => a.status === 'needs_revision').length} REVISION
+                            </span>
+                          ) : assignments.filter((a: any) => a.status === 'pending').length > 0 ? (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-cyan-500 text-white text-[9px] font-bold shadow-sm">
+                              {assignments.filter((a: any) => a.status === 'pending').length} ACTIVE
+                            </span>
+                          ) : null}
                         </div>
                         <div>
                           <p className="text-[11px] font-semibold text-white">Current Assignments</p>
@@ -7568,11 +7579,32 @@ export default function DashboardPage() {
                 <h3 className="text-lg font-bold text-cyan-900 mb-0.5 flex-shrink-0">Current Assignments</h3>
                 <p className="text-[10px] text-cyan-600">View your active work assignments</p>
               </div>
-              {isAdmin && (
-                <button onClick={() => { setIsCurrentAssignmentsModalOpen(false); setEditAssignmentId(null); setNewAssignmentFilename(''); setNewAssignmentDescription(''); setIsAddAssignmentModalOpen(true) }} className="inline-flex items-center gap-1 rounded-lg border border-cyan-300 bg-white px-2 py-1 text-[10px] font-semibold text-cyan-800 hover:bg-cyan-100 hover:border-cyan-400 transition-all shadow-sm hover:shadow-md">
-                  <span>+</span> Add Assignment
-                </button>
-              )}
+              <div className="flex items-center gap-2">
+                {isAdmin && (
+                  <select
+                    value={activeWorker?.id || ''}
+                    onChange={(e) => {
+                      const selected = allWorkers.find((w: any) => w.id === e.target.value)
+                      if (selected) {
+                        setActiveWorker(selected)
+                        fetchAssignments(selected.id)
+                      }
+                    }}
+                    className="text-[10px] font-semibold bg-white text-cyan-900 border border-cyan-300 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-cyan-500 shadow-sm"
+                  >
+                    {allWorkers.map((w: any) => (
+                      <option key={w.id} value={w.id}>
+                        {w.full_name} ({w.role || 'worker'})
+                      </option>
+                    ))}
+                  </select>
+                )}
+                {isAdmin && (
+                  <button onClick={() => { setIsCurrentAssignmentsModalOpen(false); setEditAssignmentId(null); setNewAssignmentFilename(''); setNewAssignmentDescription(''); setIsAddAssignmentModalOpen(true) }} className="inline-flex items-center gap-1 rounded-lg border border-cyan-300 bg-white px-2 py-1 text-[10px] font-semibold text-cyan-800 hover:bg-cyan-100 hover:border-cyan-400 transition-all shadow-sm hover:shadow-md">
+                    <span>+</span> Add Assignment
+                  </button>
+                )}
+              </div>
             </div>
 
             <div className="flex-1 overflow-y-auto min-h-0 space-y-1.5 mb-3">
@@ -7605,11 +7637,22 @@ export default function DashboardPage() {
                           </button>
                           {/* Worker-facing revision alert */}
                           {a.status === 'needs_revision' && !isAdmin && (
-                            <div className="mt-1.5 rounded-lg bg-amber-50 border border-amber-300 px-2.5 py-1.5">
-                              <p className="text-[10px] font-bold text-amber-800 flex items-center gap-1">⚠️ Revision Requested</p>
-                              <p className="text-[10px] text-amber-700 mt-0.5"><span className="font-semibold">Reason:</span> {a.revision_reason === 'incomplete_transcript' ? 'Incomplete Transcript' : a.revision_reason === 'incorrect_format' ? 'Incorrect Format' : a.revision_reason === 'transcript_inconsistencies' ? 'Transcript Inconsistencies' : a.revision_reason === 'other' ? 'Other' : a.revision_reason}</p>
-                              {a.revision_note && <p className="text-[10px] text-amber-600 mt-0.5 italic">"{a.revision_note}"</p>}
-                              <p className="text-[9px] text-amber-500 mt-1">Please fix and re-upload the corrected file.</p>
+                            <div className="mt-1.5 rounded-lg bg-amber-50 border border-amber-300 px-2.5 py-1.5 flex flex-col gap-1">
+                              <div>
+                                <p className="text-[10px] font-bold text-amber-800 flex items-center gap-1">⚠️ Revision Requested</p>
+                                <p className="text-[10px] text-amber-700 mt-0.5"><span className="font-semibold">Reason:</span> {a.revision_reason === 'incomplete_transcript' ? 'Incomplete Transcript' : a.revision_reason === 'incorrect_format' ? 'Incorrect Format' : a.revision_reason === 'transcript_inconsistencies' ? 'Transcript Inconsistencies' : a.revision_reason === 'other' ? 'Other' : a.revision_reason}</p>
+                                {a.revision_note && <p className="text-[10px] text-amber-600 mt-0.5 italic">"{a.revision_note}"</p>}
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setIsCurrentAssignmentsModalOpen(false)
+                                  setIsUploadModalOpen(true)
+                                }}
+                                className="self-start mt-0.5 inline-flex items-center gap-1 px-2 py-0.5 rounded bg-amber-600 text-white text-[9px] font-bold hover:bg-amber-700 transition-colors shadow-sm"
+                              >
+                                <Upload className="h-2.5 w-2.5" /> Re-upload Corrected File
+                              </button>
                             </div>
                           )}
                           {/* Admin-facing revision info */}
