@@ -9,6 +9,7 @@ import TranscriptCleanup from '@/components/TranscriptCleanup'
 import { validateTranscript, replaceInTranscript, getHighlightClass, validationHighlightStyles, ValidationIssue, ValidationRule, Participant, extractParticipants, getValidUncommonWords, detectFillerWords, extractSenateSpeakers, detectTranscriptFormat } from '@/utils/transcript-validation'
 import PriorityBroadcastModal from '@/components/priority-broadcast-modal'
 import AdminPriorityAnnouncementModal from '@/components/admin-priority-announcement-modal'
+import RevisionRequestModal from '@/components/revision-request-modal'
 
 const getDepartmentIcon = (department: string) => {
   const dept = department.toLowerCase()
@@ -395,6 +396,10 @@ export default function DashboardPage() {
   const [resetAvailabilityWorkerId, setResetAvailabilityWorkerId] = useState<string | null>(null)
   const [isResettingAvailability, setIsResettingAvailability] = useState(false)
   const [isSendingComment, setIsSendingComment] = useState(false)
+
+  // Revision Request states
+  const [isRevisionModalOpen, setIsRevisionModalOpen] = useState(false)
+  const [revisionTargetAssignment, setRevisionTargetAssignment] = useState<any | null>(null)
 
   // Issue History
   const [workerValidatorIssues, setWorkerValidatorIssues] = useState<any[]>([])
@@ -1630,8 +1635,8 @@ export default function DashboardPage() {
         return
       }
       
-      // Mark assignment as done if it's pending
-      if (existingAssignment.status === 'pending') {
+      // Mark assignment as done if it's pending or needs_revision (resubmission)
+      if (existingAssignment.status === 'pending' || existingAssignment.status === 'needs_revision') {
         try {
           const updateRes = await fetch('/api/production-assignments/update', {
             method: 'POST',
@@ -2757,11 +2762,11 @@ export default function DashboardPage() {
       if (!res.ok) throw new Error(data.error || 'Failed to fetch assignments')
       const nextAssignments = data.assignments || []
 
-      // Check if there are any pending assignments
-      const hasPendingAssignments = nextAssignments.some((a: any) => a.status === 'pending')
+      // Check if there are any pending or needs_revision assignments
+      const hasActiveAssignments = nextAssignments.some((a: any) => a.status === 'pending' || a.status === 'needs_revision')
 
-      // If no pending assignments, delete all (done/cancelled) and show success message
-      if (!hasPendingAssignments && nextAssignments.length > 0) {
+      // If no active assignments, delete all (done/cancelled) and show success message
+      if (!hasActiveAssignments && nextAssignments.length > 0) {
         for (const assignment of nextAssignments) {
           try {
             await fetch('/api/production-assignments/delete', {
@@ -3055,6 +3060,25 @@ export default function DashboardPage() {
     } catch (err: any) {
       console.error('Cancel assignment error:', err)
       alert(`Failed to cancel assignment: ${err.message}`)
+    }
+  }
+
+  const handleRequestRevision = async (assignmentId: number, reason: string, note: string) => {
+    try {
+      const res = await fetch('/api/production-assignments/request-revision', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ assignmentId, reason, note }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to request revision')
+      if (activeWorker?.id) await fetchAssignments(activeWorker.id)
+      setToastMessage('✅ Revision requested — worker has been notified')
+      setShowToast(true)
+      setTimeout(() => { setShowToast(false); setToastMessage(null) }, 4000)
+    } catch (err: any) {
+      console.error('Request revision error:', err)
+      throw err
     }
   }
 
@@ -7570,7 +7594,7 @@ export default function DashboardPage() {
                 ) : (
                   <div className="space-y-1">
                     {assignments.map((a: any) => (
-                      <div key={a.id} className={`grid gap-1 items-center py-1.5 px-2.5 rounded-md border bg-white hover:bg-cyan-50/80 transition-all ${a.is_priority ? 'border-red-400/80 bg-gradient-to-r from-red-50/50 to-white' : 'border-cyan-200/60'}`} style={{ gridTemplateColumns: effectiveRowTemplate }}>
+                      <div key={a.id} className={`grid gap-1 items-center py-1.5 px-2.5 rounded-md border bg-white hover:bg-cyan-50/80 transition-all ${a.status === 'needs_revision' ? 'border-amber-400/80 bg-gradient-to-r from-amber-50/50 to-white' : a.is_priority ? 'border-red-400/80 bg-gradient-to-r from-red-50/50 to-white' : 'border-cyan-200/60'}`} style={{ gridTemplateColumns: effectiveRowTemplate }}>
                         <div>
                           <button type="button" onClick={() => { setSelectedAssignment(a); setIsCurrentAssignmentsModalOpen(false); if (profile?.id) localStorage.setItem(`last_viewed_description_${profile.id}_${a.id}`, new Date().toISOString()) }} className="text-xs font-bold text-cyan-900 underline-offset-4 hover:underline flex items-center gap-2">
                             {assignmentsWithUpdatedDescription.has(a.id) && (
@@ -7579,10 +7603,25 @@ export default function DashboardPage() {
                             {a.is_priority && <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-red-600 text-white text-[9px] font-bold">PRIORITY</span>}
                             {getDisplayFileName(a.filename)}
                           </button>
+                          {/* Worker-facing revision alert */}
+                          {a.status === 'needs_revision' && !isAdmin && (
+                            <div className="mt-1.5 rounded-lg bg-amber-50 border border-amber-300 px-2.5 py-1.5">
+                              <p className="text-[10px] font-bold text-amber-800 flex items-center gap-1">⚠️ Revision Requested</p>
+                              <p className="text-[10px] text-amber-700 mt-0.5"><span className="font-semibold">Reason:</span> {a.revision_reason === 'incomplete_transcript' ? 'Incomplete Transcript' : a.revision_reason === 'incorrect_format' ? 'Incorrect Format' : a.revision_reason === 'transcript_inconsistencies' ? 'Transcript Inconsistencies' : a.revision_reason === 'other' ? 'Other' : a.revision_reason}</p>
+                              {a.revision_note && <p className="text-[10px] text-amber-600 mt-0.5 italic">"{a.revision_note}"</p>}
+                              <p className="text-[9px] text-amber-500 mt-1">Please fix and re-upload the corrected file.</p>
+                            </div>
+                          )}
+                          {/* Admin-facing revision info */}
+                          {a.status === 'needs_revision' && isAdmin && (
+                            <div className="mt-1 text-[9px] text-amber-600 italic">Revision sent — awaiting resubmission</div>
+                          )}
                         </div>
                         <div className="flex items-center gap-1">
                           {a.status === 'done' ? (
                             <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800"><span aria-hidden="true">✓</span><span>Done</span></span>
+                          ) : a.status === 'needs_revision' ? (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-amber-200 px-2 py-0.5 text-[10px] font-bold text-amber-900 animate-pulse"><span aria-hidden="true">⚠️</span><span>Needs Revision</span></span>
                           ) : a.status === 'cancelled' ? (
                             <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-800"><span aria-hidden="true">✕</span><span>Cancelled</span></span>
                           ) : (
@@ -7590,7 +7629,12 @@ export default function DashboardPage() {
                           )}
                         </div>
                         {isAdmin && (
-                          <div className="flex items-center gap-1">
+                          <div className="flex items-center gap-1 flex-wrap">
+                            {a.status === 'done' && (
+                              <button onClick={() => { setRevisionTargetAssignment(a); setIsRevisionModalOpen(true) }} className="inline-flex items-center gap-1 rounded-md bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 hover:bg-amber-100 transition-all border border-amber-200">
+                                <FileEdit className="h-3 w-3" /> Revise
+                              </button>
+                            )}
                             {a.status !== 'cancelled' && (
                               <button onClick={() => cancelAssignment(a.id)} className="inline-flex items-center gap-1 rounded-md bg-orange-50 px-1.5 py-0.5 text-[10px] font-semibold text-orange-700 hover:bg-orange-100 transition-all border border-orange-200">
                                 <X className="h-3 w-3" /> Cancel
@@ -8599,6 +8643,14 @@ export default function DashboardPage() {
           }}
         />
       )}
+
+      {/* ── Revision Request Modal ── */}
+      <RevisionRequestModal
+        isOpen={isRevisionModalOpen}
+        onClose={() => { setIsRevisionModalOpen(false); setRevisionTargetAssignment(null) }}
+        assignment={revisionTargetAssignment}
+        onSubmit={handleRequestRevision}
+      />
 
     </div>
   )

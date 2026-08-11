@@ -31,11 +31,12 @@ export async function POST(request: Request) {
     const supabase = createClient(supabaseUrl, supabaseServiceRoleKey)
 
     // Check if the filename matches any of the worker's assigned assignments
+    // Include both 'pending' and 'needs_revision' statuses so workers can resubmit revisions
     const { data: assignments, error: assignmentsError } = await supabase
       .from('production_assignments')
-      .select('filename')
+      .select('id, filename, status, revision_reason, revision_note')
       .eq('worker_id', workerId)
-      .eq('status', 'pending')
+      .in('status', ['pending', 'needs_revision'])
 
     if (assignmentsError) {
       console.error('Assignments lookup error:', assignmentsError)
@@ -55,10 +56,12 @@ export async function POST(request: Request) {
     const uploadedFileNameWithoutExt = fileName.replace(/\.[^/.]+$/, '')
 
     // Check if the uploaded filename (without extension) matches any assigned filename
-    const isAssigned = assignments?.some((assignment: any) => assignment.filename === uploadedFileNameWithoutExt)
+    const matchedAssignment = assignments?.find((assignment: any) => assignment.filename === uploadedFileNameWithoutExt)
+    const isAssigned = !!matchedAssignment
 
     console.log('uploadedFileNameWithoutExt:', uploadedFileNameWithoutExt)
     console.log('isAssigned:', isAssigned)
+    console.log('matchedAssignment:', matchedAssignment)
     console.log('=== END DEBUG ===')
 
     if (!isAssigned) {
@@ -76,15 +79,33 @@ export async function POST(request: Request) {
       }, { status: 403 })
     }
 
-    const { data: existingRecords, error: checkError } = await supabase.from('production_records').select('id').eq('worker_id', workerId).ilike('file_name', fileName)
-
-    if (checkError) {
-      console.error('Production record lookup error:', checkError)
-      return NextResponse.json({ error: checkError.message || 'Failed to validate file name' }, { status: 500 })
+    // If this is a revision resubmission, delete the old production record first
+    const isRevisionResubmission = matchedAssignment?.status === 'needs_revision'
+    if (isRevisionResubmission) {
+      try {
+        await supabase
+          .from('production_records')
+          .delete()
+          .eq('worker_id', workerId)
+          .ilike('file_name', `${matchedAssignment.filename}%`)
+        console.log('Deleted old production record for revision resubmission')
+      } catch (deleteErr) {
+        console.warn('Could not delete old production record:', deleteErr)
+      }
     }
 
-    if (existingRecords && existingRecords.length > 0) {
-      return NextResponse.json({ error: 'A record with that file name already exists for this worker.' }, { status: 409 })
+    // For non-revision uploads, check for existing duplicate records
+    if (!isRevisionResubmission) {
+      const { data: existingRecords, error: checkError } = await supabase.from('production_records').select('id').eq('worker_id', workerId).ilike('file_name', fileName)
+
+      if (checkError) {
+        console.error('Production record lookup error:', checkError)
+        return NextResponse.json({ error: checkError.message || 'Failed to validate file name' }, { status: 500 })
+      }
+
+      if (existingRecords && existingRecords.length > 0) {
+        return NextResponse.json({ error: 'A record with that file name already exists for this worker.' }, { status: 409 })
+      }
     }
 
     let emailWarning: string | null = null
@@ -98,11 +119,15 @@ export async function POST(request: Request) {
           },
         })
 
+        const emailSubject = isRevisionResubmission
+          ? `Revision Resubmission from ${workerName}: ${fileName}`
+          : `New File Upload from ${workerName}`
+
         await transporter.sendMail({
           from: `"[WORKER] ApexScript Transcription Services" <${process.env.EMAIL_USER}>`,
           to: process.env.EMAIL_USER,
-          subject: `New File Upload from ${workerName}`,
-          text: `Worker Name: ${workerName}\nFile Name: ${fileName}\n\nPlease find the attached file.`,
+          subject: emailSubject,
+          text: `Worker Name: ${workerName}\nFile Name: ${fileName}${isRevisionResubmission ? '\n\n⚠️ This is a REVISION RESUBMISSION. The worker has corrected and resubmitted this file.' : ''}\n\nPlease find the attached file.`,
           attachments: [
             {
               filename: fileName,
@@ -132,7 +157,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: insertError.message || 'Failed to save production record' }, { status: 500 })
     }
 
-    return NextResponse.json({ success: true, emailWarning })
+    return NextResponse.json({ success: true, emailWarning, isRevisionResubmission })
   } catch (error: any) {
     console.error('Email sending error:', error)
     // Ibabalik natin ang exact error message para makita sa browser
