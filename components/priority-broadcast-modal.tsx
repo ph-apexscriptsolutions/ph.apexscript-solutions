@@ -46,6 +46,7 @@ export default function PriorityBroadcastModal({
   const [pendingAction, setPendingAction] = useState<'accepted' | 'declined' | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [timeLeft, setTimeLeft] = useState<string | null>(null)
+  const [isShaking, setIsShaking] = useState(false)
 
   useEffect(() => {
     setMuted(isAudioMuted())
@@ -146,9 +147,38 @@ export default function PriorityBroadcastModal({
     announcement.status === 'claimed' &&
     announcement.claimed_by_worker_id !== workerId
 
+  const canDismiss = userResponse || isClaimedByOther || timeLeft === 'EXPIRED'
+
+  const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (e.target === e.currentTarget) {
+      if (canDismiss) {
+        onClose()
+      } else {
+        setIsShaking(true)
+        setErrorMessage('⚠️ Action Required: Please choose to Accept or Decline this priority assignment.')
+        setTimeout(() => setIsShaking(false), 500)
+      }
+    }
+  }
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="relative w-full max-w-lg overflow-hidden bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl border border-red-200 dark:border-red-900/40 transform transition-all scale-100">
+    <div
+      onClick={handleBackdropClick}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm animate-in fade-in duration-200"
+    >
+      <style>{`
+        @keyframes priorityShake {
+          0%, 100% { transform: translateX(0); }
+          20%, 60% { transform: translateX(-10px); }
+          40%, 80% { transform: translateX(10px); }
+        }
+        .animate-priority-shake {
+          animation: priorityShake 0.4s ease-in-out;
+        }
+      `}</style>
+      <div className={`relative w-full max-w-lg overflow-hidden bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl border border-red-200 dark:border-red-900/40 transform transition-all scale-100 ${
+        isShaking ? 'animate-priority-shake ring-4 ring-red-500 border-red-500' : ''
+      }`}>
         
         {/* Urgent Header Bar */}
         <div className="bg-gradient-to-r from-red-600 via-rose-600 to-amber-600 px-6 py-4 text-white flex items-center justify-between">
@@ -171,13 +201,15 @@ export default function PriorityBroadcastModal({
             >
               {muted ? <VolumeX className="h-4 w-4 text-red-200" /> : <Volume2 className="h-4 w-4" />}
             </button>
-            <button
-              onClick={onClose}
-              className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors"
-              title="Close modal"
-            >
-              <X className="h-4 w-4" />
-            </button>
+            {canDismiss && (
+              <button
+                onClick={onClose}
+                className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors"
+                title="Close modal"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
           </div>
         </div>
 
