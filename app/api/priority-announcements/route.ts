@@ -198,16 +198,32 @@ export async function POST(request: Request) {
       console.warn('Realtime broadcast error:', realtimeErr)
     }
 
-    // Send optional email alert to targeted workers
+    // Send optional email alert to targeted workers only
+    // NOTE: Admin (EMAIL_USER) is excluded from worker broadcasts - they receive response notifications separately
     if (sendEmailAlert && transporter) {
       try {
+        const adminEmail = (process.env.EMAIL_USER || '').toLowerCase().trim()
         let recipientEmails: string[] = []
+
         if (targetType === 'all') {
-          const { data: workers } = await supabase.from('worker_profiles').select('email').not('email', 'is', null)
-          recipientEmails = (workers || []).map((w: any) => w.email).filter(Boolean)
+          // Send to all workers but explicitly exclude the admin/system email
+          const { data: workers } = await supabase
+            .from('worker_profiles')
+            .select('email, role')
+            .not('email', 'is', null)
+          recipientEmails = (workers || [])
+            .map((w: any) => w.email?.toLowerCase().trim())
+            .filter((email: string) => Boolean(email) && email !== adminEmail)
         } else if (Array.isArray(targetWorkerIds) && targetWorkerIds.length > 0) {
-          const { data: workers } = await supabase.from('worker_profiles').select('email').in('id', targetWorkerIds)
-          recipientEmails = (workers || []).map((w: any) => w.email).filter(Boolean)
+          // Send only to specifically selected workers
+          const { data: workers } = await supabase
+            .from('worker_profiles')
+            .select('email')
+            .in('id', targetWorkerIds)
+            .not('email', 'is', null)
+          recipientEmails = (workers || [])
+            .map((w: any) => w.email?.toLowerCase().trim())
+            .filter((email: string) => Boolean(email) && email !== adminEmail)
         }
 
         if (recipientEmails.length > 0) {
@@ -216,7 +232,7 @@ export async function POST(request: Request) {
             <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
               <h2 style="color: #dc2626;">🚨 Priority / Rush Assignment Broadcast</h2>
               <p>Hello Team,</p>
-              <p>An urgent task has just been announced on your dashboard:</p>
+              <p>An urgent task has just been announced on your dashboard by <strong>${data.admin_name || 'Admin'}</strong>:</p>
               <div style="background: #fef2f2; border-left: 4px solid #ef4444; padding: 15px; margin: 15px 0;">
                 <h3 style="margin-top: 0; color: #991b1b;">${data.title}</h3>
                 <p style="white-space: pre-wrap;">${data.description || 'No additional details provided.'}</p>

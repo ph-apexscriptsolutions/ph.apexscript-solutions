@@ -102,46 +102,35 @@ export async function POST(request: Request) {
       console.warn('Realtime response broadcast warning:', rtErr)
     }
 
-    // Send Email to Admin
-    if (transporter) {
+    // Send Email to Admin — always send ONLY to the configured admin email (EMAIL_USER)
+    if (transporter && process.env.EMAIL_USER) {
       try {
-        // Fetch Admin email from worker_profiles with role='admin' or fallback to process.env.EMAIL_USER
-        const { data: adminProfiles } = await supabase
-          .from('worker_profiles')
-          .select('email')
-          .eq('role', 'admin')
-          .not('email', 'is', null)
+        const adminRecipient = process.env.EMAIL_USER
+        const actionText = response === 'accepted' ? '✅ ACCEPTED' : '❌ DECLINED'
+        const badgeColor = response === 'accepted' ? '#16a34a' : '#dc2626'
 
-        const adminEmails = (adminProfiles || []).map((a: any) => a.email).filter(Boolean)
-        const recipientList = adminEmails.length > 0 ? adminEmails.join(', ') : process.env.EMAIL_USER
-
-        if (recipientList) {
-          const actionText = response === 'accepted' ? '✅ ACCEPTED' : '❌ DECLINED'
-          const badgeColor = response === 'accepted' ? '#16a34a' : '#dc2626'
-
-          const htmlContent = `
-            <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
-              <h2 style="color: #1e293b;">Rush Assignment Response Received</h2>
-              <p>Worker <strong>${workerName || workerId}</strong> (${workerEmail || 'No email'}) has responded to your priority announcement:</p>
-              
-              <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin: 16px 0;">
-                <h3 style="margin-top: 0; color: #0f172a;">${announcement.title}</h3>
-                <p><strong>Response:</strong> <span style="color: white; background: ${badgeColor}; padding: 4px 10px; border-radius: 4px; font-weight: bold; display: inline-block;">${actionText}</span></p>
-                ${note ? `<p><strong>Worker Note:</strong> ${note}</p>` : ''}
-                <p style="color: #64748b; font-size: 13px; margin-bottom: 0;">Time: ${new Date().toLocaleString()}</p>
-              </div>
-
-              <p>You can view full real-time worker responses on your Admin Dashboard.</p>
+        const htmlContent = `
+          <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
+            <h2 style="color: #1e293b;">Rush Assignment Response Received</h2>
+            <p>Worker <strong>${workerName || workerId}</strong> (${workerEmail || 'No email'}) has responded to your priority announcement:</p>
+            
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin: 16px 0;">
+              <h3 style="margin-top: 0; color: #0f172a;">${announcement.title}</h3>
+              <p><strong>Response:</strong> <span style="color: white; background: ${badgeColor}; padding: 4px 10px; border-radius: 4px; font-weight: bold; display: inline-block;">${actionText}</span></p>
+              ${note ? `<p><strong>Worker Note:</strong> ${note}</p>` : ''}
+              <p style="color: #64748b; font-size: 13px; margin-bottom: 0;">Time: ${new Date().toLocaleString()}</p>
             </div>
-          `
 
-          await transporter.sendMail({
-            from: process.env.EMAIL_USER,
-            to: recipientList,
-            subject: `[${actionText}] ${workerName || 'Worker'} - ${announcement.title}`,
-            html: htmlContent,
-          }).catch(e => console.error('Admin email send mail error:', e))
-        }
+            <p>You can view full real-time worker responses on your Admin Dashboard.</p>
+          </div>
+        `
+
+        await transporter.sendMail({
+          from: process.env.EMAIL_USER,
+          to: adminRecipient,
+          subject: `[${actionText}] ${workerName || 'Worker'} - ${announcement.title}`,
+          html: htmlContent,
+        }).catch(e => console.error('Admin email send mail error:', e))
       } catch (emailErr) {
         console.error('Email error sending response notification to admin:', emailErr)
       }
