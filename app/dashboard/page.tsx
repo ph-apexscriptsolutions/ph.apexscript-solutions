@@ -1981,6 +1981,7 @@ export default function DashboardPage() {
   )
   const canEditBank = hasBankColumns && (isAdmin || activeWorker?.id === user?.id)
   const canEditProfile = isAdmin || activeWorker?.id === user?.id
+  const canEditRecord = isAdmin || activeWorker?.id === user?.id
   const filteredTotalFiles = records.length
   const filteredTotalKB = calculateTotalKB(records)
 
@@ -3747,11 +3748,16 @@ export default function DashboardPage() {
 
             <div className="grid gap-6 xl:grid-cols-[2fr_1fr] xl:items-stretch mt-4">
               <div className={`rounded-2xl ${productionStyle.borderWidth} ${productionStyle.borderColor} bg-gradient-to-br ${productionStyle.bgGradient} backdrop-blur-sm transition-all duration-300 relative ${productionStyle.fontFamily}`}>
-                <div className="flex flex-col space-y-1.5 p-6 border-b border-white/10">
+                <div className="flex flex-col space-y-1.5 p-6 border-b border-black/10 dark:border-white/10">
                   <div className="flex items-center justify-between">
-                    <h3 className={`font-bold text-lg leading-none tracking-tight ${productionStyle.headerColor}`}>Production Records</h3>
+                    <div>
+                      <h3 className={`font-bold text-lg leading-none tracking-tight ${productionStyle.headerColor}`}>Production Records</h3>
+                      <p className={`text-[11px] ${productionStyle.labelColor} opacity-80 mt-1`}>
+                        Filter by date or search file name to view and edit worker submitted records.
+                      </p>
+                    </div>
                     {isAdmin && (
-                      <button onClick={() => setIsProductionStyleModalOpen(true)} className="inline-flex items-center gap-1 rounded-md border border-zinc-300 bg-white/80 px-2 py-1 text-xs font-semibold text-zinc-700 hover:bg-white transition">
+                      <button onClick={() => setIsProductionStyleModalOpen(true)} className="inline-flex items-center gap-1 rounded-md border border-zinc-300 bg-white/80 px-2 py-1 text-xs font-semibold text-zinc-700 hover:bg-white transition shadow-sm">
                         <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" /></svg>
                         Style
                       </button>
@@ -3783,27 +3789,27 @@ export default function DashboardPage() {
                       )}
                     </div>
                   </div>
-                  <div className="overflow-x-auto rounded-xl border border-white/10">
+                  <div className="overflow-x-auto rounded-xl border border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/5">
                     <table className="w-full text-xs text-left">
-                      <thead className="bg-white/10 text-white uppercase text-[10px] font-semibold tracking-wider">
+                      <thead className={`bg-black/10 dark:bg-white/10 uppercase text-[10px] font-bold tracking-wider ${productionStyle.headerColor || productionStyle.textColor}`}>
                         <tr>
                           <th className="px-3 py-2 text-left rounded-tl-lg">File Name</th>
                           <th className="px-3 py-2 text-left">Date Completed</th>
                           <th className="px-3 py-2 text-left">Size (KB)</th>
-                          {isAdmin && <th className="px-3 py-2 text-left rounded-tr-lg">Actions</th>}
+                          {canEditRecord && <th className="px-3 py-2 text-left rounded-tr-lg">Actions</th>}
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-white/10">
+                      <tbody className="divide-y divide-black/10 dark:divide-white/10">
                         {records.length > 0 ? records.map((r: any) => (
-                          <tr key={r.id} className="hover:bg-[#293548] transition-colors">
-                            <td className="px-3 py-2 font-semibold text-white">{getDisplayFileName(r.file_name)}</td>
-                            <td className="px-3 py-2 text-gray-300">{formatDateDMY(r.date_completed)}</td>
-                            <td className="px-3 py-2 font-bold text-cyan-400">{formatKB(r.byte_size)}</td>
-                            {isAdmin && (
+                          <tr key={r.id} className="hover:bg-black/10 dark:hover:bg-white/10 transition-colors">
+                            <td className={`px-3 py-2 font-semibold ${productionStyle.textColor || 'text-zinc-900'}`}>{getDisplayFileName(r.file_name)}</td>
+                            <td className={`px-3 py-2 ${productionStyle.textColor || 'text-zinc-700'} opacity-90`}>{formatDateDMY(r.date_completed)}</td>
+                            <td className={`px-3 py-2 font-bold ${productionStyle.valueColor || 'text-cyan-600'}`}>{formatKB(r.byte_size)}</td>
+                            {canEditRecord && (
                               <td className="px-3 py-2">
                                 <div className="flex items-center gap-1">
                                   <button onClick={() => openEditModal(r)} className="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs font-medium text-slate-800 shadow-sm shadow-slate-300/80 hover:border-slate-400 hover:text-zinc-900 hover:shadow-md transition-all">
-                                    <Pencil className="h-3 w-3" /> Edit
+                                    <Pencil className="h-3 w-3 text-cyan-600" /> Edit
                                   </button>
                                   <button onClick={() => handleDeleteRecord(r.id)} className="inline-flex items-center gap-1 rounded-lg bg-gradient-to-r from-red-600 to-rose-600 px-2 py-1 text-xs font-semibold text-white shadow-xl shadow-red-600/30 hover:from-red-700 hover:to-rose-700 hover:shadow-xl hover:shadow-red-600/40 transition-all">
                                     <Trash2 className="h-3 w-3" /> Delete
@@ -3814,16 +3820,16 @@ export default function DashboardPage() {
                           </tr>
                         )) : (
                           <tr>
-                            <td colSpan={isAdmin ? 4 : 3} className="px-3 py-6 text-center text-gray-400 font-medium">No production records found.</td>
+                            <td colSpan={canEditRecord ? 4 : 3} className={`px-3 py-6 text-center font-medium ${productionStyle.labelColor || productionStyle.textColor}`}>No production records found.</td>
                           </tr>
                         )}
                       </tbody>
                     </table>
                   </div>
                 </div>
-                <div className="border-t border-[#334155] px-6 py-4 flex flex-col sm:flex-row items-center justify-center gap-2 bg-[#172033]">
-                  {isAdmin && (
-                    <button onClick={() => setIsManualAddModalOpen(true)} className="inline-flex items-center gap-2 rounded-xl border-2 border-white/20 bg-white/10 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-white/20 hover:border-white/30 hover:shadow-md transition-all">
+                <div className="border-t border-black/10 dark:border-white/10 px-6 py-4 flex flex-col sm:flex-row items-center justify-center gap-2 bg-black/10 dark:bg-white/5">
+                  {canEditRecord && (
+                    <button onClick={() => setIsManualAddModalOpen(true)} className="inline-flex items-center gap-2 rounded-xl border border-black/20 dark:border-white/20 bg-black/10 dark:bg-white/10 px-4 py-2.5 text-sm font-semibold text-current shadow-sm hover:bg-black/20 dark:hover:bg-white/20 transition-all">
                       <FileText className="h-4 w-4" /> Add File Manually
                     </button>
                   )}
@@ -5230,7 +5236,65 @@ export default function DashboardPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6 relative max-h-[90vh] overflow-y-auto">
             <button onClick={() => setIsProductionStyleModalOpen(false)} className="absolute right-4 top-4 text-zinc-400 hover:text-zinc-900"><X className="h-5 w-5" /></button>
-            <h3 className="text-lg font-semibold text-zinc-900 mb-4">Production Records Styling</h3>
+            <h3 className="text-lg font-semibold text-zinc-900 mb-1">Production Records Styling</h3>
+            <p className="text-xs text-zinc-500 mb-4">Customize colors and visual themes for the Production Records section.</p>
+
+            {/* Helper Alert regarding Editing Submitted Assignments */}
+            <div className="mb-5 p-3 rounded-lg bg-cyan-50 border border-cyan-200 text-xs text-cyan-900 space-y-1">
+              <div className="font-bold flex items-center gap-1.5 text-cyan-900">
+                <span>💡</span> Editing Submitted Worker Assignments & Records
+              </div>
+              <p className="text-[11px] text-cyan-800 leading-relaxed">
+                To edit or update an assignment submitted by a worker, filter the dates or search the file in the <strong>Production Records table</strong>, then click the <strong><Pencil className="inline h-3 w-3" /> Edit</strong> button next to that record.
+              </p>
+            </div>
+
+            {/* Quick Contrast Auto Presets */}
+            <div className="mb-5 p-3 rounded-lg bg-zinc-50 border border-zinc-200">
+              <label className="block text-xs font-bold text-zinc-700 mb-2">Quick Contrast Auto Presets</label>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setProductionStyle({
+                    ...productionStyle,
+                    bgGradient: 'from-slate-50 to-slate-100/80',
+                    borderColor: 'border-zinc-300',
+                    borderWidth: 'border',
+                    headerColor: 'text-zinc-900',
+                    textColor: 'text-zinc-900',
+                    labelColor: 'text-zinc-700',
+                    valueColor: 'text-cyan-700',
+                    customBorderColor: '#d4d4d8',
+                    customHeaderColor: '#111827',
+                    customTextColor: '#111827',
+                    customLabelColor: '#374151',
+                    customValueColor: '#0e7490'
+                  })}
+                  className="flex-1 py-2 px-3 rounded-md bg-white border border-zinc-300 text-xs font-semibold text-zinc-800 hover:bg-zinc-100 transition shadow-sm flex items-center justify-center gap-1.5"
+                >
+                  <span>☀️</span> Auto Light Theme (High Contrast)
+                </button>
+                <button
+                  onClick={() => setProductionStyle({
+                    ...productionStyle,
+                    bgGradient: 'from-slate-800 to-slate-900',
+                    borderColor: 'border-[#334155]',
+                    borderWidth: 'border',
+                    headerColor: 'text-white',
+                    textColor: 'text-white',
+                    labelColor: 'text-gray-400',
+                    valueColor: 'text-white',
+                    customBorderColor: '#334155',
+                    customHeaderColor: '#ffffff',
+                    customTextColor: '#ffffff',
+                    customLabelColor: '#9ca3af',
+                    customValueColor: '#ffffff'
+                  })}
+                  className="flex-1 py-2 px-3 rounded-md bg-slate-900 text-xs font-semibold text-white hover:bg-slate-800 transition shadow-sm flex items-center justify-center gap-1.5"
+                >
+                  <span>🌙</span> Auto Dark Theme
+                </button>
+              </div>
+            </div>
             
             <div className="space-y-6">
               {/* Background Gradient */}
@@ -5238,29 +5302,57 @@ export default function DashboardPage() {
                 <label className="block text-sm font-medium text-zinc-700 mb-2">Background Gradient</label>
                 <div className="grid grid-cols-2 gap-2">
                   {[
-                    { name: 'Cyan-Blue', value: 'from-cyan-50 to-blue-50/80' },
-                    { name: 'Emerald-Teal', value: 'from-emerald-50 to-teal-50/80' },
-                    { name: 'Violet-Purple', value: 'from-violet-50 to-purple-50/80' },
-                    { name: 'Rose-Pink', value: 'from-rose-50 to-pink-50/80' },
-                    { name: 'Amber-Yellow', value: 'from-amber-50 to-yellow-50/80' },
-                    { name: 'Slate-Gray', value: 'from-slate-50 to-slate-100/80' },
-                    { name: 'Orange-Red', value: 'from-orange-50 to-red-50/80' },
-                    { name: 'Indigo-Violet', value: 'from-indigo-50 to-violet-50/80' },
-                    { name: 'Slate Dark', value: 'from-slate-800 to-slate-900' },
-                    { name: 'Zinc Dark', value: 'from-zinc-800 to-zinc-900' },
-                    { name: 'Blue Dark', value: 'from-blue-900 to-slate-900' },
-                    { name: 'Purple Dark', value: 'from-purple-900 to-slate-900' },
-                    { name: 'Emerald Dark', value: 'from-emerald-900 to-slate-900' },
-                    { name: 'Cyan Dark', value: 'from-cyan-900 to-slate-900' },
-                    { name: 'Rose Dark', value: 'from-rose-900 to-slate-900' },
-                    { name: 'Orange Dark', value: 'from-orange-900 to-slate-900' },
+                    { name: 'Cyan-Blue', value: 'from-cyan-50 to-blue-50/80', isLight: true },
+                    { name: 'Emerald-Teal', value: 'from-emerald-50 to-teal-50/80', isLight: true },
+                    { name: 'Violet-Purple', value: 'from-violet-50 to-purple-50/80', isLight: true },
+                    { name: 'Rose-Pink', value: 'from-rose-50 to-pink-50/80', isLight: true },
+                    { name: 'Amber-Yellow', value: 'from-amber-50 to-yellow-50/80', isLight: true },
+                    { name: 'Slate-Gray', value: 'from-slate-50 to-slate-100/80', isLight: true },
+                    { name: 'Orange-Red', value: 'from-orange-50 to-red-50/80', isLight: true },
+                    { name: 'Indigo-Violet', value: 'from-indigo-50 to-violet-50/80', isLight: true },
+                    { name: 'Slate Dark', value: 'from-slate-800 to-slate-900', isLight: false },
+                    { name: 'Zinc Dark', value: 'from-zinc-800 to-zinc-900', isLight: false },
+                    { name: 'Blue Dark', value: 'from-blue-900 to-slate-900', isLight: false },
+                    { name: 'Purple Dark', value: 'from-purple-900 to-slate-900', isLight: false },
+                    { name: 'Emerald Dark', value: 'from-emerald-900 to-slate-900', isLight: false },
+                    { name: 'Cyan Dark', value: 'from-cyan-900 to-slate-900', isLight: false },
+                    { name: 'Rose Dark', value: 'from-rose-900 to-slate-900', isLight: false },
+                    { name: 'Orange Dark', value: 'from-orange-900 to-slate-900', isLight: false },
                   ].map((gradient) => (
                     <button
                       key={gradient.value}
-                      onClick={() => setProductionStyle({ ...productionStyle, bgGradient: gradient.value })}
+                      onClick={() => {
+                        const isCurrentlyWhiteText = productionStyle.textColor === 'text-white' || productionStyle.textColor?.includes('white')
+                        const isCurrentlyDarkText = productionStyle.textColor === 'text-black' || productionStyle.textColor?.includes('zinc-900') || productionStyle.textColor?.includes('zinc-800')
+                        
+                        setProductionStyle({
+                          ...productionStyle,
+                          bgGradient: gradient.value,
+                          ...(gradient.isLight && isCurrentlyWhiteText ? {
+                            headerColor: 'text-zinc-900',
+                            textColor: 'text-zinc-900',
+                            labelColor: 'text-zinc-700',
+                            valueColor: 'text-zinc-900',
+                            customHeaderColor: '#111827',
+                            customTextColor: '#111827',
+                            customLabelColor: '#374151',
+                            customValueColor: '#111827',
+                          } : {}),
+                          ...(!gradient.isLight && isCurrentlyDarkText ? {
+                            headerColor: 'text-white',
+                            textColor: 'text-white',
+                            labelColor: 'text-gray-400',
+                            valueColor: 'text-white',
+                            customHeaderColor: '#ffffff',
+                            customTextColor: '#ffffff',
+                            customLabelColor: '#9ca3af',
+                            customValueColor: '#ffffff',
+                          } : {})
+                        })
+                      }}
                       className={`p-3 rounded-lg border-2 text-xs font-medium transition-all ${
                         productionStyle.bgGradient === gradient.value 
-                          ? 'border-cyan-500 bg-cyan-50 text-cyan-700' 
+                          ? 'border-cyan-500 bg-cyan-50 text-cyan-700 font-bold' 
                           : 'border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300'
                       }`}
                     >
@@ -5314,29 +5406,11 @@ export default function DashboardPage() {
                     <option value="border-rose-300">Rose</option>
                     <option value="border-blue-300">Blue</option>
                     <option value="border-indigo-300">Indigo</option>
-                    <option value="border-teal-300">Teal</option>
-                    <option value="border-pink-300">Pink</option>
-                    <option value="border-violet-300">Violet</option>
-                    <option value="border-amber-300">Amber</option>
-                    <option value="border-lime-300">Lime</option>
-                    <option value="border-sky-300">Sky</option>
-                    <option value="border-slate-300">Slate</option>
-                    <option value="border-stone-300">Stone</option>
-                    <option value="border-neutral-300">Neutral</option>
-                    <option value="border-gray-300">Gray</option>
-                    <option value="border-red-300">Red</option>
-                    <option value="border-yellow-300">Yellow</option>
-                    <option value="border-green-300">Green</option>
-                    <option value="border-blue-300">Blue</option>
-                    <option value="border-indigo-300">Indigo</option>
-                    <option value="border-purple-300">Purple</option>
-                    <option value="border-pink-300">Pink</option>
                     <option value="border-[#334155]">Slate Dark</option>
                     <option value="border-cyan-500/30">Cyan Transparent</option>
                     <option value="border-emerald-500/30">Emerald Transparent</option>
                     <option value="border-purple-500/30">Purple Transparent</option>
                     <option value="border-rose-500/30">Rose Transparent</option>
-                    <option value="border-orange-500/30">Orange Transparent</option>
                   </select>
                   <input
                     type="color"
@@ -5350,101 +5424,106 @@ export default function DashboardPage() {
               {/* Text Colors */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs text-zinc-500 mb-1">Header Color</label>
+                  <label className="block text-xs font-semibold text-zinc-700 mb-1">Header Color</label>
                   <div className="flex gap-2">
                     <select 
                       value={productionStyle.headerColor}
                       onChange={(e) => setProductionStyle({ ...productionStyle, headerColor: e.target.value })}
-                      className="flex-1 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm"
+                      className="flex-1 rounded-md border border-zinc-300 bg-white px-3 py-2 text-xs"
                     >
                       <option value="text-black">Black</option>
                       <option value="text-zinc-900">Near Black</option>
                       <option value="text-zinc-800">Dark Gray</option>
                       <option value="text-zinc-700">Medium Gray</option>
+                      <option value="text-cyan-900">Cyan Dark</option>
+                      <option value="text-blue-900">Blue Dark</option>
                       <option value="text-white">White</option>
                       <option value="text-zinc-100">Light Gray</option>
                       <option value="text-cyan-100">Cyan Light</option>
                       <option value="text-emerald-100">Emerald Light</option>
                       <option value="text-purple-100">Purple Light</option>
-                      <option value="text-rose-100">Rose Light</option>
                     </select>
                     <input
                       type="color"
                       value={productionStyle.customHeaderColor}
                       onChange={(e) => setProductionStyle({ ...productionStyle, headerColor: `text-[${e.target.value}]`, customHeaderColor: e.target.value })}
-                      className="h-9 w-12 rounded cursor-pointer border border-zinc-300"
+                      className="h-9 w-10 rounded cursor-pointer border border-zinc-300"
                     />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs text-zinc-500 mb-1">Text Color</label>
+                  <label className="block text-xs font-semibold text-zinc-700 mb-1">Table Text Color</label>
                   <div className="flex gap-2">
                     <select 
                       value={productionStyle.textColor}
                       onChange={(e) => setProductionStyle({ ...productionStyle, textColor: e.target.value })}
-                      className="flex-1 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm"
+                      className="flex-1 rounded-md border border-zinc-300 bg-white px-3 py-2 text-xs"
                     >
                       <option value="text-black">Black</option>
+                      <option value="text-zinc-900">Near Black</option>
+                      <option value="text-zinc-800">Dark Gray</option>
+                      <option value="text-zinc-700">Medium Gray</option>
+                      <option value="text-cyan-900">Cyan Dark</option>
                       <option value="text-white">White</option>
                       <option value="text-zinc-100">Light Gray</option>
                       <option value="text-cyan-100">Cyan Light</option>
-                      <option value="text-emerald-100">Emerald Light</option>
-                      <option value="text-purple-100">Purple Light</option>
-                      <option value="text-rose-100">Rose Light</option>
                     </select>
                     <input
                       type="color"
                       value={productionStyle.customTextColor}
                       onChange={(e) => setProductionStyle({ ...productionStyle, textColor: `text-[${e.target.value}]`, customTextColor: e.target.value })}
-                      className="h-9 w-12 rounded cursor-pointer border border-zinc-300"
+                      className="h-9 w-10 rounded cursor-pointer border border-zinc-300"
                     />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs text-zinc-500 mb-1">Label Color</label>
+                  <label className="block text-xs font-semibold text-zinc-700 mb-1">Label Color</label>
                   <div className="flex gap-2">
                     <select 
                       value={productionStyle.labelColor}
                       onChange={(e) => setProductionStyle({ ...productionStyle, labelColor: e.target.value })}
-                      className="flex-1 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm"
+                      className="flex-1 rounded-md border border-zinc-300 bg-white px-3 py-2 text-xs"
                     >
                       <option value="text-black">Black</option>
-                      <option value="text-zinc-600">Medium Gray</option>
-                      <option value="text-zinc-700">Dark Gray</option>
+                      <option value="text-zinc-800">Dark Gray</option>
+                      <option value="text-zinc-700">Medium Gray</option>
+                      <option value="text-zinc-600">Light Gray</option>
                       <option value="text-blue-700">Blue</option>
                       <option value="text-emerald-700">Green</option>
                       <option value="text-purple-700">Purple</option>
-                      <option value="text-orange-700">Orange</option>
+                      <option value="text-white">White</option>
+                      <option value="text-gray-400">Gray Soft</option>
                     </select>
                     <input
                       type="color"
                       value={productionStyle.customLabelColor}
                       onChange={(e) => setProductionStyle({ ...productionStyle, labelColor: `text-[${e.target.value}]`, customLabelColor: e.target.value })}
-                      className="h-9 w-12 rounded cursor-pointer border border-zinc-300"
+                      className="h-9 w-10 rounded cursor-pointer border border-zinc-300"
                     />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs text-zinc-500 mb-1">Value Color</label>
+                  <label className="block text-xs font-semibold text-zinc-700 mb-1">Value / KB Color</label>
                   <div className="flex gap-2">
                     <select 
                       value={productionStyle.valueColor}
                       onChange={(e) => setProductionStyle({ ...productionStyle, valueColor: e.target.value })}
-                      className="flex-1 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm"
+                      className="flex-1 rounded-md border border-zinc-300 bg-white px-3 py-2 text-xs"
                     >
                       <option value="text-black">Black</option>
                       <option value="text-zinc-900">Near Black</option>
                       <option value="text-zinc-800">Dark Gray</option>
-                      <option value="text-blue-900">Blue</option>
-                      <option value="text-emerald-900">Green</option>
-                      <option value="text-purple-900">Purple</option>
-                      <option value="text-orange-900">Orange</option>
+                      <option value="text-cyan-700">Cyan Dark</option>
+                      <option value="text-blue-700">Blue Dark</option>
+                      <option value="text-emerald-700">Green Dark</option>
+                      <option value="text-white">White</option>
+                      <option value="text-cyan-400">Cyan Light</option>
                     </select>
                     <input
                       type="color"
                       value={productionStyle.customValueColor}
                       onChange={(e) => setProductionStyle({ ...productionStyle, valueColor: `text-[${e.target.value}]`, customValueColor: e.target.value })}
-                      className="h-9 w-12 rounded cursor-pointer border border-zinc-300"
+                      className="h-9 w-10 rounded cursor-pointer border border-zinc-300"
                     />
                   </div>
                 </div>
@@ -5464,7 +5543,7 @@ export default function DashboardPage() {
                       onClick={() => setProductionStyle({ ...productionStyle, fontFamily: font.value })}
                       className={`flex-1 p-2 rounded-lg border-2 text-xs font-medium transition-all ${
                         productionStyle.fontFamily === font.value 
-                          ? 'border-cyan-500 bg-cyan-50 text-cyan-700' 
+                          ? 'border-cyan-500 bg-cyan-50 text-cyan-700 font-bold' 
                           : 'border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300'
                       }`}
                     >
