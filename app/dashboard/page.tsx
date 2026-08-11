@@ -3,10 +3,12 @@ export const dynamic = 'force-dynamic'
 import { useEffect, useState, FormEvent, useMemo, useCallback, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/utils/supabase/client"
-import { FileText, HardDrive, LogOut, Calendar, X, Pencil, Save, User, ArrowLeft, Upload, UserPlus, CreditCard, Trash2, Check, Bell, AlertCircle, Tv, Mic, Headphones, FileEdit, Newspaper, Radio, Video, BookOpen, Gavel, TrendingUp, Activity, Search, Loader2, Copy, ChevronDown, ChevronUp, Building2, Eye, MessageSquare } from "lucide-react"
+import { FileText, HardDrive, LogOut, Calendar, X, Pencil, Save, User, ArrowLeft, Upload, UserPlus, CreditCard, Trash2, Check, Bell, AlertCircle, Tv, Mic, Headphones, FileEdit, Newspaper, Radio, Video, BookOpen, Gavel, TrendingUp, Activity, Search, Loader2, Copy, ChevronDown, ChevronUp, Building2, Eye, MessageSquare, Zap } from "lucide-react"
 import { FlagIcon } from "@/components/flag-icon"
 import TranscriptCleanup from '@/components/TranscriptCleanup'
 import { validateTranscript, replaceInTranscript, getHighlightClass, validationHighlightStyles, ValidationIssue, ValidationRule, Participant, extractParticipants, getValidUncommonWords, detectFillerWords, extractSenateSpeakers, detectTranscriptFormat } from '@/utils/transcript-validation'
+import PriorityBroadcastModal from '@/components/priority-broadcast-modal'
+import AdminPriorityAnnouncementModal from '@/components/admin-priority-announcement-modal'
 
 const getDepartmentIcon = (department: string) => {
   const dept = department.toLowerCase()
@@ -323,6 +325,11 @@ export default function DashboardPage() {
   const [editingAnnouncementId, setEditingAnnouncementId] = useState<number | null>(null)
   const [announcementSchemaHint, setAnnouncementSchemaHint] = useState<string | null>(null)
   const [announcementErrorMessage, setAnnouncementErrorMessage] = useState<string | null>(null)
+
+  // Priority / Rush Announcement states
+  const [activePriorityAnnouncement, setActivePriorityAnnouncement] = useState<any | null>(null)
+  const [isPriorityModalOpen, setIsPriorityModalOpen] = useState(false)
+  const [isAdminPriorityModalOpen, setIsAdminPriorityModalOpen] = useState(false)
 
   const [isAddWorkerModalOpen, setIsAddWorkerModalOpen] = useState(false)
   const [newWorkerForm, setNewWorkerForm] = useState({ fullName: "", jobTitle: "", department: "", email: "", password: "", role: "worker", location: "United States" })
@@ -1023,6 +1030,70 @@ export default function DashboardPage() {
       supabase.removeChannel(announcementsChannel)
     }
   }, [profile?.id])
+
+  // Real-time Priority / Rush Announcement Subscription
+  const fetchPriorityAnnouncements = useCallback(async () => {
+    if (!profile?.id) return
+    try {
+      const res = await fetch(`/api/priority-announcements?workerId=${profile.id}&role=${profile.role || 'worker'}`)
+      const data = await res.json()
+      if (res.ok && data.announcements && data.announcements.length > 0) {
+        if (profile.role !== 'admin') {
+          const unhandled = data.announcements.find((ann: any) => {
+            const responses = ann.responses || []
+            return !responses.some((r: any) => r.worker_id === profile.id)
+          })
+          if (unhandled) {
+            setActivePriorityAnnouncement(unhandled)
+            setIsPriorityModalOpen(true)
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Fetch priority announcements error:', err)
+    }
+  }, [profile?.id, profile?.role])
+
+  useEffect(() => {
+    if (!profile) return
+
+    const priorityChannel = supabase.channel('priority_announcements', { config: { broadcast: { self: true } } })
+      .on('broadcast', { event: 'new_priority_announcement' }, (payload: any) => {
+        console.debug('Priority announcement broadcast received:', payload)
+        const announcement = payload.payload || payload
+        if (profile.role === 'admin') {
+          setToastMessage(`🚨 Priority announcement broadcasted to team!`)
+          setShowToast(true)
+          setTimeout(() => { setShowToast(false); setToastMessage(null) }, 4000)
+        } else {
+          const isTargeted = announcement.target_type === 'all' ||
+            (announcement.target_type === 'specific' && Array.isArray(announcement.target_worker_ids) && announcement.target_worker_ids.includes(profile.id))
+          
+          if (isTargeted) {
+            setActivePriorityAnnouncement(announcement)
+            setIsPriorityModalOpen(true)
+          }
+        }
+      })
+      .on('broadcast', { event: 'priority_response_received' }, (payload: any) => {
+        if (profile.role === 'admin') {
+          const resp = payload.payload?.response
+          const ann = payload.payload?.announcement
+          const workerName = resp?.worker_name || 'Worker'
+          const actionText = resp?.response === 'accepted' ? 'ACCEPTED ✅' : 'DECLINED ❌'
+          setToastMessage(`🚨 ${workerName} ${actionText} rush task: "${ann?.title || ''}"`)
+          setShowToast(true)
+          setTimeout(() => { setShowToast(false); setToastMessage(null) }, 5000)
+        }
+      })
+      .subscribe()
+
+    fetchPriorityAnnouncements()
+
+    return () => {
+      supabase.removeChannel(priorityChannel)
+    }
+  }, [profile?.id, profile?.role, fetchPriorityAnnouncements])
 
   // Admin realtime subscriptions for new issues
   useEffect(() => {
@@ -3465,6 +3536,26 @@ export default function DashboardPage() {
                         </div>
                         <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
                           <svg className="h-2.5 w-2.5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                        </div>
+                      </button>
+
+                      {/* Rush Task Priority Broadcast */}
+                      <button
+                        onClick={() => setIsAdminPriorityModalOpen(true)}
+                        className="group relative flex flex-col items-start gap-1 rounded-md border border-red-500/30 bg-red-500/10 p-2 text-left backdrop-blur-sm hover:bg-red-500/20 hover:border-red-400/60 transition-all duration-200 hover:shadow-xl hover:shadow-red-600/30"
+                      >
+                        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br from-red-600 to-rose-600 shadow-lg shadow-red-500/40 group-hover:scale-110 transition-transform duration-200">
+                          <Zap className="h-3 w-3 text-white fill-white" />
+                        </div>
+                        <div>
+                          <p className="text-[11px] font-bold text-white flex items-center gap-1">
+                            <span>Rush Task Broadcast</span>
+                            <span className="flex h-1.5 w-1.5 rounded-full bg-red-400 animate-ping"></span>
+                          </p>
+                          <p className="mt-0.5 text-[8px] text-red-200">Announce priority job to workers</p>
+                        </div>
+                        <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <svg className="h-2.5 w-2.5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
                         </div>
                       </button>
 
@@ -8449,6 +8540,32 @@ export default function DashboardPage() {
         </div>
       )}
 
+      {/* Priority Rush Announcement Modals */}
+      {isPriorityModalOpen && activePriorityAnnouncement && profile && (
+        <PriorityBroadcastModal
+          announcement={activePriorityAnnouncement}
+          workerId={profile.id}
+          workerName={profile.full_name || profile.id}
+          workerEmail={profile.email || ''}
+          onClose={() => setIsPriorityModalOpen(false)}
+          onResponseSubmitted={(annId, resp) => {
+            fetchPriorityAnnouncements()
+          }}
+        />
+      )}
+
+      {isAdminPriorityModalOpen && profile && profile.role === 'admin' && (
+        <AdminPriorityAnnouncementModal
+          adminId={profile.id}
+          adminName={profile.full_name || 'Admin'}
+          workers={workers}
+          isOpen={isAdminPriorityModalOpen}
+          onClose={() => setIsAdminPriorityModalOpen(false)}
+          onCreated={() => {
+            fetchPriorityAnnouncements()
+          }}
+        />
+      )}
 
     </div>
   )
