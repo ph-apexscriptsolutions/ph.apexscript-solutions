@@ -30,6 +30,7 @@ export default function AdminPriorityAnnouncementModal({
   const [activeTab, setActiveTab] = useState<'create' | 'history'>('create')
   
   // Form fields
+  const [senderName, setSenderName] = useState(adminName || 'Admin')
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [targetType, setTargetType] = useState<'all' | 'specific'>('all')
@@ -37,6 +38,12 @@ export default function AdminPriorityAnnouncementModal({
   const [expirationMinutes, setExpirationMinutes] = useState<number | null>(null)
   const [firstComeFirstServed, setFirstComeFirstServed] = useState(false)
   const [sendEmailAlert, setSendEmailAlert] = useState(true)
+
+  useEffect(() => {
+    if (adminName && adminName !== 'Anonymous') {
+      setSenderName(adminName)
+    }
+  }, [adminName])
 
   const [submitting, setSubmitting] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -106,7 +113,7 @@ export default function AdminPriorityAnnouncementModal({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           adminId,
-          adminName,
+          adminName: senderName.trim() || 'Admin',
           title: title.trim(),
           description: description.trim(),
           targetType,
@@ -259,6 +266,22 @@ CREATE TABLE IF NOT EXISTS public.priority_announcement_responses (
                   <span>{successMessage}</span>
                 </div>
               )}
+
+              {/* Announced By */}
+              <div>
+                <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300 mb-1">
+                  Announced By <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={senderName}
+                  onChange={(e) => setSenderName(e.target.value)}
+                  placeholder="e.g. Maria, Team Lead, Admin..."
+                  className="w-full px-3.5 py-2 text-sm border border-zinc-300 dark:border-zinc-700 rounded-xl bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:ring-2 focus:ring-red-500 focus:outline-none"
+                />
+                <p className="text-[11px] text-zinc-400 mt-1">Workers will see this name on the popup (e.g. "Announced by Maria")</p>
+              </div>
 
               {/* Title */}
               <div>
@@ -454,7 +477,7 @@ CREATE TABLE IF NOT EXISTS public.priority_announcement_responses (
                               {ann.title}
                             </h4>
                             <p className="text-xs text-zinc-500">
-                              Target: {ann.target_type === 'all' ? 'All Workers' : `${ann.target_worker_ids?.length || 0} Workers`} • Broadcasted {new Date(ann.created_at).toLocaleString()}
+                              By: <strong>{ann.admin_name || 'Admin'}</strong> • Target: {ann.target_type === 'all' ? 'All Workers' : `${ann.target_worker_ids?.length || 0} Workers`} • {new Date(ann.created_at).toLocaleString()}
                             </p>
                           </div>
 

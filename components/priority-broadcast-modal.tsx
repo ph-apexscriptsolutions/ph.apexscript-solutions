@@ -205,9 +205,15 @@ export default function PriorityBroadcastModal({
             <h3 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">
               {announcement.title}
             </h3>
-            <p className="text-xs text-zinc-500 mt-0.5">
-              Broadcasted by {announcement.admin_name || 'Admin'} • {new Date(announcement.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-            </p>
+            <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+              <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 text-red-500" viewBox="0 0 24 24" fill="currentColor"><path fillRule="evenodd" d="M7.5 6a4.5 4.5 0 1 1 9 0 4.5 4.5 0 0 1-9 0ZM3.751 20.105a8.25 8.25 0 0 1 16.498 0 .75.75 0 0 1-.437.695A18.683 18.683 0 0 1 12 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 0 1-.437-.695Z" clipRule="evenodd" /></svg>
+                <span>Announced by <strong>{announcement.admin_name && announcement.admin_name !== 'Anonymous' ? announcement.admin_name : 'Admin'}</strong></span>
+              </span>
+              <span className="text-[11px] text-zinc-400">
+                {new Date(announcement.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </span>
+            </div>
           </div>
 
           {/* Description */}
