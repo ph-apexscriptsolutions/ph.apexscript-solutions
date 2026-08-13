@@ -30,8 +30,10 @@ export async function POST(request: Request) {
     if (status) updates.status = status
     if (typeof filename !== 'undefined' && filename !== null) updates.filename = filename.trim()
     if (typeof dueTime !== 'undefined') updates.due_time = dueTime
-    if (typeof description !== 'undefined') {
-      updates.description = description
+    if (typeof description !== 'undefined') updates.description = description
+
+    // Always update description_updated_at timestamp whenever assignment details are edited
+    if (typeof filename !== 'undefined' || typeof description !== 'undefined' || typeof dueTime !== 'undefined') {
       updates.description_updated_at = new Date().toISOString()
     }
 

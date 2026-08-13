@@ -732,25 +732,19 @@ export default function DashboardPage() {
     }
   }
 
-  // Check for updated descriptions based on database column
+  // Check for updated descriptions based on database column (persist REVISED badge)
   useEffect(() => {
-    if (!assignments.length || !profile?.id) return
+    if (!assignments.length) return
     
     const updatedIds = new Set<number>()
     assignments.forEach((a: any) => {
       if (a.description_updated_at) {
-        const stored = localStorage.getItem(`last_viewed_description_${profile.id}_${a.id}`)
-        const lastViewed = stored ? new Date(stored) : null
-        const descriptionUpdated = new Date(a.description_updated_at)
-        
-        if (!lastViewed || descriptionUpdated > lastViewed) {
-          updatedIds.add(a.id)
-        }
+        updatedIds.add(a.id)
       }
     })
     
     setAssignmentsWithUpdatedDescription(updatedIds)
-  }, [assignments, profile?.id])
+  }, [assignments])
 
   const normalizeGridTemplate = (template: string, expectedColumns: number) => {
     const parts = template.trim().split(/\s+/).filter(Boolean)
@@ -2964,8 +2958,8 @@ export default function DashboardPage() {
         const data = await res.json()
         if (!res.ok) throw new Error(data.error || 'Failed to update assignment')
         if (workerId) await fetchAssignments(workerId)
-        // Add to updated description notifications if description was changed
-        if (descriptionContent) {
+        // Add to updated description notifications when edited
+        if (editAssignmentId) {
           setAssignmentsWithUpdatedDescription(prev => new Set([...prev, editAssignmentId]))
         }
         setToastMessage('✅ Assignment updated')
@@ -7628,8 +7622,8 @@ export default function DashboardPage() {
                     {assignments.map((a: any) => (
                       <div key={a.id} className={`grid gap-1 items-center py-1.5 px-2.5 rounded-md border bg-white hover:bg-cyan-50/80 transition-all ${a.status === 'needs_revision' ? 'border-amber-400/80 bg-gradient-to-r from-amber-50/50 to-white' : a.is_priority ? 'border-red-400/80 bg-gradient-to-r from-red-50/50 to-white' : 'border-cyan-200/60'}`} style={{ gridTemplateColumns: effectiveRowTemplate }}>
                         <div>
-                          <button type="button" onClick={() => { setSelectedAssignment(a); setIsCurrentAssignmentsModalOpen(false); if (profile?.id) localStorage.setItem(`last_viewed_description_${profile.id}_${a.id}`, new Date().toISOString()) }} className="text-xs font-bold text-cyan-900 underline-offset-4 hover:underline flex items-center gap-2">
-                            {assignmentsWithUpdatedDescription.has(a.id) && (
+                          <button type="button" onClick={() => { setSelectedAssignment(a); setIsCurrentAssignmentsModalOpen(false); }} className="text-xs font-bold text-cyan-900 underline-offset-4 hover:underline flex items-center gap-2">
+                            {(Boolean(a.description_updated_at) || assignmentsWithUpdatedDescription.has(a.id)) && (
                               <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-red-500 text-white text-[10px] font-bold animate-pulse shadow-sm">REVISED</span>
                             )}
                             {a.is_priority && <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-red-600 text-white text-[9px] font-bold">PRIORITY</span>}
