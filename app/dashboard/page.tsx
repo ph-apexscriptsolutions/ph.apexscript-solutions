@@ -7719,7 +7719,7 @@ export default function DashboardPage() {
                       : 'border-l-4 border-l-cyan-400 border-cyan-200/60 bg-white hover:bg-cyan-50/50'
 
                     return (
-                      <div key={a.id} className={`py-2 px-3 rounded-xl border transition-all duration-200 shadow-2xs ${cardBorderClass}`}>
+                      <div key={a.id} className={`py-2 px-3 rounded-none border transition-all duration-200 shadow-2xs ${cardBorderClass}`}>
                         {/* Grid row: fixed columns so everything aligns perfectly */}
                         <div
                           className="grid items-center gap-x-3"
@@ -7814,7 +7814,7 @@ export default function DashboardPage() {
 
                         {/* Worker-facing revision alert — expands below */}
                         {isNeedsRevision && !isAdmin && (
-                          <div className="mt-2 rounded-xl bg-rose-50/70 border border-rose-200/70 p-2.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 shadow-2xs">
+                          <div className="mt-2 rounded-none bg-rose-50/70 border border-rose-200/70 p-2.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 shadow-2xs">
                             <div className="text-[10px] text-rose-900">
                               <p className="font-bold flex items-center gap-1 text-rose-800">Revision Requested</p>
                               <p className="mt-0.5 text-rose-700"><span className="font-semibold">Reason:</span> {a.revision_reason === 'incomplete_transcript' ? 'Incomplete Transcript' : a.revision_reason === 'incorrect_format' ? 'Incorrect Format' : a.revision_reason === 'transcript_inconsistencies' ? 'Transcript Inconsistencies' : a.revision_reason === 'other' ? 'Other' : a.revision_reason}</p>
