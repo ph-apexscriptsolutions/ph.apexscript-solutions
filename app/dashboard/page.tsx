@@ -7751,7 +7751,7 @@ export default function DashboardPage() {
                           {/* Col 2: Status */}
                           <div>
                             {a.status === 'done' ? (
-                              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[9px] font-bold text-emerald-700 whitespace-nowrap">✓ Done</span>
+                              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[9px] font-bold text-gray-400 whitespace-nowrap">✓ Done</span>
                             ) : a.status === 'needs_revision' ? (
                               <span className="inline-flex items-center gap-1 rounded-full bg-rose-50 border border-rose-300 px-2 py-0.5 text-[9px] font-bold text-rose-700 whitespace-nowrap">↩ Revision</span>
                             ) : a.status === 'cancelled' ? (
