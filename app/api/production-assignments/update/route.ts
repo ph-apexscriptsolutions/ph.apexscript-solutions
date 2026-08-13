@@ -11,7 +11,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    const { assignmentId, status, filename, dueTime, description } = body
+    const { assignmentId, status, filename, dueTime, description, isPriority } = body
 
     if (!assignmentId) {
       return NextResponse.json({ error: 'Missing assignmentId' }, { status: 400 })
@@ -31,6 +31,7 @@ export async function POST(request: Request) {
     if (typeof filename !== 'undefined' && filename !== null) updates.filename = filename.trim()
     if (typeof dueTime !== 'undefined') updates.due_time = dueTime
     if (typeof description !== 'undefined') updates.description = description
+    if (typeof isPriority !== 'undefined') updates.is_priority = Boolean(isPriority)
 
     // Always update description_updated_at timestamp whenever assignment details are edited
     if (typeof filename !== 'undefined' || typeof description !== 'undefined' || typeof dueTime !== 'undefined') {

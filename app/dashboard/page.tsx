@@ -3035,6 +3035,7 @@ export default function DashboardPage() {
             assignmentId: editAssignmentId,
             filename: newAssignmentFilename.trim(),
             description: descriptionContent || null,
+            isPriority: isPriorityAssignment,
           }),
         })
         const data = await res.json()
@@ -4369,17 +4370,19 @@ export default function DashboardPage() {
                       <input type="text" value={newAssignmentFilename} onChange={(e) => setNewAssignmentFilename(e.target.value)} placeholder="e.g., 771241201" className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900" required />
                     </div>
 
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 bg-amber-50/60 p-2.5 rounded-xl border border-amber-200/80">
                       <input
                         type="checkbox"
-                        id="priority-assignment"
+                        id="rush-assignment"
                         checked={isPriorityAssignment}
                         onChange={(e) => setIsPriorityAssignment(e.target.checked)}
-                        className="w-4 h-4 rounded border-zinc-300 text-red-600 focus:ring-red-500"
+                        className="w-4 h-4 rounded border-amber-400 text-amber-600 focus:ring-amber-500 cursor-pointer"
                       />
-                      <label htmlFor="priority-assignment" className="flex items-center gap-2 text-sm font-medium text-zinc-700 cursor-pointer">
-                        <span className="text-red-600 font-bold">PRIORITY</span>
-                        <span>Assignment</span>
+                      <label htmlFor="rush-assignment" className="flex items-center gap-2 text-sm font-medium text-zinc-800 cursor-pointer select-none">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500 text-white text-[10px] font-black tracking-wider uppercase shadow-2xs">
+                          🔥 RUSH
+                        </span>
+                        <span className="text-xs text-zinc-600">Mark as Rush Assignment (Highest urgency for worker)</span>
                       </label>
                     </div>
 
@@ -7702,12 +7705,15 @@ export default function DashboardPage() {
                 ) : (
                   <div className="space-y-1">
                     {assignments.map((a: any) => {
-                      const isPriority = Boolean(a.is_priority || (autoPriorityAssignmentId === a.id))
+                      const isRush = Boolean(a.is_priority)
+                      const isPriority = !isRush && (autoPriorityAssignmentId === a.id)
                       const isRevised = Boolean(a.description_updated_at || assignmentsWithUpdatedDescription.has(a.id))
                       const isNeedsRevision = a.status === 'needs_revision'
 
                       const cardBorderClass = isNeedsRevision
                         ? 'border-l-4 border-l-amber-500 border-amber-200/80 bg-amber-50/20 hover:bg-amber-50/40'
+                        : isRush
+                        ? 'border-l-4 border-l-amber-600 border-amber-300 bg-amber-50/40 hover:bg-amber-50/60'
                         : isPriority
                         ? 'border-l-4 border-l-rose-500 border-rose-200/80 bg-rose-50/20 hover:bg-rose-50/40'
                         : 'border-l-4 border-l-cyan-400 border-cyan-200/60 bg-white hover:bg-cyan-50/50'
@@ -7716,6 +7722,12 @@ export default function DashboardPage() {
                         <div key={a.id} className={`grid gap-1.5 items-center py-2 px-3 rounded-xl border transition-all duration-200 shadow-2xs ${cardBorderClass}`} style={{ gridTemplateColumns: effectiveRowTemplate }}>
                           <div>
                             <div className="flex items-center gap-1.5 flex-wrap">
+                              {isRush && (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500 text-white text-[9px] font-black tracking-wider uppercase shadow-2xs">
+                                  <span className="h-1.5 w-1.5 rounded-full bg-white animate-ping" />
+                                  🔥 RUSH
+                                </span>
+                              )}
                               {isPriority && (
                                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-100/90 border border-rose-200 text-rose-800 text-[9px] font-extrabold tracking-wide uppercase shadow-2xs">
                                   <span className="h-1.5 w-1.5 rounded-full bg-rose-600 animate-ping" />
