@@ -7725,7 +7725,7 @@ export default function DashboardPage() {
                     {assignments.map((a: any) => {
                       const isRush = Boolean(a.is_priority)
                       const isPriority = !isRush && (autoPriorityAssignmentId === a.id)
-                      const isRevised = Boolean(a.description_updated_at || assignmentsWithUpdatedDescription.has(a.id))
+                      const isUpdated = Boolean(a.description_updated_at || assignmentsWithUpdatedDescription.has(a.id))
                       const isNeedsRevision = a.status === 'needs_revision'
 
                     const cardBorderClass = isNeedsRevision
@@ -7767,11 +7767,11 @@ export default function DashboardPage() {
                             )}
                           </div>
 
-                          {/* Col 3: Revised */}
+                          {/* Col 3: Updated */}
                           <div>
-                            {isRevised && (
+                            {isUpdated && (
                               <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-teal-50 border border-teal-300 text-teal-700 text-[9px] font-bold tracking-wide uppercase whitespace-nowrap">
-                                Revised
+                                Updated
                               </span>
                             )}
                           </div>
