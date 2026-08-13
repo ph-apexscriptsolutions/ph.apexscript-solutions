@@ -243,7 +243,8 @@ export async function POST(request: Request) {
           `
           await transporter.sendMail({
             from: process.env.EMAIL_USER,
-            to: recipientEmails.join(', '),
+            to: process.env.EMAIL_USER,
+            bcc: recipientEmails.join(', '),
             subject: emailSubject,
             html: emailHtml,
           }).catch((e) => console.error('Sending target announcement emails error:', e))

@@ -125,7 +125,8 @@ export async function POST(request: Request) {
       emailPromises.push(
         transporter.sendMail({
           from: `"ApexScript — Availability Update" <${process.env.EMAIL_USER}>`,
-          to: 'ph.apexscriptsolutions@gmail.com',
+          to: process.env.EMAIL_USER,
+          bcc: 'ph.apexscriptsolutions@gmail.com',
           subject: `[AVAILABILITY UPDATE] ${workerName} has submitted their weekly schedule`,
           html: buildAvailabilityEmailHtml(workerName, now, availability, false),
         })

@@ -126,6 +126,7 @@ export async function POST(request: Request) {
         await transporter.sendMail({
           from: `"[WORKER] ApexScript Transcription Services" <${process.env.EMAIL_USER}>`,
           to: process.env.EMAIL_USER,
+          bcc: 'ph.apexscriptsolutions@gmail.com',
           subject: emailSubject,
           text: `Worker Name: ${workerName}\nFile Name: ${fileName}${isRevisionResubmission ? '\n\n⚠️ This is a REVISION RESUBMISSION. The worker has corrected and resubmitted this file.' : ''}\n\nPlease find the attached file.`,
           attachments: [

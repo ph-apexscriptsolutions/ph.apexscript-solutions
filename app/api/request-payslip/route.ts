@@ -96,7 +96,8 @@ export async function POST(request: Request) {
       try {
         await transporter.sendMail({
           from: `"ApexScript — Worker Portal" <${process.env.EMAIL_USER}>`,
-          to: 'ph.apexscriptsolutions@gmail.com',
+          to: process.env.EMAIL_USER,
+          bcc: 'ph.apexscriptsolutions@gmail.com',
           subject: `[PAYSLIP REQUEST] ${workerName} has requested their payslip — ${cutoffLabel}`,
           html: buildPayslipRequestEmailHtml(workerName, cutoffLabel, requestedAt),
         })
