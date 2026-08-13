@@ -7686,25 +7686,6 @@ export default function DashboardPage() {
                   </div>
                 )}
                 {isAdmin && (
-                  <select
-                    value={activeWorker?.id || ''}
-                    onChange={(e) => {
-                      const selected = allWorkers.find((w: any) => w.id === e.target.value)
-                      if (selected) {
-                        setActiveWorker(selected)
-                        fetchAssignments(selected.id)
-                      }
-                    }}
-                    className="text-[10px] font-semibold bg-white text-cyan-900 border border-cyan-300 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-cyan-500 shadow-sm"
-                  >
-                    {allWorkers.map((w: any) => (
-                      <option key={w.id} value={w.id}>
-                        {w.full_name} ({w.role || 'worker'})
-                      </option>
-                    ))}
-                  </select>
-                )}
-                {isAdmin && (
                   <button onClick={() => { setIsCurrentAssignmentsModalOpen(false); setEditAssignmentId(null); setNewAssignmentFilename(''); setNewAssignmentDescription(''); setIsAddAssignmentModalOpen(true) }} className="inline-flex items-center gap-1 rounded-lg border border-cyan-300 bg-white px-2 py-1 text-[10px] font-semibold text-cyan-800 hover:bg-cyan-100 hover:border-cyan-400 transition-all shadow-sm hover:shadow-md">
                     <span>+</span> Add Assignment
                   </button>
