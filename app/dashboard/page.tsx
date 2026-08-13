@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic'
 import { useEffect, useState, FormEvent, useMemo, useCallback, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/utils/supabase/client"
-import { FileText, HardDrive, LogOut, Calendar, X, Pencil, Save, User, ArrowLeft, Upload, UserPlus, CreditCard, Trash2, Check, Bell, AlertCircle, Tv, Mic, Headphones, FileEdit, Newspaper, Radio, Video, BookOpen, Gavel, TrendingUp, Activity, Search, Loader2, Copy, ChevronDown, ChevronUp, Building2, Eye, MessageSquare, Zap } from "lucide-react"
+import { FileText, HardDrive, LogOut, Calendar, X, Pencil, Save, User, ArrowLeft, Upload, UserPlus, CreditCard, Trash2, Check, Bell, AlertCircle, Tv, Mic, Headphones, FileEdit, Newspaper, Radio, Video, BookOpen, Gavel, TrendingUp, Activity, Search, Loader2, Copy, ChevronDown, ChevronUp, Building2, Eye, MessageSquare, Zap, MoreVertical } from "lucide-react"
 import { FlagIcon } from "@/components/flag-icon"
 import TranscriptCleanup from '@/components/TranscriptCleanup'
 import { validateTranscript, replaceInTranscript, getHighlightClass, validationHighlightStyles, ValidationIssue, ValidationRule, Participant, extractParticipants, getValidUncommonWords, detectFillerWords, extractSenateSpeakers, detectTranscriptFormat } from '@/utils/transcript-validation'
@@ -233,6 +233,8 @@ export default function DashboardPage() {
 
   const [isWorkerStyleModalOpen, setIsWorkerStyleModalOpen] = useState(false)
   const [workerTitle, setWorkerTitle] = useState('WORKER')
+  const [assignmentViewMode, setAssignmentViewMode] = useState<'admin' | 'worker'>('admin')
+  const [assignmentActionDropdown, setAssignmentActionDropdown] = useState<string | null>(null)
   const [workerStyle, setWorkerStyle] = useState({
     bgGradient: 'from-slate-800 to-slate-900',
     borderColor: 'border-[#334155]',
@@ -7660,6 +7662,30 @@ export default function DashboardPage() {
               </div>
               <div className="flex items-center gap-2">
                 {isAdmin && (
+                  <div className="flex items-center gap-1 bg-white rounded-lg border border-cyan-300 p-0.5 shadow-sm">
+                    <button
+                      onClick={() => setAssignmentViewMode('admin')}
+                      className={`px-2 py-1 text-[9px] font-semibold rounded-md transition-all ${
+                        assignmentViewMode === 'admin'
+                          ? 'bg-cyan-100 text-cyan-800'
+                          : 'text-cyan-600 hover:bg-cyan-50'
+                      }`}
+                    >
+                      Admin View
+                    </button>
+                    <button
+                      onClick={() => setAssignmentViewMode('worker')}
+                      className={`px-2 py-1 text-[9px] font-semibold rounded-md transition-all ${
+                        assignmentViewMode === 'worker'
+                          ? 'bg-cyan-100 text-cyan-800'
+                          : 'text-cyan-600 hover:bg-cyan-50'
+                      }`}
+                    >
+                      Worker View
+                    </button>
+                  </div>
+                )}
+                {isAdmin && (
                   <select
                     value={activeWorker?.id || ''}
                     onChange={(e) => {
@@ -7688,10 +7714,10 @@ export default function DashboardPage() {
 
             <div className="flex-1 overflow-y-auto min-h-0 space-y-1.5 mb-3">
               <div className="space-y-1">
-                <div className="grid gap-1 items-center bg-cyan-100/80 px-2.5 py-2 border-b border-cyan-200/60 rounded-t-lg" style={{ gridTemplateColumns: effectiveHeaderTemplate }}>
+                <div className="grid gap-1 items-center bg-cyan-100/80 px-2.5 py-2 border-b border-cyan-200/60 rounded-t-lg" style={{ gridTemplateColumns: isAdmin && assignmentViewMode === 'admin' ? '1fr 100px 60px 52px 62px auto' : '1fr 100px 60px 52px 62px' }}>
                   <div className="text-[10px] font-bold text-cyan-700 uppercase tracking-wider">Filename</div>
                   <div className="text-[10px] font-bold text-cyan-700 uppercase tracking-wider">Status</div>
-                  {isAdmin && <div className="text-[10px] font-bold text-cyan-700 uppercase tracking-wider">Actions</div>}
+                  {isAdmin && assignmentViewMode === 'admin' && <div className="text-[10px] font-bold text-cyan-700 uppercase tracking-wider">Actions</div>}
                 </div>
                 {showAllSubmittedMessage ? (
                   <div className="text-center py-3 flex flex-col items-center gap-1.5">
@@ -7723,7 +7749,7 @@ export default function DashboardPage() {
                         {/* Grid row: fixed columns so everything aligns perfectly */}
                         <div
                           className="grid items-center gap-x-3"
-                          style={{ gridTemplateColumns: isAdmin ? '1fr 100px 60px 52px 62px auto' : '1fr 100px 60px 52px 62px' }}
+                          style={{ gridTemplateColumns: isAdmin && assignmentViewMode === 'admin' ? '1fr 100px 60px 52px 62px auto' : '1fr 100px 60px 52px 62px' }}
                         >
                           {/* Col 1: Filename */}
                           <button type="button" onClick={() => { setSelectedAssignment(a); setIsCurrentAssignmentsModalOpen(false); }} className="text-xs font-bold text-slate-800 hover:text-cyan-700 underline-offset-4 hover:underline transition-colors text-left truncate">
@@ -7785,29 +7811,52 @@ export default function DashboardPage() {
                           </div>
 
                           {/* Col 6: Admin actions */}
-                          {isAdmin && (
-                            <div className="flex items-center gap-1 justify-end">
-                              {a.status === 'done' && (
-                                <button onClick={() => { setRevisionTargetAssignment(a); setIsRevisionModalOpen(true) }} className="inline-flex items-center gap-1 rounded-md bg-orange-50 px-1.5 py-0.5 text-[10px] font-semibold text-orange-700 hover:bg-orange-100 transition-all border border-orange-200">
-                                  <FileEdit className="h-3 w-3" /> Revise
-                                </button>
-                              )}
-                              {a.status !== 'cancelled' && (
-                                <button onClick={() => cancelAssignment(a.id)} className="inline-flex items-center gap-1 rounded-md bg-slate-50 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600 hover:bg-slate-100 transition-all border border-slate-200">
-                                  <X className="h-3 w-3" /> Cancel
-                                </button>
-                              )}
-                              <button onClick={() => {
-                                setEditAssignmentId(a.id)
-                                setNewAssignmentFilename(a.filename)
-                                setNewAssignmentDescription(a.description || '')
-                                setIsAddAssignmentModalOpen(true)
-                              }} className="inline-flex items-center gap-1 rounded-md bg-cyan-50 px-1.5 py-0.5 text-[10px] font-semibold text-cyan-700 hover:bg-cyan-100 transition-all border border-cyan-200">
-                                <Pencil className="h-3 w-3" /> Edit
+                          {isAdmin && assignmentViewMode === 'admin' && (
+                            <div className="flex items-center justify-end relative">
+                              <button
+                                onClick={() => setAssignmentActionDropdown(assignmentActionDropdown === a.id ? null : a.id)}
+                                className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-slate-50 hover:bg-slate-100 transition-all border border-slate-200 text-slate-600"
+                              >
+                                <MoreVertical className="h-3.5 w-3.5" />
                               </button>
-                              <button onClick={() => deleteAssignment(a.id)} className="inline-flex items-center gap-1 rounded-md bg-red-50 px-1.5 py-0.5 text-[10px] font-semibold text-red-700 hover:bg-red-100 transition-all border border-red-200">
-                                <X className="h-3 w-3" /> Delete
-                              </button>
+                              {assignmentActionDropdown === a.id && (
+                                <div className="absolute right-0 top-full mt-1 bg-white rounded-lg border border-slate-200 shadow-lg z-10 min-w-[100px] py-1">
+                                  {a.status === 'done' && (
+                                    <button
+                                      onClick={() => { setRevisionTargetAssignment(a); setIsRevisionModalOpen(true); setAssignmentActionDropdown(null) }}
+                                      className="w-full px-3 py-1.5 text-left text-[10px] font-semibold text-orange-700 hover:bg-orange-50 transition-colors flex items-center gap-1.5"
+                                    >
+                                      <FileEdit className="h-3 w-3" /> Revise
+                                    </button>
+                                  )}
+                                  {a.status !== 'cancelled' && (
+                                    <button
+                                      onClick={() => { cancelAssignment(a.id); setAssignmentActionDropdown(null) }}
+                                      className="w-full px-3 py-1.5 text-left text-[10px] font-semibold text-slate-600 hover:bg-slate-50 transition-colors flex items-center gap-1.5"
+                                    >
+                                      <X className="h-3 w-3" /> Cancel
+                                    </button>
+                                  )}
+                                  <button
+                                    onClick={() => {
+                                      setEditAssignmentId(a.id)
+                                      setNewAssignmentFilename(a.filename)
+                                      setNewAssignmentDescription(a.description || '')
+                                      setIsAddAssignmentModalOpen(true)
+                                      setAssignmentActionDropdown(null)
+                                    }}
+                                    className="w-full px-3 py-1.5 text-left text-[10px] font-semibold text-cyan-700 hover:bg-cyan-50 transition-colors flex items-center gap-1.5"
+                                  >
+                                    <Pencil className="h-3 w-3" /> Edit
+                                  </button>
+                                  <button
+                                    onClick={() => { deleteAssignment(a.id); setAssignmentActionDropdown(null) }}
+                                    className="w-full px-3 py-1.5 text-left text-[10px] font-semibold text-red-700 hover:bg-red-50 transition-colors flex items-center gap-1.5"
+                                  >
+                                    <Trash2 className="h-3 w-3" /> Delete
+                                  </button>
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>
