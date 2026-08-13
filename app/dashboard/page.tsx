@@ -4157,8 +4157,8 @@ export default function DashboardPage() {
                             <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
                           </div>
                           {assignments.filter((a: any) => a.status === 'needs_revision').length > 0 ? (
-                            <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-amber-500 text-slate-950 text-[9px] font-extrabold animate-pulse shadow-sm">
-                              ⚠️ {assignments.filter((a: any) => a.status === 'needs_revision').length} REVISION
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-rose-600 text-white text-[9px] font-extrabold shadow-sm">
+                              {assignments.filter((a: any) => a.status === 'needs_revision').length} REVISION
                             </span>
                           ) : assignments.filter((a: any) => a.status === 'pending').length > 0 ? (
                             <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-cyan-500 text-white text-[9px] font-bold shadow-sm">
@@ -4370,16 +4370,16 @@ export default function DashboardPage() {
                       <input type="text" value={newAssignmentFilename} onChange={(e) => setNewAssignmentFilename(e.target.value)} placeholder="e.g., 771241201" className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900" required />
                     </div>
 
-                    <div className="flex items-center gap-3 bg-amber-50/60 p-2.5 rounded-xl border border-amber-200/80">
+                    <div className="flex items-center gap-3 bg-red-50/60 p-2.5 rounded-xl border border-red-200/80">
                       <input
                         type="checkbox"
                         id="rush-assignment"
                         checked={isPriorityAssignment}
                         onChange={(e) => setIsPriorityAssignment(e.target.checked)}
-                        className="w-4 h-4 rounded border-amber-400 text-amber-600 focus:ring-amber-500 cursor-pointer"
+                        className="w-4 h-4 rounded border-red-400 text-red-600 focus:ring-red-500 cursor-pointer"
                       />
                       <label htmlFor="rush-assignment" className="flex items-center gap-2 text-sm font-medium text-zinc-800 cursor-pointer select-none">
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500 text-white text-[10px] font-black tracking-wider uppercase shadow-2xs">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-600 text-white text-[10px] font-black tracking-wider uppercase shadow-2xs">
                           🔥 RUSH
                         </span>
                         <span className="text-xs text-zinc-600">Mark as Rush Assignment (Highest urgency for worker)</span>
@@ -7711,11 +7711,11 @@ export default function DashboardPage() {
                       const isNeedsRevision = a.status === 'needs_revision'
 
                       const cardBorderClass = isNeedsRevision
-                        ? 'border-l-4 border-l-amber-500 border-amber-200/80 bg-amber-50/20 hover:bg-amber-50/40'
+                        ? 'border-l-4 border-l-rose-400 border-rose-200/60 bg-rose-50/10 hover:bg-rose-50/25'
                         : isRush
-                        ? 'border-l-4 border-l-amber-600 border-amber-300 bg-amber-50/40 hover:bg-amber-50/60'
+                        ? 'border-l-4 border-l-red-600 border-red-200/80 bg-red-50/20 hover:bg-red-50/40'
                         : isPriority
-                        ? 'border-l-4 border-l-rose-500 border-rose-200/80 bg-rose-50/20 hover:bg-rose-50/40'
+                        ? 'border-l-4 border-l-violet-500 border-violet-200/60 bg-violet-50/15 hover:bg-violet-50/30'
                         : 'border-l-4 border-l-cyan-400 border-cyan-200/60 bg-white hover:bg-cyan-50/50'
 
                       return (
@@ -7723,14 +7723,14 @@ export default function DashboardPage() {
                           <div>
                             <div className="flex items-center gap-1.5 flex-wrap">
                               {isRush && (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500 text-white text-[9px] font-black tracking-wider uppercase shadow-2xs">
-                                  <span className="h-1.5 w-1.5 rounded-full bg-white animate-ping" />
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-600 text-white text-[9px] font-black tracking-wider uppercase shadow-2xs">
+                                  <span className="h-1.5 w-1.5 rounded-full bg-red-200 opacity-80" />
                                   🔥 RUSH
                                 </span>
                               )}
                               {isPriority && (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-100/90 border border-rose-200 text-rose-800 text-[9px] font-extrabold tracking-wide uppercase shadow-2xs">
-                                  <span className="h-1.5 w-1.5 rounded-full bg-rose-600 animate-ping" />
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-violet-100/90 border border-violet-200 text-violet-800 text-[9px] font-bold tracking-wide uppercase shadow-2xs">
+                                  <span className="h-1.5 w-1.5 rounded-full bg-violet-500" />
                                   Priority
                                 </span>
                               )}
@@ -7746,11 +7746,11 @@ export default function DashboardPage() {
 
                             {/* Worker-facing revision alert */}
                             {isNeedsRevision && !isAdmin && (
-                              <div className="mt-2 rounded-xl bg-amber-50/90 border border-amber-200/80 p-2.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 shadow-2xs">
-                                <div className="text-[10px] text-amber-900">
-                                  <p className="font-bold flex items-center gap-1 text-amber-800">⚠️ Revision Requested</p>
-                                  <p className="mt-0.5 text-amber-800"><span className="font-semibold">Reason:</span> {a.revision_reason === 'incomplete_transcript' ? 'Incomplete Transcript' : a.revision_reason === 'incorrect_format' ? 'Incorrect Format' : a.revision_reason === 'transcript_inconsistencies' ? 'Transcript Inconsistencies' : a.revision_reason === 'other' ? 'Other' : a.revision_reason}</p>
-                                  {a.revision_note && <p className="mt-0.5 text-amber-700 italic">"{a.revision_note}"</p>}
+                              <div className="mt-2 rounded-xl bg-rose-50/70 border border-rose-200/70 p-2.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 shadow-2xs">
+                                <div className="text-[10px] text-rose-900">
+                                  <p className="font-bold flex items-center gap-1 text-rose-800">Revision Requested</p>
+                                  <p className="mt-0.5 text-rose-700"><span className="font-semibold">Reason:</span> {a.revision_reason === 'incomplete_transcript' ? 'Incomplete Transcript' : a.revision_reason === 'incorrect_format' ? 'Incorrect Format' : a.revision_reason === 'transcript_inconsistencies' ? 'Transcript Inconsistencies' : a.revision_reason === 'other' ? 'Other' : a.revision_reason}</p>
+                                  {a.revision_note && <p className="mt-0.5 text-rose-600 italic">"{a.revision_note}"</p>}
                                 </div>
                                 <button
                                   type="button"
@@ -7758,7 +7758,7 @@ export default function DashboardPage() {
                                     setIsCurrentAssignmentsModalOpen(false)
                                     setIsUploadModalOpen(true)
                                   }}
-                                  className="flex-shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-600 text-white text-[9.5px] font-bold hover:bg-amber-700 active:scale-95 transition-all shadow-2xs"
+                                  className="flex-shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-600 text-white text-[9.5px] font-bold hover:bg-rose-700 active:scale-95 transition-all shadow-2xs"
                                 >
                                   <Upload className="h-3 w-3" /> Re-upload File
                                 </button>
@@ -7766,14 +7766,14 @@ export default function DashboardPage() {
                             )}
                             {/* Admin-facing revision info */}
                             {isNeedsRevision && isAdmin && (
-                              <div className="mt-1 text-[9px] text-amber-700 font-medium italic">Revision sent — awaiting resubmission</div>
+                              <div className="mt-1 text-[9px] text-rose-600 font-medium">Revision sent — awaiting resubmission</div>
                             )}
                           </div>
                           <div className="flex items-center gap-1">
                             {a.status === 'done' ? (
                               <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[10px] font-bold text-emerald-800"><span aria-hidden="true">✓</span><span>Done</span></span>
                             ) : a.status === 'needs_revision' ? (
-                              <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 border border-amber-200 px-2 py-0.5 text-[10px] font-bold text-amber-900"><span aria-hidden="true">⚠️</span><span>Needs Revision</span></span>
+                              <span className="inline-flex items-center gap-1 rounded-full bg-rose-50 border border-rose-200 px-2 py-0.5 text-[10px] font-bold text-rose-800"><span aria-hidden="true">↩</span><span>Needs Revision</span></span>
                             ) : a.status === 'cancelled' ? (
                               <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 border border-slate-200 px-2 py-0.5 text-[10px] font-bold text-slate-700"><span aria-hidden="true">✕</span><span>Cancelled</span></span>
                             ) : (
