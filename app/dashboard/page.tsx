@@ -1151,7 +1151,7 @@ export default function DashboardPage() {
         } else {
           const isTargeted = announcement.target_type === 'all' ||
             (announcement.target_type === 'specific' && Array.isArray(announcement.target_worker_ids) && announcement.target_worker_ids.includes(profile.id))
-          
+
           if (isTargeted) {
             setActivePriorityAnnouncement(announcement)
             setIsPriorityModalOpen(true)
@@ -1169,6 +1169,17 @@ export default function DashboardPage() {
           setTimeout(() => { setShowToast(false); setToastMessage(null) }, 5000)
         }
       })
+      .on('broadcast', { event: 'closed_priority_announcement' }, (payload: any) => {
+        console.debug('Priority announcement closure received:', payload)
+        const closedId = payload.payload?.id
+        if (profile.role !== 'admin' && activePriorityAnnouncement && activePriorityAnnouncement.id === closedId) {
+          setActivePriorityAnnouncement(null)
+          setIsPriorityModalOpen(false)
+          setToastMessage('🚨 Rush task has been closed by admin')
+          setShowToast(true)
+          setTimeout(() => { setShowToast(false); setToastMessage(null) }, 3000)
+        }
+      })
       .subscribe()
 
     fetchPriorityAnnouncements()
@@ -1176,7 +1187,7 @@ export default function DashboardPage() {
     return () => {
       supabase.removeChannel(priorityChannel)
     }
-  }, [profile?.id, profile?.role, fetchPriorityAnnouncements])
+  }, [profile?.id, profile?.role, fetchPriorityAnnouncements, activePriorityAnnouncement?.id])
 
   // Admin realtime subscriptions for new issues
   useEffect(() => {
