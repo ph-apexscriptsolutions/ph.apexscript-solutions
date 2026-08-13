@@ -4324,14 +4324,9 @@ export default function DashboardPage() {
               <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
                 <div className="w-full max-w-md overflow-hidden rounded-xl bg-gradient-to-br from-white to-cyan-50 shadow-2xl shadow-cyan-500/20 max-h-[90vh] overflow-y-auto border border-cyan-200">
                   <div className="flex items-start justify-between gap-4 border-b border-cyan-200 p-5">
-                    <div className="flex items-center gap-3">
-                      <button type="button" onClick={() => { setSelectedAssignment(null); setIsCurrentAssignmentsModalOpen(true) }} className="text-cyan-400 hover:text-cyan-700 transition-colors">
-                        <ArrowLeft className="h-5 w-5" />
-                      </button>
-                      <div>
-                        <h3 className="text-lg font-semibold text-cyan-900">Assignment details</h3>
-                        <p className="text-sm text-cyan-600">Assignment description and attachments</p>
-                      </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-cyan-900">Assignment details</h3>
+                      <p className="text-sm text-cyan-600">Assignment description and attachments</p>
                     </div>
                     <button type="button" onClick={() => setSelectedAssignment(null)} className="text-cyan-400 hover:text-cyan-700">
                       <X className="h-5 w-5" />
@@ -4361,11 +4356,11 @@ export default function DashboardPage() {
                     )}
                   </div>
                   <div className="border-t border-cyan-200 p-5 flex gap-3 justify-end">
+                    <button type="button" onClick={() => { setSelectedAssignment(null); setIsCurrentAssignmentsModalOpen(true) }} className="inline-flex items-center justify-center rounded-md bg-gradient-to-r from-cyan-600 to-sky-600 px-4 py-2 text-sm font-semibold text-white hover:from-cyan-700 hover:to-sky-700 transition">
+                      Back
+                    </button>
                     <button type="button" onClick={() => { setIsAssignmentReportIssueModalOpen(true); setReportIssueAssignment(selectedAssignment) }} className="inline-flex items-center justify-center rounded-md bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800 transition">
                       Report Issue
-                    </button>
-                    <button type="button" onClick={() => setSelectedAssignment(null)} className="inline-flex items-center justify-center rounded-md bg-gradient-to-r from-cyan-600 to-sky-600 px-4 py-2 text-sm font-semibold text-white hover:from-cyan-700 hover:to-sky-700 transition">
-                      Close
                     </button>
                   </div>
                 </div>
