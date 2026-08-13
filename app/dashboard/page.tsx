@@ -52,6 +52,57 @@ const getDisplayFileName = (fileName: string) => {
   return fileName.replace(/\.txt$/i, '')
 }
 
+const getAssignmentDueMinutes = (a: any): number | null => {
+  if (!a) return null
+
+  const sources: string[] = []
+  if (a.due_time) sources.push(String(a.due_time))
+  if (a.description) {
+    const cleanDesc = a.description.replace(/<[^>]*>/g, ' ')
+    sources.push(cleanDesc)
+  }
+  if (a.filename) sources.push(String(a.filename))
+
+  for (const text of sources) {
+    // 1. Match "Due: 1800ET", "Due: 0600ET", "Due: 1800", "Due: 0600 UST"
+    const militaryDueMatch = text.match(/due\s*:\s*(\d{2})(\d{2})\s*(?:et|ust|est|edt|ct|pt|utc|gmt)?/i)
+    if (militaryDueMatch) {
+      const hours = parseInt(militaryDueMatch[1], 10)
+      const minutes = parseInt(militaryDueMatch[2], 10)
+      if (hours >= 0 && hours < 24 && minutes >= 0 && minutes < 60) return hours * 60 + minutes
+    }
+    // 2. Match "Due: 18:00ET", "Due: 06:00 ET", "Due: 6:00 PM"
+    const colonDueMatch = text.match(/due\s*:\s*([01]?\d|2[0-3]):([0-5]\d)\s*(am|pm)?/i)
+    if (colonDueMatch) {
+      let hours = parseInt(colonDueMatch[1], 10)
+      const minutes = parseInt(colonDueMatch[2], 10)
+      const ampm = colonDueMatch[3] ? colonDueMatch[3].toLowerCase() : null
+      if (ampm === 'pm' && hours < 12) hours += 12
+      if (ampm === 'am' && hours === 12) hours = 0
+      return hours * 60 + minutes
+    }
+    // 3. Match 4-digit military with timezone e.g. "1800ET", "0600ET"
+    const militaryTzMatch = text.match(/\b(\d{2})(\d{2})\s*(?:et|ust|est|edt|ct|pt|utc|gmt)\b/i)
+    if (militaryTzMatch) {
+      const hours = parseInt(militaryTzMatch[1], 10)
+      const minutes = parseInt(militaryTzMatch[2], 10)
+      if (hours >= 0 && hours < 24 && minutes >= 0 && minutes < 60) return hours * 60 + minutes
+    }
+    // 4. Match general time format e.g. "03:00 AM", "15:30"
+    const generalMatch = text.match(/\b([01]?\d|2[0-3]):([0-5]\d)\s*(am|pm)?\b/i)
+    if (generalMatch) {
+      let hours = parseInt(generalMatch[1], 10)
+      const minutes = parseInt(generalMatch[2], 10)
+      const ampm = generalMatch[3] ? generalMatch[3].toLowerCase() : null
+      if (ampm === 'pm' && hours < 12) hours += 12
+      if (ampm === 'am' && hours === 12) hours = 0
+      return hours * 60 + minutes
+    }
+  }
+
+  return null
+}
+
 const getCurrencyConfig = (location?: string) => {
   switch (location) {
     case 'United States':
@@ -744,6 +795,37 @@ export default function DashboardPage() {
     })
     
     setAssignmentsWithUpdatedDescription(updatedIds)
+  }, [assignments])
+
+  // Automatically determine priority assignment based on earliest due time when worker has > 1 active assignments
+  const autoPriorityAssignmentId = useMemo(() => {
+    const activeAssignments = assignments.filter((a: any) => a.status === 'pending' || a.status === 'needs_revision')
+    // No auto-priority if assignment count is 1 or 0
+    if (activeAssignments.length <= 1) return null
+
+    let earliestId: number | null = null
+    let minDueMinutes = Infinity
+
+    activeAssignments.forEach((a: any) => {
+      const dueMin = getAssignmentDueMinutes(a)
+      if (dueMin !== null && dueMin < minDueMinutes) {
+        minDueMinutes = dueMin
+        earliestId = a.id
+      }
+    })
+
+    if (earliestId === null && activeAssignments.length > 1) {
+      let earliestCreatedAt = Infinity
+      activeAssignments.forEach((a: any) => {
+        const createdTime = a.created_at ? new Date(a.created_at).getTime() : Infinity
+        if (createdTime < earliestCreatedAt) {
+          earliestCreatedAt = createdTime
+          earliestId = a.id
+        }
+      })
+    }
+
+    return earliestId
   }, [assignments])
 
   const normalizeGridTemplate = (template: string, expectedColumns: number) => {
@@ -7619,16 +7701,18 @@ export default function DashboardPage() {
                   <p className="text-center text-xs text-zinc-500 font-medium py-3">No assignments for this worker.</p>
                 ) : (
                   <div className="space-y-1">
-                    {assignments.map((a: any) => (
-                      <div key={a.id} className={`grid gap-1 items-center py-1.5 px-2.5 rounded-md border bg-white hover:bg-cyan-50/80 transition-all ${a.status === 'needs_revision' ? 'border-amber-400/80 bg-gradient-to-r from-amber-50/50 to-white' : a.is_priority ? 'border-red-400/80 bg-gradient-to-r from-red-50/50 to-white' : 'border-cyan-200/60'}`} style={{ gridTemplateColumns: effectiveRowTemplate }}>
-                        <div>
-                          <button type="button" onClick={() => { setSelectedAssignment(a); setIsCurrentAssignmentsModalOpen(false); }} className="text-xs font-bold text-cyan-900 underline-offset-4 hover:underline flex items-center gap-2">
-                            {(Boolean(a.description_updated_at) || assignmentsWithUpdatedDescription.has(a.id)) && (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-red-500 text-white text-[10px] font-bold animate-pulse shadow-sm">REVISED</span>
-                            )}
-                            {a.is_priority && <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-red-600 text-white text-[9px] font-bold">PRIORITY</span>}
-                            {getDisplayFileName(a.filename)}
-                          </button>
+                    {assignments.map((a: any) => {
+                      const isPriority = Boolean(a.is_priority || (autoPriorityAssignmentId === a.id))
+                      return (
+                        <div key={a.id} className={`grid gap-1 items-center py-1.5 px-2.5 rounded-md border bg-white hover:bg-cyan-50/80 transition-all ${a.status === 'needs_revision' ? 'border-amber-400/80 bg-gradient-to-r from-amber-50/50 to-white' : isPriority ? 'border-red-400/80 bg-gradient-to-r from-red-50/50 to-white' : 'border-cyan-200/60'}`} style={{ gridTemplateColumns: effectiveRowTemplate }}>
+                          <div>
+                            <button type="button" onClick={() => { setSelectedAssignment(a); setIsCurrentAssignmentsModalOpen(false); }} className="text-xs font-bold text-cyan-900 underline-offset-4 hover:underline flex items-center gap-2">
+                              {(Boolean(a.description_updated_at) || assignmentsWithUpdatedDescription.has(a.id)) && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-red-500 text-white text-[10px] font-bold animate-pulse shadow-sm">REVISED</span>
+                              )}
+                              {isPriority && <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-red-600 text-white text-[9px] font-bold">PRIORITY</span>}
+                              {getDisplayFileName(a.filename)}
+                            </button>
                           {/* Worker-facing revision alert */}
                           {a.status === 'needs_revision' && !isAdmin && (
                             <div className="mt-1.5 rounded-lg bg-amber-50 border border-amber-300 px-2.5 py-1.5 flex flex-col gap-1">
@@ -7691,7 +7775,7 @@ export default function DashboardPage() {
                           </div>
                         )}
                       </div>
-                    ))}
+                    )})}
                   </div>
                 )}
               </div>
