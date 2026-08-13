@@ -7710,100 +7710,116 @@ export default function DashboardPage() {
                       const isRevised = Boolean(a.description_updated_at || assignmentsWithUpdatedDescription.has(a.id))
                       const isNeedsRevision = a.status === 'needs_revision'
 
-                      const cardBorderClass = isNeedsRevision
-                        ? 'border-l-4 border-l-rose-400 border-rose-200/60 bg-rose-50/10 hover:bg-rose-50/25'
-                        : isRush
-                        ? 'border-l-4 border-l-red-600 border-red-200/80 bg-red-50/20 hover:bg-red-50/40'
-                        : isPriority
-                        ? 'border-l-4 border-l-violet-500 border-violet-200/60 bg-violet-50/15 hover:bg-violet-50/30'
-                        : 'border-l-4 border-l-cyan-400 border-cyan-200/60 bg-white hover:bg-cyan-50/50'
+                    const cardBorderClass = isNeedsRevision
+                      ? 'border-l-4 border-l-rose-400 border-rose-200/60 bg-rose-50/10 hover:bg-rose-50/25'
+                      : isRush
+                      ? 'border-l-4 border-l-red-600 border-red-200/80 bg-red-50/20 hover:bg-red-50/40'
+                      : isPriority
+                      ? 'border-l-4 border-l-violet-500 border-violet-200/60 bg-violet-50/15 hover:bg-violet-50/30'
+                      : 'border-l-4 border-l-cyan-400 border-cyan-200/60 bg-white hover:bg-cyan-50/50'
 
-                      return (
-                        <div key={a.id} className={`grid gap-1.5 items-center py-2 px-3 rounded-xl border transition-all duration-200 shadow-2xs ${cardBorderClass}`} style={{ gridTemplateColumns: effectiveRowTemplate }}>
-                          <div>
-                            <div className="flex items-center gap-1.5 flex-wrap">
-                              {isRush && (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-600 text-white text-[9px] font-black tracking-wider uppercase shadow-2xs">
-                                  <span className="h-1.5 w-1.5 rounded-full bg-red-200 opacity-80" />
-                                  🔥 RUSH
-                                </span>
+                    return (
+                      <div key={a.id} className={`py-2 px-3 rounded-xl border transition-all duration-200 shadow-2xs ${cardBorderClass}`}>
+                        {/* Main inline row: Filename · Status · Revised · RUSH · Priority · Needs Revision badge */}
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {/* Filename */}
+                          <button type="button" onClick={() => { setSelectedAssignment(a); setIsCurrentAssignmentsModalOpen(false); }} className="text-xs font-bold text-slate-800 hover:text-cyan-700 underline-offset-4 hover:underline transition-colors">
+                            {getDisplayFileName(a.filename)}
+                          </button>
+
+                          <span className="text-zinc-300 text-xs">·</span>
+
+                          {/* Status */}
+                          {a.status === 'done' ? (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[9px] font-bold text-emerald-700">✓ Done</span>
+                          ) : a.status === 'needs_revision' ? (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-rose-50 border border-rose-300 px-2 py-0.5 text-[9px] font-bold text-rose-700">↩ Needs Revision</span>
+                          ) : a.status === 'cancelled' ? (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 border border-slate-200 px-2 py-0.5 text-[9px] font-bold text-slate-600">✕ Cancelled</span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-sky-50 border border-sky-200 px-2 py-0.5 text-[9px] font-bold text-sky-700">Pending</span>
+                          )}
+
+                          {/* Revised badge */}
+                          {isRevised && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-teal-50 border border-teal-300 text-teal-700 text-[9px] font-bold tracking-wide uppercase">
+                              Revised
+                            </span>
+                          )}
+
+                          {/* RUSH badge */}
+                          {isRush && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-600 text-white text-[9px] font-black tracking-wider uppercase shadow-sm">
+                              <span className="relative flex h-1.5 w-1.5 flex-shrink-0">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-200 opacity-75" />
+                                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-white" />
+                              </span>
+                              RUSH
+                            </span>
+                          )}
+
+                          {/* Priority badge */}
+                          {isPriority && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-violet-100 border border-violet-300 text-violet-800 text-[9px] font-bold tracking-wide uppercase">
+                              <span className="relative flex h-1.5 w-1.5 flex-shrink-0">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-violet-400 opacity-75" />
+                                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-violet-500" />
+                              </span>
+                              Priority
+                            </span>
+                          )}
+
+                          {/* Admin actions */}
+                          {isAdmin && (
+                            <div className="flex items-center gap-1 ml-auto flex-shrink-0">
+                              {a.status === 'done' && (
+                                <button onClick={() => { setRevisionTargetAssignment(a); setIsRevisionModalOpen(true) }} className="inline-flex items-center gap-1 rounded-md bg-orange-50 px-1.5 py-0.5 text-[10px] font-semibold text-orange-700 hover:bg-orange-100 transition-all border border-orange-200">
+                                  <FileEdit className="h-3 w-3" /> Revise
+                                </button>
                               )}
-                              {isPriority && (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-violet-100/90 border border-violet-200 text-violet-800 text-[9px] font-bold tracking-wide uppercase shadow-2xs">
-                                  <span className="h-1.5 w-1.5 rounded-full bg-violet-500" />
-                                  Priority
-                                </span>
+                              {a.status !== 'cancelled' && (
+                                <button onClick={() => cancelAssignment(a.id)} className="inline-flex items-center gap-1 rounded-md bg-slate-50 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600 hover:bg-slate-100 transition-all border border-slate-200">
+                                  <X className="h-3 w-3" /> Cancel
+                                </button>
                               )}
-                              {isRevised && (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-sky-100/90 border border-sky-200 text-sky-800 text-[9px] font-extrabold tracking-wide uppercase shadow-2xs">
-                                  Revised
-                                </span>
-                              )}
-                              <button type="button" onClick={() => { setSelectedAssignment(a); setIsCurrentAssignmentsModalOpen(false); }} className="text-xs font-bold text-slate-800 hover:text-cyan-800 underline-offset-4 hover:underline transition-colors">
-                                {getDisplayFileName(a.filename)}
+                              <button onClick={() => {
+                                setEditAssignmentId(a.id)
+                                setNewAssignmentFilename(a.filename)
+                                setNewAssignmentDescription(a.description || '')
+                                setIsAddAssignmentModalOpen(true)
+                              }} className="inline-flex items-center gap-1 rounded-md bg-cyan-50 px-1.5 py-0.5 text-[10px] font-semibold text-cyan-700 hover:bg-cyan-100 transition-all border border-cyan-200">
+                                <Pencil className="h-3 w-3" /> Edit
+                              </button>
+                              <button onClick={() => deleteAssignment(a.id)} className="inline-flex items-center gap-1 rounded-md bg-red-50 px-1.5 py-0.5 text-[10px] font-semibold text-red-700 hover:bg-red-100 transition-all border border-red-200">
+                                <X className="h-3 w-3" /> Delete
                               </button>
                             </div>
+                          )}
+                        </div>
 
-                            {/* Worker-facing revision alert */}
-                            {isNeedsRevision && !isAdmin && (
-                              <div className="mt-2 rounded-xl bg-rose-50/70 border border-rose-200/70 p-2.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 shadow-2xs">
-                                <div className="text-[10px] text-rose-900">
-                                  <p className="font-bold flex items-center gap-1 text-rose-800">Revision Requested</p>
-                                  <p className="mt-0.5 text-rose-700"><span className="font-semibold">Reason:</span> {a.revision_reason === 'incomplete_transcript' ? 'Incomplete Transcript' : a.revision_reason === 'incorrect_format' ? 'Incorrect Format' : a.revision_reason === 'transcript_inconsistencies' ? 'Transcript Inconsistencies' : a.revision_reason === 'other' ? 'Other' : a.revision_reason}</p>
-                                  {a.revision_note && <p className="mt-0.5 text-rose-600 italic">"{a.revision_note}"</p>}
-                                </div>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setIsCurrentAssignmentsModalOpen(false)
-                                    setIsUploadModalOpen(true)
-                                  }}
-                                  className="flex-shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-600 text-white text-[9.5px] font-bold hover:bg-rose-700 active:scale-95 transition-all shadow-2xs"
-                                >
-                                  <Upload className="h-3 w-3" /> Re-upload File
-                                </button>
-                              </div>
-                            )}
-                            {/* Admin-facing revision info */}
-                            {isNeedsRevision && isAdmin && (
-                              <div className="mt-1 text-[9px] text-rose-600 font-medium">Revision sent — awaiting resubmission</div>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-1">
-                            {a.status === 'done' ? (
-                              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[10px] font-bold text-emerald-800"><span aria-hidden="true">✓</span><span>Done</span></span>
-                            ) : a.status === 'needs_revision' ? (
-                              <span className="inline-flex items-center gap-1 rounded-full bg-rose-50 border border-rose-200 px-2 py-0.5 text-[10px] font-bold text-rose-800"><span aria-hidden="true">↩</span><span>Needs Revision</span></span>
-                            ) : a.status === 'cancelled' ? (
-                              <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 border border-slate-200 px-2 py-0.5 text-[10px] font-bold text-slate-700"><span aria-hidden="true">✕</span><span>Cancelled</span></span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1 rounded-full bg-sky-50 border border-sky-200 px-2 py-0.5 text-[10px] font-bold text-sky-800"><span aria-hidden="true">⏳</span><span>Pending</span></span>
-                            )}
-                          </div>
-                        {isAdmin && (
-                          <div className="flex items-center gap-1 flex-wrap">
-                            {a.status === 'done' && (
-                              <button onClick={() => { setRevisionTargetAssignment(a); setIsRevisionModalOpen(true) }} className="inline-flex items-center gap-1 rounded-md bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 hover:bg-amber-100 transition-all border border-amber-200">
-                                <FileEdit className="h-3 w-3" /> Revise
-                              </button>
-                            )}
-                            {a.status !== 'cancelled' && (
-                              <button onClick={() => cancelAssignment(a.id)} className="inline-flex items-center gap-1 rounded-md bg-orange-50 px-1.5 py-0.5 text-[10px] font-semibold text-orange-700 hover:bg-orange-100 transition-all border border-orange-200">
-                                <X className="h-3 w-3" /> Cancel
-                              </button>
-                            )}
-                            <button onClick={() => {
-                              setEditAssignmentId(a.id)
-                              setNewAssignmentFilename(a.filename)
-                              setNewAssignmentDescription(a.description || '')
-                              setIsAddAssignmentModalOpen(true)
-                            }} className="inline-flex items-center gap-1 rounded-md bg-cyan-50 px-1.5 py-0.5 text-[10px] font-semibold text-cyan-700 hover:bg-cyan-100 transition-all border border-cyan-200">
-                              <Pencil className="h-3 w-3" /> Edit
-                            </button>
-                            <button onClick={() => deleteAssignment(a.id)} className="inline-flex items-center gap-1 rounded-md bg-red-50 px-1.5 py-0.5 text-[10px] font-semibold text-red-700 hover:bg-red-100 transition-all border border-red-200">
-                              <X className="h-3 w-3" /> Delete
+                        {/* Worker-facing revision alert — expands below */}
+                        {isNeedsRevision && !isAdmin && (
+                          <div className="mt-2 rounded-xl bg-rose-50/70 border border-rose-200/70 p-2.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 shadow-2xs">
+                            <div className="text-[10px] text-rose-900">
+                              <p className="font-bold flex items-center gap-1 text-rose-800">Revision Requested</p>
+                              <p className="mt-0.5 text-rose-700"><span className="font-semibold">Reason:</span> {a.revision_reason === 'incomplete_transcript' ? 'Incomplete Transcript' : a.revision_reason === 'incorrect_format' ? 'Incorrect Format' : a.revision_reason === 'transcript_inconsistencies' ? 'Transcript Inconsistencies' : a.revision_reason === 'other' ? 'Other' : a.revision_reason}</p>
+                              {a.revision_note && <p className="mt-0.5 text-rose-600 italic">"{a.revision_note}"</p>}
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setIsCurrentAssignmentsModalOpen(false)
+                                setIsUploadModalOpen(true)
+                              }}
+                              className="flex-shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-600 text-white text-[9.5px] font-bold hover:bg-rose-700 active:scale-95 transition-all shadow-2xs"
+                            >
+                              <Upload className="h-3 w-3" /> Re-upload File
                             </button>
                           </div>
+                        )}
+                        {/* Admin-facing revision info */}
+                        {isNeedsRevision && isAdmin && (
+                          <div className="mt-1 text-[9px] text-rose-600 font-medium">Revision sent — awaiting resubmission</div>
                         )}
                       </div>
                     )})}
