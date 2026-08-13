@@ -7720,64 +7720,73 @@ export default function DashboardPage() {
 
                     return (
                       <div key={a.id} className={`py-2 px-3 rounded-xl border transition-all duration-200 shadow-2xs ${cardBorderClass}`}>
-                        {/* Main inline row: Filename · Status · Revised · RUSH · Priority · Needs Revision badge */}
-                        <div className="flex items-center gap-2 flex-wrap">
-                          {/* Filename */}
-                          <button type="button" onClick={() => { setSelectedAssignment(a); setIsCurrentAssignmentsModalOpen(false); }} className="text-xs font-bold text-slate-800 hover:text-cyan-700 underline-offset-4 hover:underline transition-colors">
+                        {/* Grid row: fixed columns so everything aligns perfectly */}
+                        <div
+                          className="grid items-center gap-x-3"
+                          style={{ gridTemplateColumns: isAdmin ? '1fr 100px 60px 52px 62px auto' : '1fr 100px 60px 52px 62px' }}
+                        >
+                          {/* Col 1: Filename */}
+                          <button type="button" onClick={() => { setSelectedAssignment(a); setIsCurrentAssignmentsModalOpen(false); }} className="text-xs font-bold text-slate-800 hover:text-cyan-700 underline-offset-4 hover:underline transition-colors text-left truncate">
                             {getDisplayFileName(a.filename)}
                           </button>
 
-                          <span className="text-zinc-300 text-xs">·</span>
-
-                          {/* Status */}
-                          {a.status === 'done' ? (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[9px] font-bold text-emerald-700">✓ Done</span>
-                          ) : a.status === 'needs_revision' ? (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-rose-50 border border-rose-300 px-2 py-0.5 text-[9px] font-bold text-rose-700">↩ Needs Revision</span>
-                          ) : a.status === 'cancelled' ? (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 border border-slate-200 px-2 py-0.5 text-[9px] font-bold text-slate-600">✕ Cancelled</span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-sky-50 border border-sky-200 px-2 py-0.5 text-[9px] font-bold text-sky-700">
-                              <svg className="h-2.5 w-2.5 animate-spin text-sky-500" fill="none" viewBox="0 0 24 24">
-                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                              </svg>
-                              In Progress
-                            </span>
-                          )}
-
-                          {/* Revised badge */}
-                          {isRevised && (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-teal-50 border border-teal-300 text-teal-700 text-[9px] font-bold tracking-wide uppercase">
-                              Revised
-                            </span>
-                          )}
-
-                          {/* RUSH badge */}
-                          {isRush && (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-600 text-white text-[9px] font-black tracking-wider uppercase shadow-sm">
-                              <span className="relative flex h-1.5 w-1.5 flex-shrink-0">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-200 opacity-75" />
-                                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-white" />
+                          {/* Col 2: Status */}
+                          <div>
+                            {a.status === 'done' ? (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[9px] font-bold text-emerald-700 whitespace-nowrap">✓ Done</span>
+                            ) : a.status === 'needs_revision' ? (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-rose-50 border border-rose-300 px-2 py-0.5 text-[9px] font-bold text-rose-700 whitespace-nowrap">↩ Revision</span>
+                            ) : a.status === 'cancelled' ? (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 border border-slate-200 px-2 py-0.5 text-[9px] font-bold text-slate-600 whitespace-nowrap">✕ Cancelled</span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-sky-50 border border-sky-200 px-2 py-0.5 text-[9px] font-bold text-sky-700 whitespace-nowrap">
+                                <svg className="h-2.5 w-2.5 animate-spin text-sky-500 flex-shrink-0" fill="none" viewBox="0 0 24 24">
+                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                                </svg>
+                                In Progress
                               </span>
-                              RUSH
-                            </span>
-                          )}
+                            )}
+                          </div>
 
-                          {/* Priority badge */}
-                          {isPriority && (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-violet-100 border border-violet-300 text-violet-800 text-[9px] font-bold tracking-wide uppercase">
-                              <span className="relative flex h-1.5 w-1.5 flex-shrink-0">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-violet-400 opacity-75" />
-                                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-violet-500" />
+                          {/* Col 3: Revised */}
+                          <div>
+                            {isRevised && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-teal-50 border border-teal-300 text-teal-700 text-[9px] font-bold tracking-wide uppercase whitespace-nowrap">
+                                Revised
                               </span>
-                              Priority
-                            </span>
-                          )}
+                            )}
+                          </div>
 
-                          {/* Admin actions */}
+                          {/* Col 4: RUSH */}
+                          <div>
+                            {isRush && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-600 text-white text-[9px] font-black tracking-wider uppercase shadow-sm whitespace-nowrap">
+                                <span className="relative flex h-1.5 w-1.5 flex-shrink-0">
+                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-200 opacity-75" />
+                                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-white" />
+                                </span>
+                                RUSH
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Col 5: Priority */}
+                          <div>
+                            {isPriority && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-violet-100 border border-violet-300 text-violet-800 text-[9px] font-bold tracking-wide uppercase whitespace-nowrap">
+                                <span className="relative flex h-1.5 w-1.5 flex-shrink-0">
+                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-violet-400 opacity-75" />
+                                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-violet-500" />
+                                </span>
+                                Priority
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Col 6: Admin actions */}
                           {isAdmin && (
-                            <div className="flex items-center gap-1 ml-auto flex-shrink-0">
+                            <div className="flex items-center gap-1 justify-end">
                               {a.status === 'done' && (
                                 <button onClick={() => { setRevisionTargetAssignment(a); setIsRevisionModalOpen(true) }} className="inline-flex items-center gap-1 rounded-md bg-orange-50 px-1.5 py-0.5 text-[10px] font-semibold text-orange-700 hover:bg-orange-100 transition-all border border-orange-200">
                                   <FileEdit className="h-3 w-3" /> Revise
