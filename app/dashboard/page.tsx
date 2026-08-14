@@ -7657,8 +7657,8 @@ export default function DashboardPage() {
 
       {/* ── Current Assignments Modal ── */}
       {isCurrentAssignmentsModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
-          <div className="bg-gradient-to-br from-white to-cyan-50 rounded-3xl shadow-2xl shadow-cyan-500/20 w-full max-w-xl p-4 relative border border-cyan-200 max-h-[90vh] flex flex-col">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/60 backdrop-blur-md">
+          <div className="bg-gradient-to-br from-white to-cyan-50 rounded-3xl shadow-2xl shadow-cyan-500/20 w-full max-w-xl p-3 sm:p-4 relative border border-cyan-200 max-h-[90vh] flex flex-col">
             <button onClick={() => setIsCurrentAssignmentsModalOpen(false)} className="absolute right-3 top-3 text-cyan-400 hover:text-cyan-700 transition-colors"><X className="h-4 w-4" /></button>
 
             <div className="flex items-center justify-between mb-3 flex-shrink-0">
@@ -7701,7 +7701,7 @@ export default function DashboardPage() {
 
             <div className="flex-1 overflow-y-auto min-h-0 space-y-1.5 mb-3">
               <div className="space-y-1">
-                <div className="grid gap-1 items-center bg-cyan-100/80 px-2.5 py-2 border-b border-cyan-200/60 rounded-t-lg" style={{ gridTemplateColumns: isAdmin && assignmentViewMode === 'admin' ? '1fr 100px 60px 52px 62px auto' : '1fr 100px 60px 52px 62px' }}>
+                <div className="hidden sm:grid gap-1 items-center bg-cyan-100/80 px-2.5 py-2 border-b border-cyan-200/60 rounded-t-lg" style={{ gridTemplateColumns: isAdmin && assignmentViewMode === 'admin' ? '1fr 100px 60px 52px 62px auto' : '1fr 100px 60px 52px 62px' }}>
                   <div className="text-[10px] font-bold text-cyan-700 uppercase tracking-wider">Filename</div>
                   <div className="text-[10px] font-bold text-cyan-700 uppercase tracking-wider">Status</div>
                   {isAdmin && assignmentViewMode === 'admin' && <div className="text-[10px] font-bold text-cyan-700 uppercase tracking-wider">Actions</div>}
@@ -7732,10 +7732,90 @@ export default function DashboardPage() {
                       : 'border-l-4 border-l-cyan-400 border-cyan-200/60 bg-white hover:bg-cyan-50/50'
 
                     return (
-                      <div key={a.id} className={`py-2 px-3 rounded-none border transition-all duration-200 shadow-2xs ${cardBorderClass}`}>
-                        {/* Grid row: fixed columns so everything aligns perfectly */}
+                      <div key={a.id} className={`py-2 sm:py-2 px-3 rounded-none border transition-all duration-200 shadow-2xs ${cardBorderClass}`}>
+                        {/* Mobile layout: stacked vertically */}
+                        <div className="sm:hidden space-y-2">
+                          <button type="button" onClick={() => { setSelectedAssignment(a); setIsCurrentAssignmentsModalOpen(false); }} className="text-xs font-bold text-slate-800 hover:text-cyan-700 underline-offset-4 hover:underline transition-colors text-left truncate w-full">
+                            {getDisplayFileName(a.filename)}
+                          </button>
+                          <div className="flex flex-wrap gap-1.5 items-center">
+                            {a.status === 'done' ? (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[9px] font-bold text-gray-400 whitespace-nowrap">✓ Done</span>
+                            ) : a.status === 'needs_revision' ? (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-rose-50 border border-rose-300 px-2 py-0.5 text-[9px] font-bold text-rose-700 whitespace-nowrap">↩ Revision</span>
+                            ) : a.status === 'cancelled' ? (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 border border-slate-200 px-2 py-0.5 text-[9px] font-bold text-slate-600 whitespace-nowrap">✕ Cancelled</span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-sky-50 border border-sky-200 px-2 py-0.5 text-[9px] font-bold text-sky-700 whitespace-nowrap">
+                                <svg className="h-2.5 w-2.5 animate-spin text-sky-500 flex-shrink-0" fill="none" viewBox="0 0 24 24">
+                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                                </svg>
+                                In Progress
+                              </span>
+                            )}
+                            {isUpdated && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-teal-50 border border-teal-300 text-teal-700 text-[9px] font-bold tracking-wide uppercase whitespace-nowrap">
+                                Updated
+                              </span>
+                            )}
+                            {isRush && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-600 text-white text-[9px] font-black tracking-wider uppercase shadow-sm whitespace-nowrap">
+                                <span className="relative flex h-1.5 w-1.5 flex-shrink-0">
+                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-200 opacity-75" />
+                                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-white" />
+                                </span>
+                                RUSH
+                              </span>
+                            )}
+                            {isPriority && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-violet-100 border border-violet-300 text-violet-800 text-[9px] font-bold tracking-wide uppercase whitespace-nowrap">
+                                <span className="relative flex h-1.5 w-1.5 flex-shrink-0">
+                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-violet-400 opacity-75" />
+                                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-violet-500" />
+                                </span>
+                                Priority
+                              </span>
+                            )}
+                            {isAdmin && assignmentViewMode === 'admin' && (
+                              <div className="flex items-center justify-end relative ml-auto">
+                                <button
+                                  onClick={() => setAssignmentActionDropdown(assignmentActionDropdown === a.id ? null : a.id)}
+                                  className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-slate-50 hover:bg-slate-100 transition-all border border-slate-200 text-slate-600"
+                                >
+                                  <MoreVertical className="h-3.5 w-3.5" />
+                                </button>
+                                {assignmentActionDropdown === a.id && (
+                                  <div className="absolute right-0 top-full mt-1 bg-white rounded-lg border border-slate-200 shadow-lg z-10 min-w-[100px] py-1">
+                                    {a.status === 'done' && (
+                                      <button
+                                        onClick={() => { setRevisionTargetAssignment(a); setIsRevisionModalOpen(true); setAssignmentActionDropdown(null) }}
+                                        className="w-full px-3 py-1.5 text-left text-[10px] font-semibold text-orange-700 hover:bg-orange-50 transition-colors flex items-center gap-1.5"
+                                      >
+                                        <FileEdit className="h-3 w-3" /> Revise
+                                      </button>
+                                    )}
+                                    <button
+                                      onClick={() => { setEditAssignmentId(a.id); setNewAssignmentFilename(a.filename); setNewAssignmentDescription(a.description || ''); setIsCurrentAssignmentsModalOpen(false); setIsAddAssignmentModalOpen(true); setAssignmentActionDropdown(null) }}
+                                      className="w-full px-3 py-1.5 text-left text-[10px] font-semibold text-cyan-700 hover:bg-cyan-50 transition-colors flex items-center gap-1.5"
+                                    >
+                                      <FileEdit className="h-3 w-3" /> Edit
+                                    </button>
+                                    <button
+                                      onClick={() => { deleteAssignment(a.id); setAssignmentActionDropdown(null) }}
+                                      className="w-full px-3 py-1.5 text-left text-[10px] font-semibold text-red-700 hover:bg-red-50 transition-colors flex items-center gap-1.5"
+                                    >
+                                      <Trash2 className="h-3 w-3" /> Delete
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        {/* Desktop layout: grid */}
                         <div
-                          className="grid items-center gap-x-3"
+                          className="hidden sm:grid items-center gap-x-3"
                           style={{ gridTemplateColumns: isAdmin && assignmentViewMode === 'admin' ? '1fr 100px 60px 52px 62px auto' : '1fr 100px 60px 52px 62px' }}
                         >
                           {/* Col 1: Filename */}
@@ -7816,25 +7896,11 @@ export default function DashboardPage() {
                                       <FileEdit className="h-3 w-3" /> Revise
                                     </button>
                                   )}
-                                  {a.status !== 'cancelled' && (
-                                    <button
-                                      onClick={() => { cancelAssignment(a.id); setAssignmentActionDropdown(null) }}
-                                      className="w-full px-3 py-1.5 text-left text-[10px] font-semibold text-slate-600 hover:bg-slate-50 transition-colors flex items-center gap-1.5"
-                                    >
-                                      <X className="h-3 w-3" /> Cancel
-                                    </button>
-                                  )}
                                   <button
-                                    onClick={() => {
-                                      setEditAssignmentId(a.id)
-                                      setNewAssignmentFilename(a.filename)
-                                      setNewAssignmentDescription(a.description || '')
-                                      setIsAddAssignmentModalOpen(true)
-                                      setAssignmentActionDropdown(null)
-                                    }}
+                                    onClick={() => { setEditAssignmentId(a.id); setNewAssignmentFilename(a.filename); setNewAssignmentDescription(a.description || ''); setIsCurrentAssignmentsModalOpen(false); setIsAddAssignmentModalOpen(true); setAssignmentActionDropdown(null) }}
                                     className="w-full px-3 py-1.5 text-left text-[10px] font-semibold text-cyan-700 hover:bg-cyan-50 transition-colors flex items-center gap-1.5"
                                   >
-                                    <Pencil className="h-3 w-3" /> Edit
+                                    <FileEdit className="h-3 w-3" /> Edit
                                   </button>
                                   <button
                                     onClick={() => { deleteAssignment(a.id); setAssignmentActionDropdown(null) }}
