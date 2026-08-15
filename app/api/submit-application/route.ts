@@ -15,9 +15,11 @@ const transporter = process.env.EMAIL_USER && process.env.EMAIL_PASS
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { fullName, email, phone, jobTitle, experience, coverLetter } = body
+    const { fullName, email, phone, jobTitle, department, experience, coverLetter } = body
 
-    if (!fullName || !email || !phone || !jobTitle || !experience || !coverLetter) {
+    // Department is required for Transcriber and Assistant Human Resources positions
+    const requiresDepartment = jobTitle === 'Transcriber' || jobTitle === 'Assistant Human Resources'
+    if (!fullName || !email || !phone || !jobTitle || !experience || !coverLetter || (requiresDepartment && !department)) {
       return NextResponse.json({ error: 'All fields are required' }, { status: 400 })
     }
 
@@ -41,6 +43,7 @@ export async function POST(request: Request) {
             <p style="color: #666; line-height: 1.6;"><strong>Email:</strong> ${email}</p>
             <p style="color: #666; line-height: 1.6;"><strong>Phone:</strong> ${phone}</p>
             <p style="color: #666; line-height: 1.6;"><strong>Position Applying For:</strong> ${jobTitle}</p>
+            ${department ? `<p style="color: #666; line-height: 1.6;"><strong>Department:</strong> ${department}</p>` : ''}
             <p style="color: #666; line-height: 1.6;"><strong>Years of Experience:</strong> ${experience}</p>
           </div>
           

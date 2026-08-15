@@ -11,6 +11,7 @@ export default function ApplyPage() {
     email: '',
     phone: '',
     jobTitle: '',
+    department: '',
     experience: '',
     coverLetter: '',
   })
@@ -44,6 +45,7 @@ export default function ApplyPage() {
           email: '',
           phone: '',
           jobTitle: '',
+          department: '',
           experience: '',
           coverLetter: '',
         })
@@ -178,6 +180,32 @@ export default function ApplyPage() {
                     </select>
                   </div>
                 </div>
+
+                {(formData.jobTitle === 'Transcriber' || formData.jobTitle === 'Assistant Human Resources') && (
+                  <div className="space-y-1.5">
+                    <label htmlFor="department" className="flex items-center gap-2 text-xs font-semibold text-slate-700">
+                      <Briefcase className="h-3.5 w-3.5 text-cyan-600" />
+                      Department *
+                    </label>
+                    <select
+                      id="department"
+                      name="department"
+                      required
+                      value={formData.department}
+                      onChange={handleChange}
+                      className="w-full px-3 py-2.5 border-2 border-slate-200 rounded-lg focus:border-cyan-500 focus:ring-4 focus:ring-cyan-500/20 outline-none transition-all bg-slate-50 focus:bg-white text-sm"
+                    >
+                      <option value="">Select a department</option>
+                      <option value="Congress">Congress</option>
+                      <option value="Corporate">Corporate</option>
+                      <option value="Medical">Medical</option>
+                      <option value="Academics">Academics</option>
+                      <option value="Podcast">Podcast</option>
+                      <option value="Broadcast">Broadcast</option>
+                      <option value="Others">Others</option>
+                    </select>
+                  </div>
+                )}
 
                 <div className="space-y-1.5">
                   <label htmlFor="experience" className="flex items-center gap-2 text-xs font-semibold text-slate-700">
