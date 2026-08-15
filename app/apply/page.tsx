@@ -181,7 +181,7 @@ export default function ApplyPage() {
                   </div>
                 </div>
 
-                {(formData.jobTitle === 'Transcriber' || formData.jobTitle === 'Assistant Human Resources') && (
+                {formData.jobTitle === 'Transcriber' && (
                   <div className="space-y-1.5">
                     <label htmlFor="department" className="flex items-center gap-2 text-xs font-semibold text-slate-700">
                       <Briefcase className="h-3.5 w-3.5 text-cyan-600" />

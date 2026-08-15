@@ -17,8 +17,8 @@ export async function POST(request: Request) {
     const body = await request.json()
     const { fullName, email, phone, jobTitle, department, experience, coverLetter } = body
 
-    // Department is required for Transcriber and Assistant Human Resources positions
-    const requiresDepartment = jobTitle === 'Transcriber' || jobTitle === 'Assistant Human Resources'
+    // Department is required for Transcriber position only
+    const requiresDepartment = jobTitle === 'Transcriber'
     if (!fullName || !email || !phone || !jobTitle || !experience || !coverLetter || (requiresDepartment && !department)) {
       return NextResponse.json({ error: 'All fields are required' }, { status: 400 })
     }
