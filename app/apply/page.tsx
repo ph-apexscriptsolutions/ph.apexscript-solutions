@@ -12,6 +12,7 @@ export default function ApplyPage() {
     phone: '',
     jobTitle: '',
     department: '',
+    customSpecialty: '',
     experience: '',
     coverLetter: '',
   })
@@ -46,6 +47,7 @@ export default function ApplyPage() {
           phone: '',
           jobTitle: '',
           department: '',
+          customSpecialty: '',
           experience: '',
           coverLetter: '',
         })
@@ -185,7 +187,7 @@ export default function ApplyPage() {
                   <div className="space-y-1.5">
                     <label htmlFor="department" className="flex items-center gap-2 text-xs font-semibold text-slate-700">
                       <Briefcase className="h-3.5 w-3.5 text-cyan-600" />
-                      Department *
+                      Transcription Specialties *
                     </label>
                     <select
                       id="department"
@@ -195,15 +197,32 @@ export default function ApplyPage() {
                       onChange={handleChange}
                       className="w-full px-3 py-2.5 border-2 border-slate-200 rounded-lg focus:border-cyan-500 focus:ring-4 focus:ring-cyan-500/20 outline-none transition-all bg-slate-50 focus:bg-white text-sm"
                     >
-                      <option value="">Select a department</option>
+                      <option value="">Select a specialty</option>
+                      <option value="Academics">Academics</option>
+                      <option value="Broadcast">Broadcast</option>
                       <option value="Congress">Congress</option>
                       <option value="Corporate">Corporate</option>
                       <option value="Medical">Medical</option>
-                      <option value="Academics">Academics</option>
                       <option value="Podcast">Podcast</option>
-                      <option value="Broadcast">Broadcast</option>
-                      <option value="Others">Others</option>
                     </select>
+                  </div>
+                )}
+
+                {formData.jobTitle === 'Transcriber' && (
+                  <div className="space-y-1.5">
+                    <label htmlFor="customSpecialty" className="flex items-center gap-2 text-xs font-semibold text-slate-700">
+                      <Briefcase className="h-3.5 w-3.5 text-cyan-600" />
+                      Other Transcription Specialty (if not in the list above)
+                    </label>
+                    <input
+                      type="text"
+                      id="customSpecialty"
+                      name="customSpecialty"
+                      value={formData.customSpecialty}
+                      onChange={handleChange}
+                      className="w-full px-3 py-2.5 border-2 border-slate-200 rounded-lg focus:border-cyan-500 focus:ring-4 focus:ring-cyan-500/20 outline-none transition-all bg-slate-50 focus:bg-white text-sm"
+                      placeholder="e.g., Legal, Financial, etc."
+                    />
                   </div>
                 )}
 

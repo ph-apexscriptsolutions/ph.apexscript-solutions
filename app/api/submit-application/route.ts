@@ -15,7 +15,7 @@ const transporter = process.env.EMAIL_USER && process.env.EMAIL_PASS
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { fullName, email, phone, jobTitle, department, experience, coverLetter } = body
+    const { fullName, email, phone, jobTitle, department, customSpecialty, experience, coverLetter } = body
 
     // Department is required for Transcriber position only
     const requiresDepartment = jobTitle === 'Transcriber'
@@ -43,7 +43,8 @@ export async function POST(request: Request) {
             <p style="color: #666; line-height: 1.6;"><strong>Email:</strong> ${email}</p>
             <p style="color: #666; line-height: 1.6;"><strong>Phone:</strong> ${phone}</p>
             <p style="color: #666; line-height: 1.6;"><strong>Position Applying For:</strong> ${jobTitle}</p>
-            ${department ? `<p style="color: #666; line-height: 1.6;"><strong>Department:</strong> ${department}</p>` : ''}
+            ${department ? `<p style="color: #666; line-height: 1.6;"><strong>Transcription Specialties:</strong> ${department}</p>` : ''}
+            ${customSpecialty ? `<p style="color: #666; line-height: 1.6;"><strong>Other Specialty:</strong> ${customSpecialty}</p>` : ''}
             <p style="color: #666; line-height: 1.6;"><strong>Years of Experience:</strong> ${experience}</p>
           </div>
           
