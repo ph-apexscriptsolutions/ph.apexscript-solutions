@@ -7795,6 +7795,14 @@ export default function DashboardPage() {
                                         <FileEdit className="h-3 w-3" /> Revise
                                       </button>
                                     )}
+                                    {a.status !== 'cancelled' && (
+                                      <button
+                                        onClick={() => { cancelAssignment(a.id); setAssignmentActionDropdown(null) }}
+                                        className="w-full px-3 py-1.5 text-left text-[10px] font-semibold text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-1.5"
+                                      >
+                                        <X className="h-3 w-3" /> Cancel
+                                      </button>
+                                    )}
                                     <button
                                       onClick={() => { setEditAssignmentId(a.id); setNewAssignmentFilename(a.filename); setNewAssignmentDescription(a.description || ''); setIsCurrentAssignmentsModalOpen(false); setIsAddAssignmentModalOpen(true); setAssignmentActionDropdown(null) }}
                                       className="w-full px-3 py-1.5 text-left text-[10px] font-semibold text-cyan-700 hover:bg-cyan-50 transition-colors flex items-center gap-1.5"
@@ -7894,6 +7902,14 @@ export default function DashboardPage() {
                                       className="w-full px-3 py-1.5 text-left text-[10px] font-semibold text-orange-700 hover:bg-orange-50 transition-colors flex items-center gap-1.5"
                                     >
                                       <FileEdit className="h-3 w-3" /> Revise
+                                    </button>
+                                  )}
+                                  {a.status !== 'cancelled' && (
+                                    <button
+                                      onClick={() => { cancelAssignment(a.id); setAssignmentActionDropdown(null) }}
+                                      className="w-full px-3 py-1.5 text-left text-[10px] font-semibold text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-1.5"
+                                    >
+                                      <X className="h-3 w-3" /> Cancel
                                     </button>
                                   )}
                                   <button
