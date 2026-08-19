@@ -453,72 +453,52 @@ export default function TranscriptEditor({
         </div>
       )}
 
-      {/* ── 5 REVISION / DRAFT SLOTS BAR ── */}
-      <div className="bg-white border border-zinc-200/90 rounded-2xl p-2 shadow-xs">
-        <div className="flex items-center justify-between px-2 py-1 mb-1.5 border-b border-zinc-100">
-          <div className="flex items-center gap-1.5 text-xs font-bold text-zinc-700">
-            <Layers className="w-3.5 h-3.5 text-purple-600" />
-            <span>Saved Drafts & Revisions (5 File Slots)</span>
-          </div>
-          <span className="text-[10px] text-zinc-400">
-            Switch slots to save different revisions or resume later
-          </span>
-        </div>
-
-        <div className="grid grid-cols-5 gap-1.5">
-          {[1, 2, 3, 4, 5].map((slotNum) => {
-            const isSelected = activeSlot === slotNum
-            const meta = slotsMeta.find((s) => s.slot === slotNum)
-            const hasData = meta?.hasContent || (slotNum === activeSlot && content.trim().length > 0)
-            const words = slotNum === activeSlot ? wordCount : meta?.wordCount || 0
-
-            return (
-              <button
-                key={slotNum}
-                type="button"
-                onClick={() => {
-                  if (activeSlot !== slotNum) {
-                    setActiveSlot(slotNum)
-                  }
-                }}
-                className={`flex flex-col items-start p-2 rounded-xl text-left border transition-all relative ${
-                  isSelected
-                    ? 'bg-purple-50/90 border-purple-500 shadow-sm ring-1 ring-purple-500/20'
-                    : 'bg-zinc-50 hover:bg-zinc-100/80 border-zinc-200 text-zinc-600'
-                }`}
-              >
-                <div className="flex items-center justify-between w-full">
-                  <span
-                    className={`text-[11px] font-bold ${
-                      isSelected ? 'text-purple-900' : 'text-zinc-700'
-                    }`}
-                  >
-                    Slot {slotNum}
-                  </span>
-                  {hasData ? (
-                    <span className="h-2 w-2 rounded-full bg-emerald-500" title="Has saved content" />
-                  ) : (
-                    <span className="h-2 w-2 rounded-full bg-zinc-300" title="Empty slot" />
-                  )}
-                </div>
-                <div className="mt-0.5 flex items-center justify-between w-full text-[10px]">
-                  <span className={isSelected ? 'text-purple-700 font-medium' : 'text-zinc-400'}>
-                    {hasData ? `${words} words` : 'Empty'}
-                  </span>
-                  {isSelected && (
-                    <span className="text-[9px] font-bold text-purple-600 uppercase">Active</span>
-                  )}
-                </div>
-              </button>
-            )
-          })}
-        </div>
-      </div>
-
       {/* ── TOP TOOLBAR ── */}
       <div className="flex flex-wrap items-center justify-between gap-2.5 bg-zinc-50 border border-zinc-200/80 p-2.5 rounded-2xl">
-        {/* Font & Style Controls */}
+        {/* Controls & Formatting */}
         <div className="flex flex-wrap items-center gap-2">
+          {/* Compact Saved Drafts & Revisions Dropdown */}
+          <div className="flex items-center gap-1.5 bg-white border border-purple-200/90 hover:border-purple-300 px-2.5 py-1.5 rounded-xl shadow-xs transition-colors">
+            <Layers className="w-3.5 h-3.5 text-purple-600 shrink-0" />
+            <span className="text-xs font-bold text-zinc-700 whitespace-nowrap">Draft Slot:</span>
+            <select
+              value={activeSlot}
+              onChange={(e) => {
+                const nextSlot = parseInt(e.target.value, 10)
+                if (nextSlot !== activeSlot) {
+                  setActiveSlot(nextSlot)
+                }
+              }}
+              className="text-xs font-bold text-purple-950 bg-transparent outline-none cursor-pointer pr-1"
+            >
+              {[1, 2, 3, 4, 5].map((slotNum) => {
+                const meta = slotsMeta.find((s) => s.slot === slotNum)
+                const hasData = meta?.hasContent || (slotNum === activeSlot && content.trim().length > 0)
+                const words = slotNum === activeSlot ? wordCount : meta?.wordCount || 0
+                return (
+                  <option key={slotNum} value={slotNum} className="text-zinc-900">
+                    Slot {slotNum} {hasData ? `(${words} words)` : '(Empty)'}
+                  </option>
+                )
+              })}
+            </select>
+            {/* Live slot status dot */}
+            <span
+              className={`h-2 w-2 rounded-full shrink-0 ${
+                (slotsMeta.find((s) => s.slot === activeSlot)?.hasContent || content.trim().length > 0)
+                  ? 'bg-emerald-500 ring-2 ring-emerald-100'
+                  : 'bg-zinc-300'
+              }`}
+              title={
+                (slotsMeta.find((s) => s.slot === activeSlot)?.hasContent || content.trim().length > 0)
+                  ? 'Saved content in active slot'
+                  : 'Active slot is empty'
+              }
+            />
+          </div>
+
+          <div className="h-5 w-px bg-zinc-200 hidden sm:block" />
+
           {/* Font Selector */}
           <div className="flex items-center gap-1.5 bg-white border border-zinc-200 px-2 py-1.5 rounded-xl shadow-xs">
             <Type className="w-4 h-4 text-zinc-500" />
