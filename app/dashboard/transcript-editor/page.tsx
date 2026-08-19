@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 export const dynamic = 'force-dynamic'
 
@@ -14,7 +14,6 @@ import {
   Loader2,
   ShieldCheck,
   User,
-  Sparkles,
 } from 'lucide-react'
 
 export default function FullscreenTranscriptEditorPage() {
@@ -24,33 +23,40 @@ export default function FullscreenTranscriptEditorPage() {
   const [allWorkers, setAllWorkers] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isFullscreen, setIsFullscreen] = useState(false)
+  const [authError, setAuthError] = useState(false)
 
   useEffect(() => {
     const init = async () => {
       setIsLoading(true)
       try {
-        const { data: { user: authUser } } = await supabase.auth.getUser()
-        if (authUser) {
-          setUser(authUser)
-          const { data: workerProfile } = await supabase
-            .from('worker_profiles')
-            .select('*')
-            .eq('id', authUser.id)
-            .single()
+        const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser()
+        if (authErr || !authUser) {
+          setAuthError(true)
+          setIsLoading(false)
+          return
+        }
 
-          if (workerProfile) {
-            setProfile(workerProfile)
-            if (workerProfile.role === 'admin') {
-              const { data: workers } = await supabase
-                .from('worker_profiles')
-                .select('id, full_name, role, department, last_seen')
-                .order('full_name', { ascending: true })
-              if (workers) setAllWorkers(workers)
-            }
+        setUser(authUser)
+
+        const { data: workerProfile } = await supabase
+          .from('worker_profiles')
+          .select('*')
+          .eq('id', authUser.id)
+          .single()
+
+        if (workerProfile) {
+          setProfile(workerProfile)
+          if (workerProfile.role === 'admin') {
+            const { data: workers } = await supabase
+              .from('worker_profiles')
+              .select('id, full_name, role, department, last_seen')
+              .order('full_name', { ascending: true })
+            if (workers) setAllWorkers(workers)
           }
         }
       } catch (err) {
         console.error('Initialization error:', err)
+        setAuthError(true)
       } finally {
         setIsLoading(false)
       }
@@ -85,8 +91,27 @@ export default function FullscreenTranscriptEditorPage() {
     )
   }
 
+  if (authError || !user) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-white space-y-4 px-6 text-center">
+        <div className="text-5xl mb-2">🔒</div>
+        <h2 className="text-lg font-bold text-white">Not Logged In</h2>
+        <p className="text-sm text-zinc-400 max-w-xs">
+          You need to be logged in to use the Transcript Editor workspace. Please return to the dashboard.
+        </p>
+        <button
+          onClick={() => router.push('/dashboard')}
+          className="mt-2 flex items-center gap-2 px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-sm font-bold transition-all"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Go to Dashboard
+        </button>
+      </div>
+    )
+  }
+
   const isAdmin = profile?.role === 'admin'
-  const userId = user?.id || profile?.id || 'guest'
+  const userId = user?.id || profile?.id || ''
 
   return (
     <div className="min-h-screen h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950 flex flex-col text-slate-100 overflow-hidden font-sans">
