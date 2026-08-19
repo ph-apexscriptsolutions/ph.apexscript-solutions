@@ -139,7 +139,16 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { role = 'worker', userId, content, slot = 1, title, clientType = 'browser' } = body
+    const {
+      role = 'worker',
+      userId,
+      content,
+      slot = 1,
+      title,
+      clientType = 'browser',
+      actorRole = role,
+      actorUserId = userId,
+    } = body
 
     if (!userId) {
       return NextResponse.json({ error: 'Missing userId' }, { status: 400 })
@@ -171,30 +180,36 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    // Save client platform metadata (desktop app vs web browser)
-    try {
-      const clientInfoPath = `${role}/${userId}/client_info.json`
-      const clientInfoBuf = Buffer.from(
-        JSON.stringify({
-          clientType: clientType || 'browser',
-          lastActive: new Date().toISOString(),
-          activeSlot: slotNum,
-        }),
-        'utf-8'
-      )
-      await supabase.storage.from(BUCKET).upload(clientInfoPath, clientInfoBuf, {
-        contentType: 'application/json',
-        upsert: true,
-      })
-    } catch (e) {}
+    // Only update worker activity timestamp and client platform info IF:
+    // The request was initiated by the worker themselves, NEVER when an admin is inspecting/saving a worker's draft
+    const isWorkerThemselves = actorRole !== 'admin' && (!actorUserId || actorUserId === userId)
 
-    // Also update worker's last_seen / activity timestamp
-    try {
-      await supabase
-        .from('worker_profiles')
-        .update({ last_seen: new Date().toISOString() })
-        .eq('id', userId)
-    } catch (e) {}
+    if (isWorkerThemselves) {
+      // Save client platform metadata (desktop app vs web browser)
+      try {
+        const clientInfoPath = `${role}/${userId}/client_info.json`
+        const clientInfoBuf = Buffer.from(
+          JSON.stringify({
+            clientType: clientType || 'browser',
+            lastActive: new Date().toISOString(),
+            activeSlot: slotNum,
+          }),
+          'utf-8'
+        )
+        await supabase.storage.from(BUCKET).upload(clientInfoPath, clientInfoBuf, {
+          contentType: 'application/json',
+          upsert: true,
+        })
+      } catch (e) {}
+
+      // Also update worker's last_seen / activity timestamp
+      try {
+        await supabase
+          .from('worker_profiles')
+          .update({ last_seen: new Date().toISOString() })
+          .eq('id', userId)
+      } catch (e) {}
+    }
 
     return NextResponse.json({ success: true, slot: slotNum, path: slotPath }, { status: 200 })
   } catch (err: any) {

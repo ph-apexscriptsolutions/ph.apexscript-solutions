@@ -338,10 +338,13 @@ export default function TranscriptEditor({
     } catch {}
   }, [])
 
-  // Dedicated Auto-Save Function: automatically backs up ongoing text into Slot 5
+  // Dedicated Auto-Save Function: automatically backs up ongoing text into Slot 5 (only for the worker themselves)
   const triggerAutoSaveToSlot5 = useCallback(
     async (htmlContent: string) => {
+      // Do NOT auto-save when admin is inspecting a worker
+      if (role === 'admin' && selectedWorkerId !== userId) return
       if (!effectiveUserId || !htmlContent.trim()) return
+
       if (autoSaveStatusRef.current !== 'saving') {
         autoSaveStatusRef.current = 'saving'
         setAutoSaveStatus('saving')
@@ -365,6 +368,8 @@ export default function TranscriptEditor({
             content: htmlContent,
             slot: 5,
             clientType: getMyClientType(),
+            actorRole: role,
+            actorUserId: userId,
           }),
         })
         const data = await res.json()
@@ -383,7 +388,7 @@ export default function TranscriptEditor({
         setAutoSaveStatus('idle')
       }
     },
-    [effectiveUserId, effectiveRole, fetchSlotsList, getMyClientType]
+    [effectiveUserId, effectiveRole, fetchSlotsList, getMyClientType, role, selectedWorkerId, userId]
   )
 
   // Load active slot content from cloud storage (with crash recovery for Slot 5)
@@ -847,6 +852,8 @@ export default function TranscriptEditor({
           content: htmlContent,
           slot: activeSlot,
           clientType: getMyClientType(),
+          actorRole: role,
+          actorUserId: userId,
         }),
       })
 

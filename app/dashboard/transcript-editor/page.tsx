@@ -148,6 +148,28 @@ export default function FullscreenTranscriptEditorPage() {
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange)
   }, [])
 
+  // Update last_seen timestamp periodically ONLY for logged-in workers (never for admins inspecting workers)
+  useEffect(() => {
+    if (!profile?.id || profile?.role === 'admin') return
+
+    const updateLastSeen = async () => {
+      try {
+        await fetch('/api/update-last-seen', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ workerId: profile.id }),
+        })
+      } catch (e) {
+        console.error('Failed to update last_seen:', e)
+      }
+    }
+
+    updateLastSeen()
+    const interval = setInterval(updateLastSeen, 60000)
+
+    return () => clearInterval(interval)
+  }, [profile?.id, profile?.role])
+
   const toggleBrowserFullscreen = () => {
     if (!document.fullscreenElement) {
       document.documentElement.requestFullscreen().catch((err) => {
