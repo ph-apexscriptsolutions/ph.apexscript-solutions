@@ -102,28 +102,37 @@ export default function DownloadPage() {
           </div>
 
           {/* Download Button */}
-          <a
-            href={downloadUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            download
-            className="flex items-center justify-center gap-3 w-full px-6 py-4 rounded-2xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-base transition-all shadow-xl shadow-purple-700/30 cursor-pointer text-center"
-          >
-            <Download className="w-5 h-5 shrink-0" />
-            <span>Download for Windows (.exe)</span>
-          </a>
-
-          {/* Alternative Direct Mirror */}
-          <div className="flex items-center justify-center gap-4 text-xs text-zinc-400 pt-1">
-            <span>Having trouble?</span>
+          <div className="space-y-3">
             <a
-              href="https://github.com/ph-apexscriptsolutions/ph.apexscript-solutions/releases/tag/v1.0.0"
+              href={downloadUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-purple-400 hover:text-purple-300 underline font-medium"
+              download="ApexScript-Setup-1.0.0.exe"
+              className="flex items-center justify-center gap-3 w-full px-6 py-4 rounded-2xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-base transition-all shadow-xl shadow-purple-700/30 cursor-pointer text-center"
             >
-              Open GitHub Release Page ↗
+              <Download className="w-5 h-5 shrink-0" />
+              <span>Download for Windows (.exe)</span>
             </a>
+
+            {/* Alternative Direct Mirror Links */}
+            <div className="flex flex-wrap items-center justify-center gap-3 text-xs text-zinc-400">
+              <span>Alternative links:</span>
+              <a
+                href="https://github.com/ph-apexscriptsolutions/ph.apexscript-solutions/releases/tag/v1.0.0"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-purple-400 hover:text-purple-300 underline font-medium"
+              >
+                GitHub Release Assets ↗
+              </a>
+              <span>·</span>
+              <Link
+                href="/dashboard/transcript-editor"
+                className="text-emerald-400 hover:text-emerald-300 underline font-medium"
+              >
+                Open Workspace (Web App) ↗
+              </Link>
+            </div>
           </div>
 
           {/* Features */}
@@ -140,10 +149,10 @@ export default function DownloadPage() {
           <div className="p-4 rounded-2xl bg-slate-800/50 border border-slate-700/60 space-y-3">
             <p className="text-xs font-semibold text-zinc-300 uppercase tracking-wide">How to Install</p>
             {[
-              "Click the Download button above",
-              "Open ApexScript-Setup.exe from your Downloads folder",
-              "The app installs automatically and opens right away",
-              "A desktop shortcut and taskbar icon are created for you",
+              "Click the Download button above or open the GitHub Release page",
+              "Open ApexScript-Setup-1.0.0.exe once downloaded",
+              "If Windows SmartScreen appears, click 'More info' → 'Run anyway'",
+              "The workspace opens in its own window and creates desktop & taskbar shortcuts",
             ].map((step, i) => (
               <div key={i} className="flex items-center gap-3 text-xs text-zinc-400">
                 <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-purple-600/40 border border-purple-500/40 text-[10px] font-bold text-purple-300">
@@ -152,6 +161,20 @@ export default function DownloadPage() {
                 {step}
               </div>
             ))}
+          </div>
+
+          {/* Instant PWA Option */}
+          <div className="p-4 rounded-2xl bg-gradient-to-r from-slate-900 to-indigo-950/60 border border-indigo-500/20 text-xs text-zinc-400 flex items-center justify-between gap-4">
+            <div>
+              <p className="font-semibold text-zinc-200">Prefer No-Install Web App?</p>
+              <p className="text-[11px] text-zinc-400 mt-0.5">Use the browser version with full offline draft saving.</p>
+            </div>
+            <Link
+              href="/dashboard/transcript-editor"
+              className="shrink-0 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white font-semibold text-xs transition-colors"
+            >
+              Open Editor
+            </Link>
           </div>
 
           {/* Requirements */}
