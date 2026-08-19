@@ -1,7 +1,6 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
-import { supabase } from '@/utils/supabase/client'
 import { Loader2, Save, Download, Copy, Check, Search, RefreshCw, Type, Bold, Italic, Palette } from 'lucide-react'
 
 export default function TranscriptEditor({ role, userId }: { role: 'admin' | 'worker'; userId: string }) {
@@ -25,18 +24,11 @@ export default function TranscriptEditor({ role, userId }: { role: 'admin' | 'wo
     const load = async () => {
       setLoading(true)
       try {
-        const { data, error } = await supabase.storage
-          .from('transcripts')
-          .download(`${role}/${userId}.txt`)
-        if (error) {
-          // No previous saved transcript is normal
-          setLoading(false)
-          return
-        }
-        const text = await data?.text()
-        if (text) {
-          setContent(text)
-          setStatusMessage({ type: 'info', text: 'Loaded previously saved transcript.' })
+        const res = await fetch(`/api/transcripts?role=${encodeURIComponent(role)}&userId=${encodeURIComponent(userId)}`)
+        const data = await res.json()
+        if (res.ok && data.content) {
+          setContent(data.content)
+          setStatusMessage({ type: 'info', text: 'Loaded previously saved transcript from cloud.' })
         }
       } catch (err: any) {
         console.error('Failed to load saved transcript', err)
@@ -92,30 +84,22 @@ export default function TranscriptEditor({ role, userId }: { role: 'admin' | 'wo
     setStatusMessage(null)
 
     try {
-      const filePath = `${role}/${userId}.txt`
-      const { data: list } = await supabase.storage.from('transcripts').list(role)
-      const existing = list?.some((f) => f.name === `${userId}.txt`)
+      const res = await fetch('/api/transcripts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role, userId, content }),
+      })
 
-      if (existing) {
-        const confirmOverwrite = window.confirm(
-          'A saved transcript already exists for your account. Saving will overwrite the previous version. Proceed?'
-        )
-        if (!confirmOverwrite) {
-          setSaving(false)
-          return
-        }
-      }
+      const data = await res.json()
 
-      const blob = new Blob([content], { type: 'text/plain;charset=utf-8' })
-      const { error } = await supabase.storage.from('transcripts').upload(filePath, blob, { upsert: true })
-
-      if (error) {
-        setStatusMessage({ type: 'error', text: `Save failed: ${error.message}` })
+      if (!res.ok || data.error) {
+        setStatusMessage({ type: 'error', text: `Save failed: ${data.error || 'Unknown error'}` })
       } else {
         setStatusMessage({ type: 'success', text: 'Transcript saved to cloud successfully!' })
 
         // Auto-download for workers
         if (role === 'worker') {
+          const blob = new Blob([content], { type: 'text/plain;charset=utf-8' })
           const url = URL.createObjectURL(blob)
           const a = document.createElement('a')
           a.href = url
