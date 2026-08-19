@@ -1,10 +1,15 @@
 'use client'
 
-import React, { useState, useEffect, useRef } from 'react'
-import { Loader2, Save, Download, Copy, Check, Search, RefreshCw, Type, Bold, Italic, Palette, Pilcrow } from 'lucide-react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
+import { Loader2, Save, Download, Copy, Check, Search, RefreshCw, Type, Bold, Italic, Palette, Pilcrow, Cloud, CheckCircle2, AlertCircle } from 'lucide-react'
+
+type AutoSaveState = 'saved' | 'saving' | 'unsaved' | 'offline' | 'idle'
 
 export default function TranscriptEditor({ role, userId }: { role: 'admin' | 'worker'; userId: string }) {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const isInitialLoadRef = useRef(true)
+
   const [content, setContent] = useState('')
   const [findText, setFindText] = useState('')
   const [replaceText, setReplaceText] = useState('')
@@ -15,30 +20,122 @@ export default function TranscriptEditor({ role, userId }: { role: 'admin' | 'wo
   const [isItalic, setIsItalic] = useState(false)
   const [saving, setSaving] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [autoSaveStatus, setAutoSaveStatus] = useState<AutoSaveState>('idle')
+  const [lastSavedTime, setLastSavedTime] = useState<Date | null>(null)
   const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error' | 'info'; text: string } | null>(null)
   const [copied, setCopied] = useState(false)
   const [replaceCount, setReplaceCount] = useState<number | null>(null)
 
-  // Load previously saved transcript on mount
+  const localKey = `transcript_draft_${role}_${userId || 'anon'}`
+  const localTimeKey = `transcript_draft_time_${role}_${userId || 'anon'}`
+
+  // Load previously saved transcript on mount (checks cloud & local recovery cache)
   useEffect(() => {
     if (!userId) return
     const load = async () => {
       setLoading(true)
       try {
+        // Check local storage draft first
+        const localDraft = localStorage.getItem(localKey)
+        const localSavedTimeStr = localStorage.getItem(localTimeKey)
+
         const res = await fetch(`/api/transcripts?role=${encodeURIComponent(role)}&userId=${encodeURIComponent(userId)}`)
         const data = await res.json()
+        
+        let loadedContent = ''
         if (res.ok && data.content) {
-          setContent(data.content)
-          setStatusMessage({ type: 'info', text: 'Loaded previously saved transcript from cloud.' })
+          loadedContent = data.content
+          setContent(loadedContent)
+          setAutoSaveStatus('saved')
+          setLastSavedTime(new Date())
+        }
+
+        // If local draft exists and differs from cloud, prefer the latest or restore local
+        if (localDraft && localDraft.trim() && (!loadedContent || localDraft.length >= loadedContent.length)) {
+          setContent(localDraft)
+          setAutoSaveStatus('saved')
+          if (localSavedTimeStr) {
+            setLastSavedTime(new Date(parseInt(localSavedTimeStr, 10)))
+          }
+          setStatusMessage({ type: 'info', text: 'Restored latest draft from auto-save cache.' })
+        } else if (loadedContent) {
+          localStorage.setItem(localKey, loadedContent)
+          localStorage.setItem(localTimeKey, Date.now().toString())
         }
       } catch (err: any) {
         console.error('Failed to load saved transcript', err)
+        // Fallback to local storage
+        const localDraft = localStorage.getItem(localKey)
+        if (localDraft) {
+          setContent(localDraft)
+          setStatusMessage({ type: 'info', text: 'Offline mode: loaded draft from local cache.' })
+        }
       } finally {
         setLoading(false)
+        setTimeout(() => {
+          isInitialLoadRef.current = false
+        }, 300)
       }
     }
     load()
-  }, [role, userId])
+  }, [role, userId, localKey, localTimeKey])
+
+  // Real-time Cloud Auto-Save Function
+  const triggerCloudAutoSave = useCallback(
+    async (textToSave: string) => {
+      if (!userId || !textToSave.trim()) return
+      setAutoSaveStatus('saving')
+      try {
+        const res = await fetch('/api/transcripts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ role, userId, content: textToSave }),
+        })
+        const data = await res.json()
+        if (res.ok && !data.error) {
+          setAutoSaveStatus('saved')
+          setLastSavedTime(new Date())
+        } else {
+          setAutoSaveStatus('offline')
+        }
+      } catch (err) {
+        console.error('Auto-save error', err)
+        setAutoSaveStatus('offline')
+      }
+    },
+    [role, userId]
+  )
+
+  // Content change handler: instant localStorage update + debounced cloud auto-save
+  const handleContentChange = (newText: string) => {
+    setContent(newText)
+
+    // 1. Immediate local storage snapshot (prevents data loss on power outage / crash)
+    try {
+      localStorage.setItem(localKey, newText)
+      localStorage.setItem(localTimeKey, Date.now().toString())
+    } catch (e) {}
+
+    if (isInitialLoadRef.current) return
+
+    setAutoSaveStatus('unsaved')
+
+    // 2. Debounced cloud auto-save (Google Docs style, 1.5 seconds)
+    if (autoSaveTimerRef.current) {
+      clearTimeout(autoSaveTimerRef.current)
+    }
+
+    autoSaveTimerRef.current = setTimeout(() => {
+      triggerCloudAutoSave(newText)
+    }, 1500)
+  }
+
+  // Cleanup auto-save timer on unmount
+  useEffect(() => {
+    return () => {
+      if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current)
+    }
+  }, [])
 
   const handlePasteIntercept = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
     if (content.trim()) {
@@ -66,7 +163,7 @@ export default function TranscriptEditor({ role, userId }: { role: 'admin' | 'wo
       return
     }
     const updated = content.replace(regex, replaceText)
-    setContent(updated)
+    handleContentChange(updated)
     setReplaceCount(matches)
     setStatusMessage({ type: 'success', text: `Replaced ${matches} occurrence${matches > 1 ? 's' : ''} of "${findText}".` })
   }
@@ -96,6 +193,8 @@ export default function TranscriptEditor({ role, userId }: { role: 'admin' | 'wo
       if (!res.ok || data.error) {
         setStatusMessage({ type: 'error', text: `Save failed: ${data.error || 'Unknown error'}` })
       } else {
+        setAutoSaveStatus('saved')
+        setLastSavedTime(new Date())
         setStatusMessage({ type: 'success', text: 'Transcript saved to cloud successfully!' })
 
         // Auto-download for workers
@@ -140,7 +239,7 @@ export default function TranscriptEditor({ role, userId }: { role: 'admin' | 'wo
 
   const insertPilcrow = () => {
     if (!textareaRef.current) {
-      setContent((prev) => prev + '¶')
+      handleContentChange(content + '¶')
       return
     }
     const textarea = textareaRef.current
@@ -149,7 +248,7 @@ export default function TranscriptEditor({ role, userId }: { role: 'admin' | 'wo
     const before = content.substring(0, start)
     const after = content.substring(end)
     const updated = before + '¶' + after
-    setContent(updated)
+    handleContentChange(updated)
     setTimeout(() => {
       textarea.focus()
       textarea.setSelectionRange(start + 1, start + 1)
@@ -160,13 +259,14 @@ export default function TranscriptEditor({ role, userId }: { role: 'admin' | 'wo
     if (!content.trim()) return
     if (content.includes('¶')) {
       // Remove pilcrows
-      setContent(content.replace(/¶/g, ''))
+      const cleaned = content.replace(/¶/g, '')
+      handleContentChange(cleaned)
       setStatusMessage({ type: 'info', text: 'Removed all pilcrow (¶) markers.' })
     } else {
       // Add pilcrow to end of each non-empty line
       const lines = content.split('\n')
       const withPilcrow = lines.map((line) => (line.trim() ? line + ' ¶' : line)).join('\n')
-      setContent(withPilcrow)
+      handleContentChange(withPilcrow)
       setStatusMessage({ type: 'success', text: 'Added pilcrow (¶) to paragraph ends.' })
     }
   }
@@ -286,8 +386,39 @@ export default function TranscriptEditor({ role, userId }: { role: 'admin' | 'wo
           </div>
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex items-center gap-2">
+        {/* Action Buttons & Google Docs Auto-Save Indicator */}
+        <div className="flex items-center gap-2.5">
+          {/* Google Docs-style Auto-Save Status Badge */}
+          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-zinc-200/80 rounded-xl shadow-xs">
+            {autoSaveStatus === 'saving' ? (
+              <>
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-purple-600" />
+                <span className="text-zinc-600 font-medium text-[11px]">Saving...</span>
+              </>
+            ) : autoSaveStatus === 'saved' ? (
+              <>
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                <span className="text-zinc-600 font-medium text-[11px]">
+                  Saved to cloud {lastSavedTime ? `• ${lastSavedTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : ''}
+                </span>
+              </>
+            ) : autoSaveStatus === 'unsaved' ? (
+              <>
+                <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                <span className="text-zinc-500 text-[11px]">Saving changes...</span>
+              </>
+            ) : autoSaveStatus === 'offline' ? (
+              <>
+                <Cloud className="w-3.5 h-3.5 text-blue-600" />
+                <span className="text-zinc-600 font-medium text-[11px]">Saved locally</span>
+              </>
+            ) : (
+              <>
+                <Cloud className="w-3.5 h-3.5 text-zinc-400" />
+                <span className="text-zinc-500 text-[11px]">Auto-save ready</span>
+              </>
+            )}
+          </div>
           <button
             type="button"
             onClick={handleCopy}
@@ -402,7 +533,7 @@ export default function TranscriptEditor({ role, userId }: { role: 'admin' | 'wo
         <textarea
           ref={textareaRef}
           value={content}
-          onChange={(e) => setContent(e.target.value)}
+          onChange={(e) => handleContentChange(e.target.value)}
           onPaste={handlePasteIntercept}
           placeholder="Paste your raw transcript here or start typing..."
           style={{
