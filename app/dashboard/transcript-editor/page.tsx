@@ -81,7 +81,7 @@ export default function FullscreenTranscriptEditorPage() {
     const targetUrl =
       typeof window !== 'undefined'
         ? `${window.location.origin}/dashboard/transcript-editor`
-        : 'https://ph-apexscriptsolutions.vercel.app/dashboard/transcript-editor'
+        : 'https://landing-page-heading.vercel.app/dashboard/transcript-editor'
     const shortcutContent = `[InternetShortcut]\r\nURL=${targetUrl}\r\nIconIndex=0\r\n`
     const blob = new Blob([shortcutContent], { type: 'application/octet-stream' })
     const url = URL.createObjectURL(blob)
