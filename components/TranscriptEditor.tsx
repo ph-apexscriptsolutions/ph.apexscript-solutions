@@ -18,7 +18,6 @@ import {
   Highlighter,
   Undo,
   Redo,
-  Pilcrow,
   CheckCircle2,
   Users,
   Eye,
@@ -114,9 +113,6 @@ export default function TranscriptEditor({
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null)
   const statsDebounceTimerRef = useRef<NodeJS.Timeout | null>(null)
   const autoSaveStatusRef = useRef<'saved' | 'saving' | 'unsaved' | 'idle'>('idle')
-
-  // Formatting marks display mode (Microsoft Word style Show/Hide ¶)
-  const [showFormattingMarks, setShowFormattingMarks] = useState(false)
 
   // Hide tools / distraction-free focus mode
   const [hideTools, setHideTools] = useState(false)
@@ -1617,23 +1613,6 @@ export default function TranscriptEditor({
                 <span>Find</span>
                 <span className="text-[10px] opacity-70 hidden xl:inline font-mono">Ctrl+F</span>
               </button>
-
-              {/* Microsoft Word Style Show/Hide ¶ Button */}
-              <div className="flex items-center bg-white border border-zinc-200 rounded-xl overflow-hidden shadow-xs">
-                <button
-                  type="button"
-                  onClick={() => setShowFormattingMarks(!showFormattingMarks)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
-                    showFormattingMarks
-                      ? 'bg-purple-600 text-white shadow-xs'
-                      : 'text-zinc-700 hover:bg-purple-50 hover:text-purple-700'
-                  }`}
-                  title="Show/Hide paragraph marks (¶) like Microsoft Word"
-                >
-                  <Pilcrow className="w-3.5 h-3.5" />
-                  <span>{showFormattingMarks ? 'Hide ¶' : 'Show ¶'}</span>
-                </button>
-              </div>
             </div>
 
             {/* Action Buttons */}
@@ -1861,7 +1840,6 @@ export default function TranscriptEditor({
           onKeyUp={syncSelectionState}
           onMouseUp={syncSelectionState}
           onSelect={syncSelectionState}
-          data-show-marks={showFormattingMarks ? 'true' : 'false'}
           style={{
             fontFamily: getFontFamilyStyle(),
             fontSize: `${fontSize}px`,
@@ -1879,7 +1857,7 @@ export default function TranscriptEditor({
         />
       </div>
 
-      {/* ── CSS for Instant Formatting Marks & Paragraph Spacing Normalization ── */}
+      {/* ── CSS for Instant Paragraph Spacing Normalization ── */}
       <style jsx global>{`
         .transcript-rich-editor p,
         .transcript-rich-editor div {
@@ -1891,28 +1869,6 @@ export default function TranscriptEditor({
           content: 'Paste raw transcript or start typing...';
           color: #9ca3af;
           pointer-events: none;
-        }
-        .transcript-rich-editor[data-show-marks="true"] > div::after,
-        .transcript-rich-editor[data-show-marks="true"] > p::after,
-        .transcript-rich-editor[data-show-marks="true"] > blockquote::after {
-          content: ' \\00B6';
-          color: #9333ea;
-          opacity: 0.65;
-          font-weight: bold;
-          user-select: none;
-          pointer-events: none;
-          font-size: 0.85em;
-          margin-left: 2px;
-        }
-        .transcript-rich-editor[data-show-marks="true"] > div:empty::before,
-        .transcript-rich-editor[data-show-marks="true"] > p:empty::before {
-          content: '\\00B6';
-          color: #9333ea;
-          opacity: 0.65;
-          font-weight: bold;
-          user-select: none;
-          pointer-events: none;
-          font-size: 0.85em;
         }
       `}</style>
 
