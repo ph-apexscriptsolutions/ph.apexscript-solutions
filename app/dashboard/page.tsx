@@ -2,8 +2,7 @@
 export const dynamic = 'force-dynamic'
 import { useEffect, useState, FormEvent, useMemo, useCallback, useRef } from "react"
 import { useRouter } from "next/navigation"
-import { supabase } from "@/utils/supabase/client"
-import { FileText, HardDrive, LogOut, Calendar, X, Pencil, Save, User, ArrowLeft, Upload, UserPlus, CreditCard, Trash2, Check, Bell, AlertCircle, Tv, Mic, Headphones, FileEdit, Newspaper, Radio, Video, BookOpen, Gavel, TrendingUp, Activity, Search, Loader2, Copy, ChevronDown, ChevronUp, Building2, Eye, MessageSquare, Zap, MoreVertical } from "lucide-react"
+import { FileText, HardDrive, LogOut, Calendar, X, Pencil, Save, User, ArrowLeft, Upload, UserPlus, CreditCard, Trash2, Check, Bell, AlertCircle, Tv, Mic, Headphones, FileEdit, Newspaper, Radio, Video, BookOpen, Gavel, TrendingUp, Activity, Search, Loader2, Copy, ChevronDown, ChevronUp, Building2, Eye, MessageSquare, Zap, MoreVertical, Maximize2, Minimize2, ExternalLink } from "lucide-react"
 import { FlagIcon } from "@/components/flag-icon"
 import TranscriptCleanup from '@/components/TranscriptCleanup'
 import TranscriptEditor from '@/components/TranscriptEditor'
@@ -405,6 +404,7 @@ export default function DashboardPage() {
   const [showValidationPanel, setShowValidationPanel] = useState(false)
   const [isTranscriptCleanupModalOpen, setIsTranscriptCleanupModalOpen] = useState(false)
   const [isTranscriptEditorModalOpen, setIsTranscriptEditorModalOpen] = useState(false)
+  const [isTranscriptEditorMaximized, setIsTranscriptEditorMaximized] = useState(false)
   const [transcriptContent, setTranscriptContent] = useState("")
   const [selectedIssue, setSelectedIssue] = useState<ValidationIssue | null>(null)
   const [debouncedTranscript, setDebouncedTranscript] = useState("")
@@ -6819,28 +6819,78 @@ export default function DashboardPage() {
 
       {/* ── Transcript Editor Modal ── */}
       {isTranscriptEditorModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-md animate-fade-in">
-          <div className="bg-gradient-to-b from-purple-50 to-white border border-purple-200/60 backdrop-blur-xl shadow-[0_8px_60px_rgba(168,85,247,0.12)] rounded-3xl w-full max-w-5xl p-6 relative max-h-[92vh] flex flex-col overflow-hidden animate-scale-up">
-            <button
-              onClick={() => setIsTranscriptEditorModalOpen(false)}
-              className="absolute right-4 top-4 z-10 cursor-pointer text-zinc-400 hover:text-purple-500 hover:rotate-90 transition-all duration-300"
-            >
-              <X className="h-5 w-5" />
-            </button>
-
+        <div className={`fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-md animate-fade-in ${
+          isTranscriptEditorMaximized ? 'p-0' : 'p-3 sm:p-4'
+        }`}>
+          <div className={`bg-gradient-to-b from-purple-50/90 to-white border border-purple-200/60 shadow-2xl flex flex-col overflow-hidden animate-scale-up transition-all duration-200 ${
+            isTranscriptEditorMaximized
+              ? 'w-screen h-screen max-w-none max-h-none rounded-none p-4 sm:p-5'
+              : 'w-full max-w-5xl rounded-3xl p-5 sm:p-6 relative max-h-[92vh]'
+          }`}>
             {/* Header */}
-            <div className="flex items-center gap-2.5 mb-4 flex-shrink-0">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 text-white shadow-lg shadow-purple-500/30 flex-shrink-0">
-                <FileEdit className="h-4.5 w-4.5" />
+            <div className="flex items-center justify-between gap-3 mb-3 flex-shrink-0">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 text-white shadow-lg shadow-purple-500/30 flex-shrink-0">
+                  <FileEdit className="h-4.5 w-4.5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-zinc-900 flex items-center gap-2">
+                    Transcript Editor
+                    {isTranscriptEditorMaximized && (
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 font-semibold uppercase">
+                        Maximized
+                      </span>
+                    )}
+                  </h3>
+                  <p className="text-[10px] text-zinc-500">Edit, find & replace, format fonts, 5 saved draft slots ({isAdmin ? 'Admin' : 'Worker'})</p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-base font-bold text-zinc-900">Transcript Editor</h3>
-                <p className="text-[10px] text-zinc-500">Edit, find & replace, format fonts, and save transcript ({isAdmin ? 'Admin' : 'Worker'})</p>
+
+              {/* Action Controls */}
+              <div className="flex items-center gap-2">
+                {/* Open in Full Workspace Tab Button */}
+                <a
+                  href="/dashboard/transcript-editor"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-100 hover:bg-purple-200 text-purple-800 text-xs font-bold transition-all shadow-xs"
+                  title="Open in a dedicated full browser tab for distraction-free typing"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span>Open in Full Tab</span>
+                </a>
+
+                {/* Maximize / Restore Toggle Button */}
+                <button
+                  type="button"
+                  onClick={() => setIsTranscriptEditorMaximized(!isTranscriptEditorMaximized)}
+                  className="p-2 rounded-xl text-zinc-500 hover:text-purple-600 hover:bg-purple-100/70 transition-all border border-zinc-200 bg-white"
+                  title={isTranscriptEditorMaximized ? 'Restore normal size' : 'Maximize window'}
+                >
+                  {isTranscriptEditorMaximized ? (
+                    <Minimize2 className="w-4 h-4" />
+                  ) : (
+                    <Maximize2 className="w-4 h-4" />
+                  )}
+                </button>
+
+                {/* Close Button */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsTranscriptEditorModalOpen(false)
+                    setIsTranscriptEditorMaximized(false)
+                  }}
+                  className="p-2 rounded-xl text-zinc-400 hover:text-red-500 hover:bg-red-50 transition-all border border-zinc-200 bg-white"
+                  title="Close editor"
+                >
+                  <X className="h-4 w-4" />
+                </button>
               </div>
             </div>
 
             {/* Transcript Editor Component */}
-            <div className="flex-1 overflow-y-auto">
+            <div className="flex-1 overflow-y-auto min-h-0">
               <TranscriptEditor
                 role={isAdmin ? 'admin' : 'worker'}
                 userId={user?.id || activeWorker?.id || ''}
