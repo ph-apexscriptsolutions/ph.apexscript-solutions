@@ -1,9 +1,10 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
-import { Loader2, Save, Download, Copy, Check, Search, RefreshCw, Type, Bold, Italic, Palette } from 'lucide-react'
+import { Loader2, Save, Download, Copy, Check, Search, RefreshCw, Type, Bold, Italic, Palette, Pilcrow } from 'lucide-react'
 
 export default function TranscriptEditor({ role, userId }: { role: 'admin' | 'worker'; userId: string }) {
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
   const [content, setContent] = useState('')
   const [findText, setFindText] = useState('')
   const [replaceText, setReplaceText] = useState('')
@@ -137,6 +138,39 @@ export default function TranscriptEditor({ role, userId }: { role: 'admin' | 'wo
     setTimeout(() => setCopied(false), 2000)
   }
 
+  const insertPilcrow = () => {
+    if (!textareaRef.current) {
+      setContent((prev) => prev + '¶')
+      return
+    }
+    const textarea = textareaRef.current
+    const start = textarea.selectionStart
+    const end = textarea.selectionEnd
+    const before = content.substring(0, start)
+    const after = content.substring(end)
+    const updated = before + '¶' + after
+    setContent(updated)
+    setTimeout(() => {
+      textarea.focus()
+      textarea.setSelectionRange(start + 1, start + 1)
+    }, 0)
+  }
+
+  const toggleParagraphPilcrows = () => {
+    if (!content.trim()) return
+    if (content.includes('¶')) {
+      // Remove pilcrows
+      setContent(content.replace(/¶/g, ''))
+      setStatusMessage({ type: 'info', text: 'Removed all pilcrow (¶) markers.' })
+    } else {
+      // Add pilcrow to end of each non-empty line
+      const lines = content.split('\n')
+      const withPilcrow = lines.map((line) => (line.trim() ? line + ' ¶' : line)).join('\n')
+      setContent(withPilcrow)
+      setStatusMessage({ type: 'success', text: 'Added pilcrow (¶) to paragraph ends.' })
+    }
+  }
+
   const wordCount = content.trim() ? content.trim().split(/\s+/).length : 0
   const charCount = content.length
 
@@ -223,6 +257,31 @@ export default function TranscriptEditor({ role, userId }: { role: 'admin' | 'wo
               title="Italic"
             >
               <Italic className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          {/* Pilcrow (¶) Tools */}
+          <div className="flex items-center bg-white border border-zinc-200 rounded-xl overflow-hidden shadow-sm">
+            <button
+              type="button"
+              onClick={insertPilcrow}
+              className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold text-zinc-700 hover:bg-purple-50 hover:text-purple-700 transition-colors"
+              title="Insert Pilcrow (¶) symbol at cursor"
+            >
+              <Pilcrow className="w-3.5 h-3.5 text-purple-600" />
+              <span>¶</span>
+            </button>
+            <button
+              type="button"
+              onClick={toggleParagraphPilcrows}
+              className={`px-2.5 py-1.5 text-[11px] font-semibold transition-colors border-l border-zinc-200 ${
+                content.includes('¶')
+                  ? 'bg-purple-100 text-purple-800'
+                  : 'text-zinc-600 hover:bg-zinc-100'
+              }`}
+              title="Toggle paragraph marks (¶)"
+            >
+              {content.includes('¶') ? 'Clear ¶' : 'Mark ¶'}
             </button>
           </div>
         </div>
@@ -341,6 +400,7 @@ export default function TranscriptEditor({ role, userId }: { role: 'admin' | 'wo
           </div>
         )}
         <textarea
+          ref={textareaRef}
           value={content}
           onChange={(e) => setContent(e.target.value)}
           onPaste={handlePasteIntercept}
