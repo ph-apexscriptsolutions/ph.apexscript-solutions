@@ -1,4 +1,4 @@
-﻿import { NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
 const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -81,6 +81,19 @@ export async function GET(request: Request) {
         })
       }
 
+      // Check client platform info (desktop vs browser)
+      let clientInfo = { clientType: 'browser', lastActive: null }
+      try {
+        const clientInfoPath = `${role}/${userId}/client_info.json`
+        const { data: cData, error: cErr } = await supabase.storage.from(BUCKET).download(clientInfoPath)
+        if (!cErr && cData) {
+          const parsed = JSON.parse(await cData.text())
+          if (parsed && parsed.clientType) {
+            clientInfo = parsed
+          }
+        }
+      } catch (e) {}
+
       // Check worker activity from worker_profiles table if available
       let workerInfo = null
       try {
@@ -90,11 +103,11 @@ export async function GET(request: Request) {
           .eq('id', userId)
           .single()
         if (profile) {
-          workerInfo = profile
+          workerInfo = { ...profile, client_type: clientInfo.clientType }
         }
       } catch (e) {}
 
-      return NextResponse.json({ slots: slotsData, worker: workerInfo }, { status: 200 })
+      return NextResponse.json({ slots: slotsData, worker: workerInfo, clientInfo }, { status: 200 })
     }
 
     // Default action: Get specific slot content
@@ -126,7 +139,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { role = 'worker', userId, content, slot = 1, title } = body
+    const { role = 'worker', userId, content, slot = 1, title, clientType = 'browser' } = body
 
     if (!userId) {
       return NextResponse.json({ error: 'Missing userId' }, { status: 400 })
@@ -157,6 +170,23 @@ export async function POST(request: Request) {
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
+
+    // Save client platform metadata (desktop app vs web browser)
+    try {
+      const clientInfoPath = `${role}/${userId}/client_info.json`
+      const clientInfoBuf = Buffer.from(
+        JSON.stringify({
+          clientType: clientType || 'browser',
+          lastActive: new Date().toISOString(),
+          activeSlot: slotNum,
+        }),
+        'utf-8'
+      )
+      await supabase.storage.from(BUCKET).upload(clientInfoPath, clientInfoBuf, {
+        contentType: 'application/json',
+        upsert: true,
+      })
+    } catch (e) {}
 
     // Also update worker's last_seen / activity timestamp
     try {

@@ -21,6 +21,8 @@ import {
   Eye,
   EyeOff,
   Layers,
+  Laptop,
+  Globe,
 } from 'lucide-react'
 
 interface WorkerOption {
@@ -144,6 +146,15 @@ export default function TranscriptEditor({
   const [lastSavedTime, setLastSavedTime] = useState<Date | null>(null)
   const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error' | 'info'; text: string } | null>(null)
   const [copied, setCopied] = useState(false)
+  const [workerClientType, setWorkerClientType] = useState<'desktop' | 'browser'>('browser')
+
+  // Helper to detect if the current session is running inside the Desktop App
+  const getMyClientType = useCallback(() => {
+    if (typeof window === 'undefined') return 'browser'
+    return window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true
+      ? 'desktop'
+      : 'browser'
+  }, [])
 
   // Word & Character count states (throttled for zero input lag)
   const [wordCount, setWordCount] = useState(0)
@@ -178,8 +189,15 @@ export default function TranscriptEditor({
         `/api/transcripts?action=list&role=${encodeURIComponent(targetRole)}&userId=${encodeURIComponent(targetId)}`
       )
       const data = await res.json()
-      if (res.ok && data.slots) {
-        setSlotsMeta(data.slots)
+      if (res.ok) {
+        if (data.slots) {
+          setSlotsMeta(data.slots)
+        }
+        if (data.clientInfo?.clientType) {
+          setWorkerClientType(data.clientInfo.clientType)
+        } else if (data.worker?.client_type) {
+          setWorkerClientType(data.worker.client_type)
+        }
       }
     } catch (err) {
       console.error('Failed to fetch slots list', err)
@@ -243,6 +261,7 @@ export default function TranscriptEditor({
             userId: effectiveUserId,
             content: htmlContent,
             slot: 5,
+            clientType: getMyClientType(),
           }),
         })
         const data = await res.json()
@@ -468,6 +487,7 @@ export default function TranscriptEditor({
           userId: effectiveUserId,
           content: htmlContent,
           slot: activeSlot,
+          clientType: getMyClientType(),
         }),
       })
 
@@ -623,19 +643,47 @@ export default function TranscriptEditor({
                   const diffMins = (Date.now() - new Date(selectedWorkerObj.last_seen).getTime()) / 60000
                   const isOnline = diffMins < 5
                   return (
-                    <span
-                      className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full font-bold uppercase ${
-                        isOnline ? 'bg-emerald-500/20 text-emerald-300' : 'bg-zinc-700 text-zinc-400'
-                      }`}
-                      title={isOnline ? 'Worker is Online & Active' : `Last active ${Math.floor(diffMins)}m ago`}
-                    >
+                    <div className="flex items-center gap-1.5">
                       <span
-                        className={`w-1.5 h-1.5 rounded-full ${
-                          isOnline ? 'bg-emerald-400 animate-pulse' : 'bg-zinc-500'
+                        className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full font-bold uppercase ${
+                          isOnline ? 'bg-emerald-500/20 text-emerald-300' : 'bg-zinc-700 text-zinc-400'
                         }`}
-                      />
-                      <span className="hidden md:inline">{isOnline ? 'Online' : 'Offline'}</span>
-                    </span>
+                        title={isOnline ? 'Worker is Online & Active' : `Last active ${Math.floor(diffMins)}m ago`}
+                      >
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full ${
+                            isOnline ? 'bg-emerald-400 animate-pulse' : 'bg-zinc-500'
+                          }`}
+                        />
+                        <span className="hidden md:inline">{isOnline ? 'Online' : 'Offline'}</span>
+                      </span>
+
+                      {/* Desktop App vs Browser Badge */}
+                      <span
+                        className={`hidden lg:inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full font-bold uppercase ${
+                          workerClientType === 'desktop'
+                            ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30'
+                            : 'bg-sky-500/20 text-sky-300 border border-sky-500/30'
+                        }`}
+                        title={
+                          workerClientType === 'desktop'
+                            ? 'Worker is typing inside the Desktop Application'
+                            : 'Worker is typing in a Web Browser tab'
+                        }
+                      >
+                        {workerClientType === 'desktop' ? (
+                          <>
+                            <Laptop className="w-2.5 h-2.5 text-indigo-300" />
+                            <span>App</span>
+                          </>
+                        ) : (
+                          <>
+                            <Globe className="w-2.5 h-2.5 text-sky-300" />
+                            <span>Browser</span>
+                          </>
+                        )}
+                      </span>
+                    </div>
                   )
                 })()}
               </div>
@@ -709,20 +757,48 @@ export default function TranscriptEditor({
                         const diffMins = (Date.now() - new Date(selectedWorkerObj.last_seen).getTime()) / 60000
                         const isOnline = diffMins < 5
                         return (
-                          <span
-                            className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${
-                              isOnline
-                                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                                : 'bg-zinc-700/50 text-zinc-400 border border-zinc-600/30'
-                            }`}
-                          >
+                          <div className="flex items-center gap-1.5">
                             <span
-                              className={`w-1.5 h-1.5 rounded-full ${
-                                isOnline ? 'bg-emerald-400 animate-pulse' : 'bg-zinc-500'
+                              className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${
+                                isOnline
+                                  ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                                  : 'bg-zinc-700/50 text-zinc-400 border border-zinc-600/30'
                               }`}
-                            />
-                            {isOnline ? 'Online' : 'Offline'}
-                          </span>
+                            >
+                              <span
+                                className={`w-1.5 h-1.5 rounded-full ${
+                                  isOnline ? 'bg-emerald-400 animate-pulse' : 'bg-zinc-500'
+                                }`}
+                              />
+                              {isOnline ? 'Online' : 'Offline'}
+                            </span>
+
+                            {/* Desktop App vs Web Browser Badge */}
+                            <span
+                              className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${
+                                workerClientType === 'desktop'
+                                  ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30'
+                                  : 'bg-sky-500/20 text-sky-300 border border-sky-500/30'
+                              }`}
+                              title={
+                                workerClientType === 'desktop'
+                                  ? 'Worker is active on the installed Desktop Application'
+                                  : 'Worker is active on a Web Browser'
+                              }
+                            >
+                              {workerClientType === 'desktop' ? (
+                                <>
+                                  <Laptop className="w-3 h-3 text-indigo-300" />
+                                  <span>Desktop App</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Globe className="w-3 h-3 text-sky-300" />
+                                  <span>Web Browser</span>
+                                </>
+                              )}
+                            </span>
+                          </div>
                         )
                       })()}
                     </div>
