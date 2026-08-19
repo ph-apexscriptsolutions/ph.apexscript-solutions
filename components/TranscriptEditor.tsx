@@ -55,11 +55,59 @@ export default function TranscriptEditor({
   initialWorkerId,
 }: TranscriptEditorProps) {
   const editorRef = useRef<HTMLDivElement>(null)
+  const overlayRef = useRef<HTMLDivElement>(null)
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null)
   const statsDebounceTimerRef = useRef<NodeJS.Timeout | null>(null)
 
   // Formatting marks display mode (Microsoft Word style Show/Hide ¶)
   const [showFormattingMarks, setShowFormattingMarks] = useState(false)
+  const [overlayHtml, setOverlayHtml] = useState('')
+
+  // Generate lightweight synchronized Pilcrow and space markers
+  const updateOverlay = useCallback((customText?: string) => {
+    if (!editorRef.current) return
+    const text = typeof customText === 'string' ? customText : editorRef.current.innerText || ''
+    if (!text) {
+      setOverlayHtml('')
+      return
+    }
+
+    const normalized = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n')
+    const lines = normalized.split('\n')
+    let html = ''
+    for (let l = 0; l < lines.length; l++) {
+      const line = lines[l]
+      let lineHtml = ''
+      for (let i = 0; i < line.length; i++) {
+        const char = line[i]
+        if (char === ' ' || char === '\u00A0') {
+          lineHtml += '<span class="relative inline text-transparent">' + char + '<span class="absolute inset-0 flex items-center justify-center text-zinc-400 font-bold select-none pointer-events-none text-[8px] leading-none">·</span></span>'
+        } else if (char === '\t') {
+          lineHtml += '<span class="relative inline text-transparent">&#9;<span class="absolute inset-0 flex items-center justify-center text-zinc-400 font-bold select-none pointer-events-none text-xs">→</span></span>'
+        } else if (char === '<') {
+          lineHtml += '&lt;'
+        } else if (char === '>') {
+          lineHtml += '&gt;'
+        } else if (char === '&') {
+          lineHtml += '&amp;'
+        } else {
+          lineHtml += char
+        }
+      }
+      const isLast = l === lines.length - 1
+      html += lineHtml + '<span class="relative inline text-transparent"><span class="absolute left-0 text-purple-600 font-bold select-none pointer-events-none pl-0.5">¶</span></span>' + (isLast ? '' : '\n')
+    }
+    setOverlayHtml(html)
+  }, [])
+
+  // Sync overlay whenever formatting marks are toggled
+  useEffect(() => {
+    if (showFormattingMarks) {
+      updateOverlay()
+    } else {
+      setOverlayHtml('')
+    }
+  }, [showFormattingMarks, updateOverlay])
 
   // Hide tools / distraction-free focus mode
   const [hideTools, setHideTools] = useState(false)
@@ -140,7 +188,7 @@ export default function TranscriptEditor({
     }
   }, [])
 
-  // Helper to set editor HTML safely
+  // Helper to set editor HTML safely with exact original line spacing
   const setEditorContent = useCallback((rawContent: string) => {
     if (!editorRef.current) return
     if (!rawContent) {
@@ -149,23 +197,26 @@ export default function TranscriptEditor({
       return
     }
 
-    // Check if rawContent is already HTML or plain text
+    // Check if rawContent is already formatted HTML
     const isHtml = /<[a-z][\s\S]*>/i.test(rawContent)
     if (isHtml) {
       editorRef.current.innerHTML = rawContent
     } else {
-      // Convert plain text newlines to clean HTML paragraphs/breaks
-      const paragraphs = rawContent.split(/\r?\n\r?\n/)
-      if (paragraphs.length > 1) {
-        editorRef.current.innerHTML = paragraphs
-          .map((p) => `<div>${p.replace(/\r?\n/g, '<br>')}</div>`)
-          .join('')
-      } else {
-        editorRef.current.innerHTML = rawContent.replace(/\r?\n/g, '<br>')
-      }
+      // Assigning plain text with pre-wrap preserves exact line spacing identical to textarea
+      editorRef.current.innerText = rawContent
     }
     updateStats()
-  }, [updateStats])
+    if (showFormattingMarks) {
+      updateOverlay(rawContent)
+    }
+  }, [updateStats, showFormattingMarks, updateOverlay])
+
+  // Normalize default paragraph separator for consistent Enter key behavior
+  useEffect(() => {
+    try {
+      document.execCommand('defaultParagraphSeparator', false, 'div')
+    } catch {}
+  }, [])
 
   // Dedicated Auto-Save Function: automatically backs up ongoing text into Slot 5
   const triggerAutoSaveToSlot5 = useCallback(
@@ -279,6 +330,11 @@ export default function TranscriptEditor({
   // Fast typing handler: Native DOM updates with debounced word count and background autosave
   const handleEditorInput = () => {
     setAutoSaveStatus('unsaved')
+
+    // Update formatting marks overlay in requestAnimationFrame if active
+    if (showFormattingMarks) {
+      requestAnimationFrame(() => updateOverlay())
+    }
 
     // Debounce statistics (word count & char count) off the critical typing path
     if (statsDebounceTimerRef.current) clearTimeout(statsDebounceTimerRef.current)
@@ -491,6 +547,15 @@ export default function TranscriptEditor({
 
   // Selected worker details for Admin
   const selectedWorkerObj = allWorkers.find((w) => w.id === selectedWorkerId)
+
+  const handlePaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    const text = e.clipboardData.getData('text/plain')
+    if (text) {
+      document.execCommand('insertText', false, text)
+      handleEditorInput()
+    }
+  }
 
   return (
     <div className="flex flex-col h-full space-y-3">
@@ -1015,15 +1080,44 @@ export default function TranscriptEditor({
           </div>
         )}
 
+        {/* Synchronized Formatting Marks Overlay (¶ and space dots) */}
+        {showFormattingMarks && (
+          <div
+            ref={overlayRef}
+            aria-hidden="true"
+            style={{
+              fontFamily: getFontFamilyStyle(),
+              fontSize: `${fontSize}px`,
+              lineHeight: `${exactLineHeight}px`,
+              padding: '16px',
+              color: 'transparent',
+              boxSizing: 'border-box',
+              whiteSpace: 'pre-wrap',
+              wordBreak: 'break-word',
+              overflowWrap: 'break-word',
+              tabSize: 4,
+            }}
+            className="absolute inset-0 pointer-events-none select-none z-0 overflow-y-scroll overflow-x-hidden"
+            dangerouslySetInnerHTML={{ __html: overlayHtml }}
+          />
+        )}
+
         <div
           ref={editorRef}
           contentEditable
           suppressContentEditableWarning
           onInput={handleEditorInput}
+          onPaste={handlePaste}
           onKeyDown={handleKeyDown}
           onKeyUp={syncSelectionState}
           onMouseUp={syncSelectionState}
           onSelect={syncSelectionState}
+          onScroll={(e) => {
+            if (overlayRef.current) {
+              overlayRef.current.scrollTop = e.currentTarget.scrollTop
+              overlayRef.current.scrollLeft = e.currentTarget.scrollLeft
+            }
+          }}
           data-show-marks={showFormattingMarks ? 'true' : 'false'}
           style={{
             fontFamily: getFontFamilyStyle(),
@@ -1038,14 +1132,18 @@ export default function TranscriptEditor({
             wordBreak: 'break-word',
             overflowWrap: 'break-word',
           }}
-          className={`transcript-rich-editor w-full flex-1 bg-transparent overflow-y-auto overflow-x-hidden ${
-            showFormattingMarks ? 'show-pilcrow-marks' : ''
-          }`}
+          className="transcript-rich-editor w-full flex-1 bg-transparent overflow-y-auto overflow-x-hidden relative z-10"
         />
       </div>
 
-      {/* ── CSS for Instant Formatting Marks (Zero-Lag CSS Pseudo-Elements) ── */}
+      {/* ── CSS for Instant Formatting Marks & Paragraph Spacing Normalization ── */}
       <style jsx global>{`
+        .transcript-rich-editor p,
+        .transcript-rich-editor div {
+          margin: 0 !important;
+          padding: 0 !important;
+          line-height: inherit !important;
+        }
         .transcript-rich-editor[data-show-marks='true'] p::after,
         .transcript-rich-editor[data-show-marks='true'] div::after {
           content: ' ¶';
