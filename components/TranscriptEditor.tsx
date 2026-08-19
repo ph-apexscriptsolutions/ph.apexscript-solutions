@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useRef, useCallback, useMemo, useDeferredValue } from 'react'
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import {
   Loader2,
   Save,
@@ -12,17 +12,15 @@ import {
   Type,
   Bold,
   Italic,
+  Underline,
+  RemoveFormatting,
   Palette,
   Pilcrow,
   CheckCircle2,
   Users,
   Eye,
   EyeOff,
-  FileText,
-  Clock,
-  Activity,
   Layers,
-  ChevronRight,
 } from 'lucide-react'
 
 interface WorkerOption {
@@ -56,10 +54,9 @@ export default function TranscriptEditor({
   allWorkers = [],
   initialWorkerId,
 }: TranscriptEditorProps) {
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
-  const overlayRef = useRef<HTMLDivElement>(null)
+  const editorRef = useRef<HTMLDivElement>(null)
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null)
-  const isInitialLoadRef = useRef(true)
+  const statsDebounceTimerRef = useRef<NodeJS.Timeout | null>(null)
 
   // Formatting marks display mode (Microsoft Word style Show/Hide ¶)
   const [showFormattingMarks, setShowFormattingMarks] = useState(false)
@@ -77,32 +74,52 @@ export default function TranscriptEditor({
   // Multi-slot state (1 to 5) - Slot 5 is dedicated for automated live backup / Auto-Save
   const [activeSlot, setActiveSlot] = useState<number>(1)
   const [slotsMeta, setSlotsMeta] = useState<SlotInfo[]>([])
-  const [slotNames, setSlotNames] = useState<Record<number, string>>({
-    1: 'Draft 1 / Main',
-    2: 'Draft 2 / Revision',
-    3: 'Draft 3 / Revision',
-    4: 'Draft 4',
-    5: 'Draft 5 (Auto-Save)',
-  })
 
-  // Editor content & formatting
-  const [content, setContent] = useState('')
-  const [findText, setFindText] = useState('')
-  const [replaceText, setReplaceText] = useState('')
+  // Editor styling & active selection format state
   const [font, setFont] = useState('Calibri')
   const [fontSize, setFontSize] = useState(15)
   const [color, setColor] = useState('#1e293b')
-  const [isBold, setIsBold] = useState(false)
-  const [isItalic, setIsItalic] = useState(false)
+  const [isSelectionBold, setIsSelectionBold] = useState(false)
+  const [isSelectionItalic, setIsSelectionItalic] = useState(false)
+  const [isSelectionUnderline, setIsSelectionUnderline] = useState(false)
+
+  // Find and replace state
+  const [findText, setFindText] = useState('')
+  const [replaceText, setReplaceText] = useState('')
+
+  // Loading & status states
   const [saving, setSaving] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [loadingSlots, setLoadingSlots] = useState(false)
+  const [, setLoadingSlots] = useState(false)
   const [autoSaveStatus, setAutoSaveStatus] = useState<'saved' | 'saving' | 'unsaved' | 'idle'>('idle')
   const [autoSaveTime, setAutoSaveTime] = useState<Date | null>(null)
   const [lastSavedTime, setLastSavedTime] = useState<Date | null>(null)
   const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error' | 'info'; text: string } | null>(null)
   const [copied, setCopied] = useState(false)
-  const [replaceCount, setReplaceCount] = useState<number | null>(null)
+
+  // Word & Character count states (throttled for zero input lag)
+  const [wordCount, setWordCount] = useState(0)
+  const [charCount, setCharCount] = useState(0)
+
+  // Compute text statistics efficiently without blocking typing
+  const updateStats = useCallback(() => {
+    if (!editorRef.current) return
+    const text = editorRef.current.innerText || ''
+    const trimmed = text.trim()
+    setWordCount(trimmed ? trimmed.split(/\s+/).length : 0)
+    setCharCount(text.length)
+  }, [])
+
+  // Sync toolbar active states (Bold/Italic/Underline) with current cursor selection
+  const syncSelectionState = useCallback(() => {
+    try {
+      setIsSelectionBold(document.queryCommandState('bold'))
+      setIsSelectionItalic(document.queryCommandState('italic'))
+      setIsSelectionUnderline(document.queryCommandState('underline'))
+    } catch {
+      // Ignore if document query fails
+    }
+  }, [])
 
   // Refresh slots metadata list
   const fetchSlotsList = useCallback(async (targetId: string, targetRole: string) => {
@@ -123,80 +140,47 @@ export default function TranscriptEditor({
     }
   }, [])
 
-  // Load active slot content from cloud storage (with crash recovery for Slot 5)
-  const loadSlotContent = useCallback(
-    async (targetId: string, targetRole: string, slotNum: number) => {
-      if (!targetId) return
-      setLoading(true)
-
-      try {
-        const res = await fetch(
-          `/api/transcripts?role=${encodeURIComponent(targetRole)}&userId=${encodeURIComponent(
-            targetId
-          )}&slot=${slotNum}`
-        )
-        const data = await res.json()
-
-        if (res.ok && data.content) {
-          setContent(data.content)
-        } else if (slotNum === 5) {
-          // Emergency power interruption recovery for Slot 5
-          try {
-            const emergencyDraft = localStorage.getItem(`transcript_autosave_slot5_${targetRole}_${targetId}`)
-            if (emergencyDraft && emergencyDraft.trim()) {
-              setContent(emergencyDraft)
-              setStatusMessage({ type: 'info', text: 'Recovered ongoing auto-saved draft from local emergency backup.' })
-            } else {
-              setContent('')
-            }
-          } catch (e) {
-            setContent('')
-          }
-        } else {
-          setContent('')
-        }
-      } catch (err) {
-        console.error('Failed to load slot content', err)
-        if (slotNum === 5) {
-          try {
-            const emergencyDraft = localStorage.getItem(`transcript_autosave_slot5_${targetRole}_${targetId}`)
-            if (emergencyDraft && emergencyDraft.trim()) {
-              setContent(emergencyDraft)
-            } else {
-              setContent('')
-            }
-          } catch (e) {
-            setContent('')
-          }
-        } else {
-          setContent('')
-        }
-      } finally {
-        setLoading(false)
-      }
-    },
-    []
-  )
-
-  // Load when worker or slot changes
-  useEffect(() => {
-    if (effectiveUserId) {
-      fetchSlotsList(effectiveUserId, effectiveRole)
-      loadSlotContent(effectiveUserId, effectiveRole, activeSlot)
+  // Helper to set editor HTML safely
+  const setEditorContent = useCallback((rawContent: string) => {
+    if (!editorRef.current) return
+    if (!rawContent) {
+      editorRef.current.innerHTML = ''
+      updateStats()
+      return
     }
-  }, [effectiveUserId, effectiveRole, activeSlot, fetchSlotsList, loadSlotContent])
 
-  // Dedicated Auto-Save Function: automatically backs up ongoing text into Slot 5 (cloud & local emergency store)
+    // Check if rawContent is already HTML or plain text
+    const isHtml = /<[a-z][\s\S]*>/i.test(rawContent)
+    if (isHtml) {
+      editorRef.current.innerHTML = rawContent
+    } else {
+      // Convert plain text newlines to clean HTML paragraphs/breaks
+      const paragraphs = rawContent.split(/\r?\n\r?\n/)
+      if (paragraphs.length > 1) {
+        editorRef.current.innerHTML = paragraphs
+          .map((p) => `<div>${p.replace(/\r?\n/g, '<br>')}</div>`)
+          .join('')
+      } else {
+        editorRef.current.innerHTML = rawContent.replace(/\r?\n/g, '<br>')
+      }
+    }
+    updateStats()
+  }, [updateStats])
+
+  // Dedicated Auto-Save Function: automatically backs up ongoing text into Slot 5
   const triggerAutoSaveToSlot5 = useCallback(
-    async (textToSave: string) => {
-      if (!effectiveUserId || !textToSave.trim()) return
+    async (htmlContent: string) => {
+      if (!effectiveUserId || !htmlContent.trim()) return
       setAutoSaveStatus('saving')
 
       // 1. Instant local emergency backup for power cut protection
       try {
-        localStorage.setItem(`transcript_autosave_slot5_${effectiveRole}_${effectiveUserId}`, textToSave)
-        localStorage.setItem(`transcript_autosave_time_slot5_${effectiveRole}_${effectiveUserId}`, Date.now().toString())
-      } catch (e) {}
+        localStorage.setItem(`transcript_autosave_slot5_${effectiveRole}_${effectiveUserId}`, htmlContent)
+        localStorage.setItem(
+          `transcript_autosave_time_slot5_${effectiveRole}_${effectiveUserId}`,
+          Date.now().toString()
+        )
+      } catch {}
 
       // 2. Cloud Slot 5 auto-save
       try {
@@ -206,7 +190,7 @@ export default function TranscriptEditor({
           body: JSON.stringify({
             role: effectiveRole,
             userId: effectiveUserId,
-            content: textToSave,
+            content: htmlContent,
             slot: 5,
           }),
         })
@@ -226,59 +210,188 @@ export default function TranscriptEditor({
     [effectiveUserId, effectiveRole, fetchSlotsList]
   )
 
-  // Content change handler: updates live text + debounces auto-save into Slot 5
-  const handleContentChange = (newText: string) => {
-    setContent(newText)
+  // Load active slot content from cloud storage (with crash recovery for Slot 5)
+  const loadSlotContent = useCallback(
+    async (targetId: string, targetRole: string, slotNum: number) => {
+      if (!targetId) return
+      setLoading(true)
 
-    if (!newText.trim()) return
+      try {
+        const res = await fetch(
+          `/api/transcripts?role=${encodeURIComponent(targetRole)}&userId=${encodeURIComponent(
+            targetId
+          )}&slot=${slotNum}`
+        )
+        const data = await res.json()
+
+        if (res.ok && data.content) {
+          setEditorContent(data.content)
+        } else if (slotNum === 5) {
+          // Emergency power interruption recovery for Slot 5
+          try {
+            const emergencyDraft = localStorage.getItem(`transcript_autosave_slot5_${targetRole}_${targetId}`)
+            if (emergencyDraft && emergencyDraft.trim()) {
+              setEditorContent(emergencyDraft)
+              setStatusMessage({
+                type: 'info',
+                text: 'Recovered ongoing auto-saved draft from local emergency backup.',
+              })
+            } else {
+              setEditorContent('')
+            }
+          } catch {
+            setEditorContent('')
+          }
+        } else {
+          setEditorContent('')
+        }
+      } catch (err) {
+        console.error('Failed to load slot content', err)
+        if (slotNum === 5) {
+          try {
+            const emergencyDraft = localStorage.getItem(`transcript_autosave_slot5_${targetRole}_${targetId}`)
+            if (emergencyDraft && emergencyDraft.trim()) {
+              setEditorContent(emergencyDraft)
+            } else {
+              setEditorContent('')
+            }
+          } catch {
+            setEditorContent('')
+          }
+        } else {
+          setEditorContent('')
+        }
+      } finally {
+        setLoading(false)
+      }
+    },
+    [setEditorContent]
+  )
+
+  // Load when worker or slot changes
+  useEffect(() => {
+    if (effectiveUserId) {
+      fetchSlotsList(effectiveUserId, effectiveRole)
+      loadSlotContent(effectiveUserId, effectiveRole, activeSlot)
+    }
+  }, [effectiveUserId, effectiveRole, activeSlot, fetchSlotsList, loadSlotContent])
+
+  // Fast typing handler: Native DOM updates with debounced word count and background autosave
+  const handleEditorInput = () => {
     setAutoSaveStatus('unsaved')
 
+    // Debounce statistics (word count & char count) off the critical typing path
+    if (statsDebounceTimerRef.current) clearTimeout(statsDebounceTimerRef.current)
+    statsDebounceTimerRef.current = setTimeout(() => {
+      updateStats()
+    }, 150)
+
+    // Debounce Slot 5 auto-save
     if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current)
     autoSaveTimerRef.current = setTimeout(() => {
-      triggerAutoSaveToSlot5(newText)
+      if (editorRef.current) {
+        triggerAutoSaveToSlot5(editorRef.current.innerHTML)
+      }
     }, 2000)
   }
 
-  // Cleanup auto-save timer on unmount
+  // Cleanup timers on unmount
   useEffect(() => {
     return () => {
       if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current)
+      if (statsDebounceTimerRef.current) clearTimeout(statsDebounceTimerRef.current)
     }
   }, [])
 
-  const handlePasteIntercept = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
-    if (content.trim()) {
-      const confirmPaste = window.confirm(
-        'A transcript is already present in this slot. Pasting will replace the current content. Continue?'
-      )
-      if (!confirmPaste) {
+  // ── SELECTION-SPECIFIC RICH FORMATTING HANDLERS ──
+
+  const applyBold = () => {
+    document.execCommand('bold', false)
+    syncSelectionState()
+    handleEditorInput()
+  }
+
+  const applyItalic = () => {
+    document.execCommand('italic', false)
+    syncSelectionState()
+    handleEditorInput()
+  }
+
+  const applyUnderline = () => {
+    document.execCommand('underline', false)
+    syncSelectionState()
+    handleEditorInput()
+  }
+
+  const applyColor = (selectedColor: string) => {
+    setColor(selectedColor)
+    document.execCommand('foreColor', false, selectedColor)
+    handleEditorInput()
+  }
+
+  const clearFormatting = () => {
+    document.execCommand('removeFormat', false)
+    syncSelectionState()
+    handleEditorInput()
+  }
+
+  // Handle hotkeys (Ctrl+B, Ctrl+I, Ctrl+U, Ctrl+S)
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.ctrlKey || e.metaKey) {
+      if (e.key === 'b' || e.key === 'B') {
         e.preventDefault()
-        return
+        applyBold()
+      } else if (e.key === 'i' || e.key === 'I') {
+        e.preventDefault()
+        applyItalic()
+      } else if (e.key === 'u' || e.key === 'U') {
+        e.preventDefault()
+        applyUnderline()
+      } else if (e.key === 's' || e.key === 'S') {
+        e.preventDefault()
+        handleManualSave()
       }
     }
   }
 
+  // Find and replace inside contenteditable HTML
   const performFindReplace = () => {
     if (!findText) {
       setStatusMessage({ type: 'error', text: 'Please enter text to find.' })
       return
     }
-    const escaped = findText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-    const regex = new RegExp(escaped, 'g')
-    const matches = (content.match(regex) || []).length
-    if (matches === 0) {
-      setStatusMessage({ type: 'info', text: `No occurrences of "${findText}" found (case-sensitive).` })
-      setReplaceCount(0)
+    if (!editorRef.current) return
+
+    const currentHtml = editorRef.current.innerHTML
+    const currentText = editorRef.current.innerText || ''
+
+    if (!currentText.includes(findText)) {
+      setStatusMessage({ type: 'info', text: `No occurrences of "${findText}" found.` })
       return
     }
-    const updated = content.replace(regex, replaceText)
-    handleContentChange(updated)
-    setReplaceCount(matches)
-    setStatusMessage({ type: 'success', text: `Replaced ${matches} occurrence${matches > 1 ? 's' : ''} of "${findText}".` })
+
+    // Escape regex characters
+    const escaped = findText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const regex = new RegExp(escaped, 'g')
+    const matches = (currentHtml.match(regex) || []).length
+
+    const updated = currentHtml.replace(regex, replaceText)
+    editorRef.current.innerHTML = updated
+    updateStats()
+    handleEditorInput()
+    setStatusMessage({
+      type: 'success',
+      text: `Replaced ${matches} occurrence${matches > 1 ? 's' : ''} of "${findText}".`,
+    })
   }
 
+  // Manual save to active slot in Supabase
   const handleManualSave = async () => {
-    if (!content.trim()) {
+    if (!editorRef.current) return
+    const htmlContent = editorRef.current.innerHTML
+    const textContent = editorRef.current.innerText || ''
+
+    if (!textContent.trim()) {
       setStatusMessage({ type: 'error', text: 'Transcript is empty. Nothing to save.' })
       return
     }
@@ -297,7 +410,7 @@ export default function TranscriptEditor({
         body: JSON.stringify({
           role: effectiveRole,
           userId: effectiveUserId,
-          content,
+          content: htmlContent,
           slot: activeSlot,
         }),
       })
@@ -318,9 +431,13 @@ export default function TranscriptEditor({
     }
   }
 
+  // Manual export as clean plain-text .txt file
   const handleManualDownload = () => {
-    if (!content.trim()) return
-    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' })
+    if (!editorRef.current) return
+    const plainText = editorRef.current.innerText || ''
+    if (!plainText.trim()) return
+
+    const blob = new Blob([plainText], { type: 'text/plain;charset=utf-8' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
@@ -331,69 +448,29 @@ export default function TranscriptEditor({
     URL.revokeObjectURL(url)
   }
 
-  const handleCopy = () => {
-    if (!content) return
-    navigator.clipboard.writeText(content)
+  // Copy with rich HTML clipboard support
+  const handleCopy = async () => {
+    if (!editorRef.current) return
+    const plainText = editorRef.current.innerText || ''
+    const htmlContent = editorRef.current.innerHTML
+
+    if (!plainText.trim()) return
+
+    try {
+      const blobHtml = new Blob([htmlContent], { type: 'text/html' })
+      const blobText = new Blob([plainText], { type: 'text/plain' })
+      const item = new ClipboardItem({
+        'text/html': blobHtml,
+        'text/plain': blobText,
+      })
+      await navigator.clipboard.write([item])
+    } catch {
+      await navigator.clipboard.writeText(plainText)
+    }
+
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
-
-  // Remove any literal '¶' characters that were previously typed/inserted into the document
-  const removeLiteralPilcrows = () => {
-    if (!content.includes('¶')) return
-    const cleaned = content.replace(/¶/g, '')
-    handleContentChange(cleaned)
-    setStatusMessage({ type: 'info', text: 'Cleaned all literal ¶ characters from text.' })
-  }
-
-  // Deferred content for high-priority 0ms typing response
-  const deferredContent = useDeferredValue(content)
-
-  // Ultra-fast HTML generator for formatting overlay (replaces thousands of React JSX elements with 1 native string)
-  const formattedOverlayHtml = useMemo(() => {
-    if (!showFormattingMarks || !deferredContent) return ''
-
-    // Normalize CRLF from Windows/Word to single \n
-    const normalized = deferredContent.replace(/\r\n/g, '\n').replace(/\r/g, '\n')
-    const lines = normalized.split('\n')
-
-    let html = ''
-    for (let l = 0; l < lines.length; l++) {
-      const line = lines[l]
-      let lineHtml = ''
-
-      for (let i = 0; i < line.length; i++) {
-        const char = line[i]
-        if (char === ' ' || char === '\u00A0') {
-          lineHtml += '<span class="relative inline text-transparent">' + char + '<span class="absolute inset-0 flex items-center justify-center text-black font-black select-none pointer-events-none text-[8px] leading-none">·</span></span>'
-        } else if (char === '\t') {
-          lineHtml += '<span class="relative inline text-transparent">&#9;<span class="absolute inset-0 flex items-center justify-center text-black font-bold select-none pointer-events-none text-xs">→</span></span>'
-        } else if (char === '<') {
-          lineHtml += '&lt;'
-        } else if (char === '>') {
-          lineHtml += '&gt;'
-        } else if (char === '&') {
-          lineHtml += '&amp;'
-        } else if (char === '"') {
-          lineHtml += '&quot;'
-        } else {
-          lineHtml += char
-        }
-      }
-
-      const isLastLine = l === lines.length - 1
-      html += lineHtml + '<span class="relative inline text-transparent"><span class="absolute left-0 text-black font-bold select-none pointer-events-none pl-0.5">¶</span></span>' + (isLastLine ? '' : '\n')
-    }
-
-    return html
-  }, [showFormattingMarks, deferredContent])
-
-  const wordCount = useMemo(() => {
-    if (!content.trim()) return 0
-    return content.trim().split(/\s+/).length
-  }, [content])
-
-  const charCount = content.length
 
   const getFontFamilyStyle = useCallback(() => {
     switch (font) {
@@ -410,27 +487,7 @@ export default function TranscriptEditor({
     }
   }, [font])
 
-  // Exact integer line height to eliminate subpixel vertical accumulation error across long multi-paragraph documents
   const exactLineHeight = useMemo(() => Math.round(fontSize * 1.6), [fontSize])
-
-  // Shared exact layout and typography styles for both textarea and formatting marks overlay
-  const editorSharedStyle: React.CSSProperties = useMemo(() => ({
-    fontFamily: getFontFamilyStyle(),
-    fontSize: `${fontSize}px`,
-    lineHeight: `${exactLineHeight}px`,
-    fontWeight: isBold ? 'bold' : 'normal',
-    fontStyle: isItalic ? 'italic' : 'normal',
-    letterSpacing: '0px',
-    wordSpacing: '0px',
-    padding: '16px',
-    margin: 0,
-    border: 'none',
-    boxSizing: 'border-box',
-    whiteSpace: 'pre-wrap',
-    wordBreak: 'break-word',
-    overflowWrap: 'break-word',
-    tabSize: 4,
-  }), [getFontFamilyStyle, fontSize, exactLineHeight, isBold, isItalic])
 
   // Selected worker details for Admin
   const selectedWorkerObj = allWorkers.find((w) => w.id === selectedWorkerId)
@@ -445,8 +502,8 @@ export default function TranscriptEditor({
             <button
               type="button"
               onClick={() => setHideTools(false)}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-purple-600 hover:bg-purple-500 text-white rounded-xl transition-all shadow-xs"
-              title="Show all formatting, tools and find & replace"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-purple-600 hover:bg-purple-500 text-white rounded-xl transition-all shadow-xs cursor-pointer"
+              title="Show all formatting tools, font controls, and find & replace"
             >
               <Eye className="w-3.5 h-3.5 text-purple-200" />
               <span>Show Tools</span>
@@ -465,7 +522,7 @@ export default function TranscriptEditor({
               >
                 {[1, 2, 3, 4, 5].map((s) => {
                   const meta = slotsMeta.find((item) => item.slot === s)
-                  const hasData = meta?.hasContent || (s === activeSlot && content.trim().length > 0)
+                  const hasData = meta?.hasContent || (s === activeSlot && wordCount > 0)
                   return (
                     <option key={s} value={s} className="bg-slate-900 text-white">
                       {s === 5 ? 'Slot 5 (Auto-Save)' : `Slot ${s}`} {hasData ? '●' : '(Empty)'}
@@ -488,7 +545,9 @@ export default function TranscriptEditor({
                   }}
                   className="bg-transparent font-bold text-white outline-none cursor-pointer text-xs max-w-[150px] truncate"
                 >
-                  <option value={userId} className="bg-slate-900 text-white">My Admin Transcripts</option>
+                  <option value={userId} className="bg-slate-900 text-white">
+                    My Admin Transcripts
+                  </option>
                   {allWorkers.map((w) => (
                     <option key={w.id} value={w.id} className="bg-slate-900 text-white">
                       {w.full_name || w.id}
@@ -505,7 +564,11 @@ export default function TranscriptEditor({
                       }`}
                       title={isOnline ? 'Worker is Online & Active' : `Last active ${Math.floor(diffMins)}m ago`}
                     >
-                      <span className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-emerald-400 animate-pulse' : 'bg-zinc-500'}`} />
+                      <span
+                        className={`w-1.5 h-1.5 rounded-full ${
+                          isOnline ? 'bg-emerald-400 animate-pulse' : 'bg-zinc-500'
+                        }`}
+                      />
                       <span className="hidden md:inline">{isOnline ? 'Online' : 'Offline'}</span>
                     </span>
                   )
@@ -521,7 +584,7 @@ export default function TranscriptEditor({
                 Auto-saving to Slot 5...
               </span>
             ) : autoSaveTime ? (
-              <span className="text-[10px] text-emerald-400 hidden md:inline" title="Ongoing work is auto-saved to Slot 5">
+              <span className="text-[10px] text-emerald-400 hidden md:inline" title="Ongoing work auto-saved to Slot 5">
                 ● Auto-saved ({autoSaveTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})
               </span>
             ) : null}
@@ -533,8 +596,8 @@ export default function TranscriptEditor({
             <button
               type="button"
               onClick={handleCopy}
-              disabled={!content.trim()}
-              className="hidden sm:flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-xl bg-slate-800 hover:bg-slate-700 text-zinc-300 hover:text-white border border-slate-700 disabled:opacity-40 transition-all"
+              disabled={wordCount === 0}
+              className="hidden sm:flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-xl bg-slate-800 hover:bg-slate-700 text-zinc-300 hover:text-white border border-slate-700 disabled:opacity-40 transition-all cursor-pointer"
             >
               {copied ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5" />}
               <span>{copied ? 'Copied' : 'Copy'}</span>
@@ -543,8 +606,8 @@ export default function TranscriptEditor({
             <button
               type="button"
               onClick={handleManualDownload}
-              disabled={!content.trim()}
-              className="hidden sm:flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-xl bg-slate-800 hover:bg-slate-700 text-zinc-300 hover:text-white border border-slate-700 disabled:opacity-40 transition-all"
+              disabled={wordCount === 0}
+              className="hidden sm:flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-xl bg-slate-800 hover:bg-slate-700 text-zinc-300 hover:text-white border border-slate-700 disabled:opacity-40 transition-all cursor-pointer"
               title="Download .txt"
             >
               <Download className="w-3.5 h-3.5" />
@@ -554,8 +617,8 @@ export default function TranscriptEditor({
             <button
               type="button"
               onClick={handleManualSave}
-              disabled={saving || !content.trim()}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold rounded-xl bg-purple-600 hover:bg-purple-500 text-white shadow-sm shadow-purple-500/30 disabled:opacity-50 transition-all"
+              disabled={saving || wordCount === 0}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold rounded-xl bg-purple-600 hover:bg-purple-500 text-white shadow-sm shadow-purple-500/30 disabled:opacity-50 transition-all cursor-pointer"
             >
               {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
               <span>Save Slot {activeSlot}</span>
@@ -574,7 +637,9 @@ export default function TranscriptEditor({
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold uppercase tracking-wider text-purple-300">Worker Live Monitor</span>
+                      <span className="text-xs font-bold uppercase tracking-wider text-purple-300">
+                        Worker Live Monitor
+                      </span>
                       {selectedWorkerObj?.last_seen && (() => {
                         const diffMins = (Date.now() - new Date(selectedWorkerObj.last_seen).getTime()) / 60000
                         const isOnline = diffMins < 5
@@ -586,7 +651,11 @@ export default function TranscriptEditor({
                                 : 'bg-zinc-700/50 text-zinc-400 border border-zinc-600/30'
                             }`}
                           >
-                            <span className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-emerald-400 animate-pulse' : 'bg-zinc-500'}`} />
+                            <span
+                              className={`w-1.5 h-1.5 rounded-full ${
+                                isOnline ? 'bg-emerald-400 animate-pulse' : 'bg-zinc-500'
+                              }`}
+                            />
                             {isOnline ? 'Online' : 'Offline'}
                           </span>
                         )
@@ -624,11 +693,11 @@ export default function TranscriptEditor({
             </div>
           )}
 
-          {/* ── TOP TOOLBAR ── */}
+          {/* ── TOP TOOLBAR WITH SELECTION FORMATTING ── */}
           <div className="flex flex-wrap items-center justify-between gap-2.5 bg-zinc-50 border border-zinc-200/80 p-2.5 rounded-2xl">
             {/* Controls & Formatting */}
             <div className="flex flex-wrap items-center gap-2">
-              {/* Compact Saved Drafts & Revisions Dropdown */}
+              {/* Draft Slot Selector */}
               <div className="flex items-center gap-1.5 bg-white border border-purple-200/90 hover:border-purple-300 px-2.5 py-1.5 rounded-xl shadow-xs transition-colors">
                 <Layers className="w-3.5 h-3.5 text-purple-600 shrink-0" />
                 <span className="text-xs font-bold text-zinc-700 whitespace-nowrap">Draft Slot:</span>
@@ -644,7 +713,7 @@ export default function TranscriptEditor({
                 >
                   {[1, 2, 3, 4, 5].map((slotNum) => {
                     const meta = slotsMeta.find((s) => s.slot === slotNum)
-                    const hasData = meta?.hasContent || (slotNum === activeSlot && content.trim().length > 0)
+                    const hasData = meta?.hasContent || (slotNum === activeSlot && wordCount > 0)
                     const words = slotNum === activeSlot ? wordCount : meta?.wordCount || 0
                     return (
                       <option key={slotNum} value={slotNum} className="text-zinc-900">
@@ -655,15 +724,14 @@ export default function TranscriptEditor({
                     )
                   })}
                 </select>
-                {/* Live slot status dot */}
                 <span
                   className={`h-2 w-2 rounded-full shrink-0 ${
-                    (slotsMeta.find((s) => s.slot === activeSlot)?.hasContent || content.trim().length > 0)
+                    slotsMeta.find((s) => s.slot === activeSlot)?.hasContent || wordCount > 0
                       ? 'bg-emerald-500 ring-2 ring-emerald-100'
                       : 'bg-zinc-300'
                   }`}
                   title={
-                    (slotsMeta.find((s) => s.slot === activeSlot)?.hasContent || content.trim().length > 0)
+                    slotsMeta.find((s) => s.slot === activeSlot)?.hasContent || wordCount > 0
                       ? 'Saved content in active slot'
                       : 'Active slot is empty'
                   }
@@ -701,39 +769,72 @@ export default function TranscriptEditor({
                 <span className="text-[10px] text-zinc-400">px</span>
               </div>
 
-              {/* Color Picker */}
-              <div className="flex items-center gap-1.5 bg-white border border-zinc-200 px-2 py-1.5 rounded-xl shadow-xs">
-                <Palette className="w-4 h-4 text-zinc-500" />
+              {/* Selection Text Color Picker */}
+              <div
+                className="flex items-center gap-1.5 bg-white border border-zinc-200 px-2 py-1.5 rounded-xl shadow-xs"
+                title="Change color of selected/highlighted text"
+              >
+                <Palette className="w-4 h-4 text-purple-600" />
                 <input
                   type="color"
                   value={color}
-                  onChange={(e) => setColor(e.target.value)}
+                  onChange={(e) => applyColor(e.target.value)}
                   className="w-5 h-5 rounded cursor-pointer border-0 bg-transparent p-0"
-                  title="Text Color"
+                  title="Apply Color to Selected Text"
                 />
               </div>
 
-              {/* Bold & Italic */}
+              {/* Selection Rich Formatting Buttons (Bold, Italic, Underline, Clear) */}
               <div className="flex items-center bg-white border border-zinc-200 rounded-xl overflow-hidden shadow-xs">
                 <button
                   type="button"
-                  onClick={() => setIsBold(!isBold)}
-                  className={`p-2 text-xs font-bold transition-colors ${
-                    isBold ? 'bg-purple-600 text-white' : 'text-zinc-700 hover:bg-zinc-100'
+                  onMouseDown={(e) => {
+                    e.preventDefault() // prevent losing editor text selection
+                    applyBold()
+                  }}
+                  className={`p-2 text-xs font-bold transition-colors cursor-pointer ${
+                    isSelectionBold ? 'bg-purple-600 text-white' : 'text-zinc-700 hover:bg-purple-50'
                   }`}
-                  title="Bold"
+                  title="Bold Highlighted Text (Ctrl+B)"
                 >
                   <Bold className="w-3.5 h-3.5" />
                 </button>
                 <button
                   type="button"
-                  onClick={() => setIsItalic(!isItalic)}
-                  className={`p-2 text-xs italic transition-colors border-l border-zinc-200 ${
-                    isItalic ? 'bg-purple-600 text-white' : 'text-zinc-700 hover:bg-zinc-100'
+                  onMouseDown={(e) => {
+                    e.preventDefault()
+                    applyItalic()
+                  }}
+                  className={`p-2 text-xs italic transition-colors border-l border-zinc-200 cursor-pointer ${
+                    isSelectionItalic ? 'bg-purple-600 text-white' : 'text-zinc-700 hover:bg-purple-50'
                   }`}
-                  title="Italic"
+                  title="Italicize Highlighted Text (Ctrl+I)"
                 >
                   <Italic className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onMouseDown={(e) => {
+                    e.preventDefault()
+                    applyUnderline()
+                  }}
+                  className={`p-2 text-xs transition-colors border-l border-zinc-200 cursor-pointer ${
+                    isSelectionUnderline ? 'bg-purple-600 text-white' : 'text-zinc-700 hover:bg-purple-50'
+                  }`}
+                  title="Underline Highlighted Text (Ctrl+U)"
+                >
+                  <Underline className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onMouseDown={(e) => {
+                    e.preventDefault()
+                    clearFormatting()
+                  }}
+                  className="p-2 text-xs text-zinc-600 hover:text-red-600 hover:bg-red-50 transition-colors border-l border-zinc-200 cursor-pointer"
+                  title="Clear formatting on selection"
+                >
+                  <RemoveFormatting className="w-3.5 h-3.5" />
                 </button>
               </div>
 
@@ -742,26 +843,16 @@ export default function TranscriptEditor({
                 <button
                   type="button"
                   onClick={() => setShowFormattingMarks(!showFormattingMarks)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold transition-all ${
+                  className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
                     showFormattingMarks
                       ? 'bg-purple-600 text-white shadow-xs'
                       : 'text-zinc-700 hover:bg-purple-50 hover:text-purple-700'
                   }`}
-                  title="Show/Hide paragraph marks (¶) and formatting symbols like Microsoft Word"
+                  title="Show/Hide paragraph marks (¶) like Microsoft Word"
                 >
                   <Pilcrow className="w-3.5 h-3.5" />
                   <span>{showFormattingMarks ? 'Hide ¶' : 'Show ¶'}</span>
                 </button>
-                {content.includes('¶') && (
-                  <button
-                    type="button"
-                    onClick={removeLiteralPilcrows}
-                    className="px-2.5 py-1.5 text-[11px] font-semibold text-red-600 hover:bg-red-50 border-l border-zinc-200 transition-colors"
-                    title="Remove literal ¶ characters accidentally typed in the text"
-                  >
-                    Clean literal ¶
-                  </button>
-                )}
               </div>
             </div>
 
@@ -773,16 +864,25 @@ export default function TranscriptEditor({
                   <span>Auto-saving Slot 5...</span>
                 </div>
               ) : autoSaveTime ? (
-                <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-50 border border-emerald-200 rounded-xl shadow-xs text-emerald-800 text-[11px]" title="Ongoing work auto-saved in Slot 5">
+                <div
+                  className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-50 border border-emerald-200 rounded-xl shadow-xs text-emerald-800 text-[11px]"
+                  title="Ongoing work auto-saved in Slot 5"
+                >
                   <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>Slot 5 Auto-saved ({autoSaveTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})</span>
+                  <span>
+                    Slot 5 Auto-saved (
+                    {autoSaveTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})
+                  </span>
                 </div>
               ) : null}
 
               {lastSavedTime && (
                 <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 bg-white border border-zinc-200/80 rounded-xl shadow-xs text-zinc-600 text-[11px]">
                   <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>Manual Saved at {lastSavedTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                  <span>
+                    Manual Saved at{' '}
+                    {lastSavedTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </span>
                 </div>
               )}
 
@@ -790,7 +890,7 @@ export default function TranscriptEditor({
               <button
                 type="button"
                 onClick={() => setHideTools(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl border border-purple-200/90 bg-purple-50 hover:bg-purple-100 text-purple-800 transition-all shadow-xs"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl border border-purple-200/90 bg-purple-50 hover:bg-purple-100 text-purple-800 transition-all shadow-xs cursor-pointer"
                 title="Hide all toolbars for a distraction-free maximized typing area"
               >
                 <EyeOff className="w-3.5 h-3.5 text-purple-600" />
@@ -800,8 +900,8 @@ export default function TranscriptEditor({
               <button
                 type="button"
                 onClick={handleCopy}
-                disabled={!content.trim()}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl border border-zinc-200 bg-white hover:bg-zinc-100 text-zinc-700 disabled:opacity-40 transition-all shadow-xs"
+                disabled={wordCount === 0}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl border border-zinc-200 bg-white hover:bg-zinc-100 text-zinc-700 disabled:opacity-40 transition-all shadow-xs cursor-pointer"
               >
                 {copied ? <Check className="w-3.5 h-3.5 text-green-600" /> : <Copy className="w-3.5 h-3.5" />}
                 {copied ? 'Copied' : 'Copy'}
@@ -810,8 +910,8 @@ export default function TranscriptEditor({
               <button
                 type="button"
                 onClick={handleManualDownload}
-                disabled={!content.trim()}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl border border-zinc-200 bg-white hover:bg-zinc-100 text-zinc-700 disabled:opacity-40 transition-all shadow-xs"
+                disabled={wordCount === 0}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl border border-zinc-200 bg-white hover:bg-zinc-100 text-zinc-700 disabled:opacity-40 transition-all shadow-xs cursor-pointer"
                 title="Download .txt"
               >
                 <Download className="w-3.5 h-3.5" />
@@ -821,8 +921,8 @@ export default function TranscriptEditor({
               <button
                 type="button"
                 onClick={handleManualSave}
-                disabled={saving || !content.trim()}
-                className="flex items-center gap-1.5 px-4 py-1.5 text-xs font-bold rounded-xl bg-gradient-to-br from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-md shadow-purple-500/20 disabled:opacity-50 transition-all"
+                disabled={saving || wordCount === 0}
+                className="flex items-center gap-1.5 px-4 py-1.5 text-xs font-bold rounded-xl bg-gradient-to-br from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-md shadow-purple-500/20 disabled:opacity-50 transition-all cursor-pointer"
               >
                 {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
                 <span>Save Slot {activeSlot}</span>
@@ -837,7 +937,7 @@ export default function TranscriptEditor({
                 <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-purple-400" />
                 <input
                   type="text"
-                  placeholder="Find (case-sensitive)..."
+                  placeholder="Find text..."
                   value={findText}
                   onChange={(e) => setFindText(e.target.value)}
                   className="w-full pl-8 pr-3 py-1 text-xs rounded-xl border border-purple-200 bg-white text-zinc-800 placeholder-zinc-400 outline-none focus:ring-2 focus:ring-purple-400/30"
@@ -857,22 +957,26 @@ export default function TranscriptEditor({
             <button
               type="button"
               onClick={performFindReplace}
-              className="flex items-center gap-1.5 px-3.5 py-1 text-xs font-bold rounded-xl bg-purple-600 hover:bg-purple-700 text-white shadow-xs transition-all"
+              className="flex items-center gap-1.5 px-3.5 py-1 text-xs font-bold rounded-xl bg-purple-600 hover:bg-purple-700 text-white shadow-xs transition-all cursor-pointer"
             >
               <RefreshCw className="w-3.5 h-3.5" />
               Replace All
             </button>
 
-            {content && (
+            {wordCount > 0 && (
               <button
                 type="button"
                 onClick={() => {
                   if (window.confirm(`Clear content in Slot ${activeSlot}?`)) {
-                    handleContentChange('')
-                    setStatusMessage(null)
+                    if (editorRef.current) {
+                      editorRef.current.innerHTML = ''
+                      updateStats()
+                      handleEditorInput()
+                      setStatusMessage(null)
+                    }
                   }
                 }}
-                className="text-xs text-zinc-500 hover:text-red-600 px-2 py-1 transition-colors"
+                className="text-xs text-zinc-500 hover:text-red-600 px-2 py-1 transition-colors cursor-pointer"
               >
                 Clear Slot
               </button>
@@ -896,14 +1000,14 @@ export default function TranscriptEditor({
           <button
             type="button"
             onClick={() => setStatusMessage(null)}
-            className="text-xs opacity-70 hover:opacity-100 font-bold ml-2"
+            className="text-xs opacity-70 hover:opacity-100 font-bold ml-2 cursor-pointer"
           >
             ✕
           </button>
         </div>
       )}
 
-      {/* Editor Main Text Area with Synchronized Formatting Marks (Word-Style ¶) */}
+      {/* ── HIGH-PERFORMANCE WYSIWYG RICH TEXT EDITOR ── */}
       <div className="relative flex-1 min-h-[300px] flex flex-col rounded-2xl border border-zinc-200 bg-white shadow-inner focus-within:border-purple-500 focus-within:ring-2 focus-within:ring-purple-500/20 transition-all overflow-hidden">
         {loading && (
           <div className="absolute inset-0 bg-white/70 backdrop-blur-xs flex items-center justify-center z-20">
@@ -911,39 +1015,52 @@ export default function TranscriptEditor({
           </div>
         )}
 
-        {/* MS Word Formatting Marks Visual Overlay — uses native HTML injection for O(1) React render cost */}
-        {showFormattingMarks && (
-          <div
-            ref={overlayRef}
-            aria-hidden="true"
-            style={{
-              ...editorSharedStyle,
-              color: 'transparent',
-            }}
-            className="absolute inset-0 pointer-events-none select-none z-10 overflow-y-scroll overflow-x-hidden"
-            dangerouslySetInnerHTML={{ __html: formattedOverlayHtml }}
-          />
-        )}
-
-        <textarea
-          ref={textareaRef}
-          value={content}
-          onChange={(e) => handleContentChange(e.target.value)}
-          onPaste={handlePasteIntercept}
-          onScroll={(e) => {
-            if (overlayRef.current) {
-              overlayRef.current.scrollTop = e.currentTarget.scrollTop
-              overlayRef.current.scrollLeft = e.currentTarget.scrollLeft
-            }
-          }}
-          placeholder={`Paste raw transcript or start typing in Slot ${activeSlot}...`}
+        <div
+          ref={editorRef}
+          contentEditable
+          suppressContentEditableWarning
+          onInput={handleEditorInput}
+          onKeyDown={handleKeyDown}
+          onKeyUp={syncSelectionState}
+          onMouseUp={syncSelectionState}
+          onSelect={syncSelectionState}
+          data-show-marks={showFormattingMarks ? 'true' : 'false'}
           style={{
-            ...editorSharedStyle,
-            color: color || '#1e293b',
+            fontFamily: getFontFamilyStyle(),
+            fontSize: `${fontSize}px`,
+            lineHeight: `${exactLineHeight}px`,
+            padding: '16px',
+            minHeight: '100%',
+            outline: 'none',
+            color: '#1e293b',
+            boxSizing: 'border-box',
+            whiteSpace: 'pre-wrap',
+            wordBreak: 'break-word',
+            overflowWrap: 'break-word',
           }}
-          className="w-full flex-1 bg-transparent resize-none outline-none overflow-y-scroll overflow-x-hidden relative z-10"
+          className={`transcript-rich-editor w-full flex-1 bg-transparent overflow-y-auto overflow-x-hidden ${
+            showFormattingMarks ? 'show-pilcrow-marks' : ''
+          }`}
         />
       </div>
+
+      {/* ── CSS for Instant Formatting Marks (Zero-Lag CSS Pseudo-Elements) ── */}
+      <style jsx global>{`
+        .transcript-rich-editor[data-show-marks='true'] p::after,
+        .transcript-rich-editor[data-show-marks='true'] div::after {
+          content: ' ¶';
+          color: #a1a1aa;
+          font-weight: bold;
+          pointer-events: none;
+          user-select: none;
+          font-size: 0.85em;
+        }
+        .transcript-rich-editor:empty:before {
+          content: 'Paste raw transcript or start typing...';
+          color: #9ca3af;
+          pointer-events: none;
+        }
+      `}</style>
 
       {/* Bottom Counter Bar */}
       <div className="flex items-center justify-between text-[11px] text-zinc-500 px-2">
@@ -966,5 +1083,3 @@ export default function TranscriptEditor({
     </div>
   )
 }
-
-
