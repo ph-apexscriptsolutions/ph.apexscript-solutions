@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useRef, useCallback } from 'react'
+import React, { useState, useEffect, useRef, useCallback, useMemo, useDeferredValue } from 'react'
 import {
   Loader2,
   Save,
@@ -346,77 +346,56 @@ export default function TranscriptEditor({
     setStatusMessage({ type: 'info', text: 'Cleaned all literal ¶ characters from text.' })
   }
 
-  // Microsoft Word Style Visual Formatting Marks Generator (¶ for paragraph ends, · for spaces, → for tabs) in solid black
-  const renderFormattedMarks = (text: string) => {
-    if (!showFormattingMarks || !text) return null
+  // Deferred content for high-priority 0ms typing response
+  const deferredContent = useDeferredValue(content)
+
+  // Ultra-fast HTML generator for formatting overlay (replaces thousands of React JSX elements with 1 native string)
+  const formattedOverlayHtml = useMemo(() => {
+    if (!showFormattingMarks || !deferredContent) return ''
 
     // Normalize CRLF from Windows/Word to single \n
-    const normalized = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n')
+    const normalized = deferredContent.replace(/\r\n/g, '\n').replace(/\r/g, '\n')
     const lines = normalized.split('\n')
 
-    return lines.map((line, lineIdx) => {
-      const parts: React.ReactNode[] = []
-      let textBuffer = ''
+    let html = ''
+    for (let l = 0; l < lines.length; l++) {
+      const line = lines[l]
+      let lineHtml = ''
 
       for (let i = 0; i < line.length; i++) {
         const char = line[i]
         if (char === ' ' || char === '\u00A0') {
-          if (textBuffer) {
-            parts.push(<span key={`txt-${lineIdx}-${i}`} className="text-transparent">{textBuffer}</span>)
-            textBuffer = ''
-          }
-          // Pure inline span with zero layout distortion and centered black dot
-          parts.push(
-            <span key={`sp-${lineIdx}-${i}`} className="relative inline text-transparent">
-              {char}
-              <span className="absolute inset-0 flex items-center justify-center text-black font-black select-none pointer-events-none text-[8px] leading-none">
-                ·
-              </span>
-            </span>
-          )
+          lineHtml += '<span class="relative inline text-transparent">' + char + '<span class="absolute inset-0 flex items-center justify-center text-black font-black select-none pointer-events-none text-[8px] leading-none">·</span></span>'
         } else if (char === '\t') {
-          if (textBuffer) {
-            parts.push(<span key={`txt-${lineIdx}-${i}`} className="text-transparent">{textBuffer}</span>)
-            textBuffer = ''
-          }
-          parts.push(
-            <span key={`tab-${lineIdx}-${i}`} className="relative inline text-transparent">
-              {'\t'}
-              <span className="absolute inset-0 flex items-center justify-center text-black font-bold select-none pointer-events-none text-xs">
-                →
-              </span>
-            </span>
-          )
+          lineHtml += '<span class="relative inline text-transparent">&#9;<span class="absolute inset-0 flex items-center justify-center text-black font-bold select-none pointer-events-none text-xs">→</span></span>'
+        } else if (char === '<') {
+          lineHtml += '&lt;'
+        } else if (char === '>') {
+          lineHtml += '&gt;'
+        } else if (char === '&') {
+          lineHtml += '&amp;'
+        } else if (char === '"') {
+          lineHtml += '&quot;'
         } else {
-          textBuffer += char
+          lineHtml += char
         }
       }
 
-      if (textBuffer) {
-        parts.push(<span key={`txt-${lineIdx}-end`} className="text-transparent">{textBuffer}</span>)
-      }
+      const isLastLine = l === lines.length - 1
+      html += lineHtml + '<span class="relative inline text-transparent"><span class="absolute left-0 text-black font-bold select-none pointer-events-none pl-0.5">¶</span></span>' + (isLastLine ? '' : '\n')
+    }
 
-      const isLastLine = lineIdx === lines.length - 1
+    return html
+  }, [showFormattingMarks, deferredContent])
 
-      return (
-        <React.Fragment key={lineIdx}>
-          {parts}
-          {/* Zero-width absolute pilcrow: renders at line end without expanding layout width or causing line wraps */}
-          <span className="relative inline text-transparent">
-            <span className="absolute left-0 text-black font-bold select-none pointer-events-none pl-0.5">
-              ¶
-            </span>
-          </span>
-          {!isLastLine && '\n'}
-        </React.Fragment>
-      )
-    })
-  }
+  const wordCount = useMemo(() => {
+    if (!content.trim()) return 0
+    return content.trim().split(/\s+/).length
+  }, [content])
 
-  const wordCount = content.trim() ? content.trim().split(/\s+/).length : 0
   const charCount = content.length
 
-  const getFontFamilyStyle = () => {
+  const getFontFamilyStyle = useCallback(() => {
     switch (font) {
       case 'Calibri':
         return 'Calibri, "Segoe UI", sans-serif'
@@ -429,13 +408,13 @@ export default function TranscriptEditor({
       default:
         return 'Calibri, "Segoe UI", sans-serif'
     }
-  }
+  }, [font])
 
   // Exact integer line height to eliminate subpixel vertical accumulation error across long multi-paragraph documents
-  const exactLineHeight = Math.round(fontSize * 1.6)
+  const exactLineHeight = useMemo(() => Math.round(fontSize * 1.6), [fontSize])
 
   // Shared exact layout and typography styles for both textarea and formatting marks overlay
-  const editorSharedStyle: React.CSSProperties = {
+  const editorSharedStyle: React.CSSProperties = useMemo(() => ({
     fontFamily: getFontFamilyStyle(),
     fontSize: `${fontSize}px`,
     lineHeight: `${exactLineHeight}px`,
@@ -451,7 +430,7 @@ export default function TranscriptEditor({
     wordBreak: 'break-word',
     overflowWrap: 'break-word',
     tabSize: 4,
-  }
+  }), [getFontFamilyStyle, fontSize, exactLineHeight, isBold, isItalic])
 
   // Selected worker details for Admin
   const selectedWorkerObj = allWorkers.find((w) => w.id === selectedWorkerId)
@@ -932,7 +911,7 @@ export default function TranscriptEditor({
           </div>
         )}
 
-        {/* MS Word Formatting Marks Visual Overlay */}
+        {/* MS Word Formatting Marks Visual Overlay — uses native HTML injection for O(1) React render cost */}
         {showFormattingMarks && (
           <div
             ref={overlayRef}
@@ -942,9 +921,8 @@ export default function TranscriptEditor({
               color: 'transparent',
             }}
             className="absolute inset-0 pointer-events-none select-none z-10 overflow-y-scroll overflow-x-hidden"
-          >
-            {renderFormattedMarks(content)}
-          </div>
+            dangerouslySetInnerHTML={{ __html: formattedOverlayHtml }}
+          />
         )}
 
         <textarea
