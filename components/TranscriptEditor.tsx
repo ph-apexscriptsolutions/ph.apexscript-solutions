@@ -23,6 +23,11 @@ import {
   Layers,
   Laptop,
   Globe,
+  ChevronUp,
+  ChevronDown,
+  X,
+  ArrowRightLeft,
+  Replace,
 } from 'lucide-react'
 
 interface WorkerOption {
@@ -133,9 +138,12 @@ export default function TranscriptEditor({
   const [isSelectionItalic, setIsSelectionItalic] = useState(false)
   const [isSelectionUnderline, setIsSelectionUnderline] = useState(false)
 
-  // Find and replace state
+  // Find and replace state (Word-style popup / docked toolbar)
+  const [showFindBar, setShowFindBar] = useState(false)
+  const [showReplaceInput, setShowReplaceInput] = useState(false)
   const [findText, setFindText] = useState('')
   const [replaceText, setReplaceText] = useState('')
+  const findInputRef = useRef<HTMLInputElement>(null)
 
   // Loading & status states
   const [saving, setSaving] = useState(false)
@@ -159,6 +167,20 @@ export default function TranscriptEditor({
   // Word & Character count states (throttled for zero input lag)
   const [wordCount, setWordCount] = useState(0)
   const [charCount, setCharCount] = useState(0)
+
+  // Calculate matching occurrences in real-time
+  const findMatchesCount = useMemo(() => {
+    if (!findText || !editorRef.current) return 0
+    const text = editorRef.current.innerText || ''
+    if (!text) return 0
+    try {
+      const escaped = findText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+      const matches = text.match(new RegExp(escaped, 'gi'))
+      return matches ? matches.length : 0
+    } catch {
+      return 0
+    }
+  }, [findText, wordCount])
 
   // Compute text statistics efficiently without blocking typing
   const updateStats = useCallback(() => {
@@ -410,7 +432,17 @@ export default function TranscriptEditor({
     handleEditorInput()
   }
 
-  // Handle hotkeys (Ctrl+B, Ctrl+I, Ctrl+U, Ctrl+S)
+  // Open and focus the Find / Replace bar
+  const openFindBar = (openReplace = false) => {
+    setShowFindBar(true)
+    if (openReplace) setShowReplaceInput(true)
+    setTimeout(() => {
+      findInputRef.current?.focus()
+      findInputRef.current?.select()
+    }, 50)
+  }
+
+  // Handle hotkeys (Ctrl+B, Ctrl+I, Ctrl+U, Ctrl+S, Ctrl+F, Ctrl+H)
   const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (e.ctrlKey || e.metaKey) {
       if (e.key === 'b' || e.key === 'B') {
@@ -425,12 +457,42 @@ export default function TranscriptEditor({
       } else if (e.key === 's' || e.key === 'S') {
         e.preventDefault()
         handleManualSave()
+      } else if (e.key === 'f' || e.key === 'F') {
+        e.preventDefault()
+        openFindBar(false)
+      } else if (e.key === 'h' || e.key === 'H') {
+        e.preventDefault()
+        openFindBar(true)
       }
     }
   }
 
-  // Find and replace inside contenteditable HTML
-  const performFindReplace = () => {
+  // Find Next / Previous occurrence (like Microsoft Word / browser find)
+  const findNext = (backwards = false) => {
+    if (!findText) return
+    if (typeof window !== 'undefined' && (window as any).find) {
+      const found = (window as any).find(findText, false, backwards, true)
+      if (!found) {
+        setStatusMessage({ type: 'info', text: `Reached end of document for "${findText}".` })
+      }
+    }
+  }
+
+  // Replace current active selection
+  const replaceCurrentMatch = () => {
+    if (!findText) return
+    const sel = window.getSelection()
+    if (sel && sel.toString().toLowerCase() === findText.toLowerCase()) {
+      document.execCommand('insertText', false, replaceText)
+      handleEditorInput()
+      findNext(false)
+    } else {
+      findNext(false)
+    }
+  }
+
+  // Replace all occurrences throughout transcript
+  const performFindReplaceAll = () => {
     if (!findText) {
       setStatusMessage({ type: 'error', text: 'Please enter text to find.' })
       return
@@ -440,14 +502,14 @@ export default function TranscriptEditor({
     const currentHtml = editorRef.current.innerHTML
     const currentText = editorRef.current.innerText || ''
 
-    if (!currentText.includes(findText)) {
+    if (!currentText.toLowerCase().includes(findText.toLowerCase())) {
       setStatusMessage({ type: 'info', text: `No occurrences of "${findText}" found.` })
       return
     }
 
     // Escape regex characters
     const escaped = findText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-    const regex = new RegExp(escaped, 'g')
+    const regex = new RegExp(escaped, 'gi')
     const matches = (currentHtml.match(regex) || []).length
 
     const updated = currentHtml.replace(regex, replaceText)
@@ -458,6 +520,22 @@ export default function TranscriptEditor({
       type: 'success',
       text: `Replaced ${matches} occurrence${matches > 1 ? 's' : ''} of "${findText}".`,
     })
+  }
+
+  // Key navigation inside find input
+  const handleFindInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      if (e.shiftKey) {
+        findNext(true)
+      } else {
+        findNext(false)
+      }
+    } else if (e.key === 'Escape') {
+      e.preventDefault()
+      setShowFindBar(false)
+      editorRef.current?.focus()
+    }
   }
 
   // Manual save to active slot in Supabase
@@ -705,6 +783,16 @@ export default function TranscriptEditor({
             <span className="text-zinc-300 text-[11px] hidden sm:inline">
               Words: <strong className="text-white">{wordCount}</strong>
             </span>
+
+            <button
+              type="button"
+              onClick={() => openFindBar(false)}
+              className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-xl bg-slate-800 hover:bg-slate-700 text-zinc-300 hover:text-white border border-slate-700 transition-all cursor-pointer"
+              title="Find & Replace in text (Ctrl+F)"
+            >
+              <Search className="w-3.5 h-3.5 text-purple-300" />
+              <span className="hidden sm:inline">Find</span>
+            </button>
 
             <button
               type="button"
@@ -979,6 +1067,29 @@ export default function TranscriptEditor({
                 </button>
               </div>
 
+              {/* Find & Replace Toggle Button (Word Style Ctrl+F) */}
+              <button
+                type="button"
+                onClick={() => {
+                  if (showFindBar) {
+                    setShowFindBar(false)
+                    editorRef.current?.focus()
+                  } else {
+                    openFindBar(false)
+                  }
+                }}
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl transition-all shadow-xs cursor-pointer ${
+                  showFindBar
+                    ? 'bg-purple-600 text-white shadow-xs'
+                    : 'bg-white border border-zinc-200 text-zinc-700 hover:bg-purple-50 hover:text-purple-700'
+                }`}
+                title="Find & Replace text in transcript (Ctrl+F)"
+              >
+                <Search className="w-3.5 h-3.5" />
+                <span>Find</span>
+                <span className="text-[10px] opacity-70 hidden xl:inline font-mono">Ctrl+F</span>
+              </button>
+
               {/* Microsoft Word Style Show/Hide ¶ Button */}
               <div className="flex items-center bg-white border border-zinc-200 rounded-xl overflow-hidden shadow-xs">
                 <button
@@ -1070,60 +1181,128 @@ export default function TranscriptEditor({
               </button>
             </div>
           </div>
+        </>
+      )}
 
-          {/* ── FIND & REPLACE BAR ── */}
-          <div className="flex flex-wrap items-center gap-2 bg-purple-50/60 border border-purple-200/60 p-2 rounded-2xl">
-            <div className="flex items-center gap-2 flex-1 min-w-[200px]">
-              <div className="relative flex-1">
-                <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-purple-400" />
-                <input
-                  type="text"
-                  placeholder="Find text..."
-                  value={findText}
-                  onChange={(e) => setFindText(e.target.value)}
-                  className="w-full pl-8 pr-3 py-1 text-xs rounded-xl border border-purple-200 bg-white text-zinc-800 placeholder-zinc-400 outline-none focus:ring-2 focus:ring-purple-400/30"
-                />
-              </div>
-              <div className="relative flex-1">
+      {/* ── WORD-STYLE COMPACT FIND & REPLACE FLOATING/DOCKED TOOLBAR (Ctrl+F) ── */}
+      {showFindBar && (
+        <div className="flex flex-col gap-2 p-2.5 bg-gradient-to-r from-purple-50/90 via-white to-purple-50/90 border border-purple-200 rounded-2xl shadow-md">
+          {/* Main Search Row */}
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Search Input Box */}
+            <div className="relative flex-1 min-w-[200px] flex items-center">
+              <Search className="w-3.5 h-3.5 absolute left-3 text-purple-500 pointer-events-none" />
+              <input
+                ref={findInputRef}
+                type="text"
+                placeholder="Find in transcript (press Enter for next)..."
+                value={findText}
+                onChange={(e) => setFindText(e.target.value)}
+                onKeyDown={handleFindInputKeyDown}
+                className="w-full pl-8 pr-24 py-1.5 text-xs rounded-xl border border-purple-200 bg-white text-zinc-900 placeholder-zinc-400 outline-none focus:ring-2 focus:ring-purple-400/40 shadow-xs font-medium"
+              />
+              {/* Match count badge */}
+              {findText && (
+                <span className="absolute right-2 text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-purple-100 text-purple-700 select-none pointer-events-none">
+                  {findMatchesCount} {findMatchesCount === 1 ? 'match' : 'matches'}
+                </span>
+              )}
+            </div>
+
+            {/* Previous & Next Navigation Buttons */}
+            <div className="flex items-center bg-white border border-zinc-200 rounded-xl overflow-hidden shadow-xs">
+              <button
+                type="button"
+                onClick={() => findNext(true)}
+                disabled={!findText}
+                className="p-1.5 text-zinc-600 hover:bg-purple-50 hover:text-purple-700 disabled:opacity-30 transition-colors cursor-pointer"
+                title="Previous Match (Shift + Enter)"
+              >
+                <ChevronUp className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => findNext(false)}
+                disabled={!findText}
+                className="p-1.5 text-zinc-600 hover:bg-purple-50 hover:text-purple-700 disabled:opacity-30 transition-colors border-l border-zinc-200 cursor-pointer"
+                title="Next Match (Enter)"
+              >
+                <ChevronDown className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Toggle Replace Expansion */}
+            <button
+              type="button"
+              onClick={() => setShowReplaceInput(!showReplaceInput)}
+              className={`flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+                showReplaceInput
+                  ? 'bg-purple-100 text-purple-800 border border-purple-300 shadow-xs'
+                  : 'bg-white border border-zinc-200 text-zinc-700 hover:bg-purple-50 shadow-xs'
+              }`}
+              title="Toggle Replace with..."
+            >
+              <ArrowRightLeft className="w-3.5 h-3.5 text-purple-600" />
+              <span>Replace</span>
+            </button>
+
+            {/* Close Button */}
+            <button
+              type="button"
+              onClick={() => {
+                setShowFindBar(false)
+                editorRef.current?.focus()
+              }}
+              className="p-1.5 text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 rounded-xl transition-colors cursor-pointer ml-auto"
+              title="Close search (Esc)"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Optional Replace Row (When Replace is toggled on) */}
+          {showReplaceInput && (
+            <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-purple-100">
+              <div className="relative flex-1 min-w-[200px]">
+                <Replace className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-purple-400 pointer-events-none" />
                 <input
                   type="text"
                   placeholder="Replace with..."
                   value={replaceText}
                   onChange={(e) => setReplaceText(e.target.value)}
-                  className="w-full px-3 py-1 text-xs rounded-xl border border-purple-200 bg-white text-zinc-800 placeholder-zinc-400 outline-none focus:ring-2 focus:ring-purple-400/30"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      replaceCurrentMatch()
+                    }
+                  }}
+                  className="w-full pl-8 pr-3 py-1.5 text-xs rounded-xl border border-purple-200 bg-white text-zinc-900 placeholder-zinc-400 outline-none focus:ring-2 focus:ring-purple-400/40 shadow-xs font-medium"
                 />
               </div>
-            </div>
 
-            <button
-              type="button"
-              onClick={performFindReplace}
-              className="flex items-center gap-1.5 px-3.5 py-1 text-xs font-bold rounded-xl bg-purple-600 hover:bg-purple-700 text-white shadow-xs transition-all cursor-pointer"
-            >
-              <RefreshCw className="w-3.5 h-3.5" />
-              Replace All
-            </button>
-
-            {wordCount > 0 && (
               <button
                 type="button"
-                onClick={() => {
-                  if (window.confirm(`Clear content in Slot ${activeSlot}?`)) {
-                    if (editorRef.current) {
-                      editorRef.current.innerHTML = ''
-                      updateStats()
-                      handleEditorInput()
-                      setStatusMessage(null)
-                    }
-                  }
-                }}
-                className="text-xs text-zinc-500 hover:text-red-600 px-2 py-1 transition-colors cursor-pointer"
+                onClick={replaceCurrentMatch}
+                disabled={!findText}
+                className="px-3 py-1.5 text-xs font-bold rounded-xl bg-purple-100 hover:bg-purple-200 text-purple-900 transition-all disabled:opacity-40 cursor-pointer shadow-xs"
+                title="Replace currently selected match"
               >
-                Clear Slot
+                Replace
               </button>
-            )}
-          </div>
-        </>
+
+              <button
+                type="button"
+                onClick={performFindReplaceAll}
+                disabled={!findText}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl bg-purple-600 hover:bg-purple-700 text-white transition-all disabled:opacity-40 cursor-pointer shadow-xs"
+                title="Replace all matching occurrences in transcript"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span>Replace All</span>
+              </button>
+            </div>
+          )}
+        </div>
       )}
 
       {/* Status Messages */}
