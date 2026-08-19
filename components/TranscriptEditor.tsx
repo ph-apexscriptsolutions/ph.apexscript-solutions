@@ -173,7 +173,17 @@ export default function TranscriptEditor({
   const [audioCurrentTime, setAudioCurrentTime] = useState(0)
   const [audioDuration, setAudioDuration] = useState(0)
   const [playbackSpeed, setPlaybackSpeed] = useState(1.0)
-  const [audioVolume, setAudioVolume] = useState(1.0)
+
+  // Refs for audio values used in hotkey callbacks — avoids stale closure and re-registering listeners
+  const isPlayingRef = useRef(false)
+  const audioSrcRef = useRef<string | null>(null)
+  const audioCurrentTimeRef = useRef(0)
+  const playbackSpeedRef = useRef(1.0)
+  const hotkeysRef = useRef<HotkeySettings>(DEFAULT_HOTKEYS)
+  const shortcutsRef = useRef<TextShortcut[]>(DEFAULT_SHORTCUTS)
+
+  // Throttle timer ref: display updates at max 4Hz (250ms) instead of every browser frame
+  const audioDisplayThrottleRef = useRef<NodeJS.Timeout | null>(null)
 
   // ── WORKER PREFERENCES (Hotkeys & Text Expander Shortcuts) ──
   const [hotkeys, setHotkeys] = useState<HotkeySettings>(DEFAULT_HOTKEYS)
@@ -183,6 +193,10 @@ export default function TranscriptEditor({
   const [newShortcutTrigger, setNewShortcutTrigger] = useState('')
   const [newShortcutReplacement, setNewShortcutReplacement] = useState('')
   const [isCapturingKey, setIsCapturingKey] = useState<keyof HotkeySettings | null>(null)
+
+  // Keep refs in sync with state (no dependency array churn in hotkey effect)
+  useEffect(() => { hotkeysRef.current = hotkeys }, [hotkeys])
+  useEffect(() => { shortcutsRef.current = shortcuts }, [shortcuts])
 
   // Helper to detect if the current session is running inside the Desktop App
   const getMyClientType = useCallback(() => {
@@ -541,88 +555,100 @@ export default function TranscriptEditor({
     ].join(':')
   }
 
-  const handleAudioFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAudioFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
     const url = URL.createObjectURL(file)
+    audioSrcRef.current = url
     setAudioSrc(url)
     setAudioFileName(file.name)
+    isPlayingRef.current = false
     setIsPlaying(false)
+    audioCurrentTimeRef.current = 0
     setAudioCurrentTime(0)
-  }
+  }, [])
 
-  const togglePlayPause = () => {
-    if (!audioRef.current || !audioSrc) return
-    if (isPlaying) {
+  // Stable toggle using refs — no stale closures, no listener re-registration
+  const togglePlayPause = useCallback(() => {
+    if (!audioRef.current || !audioSrcRef.current) return
+    if (isPlayingRef.current) {
       audioRef.current.pause()
+      isPlayingRef.current = false
       setIsPlaying(false)
     } else {
       audioRef.current.play().catch((err) => console.error('Audio play error:', err))
+      isPlayingRef.current = true
       setIsPlaying(true)
     }
-  }
+  }, [])
 
-  const stopAudio = () => {
+  const stopAudio = useCallback(() => {
     if (!audioRef.current) return
     audioRef.current.pause()
+    isPlayingRef.current = false
     setIsPlaying(false)
-  }
+  }, [])
 
-  const rewindAudio = (seconds = hotkeys.rewindSeconds || 2) => {
+  const rewindAudio = useCallback((seconds?: number) => {
     if (!audioRef.current) return
-    audioRef.current.currentTime = Math.max(0, audioRef.current.currentTime - seconds)
-    setAudioCurrentTime(audioRef.current.currentTime)
-  }
+    const rewindSecs = seconds ?? hotkeysRef.current.rewindSeconds ?? 2
+    audioRef.current.currentTime = Math.max(0, audioRef.current.currentTime - rewindSecs)
+    const newTime = audioRef.current.currentTime
+    audioCurrentTimeRef.current = newTime
+    setAudioCurrentTime(newTime)
+  }, [])
 
-  const toggleFastSpeed = () => {
+  const toggleFastSpeed = useCallback(() => {
     if (!audioRef.current) return
-    const newSpeed = playbackSpeed === 1.0 ? (hotkeys.fastSpeed || 1.5) : 1.0
+    const newSpeed = playbackSpeedRef.current === 1.0 ? (hotkeysRef.current.fastSpeed || 1.5) : 1.0
     audioRef.current.playbackRate = newSpeed
+    playbackSpeedRef.current = newSpeed
     setPlaybackSpeed(newSpeed)
-  }
+  }, [])
 
-  const copyOrInsertTimestamp = (insertIntoEditor = true) => {
-    const ts = `[${formatTime(audioCurrentTime)}]`
+  const copyOrInsertTimestamp = useCallback((insertIntoEditor = true) => {
+    const ts = `[${formatTime(audioCurrentTimeRef.current)}]`
     if (insertIntoEditor && editorRef.current) {
       editorRef.current.focus()
       document.execCommand('insertText', false, `${ts} `)
-      handleEditorInput()
+      // Trigger auto-save debounce without a full state re-render
+      if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current)
+      autoSaveTimerRef.current = setTimeout(() => {
+        if (editorRef.current) {
+          triggerAutoSaveToSlot5(editorRef.current.innerHTML)
+        }
+      }, 2000)
     } else {
       navigator.clipboard.writeText(ts)
       setStatusMessage({ type: 'info', text: `Copied timestamp ${ts} to clipboard.` })
     }
-  }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── GLOBAL AUDIO & SHORTCUT HOTKEY DISPATCHER ──
+  // Registered ONCE on mount with empty deps — reads all live values through refs, never stale
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
-      if (showHotkeysModal || isCapturingKey) return
+      if (showHotkeysModal) return
 
       const keyName = e.key.toUpperCase()
+      const hk = hotkeysRef.current
 
-      // 1. Play / Pause Hotkey
-      if (keyName === hotkeys.playPause.toUpperCase()) {
+      if (keyName === hk.playPause.toUpperCase()) {
         e.preventDefault()
         togglePlayPause()
         return
       }
-
-      // 2. Rewind Hotkey
-      if (keyName === hotkeys.rewind.toUpperCase()) {
+      if (keyName === hk.rewind.toUpperCase()) {
         e.preventDefault()
-        rewindAudio(hotkeys.rewindSeconds || 2)
+        rewindAudio(hk.rewindSeconds || 2)
         return
       }
-
-      // 3. Fast Forward / Speed Hotkey
-      if (keyName === hotkeys.fastForward.toUpperCase()) {
+      if (keyName === hk.fastForward.toUpperCase()) {
         e.preventDefault()
         toggleFastSpeed()
         return
       }
-
-      // 4. Timestamp Copy / Insert Hotkey
-      if (keyName === hotkeys.copyTimestamp.toUpperCase()) {
+      if (keyName === hk.copyTimestamp.toUpperCase()) {
         e.preventDefault()
         copyOrInsertTimestamp(true)
         return
@@ -631,7 +657,7 @@ export default function TranscriptEditor({
 
     window.addEventListener('keydown', handleGlobalKeyDown)
     return () => window.removeEventListener('keydown', handleGlobalKeyDown)
-  }, [hotkeys, isPlaying, audioSrc, audioCurrentTime, playbackSpeed, showHotkeysModal, isCapturingKey])
+  }, [togglePlayPause, rewindAudio, toggleFastSpeed, copyOrInsertTimestamp, showHotkeysModal])
 
   // Handle hotkeys inside contenteditable (Ctrl+B, Ctrl+I, Ctrl+U, Ctrl+S, Ctrl+F, Ctrl+H, Ctrl+Z, Ctrl+Y, Space for Text Expander)
   const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
@@ -928,8 +954,15 @@ export default function TranscriptEditor({
         ref={audioRef}
         src={audioSrc || undefined}
         onTimeUpdate={() => {
-          if (audioRef.current) {
-            setAudioCurrentTime(audioRef.current.currentTime)
+          if (!audioRef.current) return
+          // Always keep the ref up-to-date (zero cost, used by hotkey callbacks)
+          audioCurrentTimeRef.current = audioRef.current.currentTime
+          // Throttle React state updates to 4Hz — prevents render churn on every browser frame
+          if (!audioDisplayThrottleRef.current) {
+            audioDisplayThrottleRef.current = setTimeout(() => {
+              audioDisplayThrottleRef.current = null
+              setAudioCurrentTime(audioCurrentTimeRef.current)
+            }, 250)
           }
         }}
         onLoadedMetadata={() => {
@@ -937,7 +970,10 @@ export default function TranscriptEditor({
             setAudioDuration(audioRef.current.duration)
           }
         }}
-        onEnded={() => setIsPlaying(false)}
+        onEnded={() => {
+          isPlayingRef.current = false
+          setIsPlaying(false)
+        }}
       />
 
       <input
