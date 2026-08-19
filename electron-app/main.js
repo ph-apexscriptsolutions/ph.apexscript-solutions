@@ -8,8 +8,14 @@ autoUpdater.logger = log
 autoUpdater.logger.transports.file.level = "info"
 log.info("App starting...")
 
-const APP_URL = "https://landing-page-heading.vercel.app/dashboard/transcript-editor"
-const ALLOWED_HOSTS = ["landing-page-heading.vercel.app", "ph-apexscriptsolutions.vercel.app", "supabase.co", "supabase.com"]
+const APP_URL = "https://apexscript-solutionsph.vercel.app/dashboard/transcript-editor"
+const ALLOWED_HOSTS = [
+  "apexscript-solutionsph.vercel.app",
+  "landing-page-heading.vercel.app",
+  "ph-apexscriptsolutions.vercel.app",
+  "supabase.co",
+  "supabase.com"
+]
 
 let mainWindow = null
 let tray = null

@@ -1,16 +1,17 @@
-﻿"use client"
+"use client"
 import { useState, useEffect } from "react"
 import { Download, Monitor, CheckCircle2, RefreshCw, ArrowLeft, Laptop, Shield, Zap, Bell } from "lucide-react"
 import Link from "next/link"
 
-const DIRECT_DOWNLOAD_URL =
-  "https://github.com/ph-apexscriptsolutions/ph.apexscript-solutions/releases/latest/download/ApexScript-Setup.exe"
+const FALLBACK_DOWNLOAD_URL =
+  "https://github.com/ph-apexscriptsolutions/ph.apexscript-solutions/releases/download/v1.0.0/ApexScript-Setup-1.0.0.exe"
 const GITHUB_API_URL =
   "https://api.github.com/repos/ph-apexscriptsolutions/ph.apexscript-solutions/releases/latest"
 
 export default function DownloadPage() {
-  const [version, setVersion] = useState<string | null>(null)
+  const [version, setVersion] = useState<string | null>("v1.0.0")
   const [releaseDate, setReleaseDate] = useState<string | null>(null)
+  const [downloadUrl, setDownloadUrl] = useState<string>(FALLBACK_DOWNLOAD_URL)
   const [loadingVersion, setLoadingVersion] = useState(true)
   const [downloading, setDownloading] = useState(false)
 
@@ -19,8 +20,21 @@ export default function DownloadPage() {
       .then((r) => r.json())
       .then((data) => {
         if (data.tag_name) setVersion(data.tag_name)
-        if (data.published_at)
-          setReleaseDate(new Date(data.published_at).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }))
+        if (data.published_at) {
+          setReleaseDate(
+            new Date(data.published_at).toLocaleDateString("en-US", {
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+            })
+          )
+        }
+        const exeAsset = data.assets?.find((a: any) =>
+          a.name?.toLowerCase().endsWith(".exe")
+        )
+        if (exeAsset?.browser_download_url) {
+          setDownloadUrl(exeAsset.browser_download_url)
+        }
       })
       .catch(() => {})
       .finally(() => setLoadingVersion(false))
@@ -28,7 +42,7 @@ export default function DownloadPage() {
 
   const handleDownload = () => {
     setDownloading(true)
-    window.location.href = DIRECT_DOWNLOAD_URL
+    window.location.href = downloadUrl
     setTimeout(() => setDownloading(false), 4000)
   }
 
