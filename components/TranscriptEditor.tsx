@@ -58,6 +58,7 @@ export default function TranscriptEditor({
 }: TranscriptEditorProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const overlayRef = useRef<HTMLDivElement>(null)
+  const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null)
   const isInitialLoadRef = useRef(true)
 
   // Formatting marks display mode (Microsoft Word style Show/Hide ¶)
@@ -73,7 +74,7 @@ export default function TranscriptEditor({
   const effectiveUserId = role === 'admin' ? selectedWorkerId : userId
   const effectiveRole = role === 'admin' && selectedWorkerId !== userId ? 'worker' : role
 
-  // Multi-slot state (1 to 5)
+  // Multi-slot state (1 to 5) - Slot 5 is dedicated for automated live backup / Auto-Save
   const [activeSlot, setActiveSlot] = useState<number>(1)
   const [slotsMeta, setSlotsMeta] = useState<SlotInfo[]>([])
   const [slotNames, setSlotNames] = useState<Record<number, string>>({
@@ -81,7 +82,7 @@ export default function TranscriptEditor({
     2: 'Draft 2 / Revision',
     3: 'Draft 3 / Revision',
     4: 'Draft 4',
-    5: 'Draft 5',
+    5: 'Draft 5 (Auto-Save)',
   })
 
   // Editor content & formatting
@@ -96,6 +97,8 @@ export default function TranscriptEditor({
   const [saving, setSaving] = useState(false)
   const [loading, setLoading] = useState(false)
   const [loadingSlots, setLoadingSlots] = useState(false)
+  const [autoSaveStatus, setAutoSaveStatus] = useState<'saved' | 'saving' | 'unsaved' | 'idle'>('idle')
+  const [autoSaveTime, setAutoSaveTime] = useState<Date | null>(null)
   const [lastSavedTime, setLastSavedTime] = useState<Date | null>(null)
   const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error' | 'info'; text: string } | null>(null)
   const [copied, setCopied] = useState(false)
@@ -120,7 +123,7 @@ export default function TranscriptEditor({
     }
   }, [])
 
-  // Load active slot content from cloud storage
+  // Load active slot content from cloud storage (with crash recovery for Slot 5)
   const loadSlotContent = useCallback(
     async (targetId: string, targetRole: string, slotNum: number) => {
       if (!targetId) return
@@ -136,12 +139,38 @@ export default function TranscriptEditor({
 
         if (res.ok && data.content) {
           setContent(data.content)
+        } else if (slotNum === 5) {
+          // Emergency power interruption recovery for Slot 5
+          try {
+            const emergencyDraft = localStorage.getItem(`transcript_autosave_slot5_${targetRole}_${targetId}`)
+            if (emergencyDraft && emergencyDraft.trim()) {
+              setContent(emergencyDraft)
+              setStatusMessage({ type: 'info', text: 'Recovered ongoing auto-saved draft from local emergency backup.' })
+            } else {
+              setContent('')
+            }
+          } catch (e) {
+            setContent('')
+          }
         } else {
           setContent('')
         }
       } catch (err) {
         console.error('Failed to load slot content', err)
-        setContent('')
+        if (slotNum === 5) {
+          try {
+            const emergencyDraft = localStorage.getItem(`transcript_autosave_slot5_${targetRole}_${targetId}`)
+            if (emergencyDraft && emergencyDraft.trim()) {
+              setContent(emergencyDraft)
+            } else {
+              setContent('')
+            }
+          } catch (e) {
+            setContent('')
+          }
+        } else {
+          setContent('')
+        }
       } finally {
         setLoading(false)
       }
@@ -157,10 +186,65 @@ export default function TranscriptEditor({
     }
   }, [effectiveUserId, effectiveRole, activeSlot, fetchSlotsList, loadSlotContent])
 
-  // Content change handler: simple state update without automatic local storage / background saving
+  // Dedicated Auto-Save Function: automatically backs up ongoing text into Slot 5 (cloud & local emergency store)
+  const triggerAutoSaveToSlot5 = useCallback(
+    async (textToSave: string) => {
+      if (!effectiveUserId || !textToSave.trim()) return
+      setAutoSaveStatus('saving')
+
+      // 1. Instant local emergency backup for power cut protection
+      try {
+        localStorage.setItem(`transcript_autosave_slot5_${effectiveRole}_${effectiveUserId}`, textToSave)
+        localStorage.setItem(`transcript_autosave_time_slot5_${effectiveRole}_${effectiveUserId}`, Date.now().toString())
+      } catch (e) {}
+
+      // 2. Cloud Slot 5 auto-save
+      try {
+        const res = await fetch('/api/transcripts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            role: effectiveRole,
+            userId: effectiveUserId,
+            content: textToSave,
+            slot: 5,
+          }),
+        })
+        const data = await res.json()
+        if (res.ok && !data.error) {
+          setAutoSaveStatus('saved')
+          setAutoSaveTime(new Date())
+          fetchSlotsList(effectiveUserId, effectiveRole)
+        } else {
+          setAutoSaveStatus('idle')
+        }
+      } catch (err) {
+        console.error('Auto-save to slot 5 error:', err)
+        setAutoSaveStatus('idle')
+      }
+    },
+    [effectiveUserId, effectiveRole, fetchSlotsList]
+  )
+
+  // Content change handler: updates live text + debounces auto-save into Slot 5
   const handleContentChange = (newText: string) => {
     setContent(newText)
+
+    if (!newText.trim()) return
+    setAutoSaveStatus('unsaved')
+
+    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current)
+    autoSaveTimerRef.current = setTimeout(() => {
+      triggerAutoSaveToSlot5(newText)
+    }, 2000)
   }
+
+  // Cleanup auto-save timer on unmount
+  useEffect(() => {
+    return () => {
+      if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current)
+    }
+  }, [])
 
   const handlePasteIntercept = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
     if (content.trim()) {
@@ -396,7 +480,7 @@ export default function TranscriptEditor({
                   const hasData = meta?.hasContent || (s === activeSlot && content.trim().length > 0)
                   return (
                     <option key={s} value={s} className="bg-slate-900 text-white">
-                      Slot {s} {hasData ? '●' : '(Empty)'}
+                      {s === 5 ? 'Slot 5 (Auto-Save)' : `Slot ${s}`} {hasData ? '●' : '(Empty)'}
                     </option>
                   )
                 })}
@@ -444,6 +528,16 @@ export default function TranscriptEditor({
 
           {/* Right Focus Mode Quick Actions */}
           <div className="flex items-center gap-2">
+            {autoSaveStatus === 'saving' ? (
+              <span className="text-[10px] text-purple-300 animate-pulse hidden md:inline">
+                Auto-saving to Slot 5...
+              </span>
+            ) : autoSaveTime ? (
+              <span className="text-[10px] text-emerald-400 hidden md:inline" title="Ongoing work is auto-saved to Slot 5">
+                ● Auto-saved ({autoSaveTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})
+              </span>
+            ) : null}
+
             <span className="text-zinc-300 text-[11px] hidden sm:inline">
               Words: <strong className="text-white">{wordCount}</strong>
             </span>
@@ -566,7 +660,9 @@ export default function TranscriptEditor({
                     const words = slotNum === activeSlot ? wordCount : meta?.wordCount || 0
                     return (
                       <option key={slotNum} value={slotNum} className="text-zinc-900">
-                        Slot {slotNum} {hasData ? `(${words} words)` : '(Empty)'}
+                        {slotNum === 5
+                          ? `Slot 5 (Auto-Save) ${hasData ? `(${words} words)` : '(Empty)'}`
+                          : `Slot ${slotNum} ${hasData ? `(${words} words)` : '(Empty)'}`}
                       </option>
                     )
                   })}
@@ -683,10 +779,22 @@ export default function TranscriptEditor({
 
             {/* Action Buttons */}
             <div className="flex items-center gap-2">
+              {autoSaveStatus === 'saving' ? (
+                <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 bg-purple-50 border border-purple-200 rounded-xl shadow-xs text-purple-700 text-[11px]">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-purple-600" />
+                  <span>Auto-saving Slot 5...</span>
+                </div>
+              ) : autoSaveTime ? (
+                <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-50 border border-emerald-200 rounded-xl shadow-xs text-emerald-800 text-[11px]" title="Ongoing work auto-saved in Slot 5">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Slot 5 Auto-saved ({autoSaveTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})</span>
+                </div>
+              ) : null}
+
               {lastSavedTime && (
                 <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 bg-white border border-zinc-200/80 rounded-xl shadow-xs text-zinc-600 text-[11px]">
                   <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>Saved at {lastSavedTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                  <span>Manual Saved at {lastSavedTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                 </div>
               )}
 
