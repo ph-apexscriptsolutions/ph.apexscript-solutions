@@ -15,6 +15,11 @@ import {
   ShieldCheck,
   User,
   Laptop,
+  Download,
+  CheckCircle2,
+  X,
+  Sparkles,
+  Monitor,
 } from 'lucide-react'
 
 export default function FullscreenTranscriptEditorPage() {
@@ -27,8 +32,16 @@ export default function FullscreenTranscriptEditorPage() {
   const [authError, setAuthError] = useState(false)
   const [deferredInstallPrompt, setDeferredInstallPrompt] = useState<any>(null)
   const [isAppInstalled, setIsAppInstalled] = useState(false)
+  const [showInstallModal, setShowInstallModal] = useState(false)
 
   useEffect(() => {
+    // Register Service Worker for PWA 1-click install support
+    if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch((err) => {
+        console.log('SW registration error:', err)
+      })
+    }
+
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault()
       setDeferredInstallPrompt(e)
@@ -37,13 +50,17 @@ export default function FullscreenTranscriptEditorPage() {
     const handleAppInstalled = () => {
       setIsAppInstalled(true)
       setDeferredInstallPrompt(null)
+      setShowInstallModal(false)
     }
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
     window.addEventListener('appinstalled', handleAppInstalled)
 
     // Check if running in standalone mode (already installed desktop app)
-    if (window.matchMedia('(display-mode: standalone)').matches) {
+    if (
+      window.matchMedia('(display-mode: standalone)').matches ||
+      (window.navigator as any).standalone === true
+    ) {
       setIsAppInstalled(true)
     }
 
@@ -53,18 +70,36 @@ export default function FullscreenTranscriptEditorPage() {
     }
   }, [])
 
+  const downloadDesktopShortcut = () => {
+    const targetUrl =
+      typeof window !== 'undefined'
+        ? `${window.location.origin}/dashboard/transcript-editor`
+        : 'https://ph-apexscriptsolutions.vercel.app/dashboard/transcript-editor'
+    const shortcutContent = `[InternetShortcut]\r\nURL=${targetUrl}\r\nIconIndex=0\r\n`
+    const blob = new Blob([shortcutContent], { type: 'application/octet-stream' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'ApexScript-Desktop-Workspace.url'
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }
+
   const handleInstallApp = async () => {
     if (deferredInstallPrompt) {
       deferredInstallPrompt.prompt()
       const { outcome } = await deferredInstallPrompt.userChoice
       if (outcome === 'accepted') {
         setIsAppInstalled(true)
+        setShowInstallModal(false)
       }
       setDeferredInstallPrompt(null)
     } else {
-      alert(
-        'To install ApexScript as a standalone desktop application:\n\n1. In Chrome / Edge, click the "Install App" or "..." menu at the top right of your browser.\n2. Select "Install ApexScript Transcription Workspace" or "Apps -> Install this site as an app".\n3. It will install directly to your Desktop and Start Menu!'
-      )
+      // Auto-trigger direct download of the desktop launcher shortcut
+      downloadDesktopShortcut()
+      setShowInstallModal(true)
     }
   }
 
@@ -239,6 +274,93 @@ export default function FullscreenTranscriptEditorPage() {
           initialWorkerId={userId}
         />
       </main>
+
+      {/* ── DESKTOP APP INSTALLATION & LAUNCHER MODAL ── */}
+      {showInstallModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4 animate-fade-in">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl p-6 max-w-md w-full flex flex-col space-y-4 text-white">
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-xs">
+                  <Laptop className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-white">ApexScript Desktop App</h3>
+                  <p className="text-[11px] text-zinc-400">Desktop Launcher & Direct Access</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowInstallModal(false)}
+                className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-slate-800 transition-all cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Auto Download Success Banner */}
+            <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-start gap-3">
+              <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-xs font-bold text-emerald-300">Desktop Shortcut Downloaded!</p>
+                <p className="text-[11px] text-zinc-300 mt-0.5 leading-relaxed">
+                  Your browser has downloaded <code className="bg-emerald-950 px-1 py-0.5 rounded text-emerald-200 text-[10px] font-mono">ApexScript-Desktop-Workspace.url</code>.
+                </p>
+              </div>
+            </div>
+
+            {/* Instructions */}
+            <div className="space-y-2.5 text-xs text-zinc-300">
+              <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-slate-800/60 border border-slate-700/60">
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-purple-600 text-[10px] font-bold text-white">
+                  1
+                </span>
+                <p className="leading-snug">
+                  <strong>Double-click</strong> the downloaded shortcut in your Downloads folder to launch the workspace anytime.
+                </p>
+              </div>
+
+              <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-slate-800/60 border border-slate-700/60">
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-purple-600 text-[10px] font-bold text-white">
+                  2
+                </span>
+                <p className="leading-snug">
+                  Drag the shortcut file directly onto your <strong>Windows Desktop</strong> for instant 1-click opening.
+                </p>
+              </div>
+
+              <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-slate-800/60 border border-slate-700/60">
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-purple-600 text-[10px] font-bold text-white">
+                  3
+                </span>
+                <p className="leading-snug">
+                  <strong>Chrome / Edge Native App:</strong> Click the <span className="text-purple-300 font-semibold">Install App icon (🖥️)</span> in the right side of your browser URL address bar to install as a standalone window!
+                </p>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex items-center gap-2 pt-2">
+              <button
+                type="button"
+                onClick={downloadDesktopShortcut}
+                className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold text-zinc-200 transition-all cursor-pointer"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Download Again</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowInstallModal(false)}
+                className="flex-1 flex items-center justify-center px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-xs font-bold text-white transition-all shadow-md shadow-purple-600/20 cursor-pointer"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
