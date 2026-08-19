@@ -28,25 +28,95 @@ async function ensureBucket(supabase: any) {
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
-    const role = searchParams.get('role')
+    const action = searchParams.get('action')
+    const role = searchParams.get('role') || 'worker'
     const userId = searchParams.get('userId')
+    const slot = parseInt(searchParams.get('slot') || '1', 10)
 
-    if (!role || !userId) {
-      return NextResponse.json({ error: 'Missing role or userId parameter' }, { status: 400 })
+    if (!userId) {
+      return NextResponse.json({ error: 'Missing userId parameter' }, { status: 400 })
     }
 
     const supabase = getSupabaseClient()
     await ensureBucket(supabase)
 
-    const filePath = `${role}/${userId}.txt`
-    const { data, error } = await supabase.storage.from(BUCKET).download(filePath)
+    // Action: list all 5 slots for this user
+    if (action === 'list') {
+      const slotsData = []
+      for (let i = 1; i <= 5; i++) {
+        const slotPath = `${role}/${userId}/slot_${i}.txt`
+        const legacyPath = i === 1 ? `${role}/${userId}.txt` : null
+
+        let content = ''
+        let updatedAt: string | null = null
+
+        // Try slot specific path
+        let { data, error } = await supabase.storage.from(BUCKET).download(slotPath)
+        if (error && legacyPath) {
+          // Fallback to legacy path for slot 1
+          const legacy = await supabase.storage.from(BUCKET).download(legacyPath)
+          if (!legacy.error && legacy.data) {
+            data = legacy.data
+            error = null
+          }
+        }
+
+        if (!error && data) {
+          content = await data.text()
+          updatedAt = new Date().toISOString()
+        }
+
+        const wordCount = content.trim() ? content.trim().split(/\s+/).length : 0
+        const charCount = content.length
+        const preview = content.substring(0, 150).replace(/\s+/g, ' ').trim()
+
+        slotsData.push({
+          slot: i,
+          title: `Draft / Revision ${i}`,
+          hasContent: content.length > 0,
+          wordCount,
+          charCount,
+          preview,
+          updatedAt,
+        })
+      }
+
+      // Check worker activity from worker_profiles table if available
+      let workerInfo = null
+      try {
+        const { data: profile } = await supabase
+          .from('worker_profiles')
+          .select('id, full_name, role, department, last_seen')
+          .eq('id', userId)
+          .single()
+        if (profile) {
+          workerInfo = profile
+        }
+      } catch (e) {}
+
+      return NextResponse.json({ slots: slotsData, worker: workerInfo }, { status: 200 })
+    }
+
+    // Default action: Get specific slot content
+    const slotNum = isNaN(slot) || slot < 1 || slot > 5 ? 1 : slot
+    const slotPath = `${role}/${userId}/slot_${slotNum}.txt`
+    const legacyPath = slotNum === 1 ? `${role}/${userId}.txt` : null
+
+    let { data, error } = await supabase.storage.from(BUCKET).download(slotPath)
+    if (error && legacyPath) {
+      const legacy = await supabase.storage.from(BUCKET).download(legacyPath)
+      if (!legacy.error && legacy.data) {
+        data = legacy.data
+        error = null
+      }
+    }
 
     if (error) {
-      return NextResponse.json({ content: null, message: 'No saved transcript found' }, { status: 200 })
+      return NextResponse.json({ content: null, slot: slotNum, message: 'No saved transcript found for this slot' }, { status: 200 })
     }
 
     const text = await data.text()
-    return NextResponse.json({ content: text }, { status: 200 })
+    return NextResponse.json({ content: text, slot: slotNum }, { status: 200 })
   } catch (err: any) {
     console.error('Transcript GET error:', err)
     return NextResponse.json({ error: err.message || 'Internal Server Error' }, { status: 500 })
@@ -56,26 +126,28 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { role, userId, content } = body
+    const { role = 'worker', userId, content, slot = 1, title } = body
 
-    if (!role || !userId) {
-      return NextResponse.json({ error: 'Missing role or userId' }, { status: 400 })
+    if (!userId) {
+      return NextResponse.json({ error: 'Missing userId' }, { status: 400 })
     }
+
+    const slotNum = isNaN(parseInt(slot, 10)) || parseInt(slot, 10) < 1 || parseInt(slot, 10) > 5 ? 1 : parseInt(slot, 10)
 
     const supabase = getSupabaseClient()
     await ensureBucket(supabase)
 
-    const filePath = `${role}/${userId}.txt`
+    const slotPath = `${role}/${userId}/slot_${slotNum}.txt`
     const buffer = Buffer.from(content || '', 'utf-8')
 
-    let { error } = await supabase.storage.from(BUCKET).upload(filePath, buffer, {
+    let { error } = await supabase.storage.from(BUCKET).upload(slotPath, buffer, {
       contentType: 'text/plain; charset=utf-8',
       upsert: true
     })
 
     if (error && error.message?.includes('Bucket not found')) {
       await supabase.storage.createBucket(BUCKET, { public: true })
-      const retry = await supabase.storage.from(BUCKET).upload(filePath, buffer, {
+      const retry = await supabase.storage.from(BUCKET).upload(slotPath, buffer, {
         contentType: 'text/plain; charset=utf-8',
         upsert: true
       })
@@ -86,7 +158,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    return NextResponse.json({ success: true, path: filePath }, { status: 200 })
+    // Also update worker's last_seen / activity timestamp
+    try {
+      await supabase
+        .from('worker_profiles')
+        .update({ last_seen: new Date().toISOString() })
+        .eq('id', userId)
+    } catch (e) {}
+
+    return NextResponse.json({ success: true, slot: slotNum, path: slotPath }, { status: 200 })
   } catch (err: any) {
     console.error('Transcript POST error:', err)
     return NextResponse.json({ error: err.message || 'Internal Server Error' }, { status: 500 })

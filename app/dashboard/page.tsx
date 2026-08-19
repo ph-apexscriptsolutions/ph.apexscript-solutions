@@ -6820,7 +6820,7 @@ export default function DashboardPage() {
       {/* ── Transcript Editor Modal ── */}
       {isTranscriptEditorModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-md animate-fade-in">
-          <div className="bg-gradient-to-b from-purple-50 to-white border border-purple-200/60 backdrop-blur-xl shadow-[0_8px_60px_rgba(168,85,247,0.12)] rounded-3xl w-full max-w-4xl p-6 relative max-h-[90vh] flex flex-col overflow-hidden animate-scale-up">
+          <div className="bg-gradient-to-b from-purple-50 to-white border border-purple-200/60 backdrop-blur-xl shadow-[0_8px_60px_rgba(168,85,247,0.12)] rounded-3xl w-full max-w-5xl p-6 relative max-h-[92vh] flex flex-col overflow-hidden animate-scale-up">
             <button
               onClick={() => setIsTranscriptEditorModalOpen(false)}
               className="absolute right-4 top-4 z-10 cursor-pointer text-zinc-400 hover:text-purple-500 hover:rotate-90 transition-all duration-300"
@@ -6844,6 +6844,8 @@ export default function DashboardPage() {
               <TranscriptEditor
                 role={isAdmin ? 'admin' : 'worker'}
                 userId={user?.id || activeWorker?.id || ''}
+                allWorkers={allWorkers || []}
+                initialWorkerId={activeWorker?.id}
               />
             </div>
           </div>

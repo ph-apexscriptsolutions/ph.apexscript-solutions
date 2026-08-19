@@ -1,15 +1,86 @@
 'use client'
 
 import React, { useState, useEffect, useRef, useCallback } from 'react'
-import { Loader2, Save, Download, Copy, Check, Search, RefreshCw, Type, Bold, Italic, Palette, Pilcrow, Cloud, CheckCircle2, AlertCircle } from 'lucide-react'
+import {
+  Loader2,
+  Save,
+  Download,
+  Copy,
+  Check,
+  Search,
+  RefreshCw,
+  Type,
+  Bold,
+  Italic,
+  Palette,
+  Pilcrow,
+  Cloud,
+  CheckCircle2,
+  Users,
+  Eye,
+  FileText,
+  Clock,
+  Activity,
+  Layers,
+  ChevronRight,
+} from 'lucide-react'
 
 type AutoSaveState = 'saved' | 'saving' | 'unsaved' | 'offline' | 'idle'
 
-export default function TranscriptEditor({ role, userId }: { role: 'admin' | 'worker'; userId: string }) {
+interface WorkerOption {
+  id: string
+  full_name?: string
+  role?: string
+  department?: string
+  last_seen?: string
+}
+
+interface SlotInfo {
+  slot: number
+  title: string
+  hasContent: boolean
+  wordCount: number
+  charCount: number
+  preview: string
+  updatedAt: string | null
+}
+
+interface TranscriptEditorProps {
+  role: 'admin' | 'worker'
+  userId: string
+  allWorkers?: WorkerOption[]
+  initialWorkerId?: string
+}
+
+export default function TranscriptEditor({
+  role,
+  userId,
+  allWorkers = [],
+  initialWorkerId,
+}: TranscriptEditorProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null)
   const isInitialLoadRef = useRef(true)
 
+  // Target User ID (if admin is inspecting a worker, targetUserId is the selected worker's ID)
+  const [selectedWorkerId, setSelectedWorkerId] = useState<string>(
+    role === 'admin' && initialWorkerId ? initialWorkerId : userId
+  )
+  const effectiveUserId = role === 'admin' ? selectedWorkerId : userId
+  const effectiveRole = role === 'admin' && selectedWorkerId !== userId ? 'worker' : role
+
+  // Multi-slot state (1 to 5)
+  const [activeSlot, setActiveSlot] = useState<number>(1)
+  const [slotsMeta, setSlotsMeta] = useState<SlotInfo[]>([])
+  const [slotNames, setSlotNames] = useState<Record<number, string>>({
+    1: 'Draft 1 / Main',
+    2: 'Draft 2 / Revision',
+    3: 'Draft 3 / Revision',
+    4: 'Draft 4',
+    5: 'Draft 5',
+  })
+
+  // Editor content & formatting
   const [content, setContent] = useState('')
   const [findText, setFindText] = useState('')
   const [replaceText, setReplaceText] = useState('')
@@ -20,81 +91,113 @@ export default function TranscriptEditor({ role, userId }: { role: 'admin' | 'wo
   const [isItalic, setIsItalic] = useState(false)
   const [saving, setSaving] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [loadingSlots, setLoadingSlots] = useState(false)
   const [autoSaveStatus, setAutoSaveStatus] = useState<AutoSaveState>('idle')
   const [lastSavedTime, setLastSavedTime] = useState<Date | null>(null)
   const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error' | 'info'; text: string } | null>(null)
   const [copied, setCopied] = useState(false)
   const [replaceCount, setReplaceCount] = useState<number | null>(null)
 
-  const localKey = `transcript_draft_${role}_${userId || 'anon'}`
-  const localTimeKey = `transcript_draft_time_${role}_${userId || 'anon'}`
+  // Refresh slots metadata list
+  const fetchSlotsList = useCallback(async (targetId: string, targetRole: string) => {
+    if (!targetId) return
+    setLoadingSlots(true)
+    try {
+      const res = await fetch(
+        `/api/transcripts?action=list&role=${encodeURIComponent(targetRole)}&userId=${encodeURIComponent(targetId)}`
+      )
+      const data = await res.json()
+      if (res.ok && data.slots) {
+        setSlotsMeta(data.slots)
+      }
+    } catch (err) {
+      console.error('Failed to fetch slots list', err)
+    } finally {
+      setLoadingSlots(false)
+    }
+  }, [])
 
-  // Load previously saved transcript on mount (checks cloud & local recovery cache)
-  useEffect(() => {
-    if (!userId) return
-    const load = async () => {
+  // Load active slot content
+  const loadSlotContent = useCallback(
+    async (targetId: string, targetRole: string, slotNum: number) => {
+      if (!targetId) return
       setLoading(true)
-      try {
-        // Check local storage draft first
-        const localDraft = localStorage.getItem(localKey)
-        const localSavedTimeStr = localStorage.getItem(localTimeKey)
+      isInitialLoadRef.current = true
 
-        const res = await fetch(`/api/transcripts?role=${encodeURIComponent(role)}&userId=${encodeURIComponent(userId)}`)
+      const localKey = `transcript_draft_${targetRole}_${targetId}_slot${slotNum}`
+      const localTimeKey = `transcript_draft_time_${targetRole}_${targetId}_slot${slotNum}`
+
+      try {
+        const localDraft = localStorage.getItem(localKey)
+        const localTime = localStorage.getItem(localTimeKey)
+
+        const res = await fetch(
+          `/api/transcripts?role=${encodeURIComponent(targetRole)}&userId=${encodeURIComponent(
+            targetId
+          )}&slot=${slotNum}`
+        )
         const data = await res.json()
-        
-        let loadedContent = ''
+
+        let cloudContent = ''
         if (res.ok && data.content) {
-          loadedContent = data.content
-          setContent(loadedContent)
+          cloudContent = data.content
+          setContent(cloudContent)
           setAutoSaveStatus('saved')
           setLastSavedTime(new Date())
         }
 
-        // If local draft exists and differs from cloud, prefer the latest or restore local
-        if (localDraft && localDraft.trim() && (!loadedContent || localDraft.length >= loadedContent.length)) {
+        // Restore local draft if newer or cloud is empty
+        if (localDraft && localDraft.trim() && (!cloudContent || localDraft.length >= cloudContent.length)) {
           setContent(localDraft)
           setAutoSaveStatus('saved')
-          if (localSavedTimeStr) {
-            setLastSavedTime(new Date(parseInt(localSavedTimeStr, 10)))
-          }
-          setStatusMessage({ type: 'info', text: 'Restored latest draft from auto-save cache.' })
-        } else if (loadedContent) {
-          localStorage.setItem(localKey, loadedContent)
-          localStorage.setItem(localTimeKey, Date.now().toString())
+          if (localTime) setLastSavedTime(new Date(parseInt(localTime, 10)))
+        } else if (!cloudContent) {
+          setContent('')
+          setAutoSaveStatus('idle')
         }
-      } catch (err: any) {
-        console.error('Failed to load saved transcript', err)
-        // Fallback to local storage
+      } catch (err) {
+        console.error('Failed to load slot content', err)
         const localDraft = localStorage.getItem(localKey)
-        if (localDraft) {
-          setContent(localDraft)
-          setStatusMessage({ type: 'info', text: 'Offline mode: loaded draft from local cache.' })
-        }
+        if (localDraft) setContent(localDraft)
       } finally {
         setLoading(false)
         setTimeout(() => {
           isInitialLoadRef.current = false
         }, 300)
       }
+    },
+    []
+  )
+
+  // Load when worker or slot changes
+  useEffect(() => {
+    if (effectiveUserId) {
+      fetchSlotsList(effectiveUserId, effectiveRole)
+      loadSlotContent(effectiveUserId, effectiveRole, activeSlot)
     }
-    load()
-  }, [role, userId, localKey, localTimeKey])
+  }, [effectiveUserId, effectiveRole, activeSlot, fetchSlotsList, loadSlotContent])
 
   // Real-time Cloud Auto-Save Function
   const triggerCloudAutoSave = useCallback(
-    async (textToSave: string) => {
-      if (!userId || !textToSave.trim()) return
+    async (textToSave: string, slotNum: number) => {
+      if (!effectiveUserId || !textToSave.trim()) return
       setAutoSaveStatus('saving')
       try {
         const res = await fetch('/api/transcripts', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ role, userId, content: textToSave }),
+          body: JSON.stringify({
+            role: effectiveRole,
+            userId: effectiveUserId,
+            content: textToSave,
+            slot: slotNum,
+          }),
         })
         const data = await res.json()
         if (res.ok && !data.error) {
           setAutoSaveStatus('saved')
           setLastSavedTime(new Date())
+          fetchSlotsList(effectiveUserId, effectiveRole)
         } else {
           setAutoSaveStatus('offline')
         }
@@ -103,14 +206,16 @@ export default function TranscriptEditor({ role, userId }: { role: 'admin' | 'wo
         setAutoSaveStatus('offline')
       }
     },
-    [role, userId]
+    [effectiveUserId, effectiveRole, fetchSlotsList]
   )
 
   // Content change handler: instant localStorage update + debounced cloud auto-save
   const handleContentChange = (newText: string) => {
     setContent(newText)
 
-    // 1. Immediate local storage snapshot (prevents data loss on power outage / crash)
+    // 1. Immediate local storage snapshot
+    const localKey = `transcript_draft_${effectiveRole}_${effectiveUserId}_slot${activeSlot}`
+    const localTimeKey = `transcript_draft_time_${effectiveRole}_${effectiveUserId}_slot${activeSlot}`
     try {
       localStorage.setItem(localKey, newText)
       localStorage.setItem(localTimeKey, Date.now().toString())
@@ -120,13 +225,10 @@ export default function TranscriptEditor({ role, userId }: { role: 'admin' | 'wo
 
     setAutoSaveStatus('unsaved')
 
-    // 2. Debounced cloud auto-save (Google Docs style, 1.5 seconds)
-    if (autoSaveTimerRef.current) {
-      clearTimeout(autoSaveTimerRef.current)
-    }
-
+    // 2. Debounced cloud auto-save (1.5 seconds)
+    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current)
     autoSaveTimerRef.current = setTimeout(() => {
-      triggerCloudAutoSave(newText)
+      triggerCloudAutoSave(newText, activeSlot)
     }, 1500)
   }
 
@@ -140,7 +242,7 @@ export default function TranscriptEditor({ role, userId }: { role: 'admin' | 'wo
   const handlePasteIntercept = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
     if (content.trim()) {
       const confirmPaste = window.confirm(
-        'A transcript is already present in the editor. Pasting will replace the current content. Continue?'
+        'A transcript is already present in this slot. Pasting will replace the current content. Continue?'
       )
       if (!confirmPaste) {
         e.preventDefault()
@@ -155,7 +257,7 @@ export default function TranscriptEditor({ role, userId }: { role: 'admin' | 'wo
       return
     }
     const escaped = findText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-    const regex = new RegExp(escaped, 'g') // Case-sensitive as required
+    const regex = new RegExp(escaped, 'g')
     const matches = (content.match(regex) || []).length
     if (matches === 0) {
       setStatusMessage({ type: 'info', text: `No occurrences of "${findText}" found (case-sensitive).` })
@@ -168,13 +270,13 @@ export default function TranscriptEditor({ role, userId }: { role: 'admin' | 'wo
     setStatusMessage({ type: 'success', text: `Replaced ${matches} occurrence${matches > 1 ? 's' : ''} of "${findText}".` })
   }
 
-  const handleSave = async () => {
+  const handleManualSave = async () => {
     if (!content.trim()) {
       setStatusMessage({ type: 'error', text: 'Transcript is empty. Nothing to save.' })
       return
     }
-    if (!userId) {
-      setStatusMessage({ type: 'error', text: 'User ID not found. Please ensure you are logged in.' })
+    if (!effectiveUserId) {
+      setStatusMessage({ type: 'error', text: 'User ID not found.' })
       return
     }
 
@@ -185,7 +287,12 @@ export default function TranscriptEditor({ role, userId }: { role: 'admin' | 'wo
       const res = await fetch('/api/transcripts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role, userId, content }),
+        body: JSON.stringify({
+          role: effectiveRole,
+          userId: effectiveUserId,
+          content,
+          slot: activeSlot,
+        }),
       })
 
       const data = await res.json()
@@ -195,7 +302,8 @@ export default function TranscriptEditor({ role, userId }: { role: 'admin' | 'wo
       } else {
         setAutoSaveStatus('saved')
         setLastSavedTime(new Date())
-        setStatusMessage({ type: 'success', text: 'Transcript saved to cloud successfully!' })
+        setStatusMessage({ type: 'success', text: `Slot ${activeSlot} saved to cloud successfully!` })
+        fetchSlotsList(effectiveUserId, effectiveRole)
 
         // Auto-download for workers
         if (role === 'worker') {
@@ -203,7 +311,7 @@ export default function TranscriptEditor({ role, userId }: { role: 'admin' | 'wo
           const url = URL.createObjectURL(blob)
           const a = document.createElement('a')
           a.href = url
-          a.download = `transcript_${userId}.txt`
+          a.download = `transcript_${effectiveUserId}_slot${activeSlot}.txt`
           document.body.appendChild(a)
           a.click()
           document.body.removeChild(a)
@@ -223,7 +331,7 @@ export default function TranscriptEditor({ role, userId }: { role: 'admin' | 'wo
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `transcript_${role}_${userId || 'export'}.txt`
+    a.download = `transcript_${effectiveRole}_${effectiveUserId}_slot${activeSlot}.txt`
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)
@@ -258,12 +366,10 @@ export default function TranscriptEditor({ role, userId }: { role: 'admin' | 'wo
   const toggleParagraphPilcrows = () => {
     if (!content.trim()) return
     if (content.includes('¶')) {
-      // Remove pilcrows
       const cleaned = content.replace(/¶/g, '')
       handleContentChange(cleaned)
       setStatusMessage({ type: 'info', text: 'Removed all pilcrow (¶) markers.' })
     } else {
-      // Add pilcrow to end of each non-empty line
       const lines = content.split('\n')
       const withPilcrow = lines.map((line) => (line.trim() ? line + ' ¶' : line)).join('\n')
       handleContentChange(withPilcrow)
@@ -289,14 +395,132 @@ export default function TranscriptEditor({ role, userId }: { role: 'admin' | 'wo
     }
   }
 
+  // Selected worker details for Admin
+  const selectedWorkerObj = allWorkers.find((w) => w.id === selectedWorkerId)
+
   return (
-    <div className="flex flex-col h-full space-y-4">
-      {/* Top Toolbar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-zinc-50 border border-zinc-200/80 p-3 rounded-2xl">
+    <div className="flex flex-col h-full space-y-3">
+      {/* ── ADMIN WORKER PROGRESS & MONITOR BAR ── */}
+      {role === 'admin' && (
+        <div className="bg-gradient-to-r from-slate-900 to-indigo-950 text-white p-3.5 rounded-2xl border border-indigo-500/30 shadow-md">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-purple-500/20 border border-purple-400/40 text-purple-300">
+                <Users className="h-4.5 w-4.5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold uppercase tracking-wider text-purple-300">Worker Live Monitor</span>
+                  {selectedWorkerObj?.last_seen && (() => {
+                    const diffMins = (Date.now() - new Date(selectedWorkerObj.last_seen).getTime()) / 60000
+                    return diffMins < 5 ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-[10px] font-bold text-emerald-400">
+                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                        Online & Active
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-zinc-800 text-[10px] text-zinc-400">
+                        <Clock className="h-2.5 w-2.5" />
+                        Active {Math.floor(diffMins)}m ago
+                      </span>
+                    )
+                  })()}
+                </div>
+                <p className="text-[11px] text-zinc-400">Inspect real-time progress & all 5 draft slots of any worker</p>
+              </div>
+            </div>
+
+            {/* Worker Selector Dropdown */}
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-zinc-300 font-medium">Select Worker:</span>
+              <select
+                value={selectedWorkerId}
+                onChange={(e) => {
+                  setSelectedWorkerId(e.target.value)
+                  setActiveSlot(1)
+                }}
+                className="rounded-xl border border-indigo-400/40 bg-slate-800 px-3 py-1.5 text-xs font-semibold text-white outline-none focus:ring-2 focus:ring-purple-400 cursor-pointer"
+              >
+                <option value={userId}>My Admin Transcripts</option>
+                {allWorkers.map((w) => (
+                  <option key={w.id} value={w.id}>
+                    {w.full_name || w.id} {w.department ? `(${w.department})` : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── 5 REVISION / DRAFT SLOTS BAR ── */}
+      <div className="bg-white border border-zinc-200/90 rounded-2xl p-2 shadow-xs">
+        <div className="flex items-center justify-between px-2 py-1 mb-1.5 border-b border-zinc-100">
+          <div className="flex items-center gap-1.5 text-xs font-bold text-zinc-700">
+            <Layers className="w-3.5 h-3.5 text-purple-600" />
+            <span>Saved Drafts & Revisions (5 File Slots)</span>
+          </div>
+          <span className="text-[10px] text-zinc-400">
+            Switch slots to save different revisions or resume later
+          </span>
+        </div>
+
+        <div className="grid grid-cols-5 gap-1.5">
+          {[1, 2, 3, 4, 5].map((slotNum) => {
+            const isSelected = activeSlot === slotNum
+            const meta = slotsMeta.find((s) => s.slot === slotNum)
+            const hasData = meta?.hasContent || (slotNum === activeSlot && content.trim().length > 0)
+            const words = slotNum === activeSlot ? wordCount : meta?.wordCount || 0
+
+            return (
+              <button
+                key={slotNum}
+                type="button"
+                onClick={() => {
+                  if (activeSlot !== slotNum) {
+                    setActiveSlot(slotNum)
+                  }
+                }}
+                className={`flex flex-col items-start p-2 rounded-xl text-left border transition-all relative ${
+                  isSelected
+                    ? 'bg-purple-50/90 border-purple-500 shadow-sm ring-1 ring-purple-500/20'
+                    : 'bg-zinc-50 hover:bg-zinc-100/80 border-zinc-200 text-zinc-600'
+                }`}
+              >
+                <div className="flex items-center justify-between w-full">
+                  <span
+                    className={`text-[11px] font-bold ${
+                      isSelected ? 'text-purple-900' : 'text-zinc-700'
+                    }`}
+                  >
+                    Slot {slotNum}
+                  </span>
+                  {hasData ? (
+                    <span className="h-2 w-2 rounded-full bg-emerald-500" title="Has saved content" />
+                  ) : (
+                    <span className="h-2 w-2 rounded-full bg-zinc-300" title="Empty slot" />
+                  )}
+                </div>
+                <div className="mt-0.5 flex items-center justify-between w-full text-[10px]">
+                  <span className={isSelected ? 'text-purple-700 font-medium' : 'text-zinc-400'}>
+                    {hasData ? `${words} words` : 'Empty'}
+                  </span>
+                  {isSelected && (
+                    <span className="text-[9px] font-bold text-purple-600 uppercase">Active</span>
+                  )}
+                </div>
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* ── TOP TOOLBAR ── */}
+      <div className="flex flex-wrap items-center justify-between gap-2.5 bg-zinc-50 border border-zinc-200/80 p-2.5 rounded-2xl">
         {/* Font & Style Controls */}
         <div className="flex flex-wrap items-center gap-2">
           {/* Font Selector */}
-          <div className="flex items-center gap-1.5 bg-white border border-zinc-200 px-2 py-1.5 rounded-xl shadow-sm">
+          <div className="flex items-center gap-1.5 bg-white border border-zinc-200 px-2 py-1.5 rounded-xl shadow-xs">
             <Type className="w-4 h-4 text-zinc-500" />
             <select
               value={font}
@@ -311,7 +535,7 @@ export default function TranscriptEditor({ role, userId }: { role: 'admin' | 'wo
           </div>
 
           {/* Font Size */}
-          <div className="flex items-center gap-1 bg-white border border-zinc-200 px-2 py-1.5 rounded-xl shadow-sm">
+          <div className="flex items-center gap-1 bg-white border border-zinc-200 px-2 py-1.5 rounded-xl shadow-xs">
             <span className="text-xs text-zinc-500 font-medium">Size</span>
             <input
               type="number"
@@ -325,7 +549,7 @@ export default function TranscriptEditor({ role, userId }: { role: 'admin' | 'wo
           </div>
 
           {/* Color Picker */}
-          <div className="flex items-center gap-1.5 bg-white border border-zinc-200 px-2 py-1.5 rounded-xl shadow-sm">
+          <div className="flex items-center gap-1.5 bg-white border border-zinc-200 px-2 py-1.5 rounded-xl shadow-xs">
             <Palette className="w-4 h-4 text-zinc-500" />
             <input
               type="color"
@@ -337,7 +561,7 @@ export default function TranscriptEditor({ role, userId }: { role: 'admin' | 'wo
           </div>
 
           {/* Bold & Italic */}
-          <div className="flex items-center bg-white border border-zinc-200 rounded-xl overflow-hidden shadow-sm">
+          <div className="flex items-center bg-white border border-zinc-200 rounded-xl overflow-hidden shadow-xs">
             <button
               type="button"
               onClick={() => setIsBold(!isBold)}
@@ -361,7 +585,7 @@ export default function TranscriptEditor({ role, userId }: { role: 'admin' | 'wo
           </div>
 
           {/* Pilcrow (¶) Tools */}
-          <div className="flex items-center bg-white border border-zinc-200 rounded-xl overflow-hidden shadow-sm">
+          <div className="flex items-center bg-white border border-zinc-200 rounded-xl overflow-hidden shadow-xs">
             <button
               type="button"
               onClick={insertPilcrow}
@@ -387,25 +611,25 @@ export default function TranscriptEditor({ role, userId }: { role: 'admin' | 'wo
         </div>
 
         {/* Action Buttons & Google Docs Auto-Save Indicator */}
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2">
           {/* Google Docs-style Auto-Save Status Badge */}
           <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-zinc-200/80 rounded-xl shadow-xs">
             {autoSaveStatus === 'saving' ? (
               <>
                 <Loader2 className="w-3.5 h-3.5 animate-spin text-purple-600" />
-                <span className="text-zinc-600 font-medium text-[11px]">Saving...</span>
+                <span className="text-zinc-600 font-medium text-[11px]">Saving Slot {activeSlot}...</span>
               </>
             ) : autoSaveStatus === 'saved' ? (
               <>
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
                 <span className="text-zinc-600 font-medium text-[11px]">
-                  Saved to cloud {lastSavedTime ? `• ${lastSavedTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : ''}
+                  Saved to cloud • Slot {activeSlot} {lastSavedTime ? `(${lastSavedTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})` : ''}
                 </span>
               </>
             ) : autoSaveStatus === 'unsaved' ? (
               <>
                 <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-                <span className="text-zinc-500 text-[11px]">Saving changes...</span>
+                <span className="text-zinc-500 text-[11px]">Auto-saving...</span>
               </>
             ) : autoSaveStatus === 'offline' ? (
               <>
@@ -419,11 +643,12 @@ export default function TranscriptEditor({ role, userId }: { role: 'admin' | 'wo
               </>
             )}
           </div>
+
           <button
             type="button"
             onClick={handleCopy}
             disabled={!content.trim()}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl border border-zinc-200 bg-white hover:bg-zinc-100 text-zinc-700 disabled:opacity-40 transition-all shadow-sm"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl border border-zinc-200 bg-white hover:bg-zinc-100 text-zinc-700 disabled:opacity-40 transition-all shadow-xs"
           >
             {copied ? <Check className="w-3.5 h-3.5 text-green-600" /> : <Copy className="w-3.5 h-3.5" />}
             {copied ? 'Copied' : 'Copy'}
@@ -433,7 +658,7 @@ export default function TranscriptEditor({ role, userId }: { role: 'admin' | 'wo
             type="button"
             onClick={handleManualDownload}
             disabled={!content.trim()}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl border border-zinc-200 bg-white hover:bg-zinc-100 text-zinc-700 disabled:opacity-40 transition-all shadow-sm"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl border border-zinc-200 bg-white hover:bg-zinc-100 text-zinc-700 disabled:opacity-40 transition-all shadow-xs"
             title="Download .txt"
           >
             <Download className="w-3.5 h-3.5" />
@@ -442,18 +667,18 @@ export default function TranscriptEditor({ role, userId }: { role: 'admin' | 'wo
 
           <button
             type="button"
-            onClick={handleSave}
+            onClick={handleManualSave}
             disabled={saving || !content.trim()}
             className="flex items-center gap-1.5 px-4 py-1.5 text-xs font-bold rounded-xl bg-gradient-to-br from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-md shadow-purple-500/20 disabled:opacity-50 transition-all"
           >
             {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-            {saving ? 'Saving...' : 'Save Transcript'}
+            {saving ? 'Saving...' : `Save Slot ${activeSlot}`}
           </button>
         </div>
       </div>
 
-      {/* Find & Replace Bar */}
-      <div className="flex flex-wrap items-center gap-2 bg-purple-50/60 border border-purple-200/60 p-2.5 rounded-2xl">
+      {/* ── FIND & REPLACE BAR ── */}
+      <div className="flex flex-wrap items-center gap-2 bg-purple-50/60 border border-purple-200/60 p-2 rounded-2xl">
         <div className="flex items-center gap-2 flex-1 min-w-[200px]">
           <div className="relative flex-1">
             <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-purple-400" />
@@ -462,7 +687,7 @@ export default function TranscriptEditor({ role, userId }: { role: 'admin' | 'wo
               placeholder="Find (case-sensitive)..."
               value={findText}
               onChange={(e) => setFindText(e.target.value)}
-              className="w-full pl-8 pr-3 py-1.5 text-xs rounded-xl border border-purple-200 bg-white text-zinc-800 placeholder-zinc-400 outline-none focus:ring-2 focus:ring-purple-400/30"
+              className="w-full pl-8 pr-3 py-1 text-xs rounded-xl border border-purple-200 bg-white text-zinc-800 placeholder-zinc-400 outline-none focus:ring-2 focus:ring-purple-400/30"
             />
           </div>
           <div className="relative flex-1">
@@ -471,7 +696,7 @@ export default function TranscriptEditor({ role, userId }: { role: 'admin' | 'wo
               placeholder="Replace with..."
               value={replaceText}
               onChange={(e) => setReplaceText(e.target.value)}
-              className="w-full px-3 py-1.5 text-xs rounded-xl border border-purple-200 bg-white text-zinc-800 placeholder-zinc-400 outline-none focus:ring-2 focus:ring-purple-400/30"
+              className="w-full px-3 py-1 text-xs rounded-xl border border-purple-200 bg-white text-zinc-800 placeholder-zinc-400 outline-none focus:ring-2 focus:ring-purple-400/30"
             />
           </div>
         </div>
@@ -479,7 +704,7 @@ export default function TranscriptEditor({ role, userId }: { role: 'admin' | 'wo
         <button
           type="button"
           onClick={performFindReplace}
-          className="flex items-center gap-1.5 px-4 py-1.5 text-xs font-bold rounded-xl bg-purple-600 hover:bg-purple-700 text-white shadow-sm transition-all"
+          className="flex items-center gap-1.5 px-3.5 py-1 text-xs font-bold rounded-xl bg-purple-600 hover:bg-purple-700 text-white shadow-xs transition-all"
         >
           <RefreshCw className="w-3.5 h-3.5" />
           Replace All
@@ -489,14 +714,14 @@ export default function TranscriptEditor({ role, userId }: { role: 'admin' | 'wo
           <button
             type="button"
             onClick={() => {
-              if (window.confirm('Clear all transcript content from the editor?')) {
-                setContent('')
+              if (window.confirm(`Clear content in Slot ${activeSlot}?`)) {
+                handleContentChange('')
                 setStatusMessage(null)
               }
             }}
             className="text-xs text-zinc-500 hover:text-red-600 px-2 py-1 transition-colors"
           >
-            Clear Text
+            Clear Slot
           </button>
         )}
       </div>
@@ -504,7 +729,7 @@ export default function TranscriptEditor({ role, userId }: { role: 'admin' | 'wo
       {/* Status Messages */}
       {statusMessage && (
         <div
-          className={`text-xs px-3 py-2 rounded-xl border flex items-center justify-between ${
+          className={`text-xs px-3 py-1.5 rounded-xl border flex items-center justify-between ${
             statusMessage.type === 'success'
               ? 'bg-green-50 border-green-200 text-green-800'
               : statusMessage.type === 'error'
@@ -524,7 +749,7 @@ export default function TranscriptEditor({ role, userId }: { role: 'admin' | 'wo
       )}
 
       {/* Editor Main Text Area */}
-      <div className="relative flex-1 min-h-[340px] flex flex-col">
+      <div className="relative flex-1 min-h-[300px] flex flex-col">
         {loading && (
           <div className="absolute inset-0 bg-white/70 backdrop-blur-xs flex items-center justify-center z-10 rounded-2xl">
             <Loader2 className="w-6 h-6 animate-spin text-purple-600" />
@@ -535,7 +760,7 @@ export default function TranscriptEditor({ role, userId }: { role: 'admin' | 'wo
           value={content}
           onChange={(e) => handleContentChange(e.target.value)}
           onPaste={handlePasteIntercept}
-          placeholder="Paste your raw transcript here or start typing..."
+          placeholder={`Paste raw transcript or start typing in Slot ${activeSlot}...`}
           style={{
             fontFamily: getFontFamilyStyle(),
             fontSize: `${fontSize}px`,
@@ -551,22 +776,22 @@ export default function TranscriptEditor({ role, userId }: { role: 'admin' | 'wo
       <div className="flex items-center justify-between text-[11px] text-zinc-500 px-2">
         <div className="flex items-center gap-4">
           <span>
+            Active Slot: <strong className="text-purple-700">Slot {activeSlot}</strong>
+          </span>
+          <span>
             Words: <strong className="text-zinc-700">{wordCount}</strong>
           </span>
           <span>
             Characters: <strong className="text-zinc-700">{charCount}</strong>
           </span>
-          {role === 'worker' && (
-            <span className="text-purple-600 font-medium">
-              Saving auto-downloads a .txt copy to your device
-            </span>
-          )}
         </div>
         <div className="text-[10px] text-zinc-400">
-          Role: <span className="font-semibold uppercase text-zinc-600">{role}</span>
+          User: <span className="font-semibold text-zinc-600">{effectiveUserId}</span> • Role:{' '}
+          <span className="font-semibold uppercase text-zinc-600">{effectiveRole}</span>
         </div>
       </div>
     </div>
   )
 }
+
 
