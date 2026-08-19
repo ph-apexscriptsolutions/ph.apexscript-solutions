@@ -14,6 +14,7 @@ import {
   Loader2,
   ShieldCheck,
   User,
+  Laptop,
 } from 'lucide-react'
 
 export default function FullscreenTranscriptEditorPage() {
@@ -24,6 +25,48 @@ export default function FullscreenTranscriptEditorPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [authError, setAuthError] = useState(false)
+  const [deferredInstallPrompt, setDeferredInstallPrompt] = useState<any>(null)
+  const [isAppInstalled, setIsAppInstalled] = useState(false)
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault()
+      setDeferredInstallPrompt(e)
+    }
+
+    const handleAppInstalled = () => {
+      setIsAppInstalled(true)
+      setDeferredInstallPrompt(null)
+    }
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
+    window.addEventListener('appinstalled', handleAppInstalled)
+
+    // Check if running in standalone mode (already installed desktop app)
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+      setIsAppInstalled(true)
+    }
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
+      window.removeEventListener('appinstalled', handleAppInstalled)
+    }
+  }, [])
+
+  const handleInstallApp = async () => {
+    if (deferredInstallPrompt) {
+      deferredInstallPrompt.prompt()
+      const { outcome } = await deferredInstallPrompt.userChoice
+      if (outcome === 'accepted') {
+        setIsAppInstalled(true)
+      }
+      setDeferredInstallPrompt(null)
+    } else {
+      alert(
+        'To install ApexScript as a standalone desktop application:\n\n1. In Chrome / Edge, click the "Install App" or "..." menu at the top right of your browser.\n2. Select "Install ApexScript Transcription Workspace" or "Apps -> Install this site as an app".\n3. It will install directly to your Desktop and Start Menu!'
+      )
+    }
+  }
 
   useEffect(() => {
     const init = async () => {
@@ -160,11 +203,25 @@ export default function FullscreenTranscriptEditorPage() {
             </span>
           </div>
 
+          {/* Install Desktop App Button */}
+          {!isAppInstalled && (
+            <button
+              type="button"
+              onClick={handleInstallApp}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold transition-all shadow-sm shadow-emerald-500/20 cursor-pointer"
+              title="Install ApexScript Workspace as a Desktop App"
+            >
+              <Laptop className="w-3.5 h-3.5 text-emerald-100" />
+              <span className="hidden sm:inline">Install Desktop App</span>
+              <span className="sm:hidden">Install</span>
+            </button>
+          )}
+
           {/* Fullscreen Toggle */}
           <button
             type="button"
             onClick={toggleBrowserFullscreen}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold transition-all shadow-sm shadow-purple-500/20"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold transition-all shadow-sm shadow-purple-500/20 cursor-pointer"
             title="Toggle Fullscreen"
           >
             {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}

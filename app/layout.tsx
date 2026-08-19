@@ -13,6 +13,7 @@ export const metadata: Metadata = {
   title: 'ApexScript Transcription Services — Professional Transcription Services',
   description:
     'Fast, accurate, human-powered transcription. Trusted by legal, medical, media, and academic teams worldwide.',
+  manifest: '/manifest.json',
   icons: {
     icon: [
       {
