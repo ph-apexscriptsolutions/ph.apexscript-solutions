@@ -350,34 +350,37 @@ export default function TranscriptEditor({
   const renderFormattedMarks = (text: string) => {
     if (!showFormattingMarks || !text) return null
 
-    const lines = text.split('\n')
+    // Normalize CRLF from Windows/Word to single \n
+    const normalized = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n')
+    const lines = normalized.split('\n')
+
     return lines.map((line, lineIdx) => {
       const parts: React.ReactNode[] = []
-      let currentWord = ''
+      let textBuffer = ''
 
       for (let i = 0; i < line.length; i++) {
         const char = line[i]
-        if (char === ' ') {
-          if (currentWord) {
-            parts.push(<span key={`w-${lineIdx}-${i}`} className="text-transparent">{currentWord}</span>)
-            currentWord = ''
+        if (char === ' ' || char === '\u00A0') {
+          if (textBuffer) {
+            parts.push(<span key={`txt-${lineIdx}-${i}`} className="text-transparent">{textBuffer}</span>)
+            textBuffer = ''
           }
-          // Exact-width space with centered black dot
+          // Pure inline span with zero layout distortion and centered black dot
           parts.push(
-            <span key={`s-${lineIdx}-${i}`} className="relative inline-block text-transparent">
-              {' '}
-              <span className="absolute inset-0 flex items-center justify-center text-black font-extrabold select-none pointer-events-none text-[9px] leading-none">
+            <span key={`sp-${lineIdx}-${i}`} className="relative inline text-transparent">
+              {char}
+              <span className="absolute inset-0 flex items-center justify-center text-black font-black select-none pointer-events-none text-[8px] leading-none">
                 ·
               </span>
             </span>
           )
         } else if (char === '\t') {
-          if (currentWord) {
-            parts.push(<span key={`w-${lineIdx}-${i}`} className="text-transparent">{currentWord}</span>)
-            currentWord = ''
+          if (textBuffer) {
+            parts.push(<span key={`txt-${lineIdx}-${i}`} className="text-transparent">{textBuffer}</span>)
+            textBuffer = ''
           }
           parts.push(
-            <span key={`t-${lineIdx}-${i}`} className="relative inline-block text-transparent">
+            <span key={`tab-${lineIdx}-${i}`} className="relative inline text-transparent">
               {'\t'}
               <span className="absolute inset-0 flex items-center justify-center text-black font-bold select-none pointer-events-none text-xs">
                 →
@@ -385,12 +388,12 @@ export default function TranscriptEditor({
             </span>
           )
         } else {
-          currentWord += char
+          textBuffer += char
         }
       }
 
-      if (currentWord) {
-        parts.push(<span key={`w-${lineIdx}-end`} className="text-transparent">{currentWord}</span>)
+      if (textBuffer) {
+        parts.push(<span key={`txt-${lineIdx}-end`} className="text-transparent">{textBuffer}</span>)
       }
 
       const isLastLine = lineIdx === lines.length - 1
@@ -398,8 +401,11 @@ export default function TranscriptEditor({
       return (
         <React.Fragment key={lineIdx}>
           {parts}
-          <span className="text-black font-bold select-none inline-block pl-0.5 pointer-events-none">
-            ¶
+          {/* Zero-width absolute pilcrow: renders at line end without expanding layout width or causing line wraps */}
+          <span className="relative inline text-transparent">
+            <span className="absolute left-0 text-black font-bold select-none pointer-events-none pl-0.5">
+              ¶
+            </span>
           </span>
           {!isLastLine && '\n'}
         </React.Fragment>
@@ -413,27 +419,30 @@ export default function TranscriptEditor({
   const getFontFamilyStyle = () => {
     switch (font) {
       case 'Calibri':
-        return 'Calibri, sans-serif'
+        return 'Calibri, "Segoe UI", sans-serif'
       case 'Times New Roman':
-        return '"Times New Roman", Times, serif'
+        return '"Times New Roman", Times, Georgia, serif'
       case 'Bahnschrift':
-        return 'Bahnschrift, sans-serif'
+        return 'Bahnschrift, "Segoe UI", sans-serif'
       case 'Cambria':
-        return 'Cambria, serif'
+        return 'Cambria, Georgia, serif'
       default:
-        return 'Calibri, sans-serif'
+        return 'Calibri, "Segoe UI", sans-serif'
     }
   }
+
+  // Exact integer line height to eliminate subpixel vertical accumulation error across long multi-paragraph documents
+  const exactLineHeight = Math.round(fontSize * 1.6)
 
   // Shared exact layout and typography styles for both textarea and formatting marks overlay
   const editorSharedStyle: React.CSSProperties = {
     fontFamily: getFontFamilyStyle(),
     fontSize: `${fontSize}px`,
-    lineHeight: '1.625',
+    lineHeight: `${exactLineHeight}px`,
     fontWeight: isBold ? 'bold' : 'normal',
     fontStyle: isItalic ? 'italic' : 'normal',
-    letterSpacing: 'normal',
-    wordSpacing: 'normal',
+    letterSpacing: '0px',
+    wordSpacing: '0px',
     padding: '16px',
     margin: 0,
     border: 'none',
@@ -932,7 +941,7 @@ export default function TranscriptEditor({
               ...editorSharedStyle,
               color: 'transparent',
             }}
-            className="absolute inset-0 pointer-events-none select-none z-10 overflow-y-scroll overflow-x-hidden font-sans"
+            className="absolute inset-0 pointer-events-none select-none z-10 overflow-y-scroll overflow-x-hidden"
           >
             {renderFormattedMarks(content)}
           </div>
