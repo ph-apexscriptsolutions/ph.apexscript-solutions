@@ -67,7 +67,8 @@ interface TextShortcut {
 }
 
 interface HotkeySettings {
-  playPause: string
+  play: string
+  pause: string
   rewind: string
   fastForward: string
   copyTimestamp: string
@@ -83,10 +84,11 @@ interface TranscriptEditorProps {
 }
 
 const DEFAULT_HOTKEYS: HotkeySettings = {
-  playPause: 'F1',
+  play: 'F4',
+  pause: 'F7',
   rewind: 'F2',
   fastForward: 'F3',
-  copyTimestamp: 'F4',
+  copyTimestamp: 'F9',
   rewindSeconds: 2,
   fastSpeed: 1.5,
 }
@@ -210,7 +212,13 @@ export default function TranscriptEditor({
         const data = await res.json()
         if (data?.preferences) {
           if (data.preferences.hotkeys) {
-            setHotkeys({ ...DEFAULT_HOTKEYS, ...data.preferences.hotkeys })
+            const hk = data.preferences.hotkeys
+            setHotkeys({
+              ...DEFAULT_HOTKEYS,
+              ...hk,
+              play: hk.play || hk.playPause || DEFAULT_HOTKEYS.play,
+              pause: hk.pause || (hk.playPause === 'F1' ? 'F2' : DEFAULT_HOTKEYS.pause),
+            })
           }
           if (Array.isArray(data.preferences.shortcuts)) {
             setShortcuts(data.preferences.shortcuts)
@@ -522,19 +530,33 @@ export default function TranscriptEditor({
     setAudioCurrentTime(0)
   }, [])
 
-  // Stable toggle using refs — no stale closures, no listener re-registration
-  const togglePlayPause = useCallback(() => {
+  // Stable play and pause using refs — no stale closures, no listener re-registration
+  const playAudio = useCallback(() => {
     if (!audioRef.current || !audioSrcRef.current) return
-    if (isPlayingRef.current) {
-      audioRef.current.pause()
-      isPlayingRef.current = false
-      setIsPlaying(false)
-    } else {
+    if (!isPlayingRef.current) {
       audioRef.current.play().catch((err) => console.error('Audio play error:', err))
       isPlayingRef.current = true
       setIsPlaying(true)
     }
   }, [])
+
+  const pauseAudio = useCallback(() => {
+    if (!audioRef.current || !audioSrcRef.current) return
+    if (isPlayingRef.current) {
+      audioRef.current.pause()
+      isPlayingRef.current = false
+      setIsPlaying(false)
+    }
+  }, [])
+
+  const togglePlayPause = useCallback(() => {
+    if (!audioRef.current || !audioSrcRef.current) return
+    if (isPlayingRef.current) {
+      pauseAudio()
+    } else {
+      playAudio()
+    }
+  }, [playAudio, pauseAudio])
 
   const stopAudio = useCallback(() => {
     if (!audioRef.current) return
@@ -587,21 +609,35 @@ export default function TranscriptEditor({
       const keyName = e.key.toUpperCase()
       const hk = hotkeysRef.current
 
-      if (keyName === hk.playPause.toUpperCase()) {
+      // 1. Separate Play Hotkey
+      if (keyName === hk.play.toUpperCase()) {
         e.preventDefault()
-        togglePlayPause()
+        playAudio()
         return
       }
+
+      // 2. Separate Pause Hotkey
+      if (keyName === hk.pause.toUpperCase()) {
+        e.preventDefault()
+        pauseAudio()
+        return
+      }
+
+      // 3. Rewind Hotkey
       if (keyName === hk.rewind.toUpperCase()) {
         e.preventDefault()
         rewindAudio(hk.rewindSeconds || 2)
         return
       }
+
+      // 4. Fast Forward / Speed Hotkey
       if (keyName === hk.fastForward.toUpperCase()) {
         e.preventDefault()
         toggleFastSpeed()
         return
       }
+
+      // 5. Timestamp Copy / Insert Hotkey
       if (keyName === hk.copyTimestamp.toUpperCase()) {
         e.preventDefault()
         copyOrInsertTimestamp(true)
@@ -611,7 +647,7 @@ export default function TranscriptEditor({
 
     window.addEventListener('keydown', handleGlobalKeyDown)
     return () => window.removeEventListener('keydown', handleGlobalKeyDown)
-  }, [togglePlayPause, rewindAudio, toggleFastSpeed, copyOrInsertTimestamp, showHotkeysModal])
+  }, [playAudio, pauseAudio, rewindAudio, toggleFastSpeed, copyOrInsertTimestamp, showHotkeysModal])
 
   // Handle hotkeys inside contenteditable (Ctrl+B, Ctrl+I, Ctrl+U, Ctrl+S, Ctrl+F, Ctrl+H, Ctrl+Z, Ctrl+Y, Space for Text Expander)
   const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
@@ -960,11 +996,23 @@ export default function TranscriptEditor({
               <div className="flex items-center gap-1.5 bg-slate-800/90 border border-slate-700 px-2.5 py-1 rounded-xl text-xs">
                 <button
                   type="button"
-                  onClick={togglePlayPause}
-                  className="p-1 text-purple-300 hover:text-white"
-                  title={`Play/Pause (${hotkeys.playPause})`}
+                  onClick={playAudio}
+                  className={`p-1 rounded-md transition-colors ${
+                    isPlaying ? 'text-emerald-400 bg-emerald-950/60 font-bold' : 'text-emerald-300 hover:text-white'
+                  }`}
+                  title={`Play Audio (${hotkeys.play})`}
                 >
-                  {isPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
+                  <Play className="w-3.5 h-3.5 fill-current" />
+                </button>
+                <button
+                  type="button"
+                  onClick={pauseAudio}
+                  className={`p-1 rounded-md transition-colors ${
+                    !isPlaying ? 'text-amber-400 bg-amber-950/60 font-bold' : 'text-amber-300 hover:text-white'
+                  }`}
+                  title={`Pause Audio (${hotkeys.pause})`}
+                >
+                  <Pause className="w-3.5 h-3.5 fill-current" />
                 </button>
                 <button
                   type="button"
@@ -1256,14 +1304,34 @@ export default function TranscriptEditor({
 
                 {audioSrc && (
                   <>
-                    {/* Play / Pause */}
+                    {/* Separate Play Button */}
                     <button
                       type="button"
-                      onClick={togglePlayPause}
-                      className="flex items-center justify-center h-8 w-8 rounded-xl bg-purple-500 hover:bg-purple-400 text-white shadow-xs transition-all cursor-pointer"
-                      title={`Play / Pause (${hotkeys.playPause})`}
+                      onClick={playAudio}
+                      className={`flex items-center justify-center h-8 px-2.5 gap-1.5 rounded-xl text-white shadow-xs transition-all cursor-pointer ${
+                        isPlaying
+                          ? 'bg-emerald-600 ring-2 ring-emerald-400 font-bold shadow-emerald-500/20'
+                          : 'bg-emerald-700/90 hover:bg-emerald-600'
+                      }`}
+                      title={`Play Audio (${hotkeys.play})`}
                     >
-                      {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 ml-0.5" />}
+                      <Play className="w-3.5 h-3.5 fill-current" />
+                      <span className="text-[10px] font-mono font-bold uppercase">{hotkeys.play}</span>
+                    </button>
+
+                    {/* Separate Pause Button */}
+                    <button
+                      type="button"
+                      onClick={pauseAudio}
+                      className={`flex items-center justify-center h-8 px-2.5 gap-1.5 rounded-xl text-white shadow-xs transition-all cursor-pointer ${
+                        !isPlaying
+                          ? 'bg-amber-600 ring-2 ring-amber-400 font-bold shadow-amber-500/20'
+                          : 'bg-amber-700/90 hover:bg-amber-600'
+                      }`}
+                      title={`Pause Audio (${hotkeys.pause})`}
+                    >
+                      <Pause className="w-3.5 h-3.5 fill-current" />
+                      <span className="text-[10px] font-mono font-bold uppercase">{hotkeys.pause}</span>
                     </button>
 
                     {/* Stop */}
@@ -1271,7 +1339,7 @@ export default function TranscriptEditor({
                       type="button"
                       onClick={stopAudio}
                       className="p-1.5 text-zinc-300 hover:text-white bg-slate-800/80 hover:bg-slate-700 border border-slate-700 rounded-xl transition-all cursor-pointer"
-                      title="Stop & Reset to Start"
+                      title="Stop Audio"
                     >
                       <div className="w-3.5 h-3.5 bg-current rounded-xs" />
                     </button>
@@ -1331,7 +1399,7 @@ export default function TranscriptEditor({
                 </div>
               ) : (
                 <div className="text-[11px] text-zinc-400 italic hidden md:block">
-                  Load an audio file to transcribe with Express Scribe hotkeys ({hotkeys.playPause}=Play, {hotkeys.rewind}=Rewind, {hotkeys.copyTimestamp}=Timestamp)
+                  Load an audio file to transcribe with Express Scribe hotkeys ({hotkeys.play}=Play, {hotkeys.pause}=Pause, {hotkeys.rewind}=Rewind, {hotkeys.copyTimestamp}=Timestamp)
                 </div>
               )}
 
@@ -1918,17 +1986,37 @@ export default function TranscriptEditor({
             </div>
 
             <div className="space-y-3 text-xs">
-              {/* Play / Pause */}
+              {/* Play Audio Key */}
               <div className="flex items-center justify-between p-2 rounded-xl bg-zinc-50 border border-zinc-200">
-                <span className="font-semibold text-zinc-700">Play / Pause:</span>
+                <div>
+                  <span className="font-semibold text-zinc-700">Play Key:</span>
+                  <p className="text-[10px] text-zinc-400">Starts audio playback</p>
+                </div>
                 <input
                   type="text"
-                  value={hotkeys.playPause}
+                  value={hotkeys.play}
                   onKeyDown={(e) => {
                     e.preventDefault()
-                    setHotkeys({ ...hotkeys, playPause: e.key.toUpperCase() })
+                    setHotkeys({ ...hotkeys, play: e.key.toUpperCase() })
                   }}
-                  className="w-20 text-center font-bold text-purple-700 bg-white border border-purple-200 rounded-lg py-1 uppercase outline-none focus:ring-2 focus:ring-purple-400"
+                  className="w-20 text-center font-bold text-emerald-700 bg-white border border-emerald-300 rounded-lg py-1 uppercase outline-none focus:ring-2 focus:ring-emerald-400"
+                />
+              </div>
+
+              {/* Pause Audio Key */}
+              <div className="flex items-center justify-between p-2 rounded-xl bg-zinc-50 border border-zinc-200">
+                <div>
+                  <span className="font-semibold text-zinc-700">Pause Key:</span>
+                  <p className="text-[10px] text-zinc-400">Pauses audio at current spot</p>
+                </div>
+                <input
+                  type="text"
+                  value={hotkeys.pause}
+                  onKeyDown={(e) => {
+                    e.preventDefault()
+                    setHotkeys({ ...hotkeys, pause: e.key.toUpperCase() })
+                  }}
+                  className="w-20 text-center font-bold text-amber-700 bg-white border border-amber-300 rounded-lg py-1 uppercase outline-none focus:ring-2 focus:ring-amber-400"
                 />
               </div>
 

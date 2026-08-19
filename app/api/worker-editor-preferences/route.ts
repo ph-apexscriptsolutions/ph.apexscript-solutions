@@ -14,10 +14,11 @@ function getSupabaseClient() {
 
 const DEFAULT_PREFERENCES = {
   hotkeys: {
-    playPause: 'F1',
+    play: 'F4',
+    pause: 'F7',
     rewind: 'F2',
     fastForward: 'F3',
-    copyTimestamp: 'F4',
+    copyTimestamp: 'F9',
     rewindSeconds: 2,
     fastSpeed: 1.5,
   },
