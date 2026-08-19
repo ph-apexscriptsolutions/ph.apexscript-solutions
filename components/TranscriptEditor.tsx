@@ -59,8 +59,12 @@ export default function TranscriptEditor({
   initialWorkerId,
 }: TranscriptEditorProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const overlayRef = useRef<HTMLDivElement>(null)
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null)
   const isInitialLoadRef = useRef(true)
+
+  // Formatting marks display mode (Microsoft Word style Show/Hide ¶)
+  const [showFormattingMarks, setShowFormattingMarks] = useState(false)
 
   // Target User ID (if admin is inspecting a worker, targetUserId is the selected worker's ID)
   const [selectedWorkerId, setSelectedWorkerId] = useState<string>(
@@ -345,36 +349,66 @@ export default function TranscriptEditor({
     setTimeout(() => setCopied(false), 2000)
   }
 
-  const insertPilcrow = () => {
-    if (!textareaRef.current) {
-      handleContentChange(content + '¶')
-      return
-    }
-    const textarea = textareaRef.current
-    const start = textarea.selectionStart
-    const end = textarea.selectionEnd
-    const before = content.substring(0, start)
-    const after = content.substring(end)
-    const updated = before + '¶' + after
-    handleContentChange(updated)
-    setTimeout(() => {
-      textarea.focus()
-      textarea.setSelectionRange(start + 1, start + 1)
-    }, 0)
+  // Remove any literal '¶' characters that were previously typed/inserted into the document
+  const removeLiteralPilcrows = () => {
+    if (!content.includes('¶')) return
+    const cleaned = content.replace(/¶/g, '')
+    handleContentChange(cleaned)
+    setStatusMessage({ type: 'info', text: 'Cleaned all literal ¶ characters from text.' })
   }
 
-  const toggleParagraphPilcrows = () => {
-    if (!content.trim()) return
-    if (content.includes('¶')) {
-      const cleaned = content.replace(/¶/g, '')
-      handleContentChange(cleaned)
-      setStatusMessage({ type: 'info', text: 'Removed all pilcrow (¶) markers.' })
-    } else {
-      const lines = content.split('\n')
-      const withPilcrow = lines.map((line) => (line.trim() ? line + ' ¶' : line)).join('\n')
-      handleContentChange(withPilcrow)
-      setStatusMessage({ type: 'success', text: 'Added pilcrow (¶) to paragraph ends.' })
-    }
+  // Microsoft Word Style Visual Formatting Marks Generator (¶ for paragraph ends, · for spaces, → for tabs)
+  const renderFormattedMarks = (text: string) => {
+    if (!showFormattingMarks || !text) return null
+
+    const lines = text.split('\n')
+    return lines.map((line, lineIdx) => {
+      const parts: React.ReactNode[] = []
+      let currentWord = ''
+
+      for (let i = 0; i < line.length; i++) {
+        const char = line[i]
+        if (char === ' ') {
+          if (currentWord) {
+            parts.push(<span key={`w-${lineIdx}-${i}`} className="opacity-0">{currentWord}</span>)
+            currentWord = ''
+          }
+          parts.push(
+            <span key={`s-${lineIdx}-${i}`} className="text-purple-400 font-bold select-none inline-block">
+              ·
+            </span>
+          )
+        } else if (char === '\t') {
+          if (currentWord) {
+            parts.push(<span key={`w-${lineIdx}-${i}`} className="opacity-0">{currentWord}</span>)
+            currentWord = ''
+          }
+          parts.push(
+            <span key={`t-${lineIdx}-${i}`} className="text-indigo-400 font-bold select-none inline-block">
+              →{'   '}
+            </span>
+          )
+        } else {
+          currentWord += char
+        }
+      }
+
+      if (currentWord) {
+        parts.push(<span key={`w-${lineIdx}-end`} className="opacity-0">{currentWord}</span>)
+      }
+
+      const isLastLine = lineIdx === lines.length - 1
+
+      return (
+        <React.Fragment key={lineIdx}>
+          {parts}
+          <span className="text-purple-600 font-extrabold select-none inline-block px-0.5 bg-purple-100/60 rounded-xs">
+            ¶
+          </span>
+          {!isLastLine && '\n'}
+        </React.Fragment>
+      )
+    })
   }
 
   const wordCount = content.trim() ? content.trim().split(/\s+/).length : 0
@@ -564,29 +598,31 @@ export default function TranscriptEditor({
             </button>
           </div>
 
-          {/* Pilcrow (¶) Tools */}
+          {/* Microsoft Word Style Show/Hide ¶ Button */}
           <div className="flex items-center bg-white border border-zinc-200 rounded-xl overflow-hidden shadow-xs">
             <button
               type="button"
-              onClick={insertPilcrow}
-              className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold text-zinc-700 hover:bg-purple-50 hover:text-purple-700 transition-colors"
-              title="Insert Pilcrow (¶) symbol at cursor"
-            >
-              <Pilcrow className="w-3.5 h-3.5 text-purple-600" />
-              <span>¶</span>
-            </button>
-            <button
-              type="button"
-              onClick={toggleParagraphPilcrows}
-              className={`px-2.5 py-1.5 text-[11px] font-semibold transition-colors border-l border-zinc-200 ${
-                content.includes('¶')
-                  ? 'bg-purple-100 text-purple-800'
-                  : 'text-zinc-600 hover:bg-zinc-100'
+              onClick={() => setShowFormattingMarks(!showFormattingMarks)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold transition-all ${
+                showFormattingMarks
+                  ? 'bg-purple-600 text-white shadow-xs'
+                  : 'text-zinc-700 hover:bg-purple-50 hover:text-purple-700'
               }`}
-              title="Toggle paragraph marks (¶)"
+              title="Show/Hide paragraph marks (¶) and formatting symbols like Microsoft Word"
             >
-              {content.includes('¶') ? 'Clear ¶' : 'Mark ¶'}
+              <Pilcrow className="w-3.5 h-3.5" />
+              <span>{showFormattingMarks ? 'Hide ¶' : 'Show ¶'}</span>
             </button>
+            {content.includes('¶') && (
+              <button
+                type="button"
+                onClick={removeLiteralPilcrows}
+                className="px-2.5 py-1.5 text-[11px] font-semibold text-red-600 hover:bg-red-50 border-l border-zinc-200 transition-colors"
+                title="Remove literal ¶ characters accidentally typed in the text"
+              >
+                Clean literal ¶
+              </button>
+            )}
           </div>
         </div>
 
@@ -728,18 +764,43 @@ export default function TranscriptEditor({
         </div>
       )}
 
-      {/* Editor Main Text Area */}
-      <div className="relative flex-1 min-h-[300px] flex flex-col">
+      {/* Editor Main Text Area with Synchronized Formatting Marks (Word-Style ¶) */}
+      <div className="relative flex-1 min-h-[300px] flex flex-col rounded-2xl border border-zinc-200 bg-white shadow-inner focus-within:border-purple-500 focus-within:ring-2 focus-within:ring-purple-500/20 transition-all overflow-hidden">
         {loading && (
-          <div className="absolute inset-0 bg-white/70 backdrop-blur-xs flex items-center justify-center z-10 rounded-2xl">
+          <div className="absolute inset-0 bg-white/70 backdrop-blur-xs flex items-center justify-center z-20">
             <Loader2 className="w-6 h-6 animate-spin text-purple-600" />
           </div>
         )}
+
+        {/* MS Word Formatting Marks Visual Overlay */}
+        {showFormattingMarks && (
+          <div
+            ref={overlayRef}
+            aria-hidden="true"
+            style={{
+              fontFamily: getFontFamilyStyle(),
+              fontSize: `${fontSize}px`,
+              fontWeight: isBold ? 'bold' : 'normal',
+              fontStyle: isItalic ? 'italic' : 'normal',
+              lineHeight: 1.625,
+            }}
+            className="absolute inset-0 p-4 pointer-events-none whitespace-pre-wrap break-words overflow-y-hidden select-none z-10 font-sans"
+          >
+            {renderFormattedMarks(content)}
+          </div>
+        )}
+
         <textarea
           ref={textareaRef}
           value={content}
           onChange={(e) => handleContentChange(e.target.value)}
           onPaste={handlePasteIntercept}
+          onScroll={(e) => {
+            if (overlayRef.current) {
+              overlayRef.current.scrollTop = e.currentTarget.scrollTop
+              overlayRef.current.scrollLeft = e.currentTarget.scrollLeft
+            }
+          }}
           placeholder={`Paste raw transcript or start typing in Slot ${activeSlot}...`}
           style={{
             fontFamily: getFontFamilyStyle(),
@@ -747,8 +808,9 @@ export default function TranscriptEditor({
             color: color,
             fontWeight: isBold ? 'bold' : 'normal',
             fontStyle: isItalic ? 'italic' : 'normal',
+            lineHeight: 1.625,
           }}
-          className="w-full flex-1 p-4 rounded-2xl border border-zinc-200 bg-white text-zinc-900 shadow-inner resize-none outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all leading-relaxed"
+          className="w-full flex-1 p-4 bg-transparent text-zinc-900 resize-none outline-none leading-relaxed border-0 relative z-10"
         />
       </div>
 
