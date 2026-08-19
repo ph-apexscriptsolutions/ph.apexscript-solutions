@@ -102,23 +102,29 @@ export default function DownloadPage() {
           </div>
 
           {/* Download Button */}
-          <button
-            onClick={handleDownload}
-            disabled={downloading}
-            className="flex items-center justify-center gap-3 w-full px-6 py-4 rounded-2xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 disabled:opacity-70 text-white font-bold text-base transition-all shadow-xl shadow-purple-700/30 cursor-pointer disabled:cursor-wait"
+          <a
+            href={downloadUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            download
+            className="flex items-center justify-center gap-3 w-full px-6 py-4 rounded-2xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-base transition-all shadow-xl shadow-purple-700/30 cursor-pointer text-center"
           >
-            {downloading ? (
-              <>
-                <RefreshCw className="w-5 h-5 animate-spin" />
-                Starting Download...
-              </>
-            ) : (
-              <>
-                <Download className="w-5 h-5" />
-                Download for Windows (.exe)
-              </>
-            )}
-          </button>
+            <Download className="w-5 h-5 shrink-0" />
+            <span>Download for Windows (.exe)</span>
+          </a>
+
+          {/* Alternative Direct Mirror */}
+          <div className="flex items-center justify-center gap-4 text-xs text-zinc-400 pt-1">
+            <span>Having trouble?</span>
+            <a
+              href="https://github.com/ph-apexscriptsolutions/ph.apexscript-solutions/releases/tag/v1.0.0"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-purple-400 hover:text-purple-300 underline font-medium"
+            >
+              Open GitHub Release Page ↗
+            </a>
+          </div>
 
           {/* Features */}
           <div className="space-y-2">
