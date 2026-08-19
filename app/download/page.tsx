@@ -3,15 +3,14 @@ import { useState, useEffect } from "react"
 import { Download, Monitor, CheckCircle2, RefreshCw, ArrowLeft, Laptop, Shield, Zap, Bell } from "lucide-react"
 import Link from "next/link"
 
-const FALLBACK_DOWNLOAD_URL =
-  "https://github.com/ph-apexscriptsolutions/ph.apexscript-solutions/releases/download/v1.0.0/ApexScript-Setup-1.0.0.exe"
+const DIRECT_STATIC_DOWNLOAD_URL = "/downloads/ApexScript-Setup.exe"
 const GITHUB_API_URL =
   "https://api.github.com/repos/ph-apexscriptsolutions/ph.apexscript-solutions/releases/latest"
 
 export default function DownloadPage() {
   const [version, setVersion] = useState<string | null>("v1.0.0")
   const [releaseDate, setReleaseDate] = useState<string | null>(null)
-  const [downloadUrl, setDownloadUrl] = useState<string>(FALLBACK_DOWNLOAD_URL)
+  const [downloadUrl, setDownloadUrl] = useState<string>(DIRECT_STATIC_DOWNLOAD_URL)
   const [loadingVersion, setLoadingVersion] = useState(true)
   const [downloading, setDownloading] = useState(false)
 
