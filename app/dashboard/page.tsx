@@ -6,6 +6,7 @@ import { supabase } from "@/utils/supabase/client"
 import { FileText, HardDrive, LogOut, Calendar, X, Pencil, Save, User, ArrowLeft, Upload, UserPlus, CreditCard, Trash2, Check, Bell, AlertCircle, Tv, Mic, Headphones, FileEdit, Newspaper, Radio, Video, BookOpen, Gavel, TrendingUp, Activity, Search, Loader2, Copy, ChevronDown, ChevronUp, Building2, Eye, MessageSquare, Zap, MoreVertical } from "lucide-react"
 import { FlagIcon } from "@/components/flag-icon"
 import TranscriptCleanup from '@/components/TranscriptCleanup'
+import TranscriptEditor from '@/components/TranscriptEditor'
 import { validateTranscript, replaceInTranscript, getHighlightClass, validationHighlightStyles, ValidationIssue, ValidationRule, Participant, extractParticipants, getValidUncommonWords, detectFillerWords, extractSenateSpeakers, detectTranscriptFormat } from '@/utils/transcript-validation'
 import PriorityBroadcastModal from '@/components/priority-broadcast-modal'
 import AdminPriorityAnnouncementModal from '@/components/admin-priority-announcement-modal'
@@ -403,6 +404,7 @@ export default function DashboardPage() {
   const [issueSearchQuery, setIssueSearchQuery] = useState("")
   const [showValidationPanel, setShowValidationPanel] = useState(false)
   const [isTranscriptCleanupModalOpen, setIsTranscriptCleanupModalOpen] = useState(false)
+  const [isTranscriptEditorModalOpen, setIsTranscriptEditorModalOpen] = useState(false)
   const [transcriptContent, setTranscriptContent] = useState("")
   const [selectedIssue, setSelectedIssue] = useState<ValidationIssue | null>(null)
   const [debouncedTranscript, setDebouncedTranscript] = useState("")
@@ -3859,6 +3861,24 @@ export default function DashboardPage() {
                         </div>
                       </button>
 
+                      {/* Transcript Editor */}
+                      <button
+                        type="button"
+                        onClick={() => setIsTranscriptEditorModalOpen(true)}
+                        className="group relative flex flex-col items-start gap-1 rounded-md border border-white/10 bg-white/5 p-2 text-left backdrop-blur-sm hover:bg-white/10 hover:border-purple-400/40 transition-all duration-200 hover:shadow-xl hover:shadow-purple-600/20"
+                      >
+                        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br from-purple-500 to-indigo-600 shadow-lg shadow-purple-500/30 group-hover:scale-110 transition-transform duration-200">
+                          <FileEdit className="h-3 w-3 text-white" />
+                        </div>
+                        <div>
+                          <p className="text-[11px] font-semibold text-white">Transcript Editor</p>
+                          <p className="mt-0.5 text-[8px] text-zinc-400">Edit, format & save transcripts</p>
+                        </div>
+                        <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <svg className="h-2.5 w-2.5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                        </div>
+                      </button>
+
                     </div>
                   </div>
                 </div>
@@ -4311,6 +4331,24 @@ export default function DashboardPage() {
                         </div>
                         <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
                           <svg className="h-2.5 w-2.5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                        </div>
+                      </button>
+
+                      {/* Transcript Editor */}
+                      <button
+                        type="button"
+                        onClick={() => setIsTranscriptEditorModalOpen(true)}
+                        className="group relative flex flex-col items-start gap-1 rounded-md border border-white/10 bg-white/5 p-2 text-left backdrop-blur-sm hover:bg-white/10 hover:border-purple-400/40 transition-all duration-200 hover:shadow-xl hover:shadow-purple-600/20"
+                      >
+                        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br from-purple-500 to-indigo-600 shadow-lg shadow-purple-500/30 group-hover:scale-110 transition-transform duration-200">
+                          <FileEdit className="h-3 w-3 text-white" />
+                        </div>
+                        <div>
+                          <p className="text-[11px] font-semibold text-white">Transcript Editor</p>
+                          <p className="mt-0.5 text-[8px] leading-relaxed text-zinc-400">Edit, style & save transcripts</p>
+                        </div>
+                        <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <svg className="h-2.5 w-2.5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
                         </div>
                       </button>
 
@@ -6773,6 +6811,39 @@ export default function DashboardPage() {
                 transcript={transcriptContent}
                 onTranscriptChange={setTranscriptContent}
                 department={selectedDepartment}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Transcript Editor Modal ── */}
+      {isTranscriptEditorModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-md animate-fade-in">
+          <div className="bg-gradient-to-b from-purple-50 to-white border border-purple-200/60 backdrop-blur-xl shadow-[0_8px_60px_rgba(168,85,247,0.12)] rounded-3xl w-full max-w-4xl p-6 relative max-h-[90vh] flex flex-col overflow-hidden animate-scale-up">
+            <button
+              onClick={() => setIsTranscriptEditorModalOpen(false)}
+              className="absolute right-4 top-4 z-10 cursor-pointer text-zinc-400 hover:text-purple-500 hover:rotate-90 transition-all duration-300"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            {/* Header */}
+            <div className="flex items-center gap-2.5 mb-4 flex-shrink-0">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 text-white shadow-lg shadow-purple-500/30 flex-shrink-0">
+                <FileEdit className="h-4.5 w-4.5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-zinc-900">Transcript Editor</h3>
+                <p className="text-[10px] text-zinc-500">Edit, find & replace, format fonts, and save transcript ({isAdmin ? 'Admin' : 'Worker'})</p>
+              </div>
+            </div>
+
+            {/* Transcript Editor Component */}
+            <div className="flex-1 overflow-y-auto">
+              <TranscriptEditor
+                role={isAdmin ? 'admin' : 'worker'}
+                userId={user?.id || activeWorker?.id || ''}
               />
             </div>
           </div>

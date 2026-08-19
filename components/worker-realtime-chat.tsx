@@ -3,8 +3,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/utils/supabase/client'
 import { MessageCircle, X } from 'lucide-react'
-import useSupabaseUserId from './useSupabaseUserId'
-import TranscriptEditor from './TranscriptEditor'
 
 type Msg = { id?: string; sender: string; senderType: 'worker' | 'admin'; content: string; ts: number; messageId?: string }
 
@@ -42,8 +40,6 @@ export default function WorkerRealtimeChat({ workerId, initialName }: { workerId
   const [processedMessageIds, setProcessedMessageIds] = useState<Set<string>>(new Set())
   const [isFirstMessage, setIsFirstMessage] = useState(true)
   const [hasShownAutoMessage, setHasShownAutoMessage] = useState(false)
-  const userId = useSupabaseUserId()
-  const [showEditor, setShowEditor] = useState(false)
   const channelRef = useRef<any | null>(null)
   const presenceChannelRef = useRef<any | null>(null)
   const endRef = useRef<HTMLDivElement | null>(null)
@@ -206,28 +202,7 @@ export default function WorkerRealtimeChat({ workerId, initialName }: { workerId
         </button>
       </div>
 
-      {/* Floating button for editor */}
-<div className="fixed bottom-20 right-6 z-50">
-  <button onClick={() => setShowEditor(true)} className="relative flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-purple-600 to-pink-600 text-white shadow-lg hover:scale-105 transition-all">
-    ✎
-  </button>
-</div>
-
-{showEditor && (
-  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-    <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl p-4">
-      <div className="flex justify-between items-center mb-2">
-        <h2 className="text-lg font-semibold">Edit Transcript (Worker)</h2>
-        <button onClick={() => setShowEditor(false)} className="p-1 rounded hover:bg-gray-200">
-          <X className="h-5 w-5" />
-        </button>
-      </div>
-      <TranscriptEditor role="worker" userId={userId || ''} />
-    </div>
-  </div>
-)}
-
-{open && (
+      {open && (
         <div className="fixed inset-0 z-60 flex items-center justify-center p-4">
           <div onClick={() => setOpen(false)} className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
           <div className="relative z-70 w-full max-w-md rounded-2xl bg-white shadow-2xl overflow-hidden">

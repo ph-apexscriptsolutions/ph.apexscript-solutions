@@ -3,8 +3,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/utils/supabase/client'
 import { MessageSquare, Trash, Users, MoreVertical, X, MessageCircle } from 'lucide-react'
-import TranscriptEditor from './TranscriptEditor'
-import useSupabaseUserId from './useSupabaseUserId';
 
 type Msg = { sender: string; senderType: 'worker' | 'admin'; content: string; ts: number; messageId?: string }
 type WorkerProfile = { id: string; full_name?: string; role?: string }
@@ -27,8 +25,6 @@ export default function AdminChat({
   const endRef = useRef<HTMLDivElement | null>(null)
   const processedMessageIdsRef = useRef<Set<string>>(new Set())
   const [isOpen, setIsOpen] = useState(false)
-  const userId = useSupabaseUserId()
-  const [showEditor, setShowEditor] = useState(false)
 
   const activeWorkerRef = useRef<string | null>(null)
   const isOpenRef = useRef(false)
@@ -313,31 +309,6 @@ export default function AdminChat({
 
   return (
     <>
-      {/* Floating button for editor */}
-      <div className="fixed bottom-20 right-6 z-50">
-        <button
-          onClick={() => setShowEditor(true)}
-          className="relative flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-purple-600 to-pink-600 text-white shadow-lg hover:scale-105 transition-all"
-        >
-          ✎
-        </button>
-      </div>
-
-      {/* Modal for editor */}
-      {showEditor && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl p-4">
-            <div className="flex justify-between items-center mb-2">
-              <h2 className="text-lg font-semibold">Edit Transcript (Admin)</h2>
-              <button onClick={() => setShowEditor(false)} className="p-1 rounded hover:bg-gray-200">
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            <TranscriptEditor role="admin" userId={userId || ''} />
-          </div>
-        </div>
-      )}
-
       {/* Floating button */}
       <div className="fixed bottom-6 right-6 z-50">
         <button
