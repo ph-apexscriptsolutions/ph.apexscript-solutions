@@ -33,8 +33,15 @@ export default function FullscreenTranscriptEditorPage() {
   const [deferredInstallPrompt, setDeferredInstallPrompt] = useState<any>(null)
   const [isAppInstalled, setIsAppInstalled] = useState(false)
   const [showInstallModal, setShowInstallModal] = useState(false)
+  const [isElectronApp, setIsElectronApp] = useState(false)
 
   useEffect(() => {
+    // Detect if running inside the native Electron desktop app
+    if (typeof window !== 'undefined' && (window as any).electronBridge?.isElectronApp) {
+      setIsElectronApp(true)
+      setIsAppInstalled(true) // Already installed — hide PWA install button
+    }
+
     // Register Service Worker for PWA 1-click install support
     if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js').catch((err) => {
@@ -260,8 +267,13 @@ export default function FullscreenTranscriptEditorPage() {
             </span>
           </div>
 
-          {/* Install Desktop App Button */}
-          {!isAppInstalled && (
+          {/* Desktop App Indicator / Install Button */}
+          {isElectronApp ? (
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600/20 border border-emerald-500/30 text-emerald-400 text-xs font-semibold">
+              <Monitor className="w-3.5 h-3.5" />
+              <span>Desktop App ✓</span>
+            </div>
+          ) : !isAppInstalled ? (
             <button
               type="button"
               onClick={handleInstallApp}
@@ -272,7 +284,7 @@ export default function FullscreenTranscriptEditorPage() {
               <span className="hidden sm:inline">Install Desktop App</span>
               <span className="sm:hidden">Install</span>
             </button>
-          )}
+          ) : null}
 
           {/* Fullscreen Toggle */}
           <button

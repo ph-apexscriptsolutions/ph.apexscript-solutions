@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic'
 import { useEffect, useState, FormEvent, useMemo, useCallback, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/utils/supabase/client"
-import { FileText, HardDrive, LogOut, Calendar, X, Pencil, Save, User, ArrowLeft, Upload, UserPlus, CreditCard, Trash2, Check, Bell, AlertCircle, Tv, Mic, Headphones, FileEdit, Newspaper, Radio, Video, BookOpen, Gavel, TrendingUp, Activity, Search, Loader2, Copy, ChevronDown, ChevronUp, Building2, Eye, MessageSquare, Zap, MoreVertical, Maximize2, Minimize2, ExternalLink } from "lucide-react"
+import { FileText, HardDrive, LogOut, Calendar, X, Pencil, Save, User, ArrowLeft, Upload, UserPlus, CreditCard, Trash2, Check, Bell, AlertCircle, Tv, Mic, Headphones, FileEdit, Newspaper, Radio, Video, BookOpen, Gavel, TrendingUp, Activity, Search, Loader2, Copy, ChevronDown, ChevronUp, Building2, Eye, MessageSquare, Zap, MoreVertical, Maximize2, Minimize2, ExternalLink, Laptop, Download, Monitor } from "lucide-react"
 import { FlagIcon } from "@/components/flag-icon"
 import TranscriptCleanup from '@/components/TranscriptCleanup'
 import TranscriptEditor from '@/components/TranscriptEditor'
@@ -3307,6 +3307,15 @@ export default function DashboardPage() {
             )}
           </div>
 
+          <a
+            href="/download"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 px-3 py-1.5 text-xs font-semibold text-white shadow-lg shadow-purple-600/30 ring-1 ring-white/10 hover:from-purple-700 hover:to-indigo-700 hover:shadow-purple-600/50 transition-all"
+            title="Download ApexScript Windows Desktop App"
+          >
+            <Laptop className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Desktop App</span>
+          </a>
+
           <button onClick={handleLogout} className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-red-600 to-rose-600 px-3 py-1.5 text-xs font-semibold text-white shadow-lg shadow-red-600/40 ring-1 ring-white/10 hover:from-red-700 hover:to-rose-700 hover:shadow-red-600/60 hover:shadow-xl transition-all"><LogOut className="h-3.5 w-3.5" /> Log Out</button>
         </div>
       </header>
@@ -3880,6 +3889,23 @@ export default function DashboardPage() {
                         </div>
                       </button>
 
+                      {/* Desktop App */}
+                      <a
+                        href="/download"
+                        className="group relative flex flex-col items-start gap-1 rounded-md border border-white/10 bg-white/5 p-2 text-left backdrop-blur-sm hover:bg-white/10 hover:border-emerald-400/40 transition-all duration-200 hover:shadow-xl hover:shadow-emerald-600/20"
+                      >
+                        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br from-emerald-500 to-teal-600 shadow-lg shadow-emerald-500/30 group-hover:scale-110 transition-transform duration-200">
+                          <Laptop className="h-3 w-3 text-white" />
+                        </div>
+                        <div>
+                          <p className="text-[11px] font-semibold text-white">Desktop App</p>
+                          <p className="mt-0.5 text-[8px] text-zinc-400">Download Windows app</p>
+                        </div>
+                        <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <svg className="h-2.5 w-2.5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                        </div>
+                      </a>
+
                     </div>
                   </div>
                 </div>
@@ -4352,6 +4378,23 @@ export default function DashboardPage() {
                           <svg className="h-2.5 w-2.5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
                         </div>
                       </button>
+
+                      {/* Desktop App */}
+                      <a
+                        href="/download"
+                        className="group relative flex flex-col items-start gap-1 rounded-md border border-white/10 bg-white/5 p-2 text-left backdrop-blur-sm hover:bg-white/10 hover:border-emerald-400/40 transition-all duration-200 hover:shadow-xl hover:shadow-emerald-600/20"
+                      >
+                        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br from-emerald-500 to-teal-600 shadow-lg shadow-emerald-500/30 group-hover:scale-110 transition-transform duration-200">
+                          <Laptop className="h-3 w-3 text-white" />
+                        </div>
+                        <div>
+                          <p className="text-[11px] font-semibold text-white">Desktop App</p>
+                          <p className="mt-0.5 text-[8px] leading-relaxed text-zinc-400">Download Windows app</p>
+                        </div>
+                        <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <svg className="h-2.5 w-2.5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                        </div>
+                      </a>
 
                     </div>
                   )}

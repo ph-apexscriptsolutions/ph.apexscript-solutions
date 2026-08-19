@@ -1,0 +1,53 @@
+{
+  "name": "apexscript-desktop",
+  "version": "1.0.0",
+  "description": "ApexScript Transcription Workspace — Desktop App",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win",
+    "dist:publish": "electron-builder --win --publish always"
+  },
+  "build": {
+    "appId": "com.apexscript.workspace",
+    "productName": "ApexScript",
+    "copyright": "© 2025 ApexScript Solutions",
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ],
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": false,
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
+      "shortcutName": "ApexScript",
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "runAfterFinish": true
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "ph-apexscriptsolutions",
+      "repo": "ph.apexscript-solutions",
+      "releaseType": "release"
+    }
+  },
+  "dependencies": {
+    "electron-log": "^5.1.2",
+    "electron-updater": "^6.1.7"
+  },
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.3"
+  }
+}
