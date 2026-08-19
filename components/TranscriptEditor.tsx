@@ -108,16 +108,15 @@ export default function TranscriptEditor({
   initialWorkerId,
 }: TranscriptEditorProps) {
   const editorRef = useRef<HTMLDivElement>(null)
-  const overlayRef = useRef<HTMLDivElement>(null)
   const audioRef = useRef<HTMLAudioElement>(null)
   const audioInputRef = useRef<HTMLInputElement>(null)
   const findInputRef = useRef<HTMLInputElement>(null)
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null)
   const statsDebounceTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const autoSaveStatusRef = useRef<'saved' | 'saving' | 'unsaved' | 'idle'>('idle')
 
   // Formatting marks display mode (Microsoft Word style Show/Hide ¶)
   const [showFormattingMarks, setShowFormattingMarks] = useState(false)
-  const [overlayHtml, setOverlayHtml] = useState('')
 
   // Hide tools / distraction-free focus mode
   const [hideTools, setHideTools] = useState(false)
@@ -248,9 +247,9 @@ export default function TranscriptEditor({
     }
   }
 
-  // Calculate matching occurrences for Find & Replace in real-time
+  // Calculate matching occurrences for Find & Replace (only when Find Bar is open)
   const findMatchesCount = useMemo(() => {
-    if (!findText || !editorRef.current) return 0
+    if (!showFindBar || !findText || !editorRef.current) return 0
     const text = editorRef.current.innerText || ''
     if (!text) return 0
     try {
@@ -260,7 +259,7 @@ export default function TranscriptEditor({
     } catch {
       return 0
     }
-  }, [findText, wordCount])
+  }, [showFindBar, findText, wordCount])
 
   // Compute text statistics efficiently
   const updateStats = useCallback(() => {
@@ -279,52 +278,6 @@ export default function TranscriptEditor({
       setIsSelectionUnderline(document.queryCommandState('underline'))
     } catch {}
   }, [])
-
-  // Generate lightweight synchronized Pilcrow and space markers
-  const updateOverlay = useCallback((customText?: string) => {
-    if (!editorRef.current) return
-    const text = typeof customText === 'string' ? customText : editorRef.current.innerText || ''
-    if (!text) {
-      setOverlayHtml('')
-      return
-    }
-
-    const normalized = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n')
-    const lines = normalized.split('\n')
-    let html = ''
-    for (let l = 0; l < lines.length; l++) {
-      const line = lines[l]
-      let lineHtml = ''
-      for (let i = 0; i < line.length; i++) {
-        const char = line[i]
-        if (char === ' ' || char === '\u00A0') {
-          lineHtml += '<span class="relative inline text-transparent">' + char + '<span class="absolute inset-0 flex items-center justify-center text-zinc-400 font-bold select-none pointer-events-none text-[8px] leading-none">·</span></span>'
-        } else if (char === '\t') {
-          lineHtml += '<span class="relative inline text-transparent">&#9;<span class="absolute inset-0 flex items-center justify-center text-zinc-400 font-bold select-none pointer-events-none text-xs">→</span></span>'
-        } else if (char === '<') {
-          lineHtml += '&lt;'
-        } else if (char === '>') {
-          lineHtml += '&gt;'
-        } else if (char === '&') {
-          lineHtml += '&amp;'
-        } else {
-          lineHtml += char
-        }
-      }
-      const isLast = l === lines.length - 1
-      html += lineHtml + '<span class="relative inline text-transparent"><span class="absolute left-0 text-purple-600 font-bold select-none pointer-events-none pl-0.5">¶</span></span>' + (isLast ? '' : '\n')
-    }
-    setOverlayHtml(html)
-  }, [])
-
-  // Sync overlay whenever formatting marks are toggled
-  useEffect(() => {
-    if (showFormattingMarks) {
-      updateOverlay()
-    } else {
-      setOverlayHtml('')
-    }
-  }, [showFormattingMarks, updateOverlay])
 
   // Refresh slots metadata list
   const fetchSlotsList = useCallback(async (targetId: string, targetRole: string) => {
@@ -357,8 +310,8 @@ export default function TranscriptEditor({
     if (!editorRef.current) return
     if (!rawContent) {
       editorRef.current.innerHTML = ''
-      updateStats()
-      if (showFormattingMarks) updateOverlay('')
+      setWordCount(0)
+      setCharCount(0)
       return
     }
 
@@ -368,11 +321,11 @@ export default function TranscriptEditor({
     } else {
       editorRef.current.innerText = rawContent
     }
-    updateStats()
-    if (showFormattingMarks) {
-      updateOverlay(rawContent)
-    }
-  }, [updateStats, showFormattingMarks, updateOverlay])
+    const text = editorRef.current.innerText || ''
+    const trimmed = text.trim()
+    setWordCount(trimmed ? trimmed.split(/\s+/).length : 0)
+    setCharCount(text.length)
+  }, [])
 
   // Normalize default paragraph separator for consistent Enter key behavior
   useEffect(() => {
@@ -385,7 +338,10 @@ export default function TranscriptEditor({
   const triggerAutoSaveToSlot5 = useCallback(
     async (htmlContent: string) => {
       if (!effectiveUserId || !htmlContent.trim()) return
-      setAutoSaveStatus('saving')
+      if (autoSaveStatusRef.current !== 'saving') {
+        autoSaveStatusRef.current = 'saving'
+        setAutoSaveStatus('saving')
+      }
 
       try {
         localStorage.setItem(`transcript_autosave_slot5_${effectiveRole}_${effectiveUserId}`, htmlContent)
@@ -409,14 +365,17 @@ export default function TranscriptEditor({
         })
         const data = await res.json()
         if (res.ok && !data.error) {
+          autoSaveStatusRef.current = 'saved'
           setAutoSaveStatus('saved')
           setAutoSaveTime(new Date())
           fetchSlotsList(effectiveUserId, effectiveRole)
         } else {
+          autoSaveStatusRef.current = 'idle'
           setAutoSaveStatus('idle')
         }
       } catch (err) {
         console.error('Auto-save to slot 5 error:', err)
+        autoSaveStatusRef.current = 'idle'
         setAutoSaveStatus('idle')
       }
     },
@@ -488,18 +447,17 @@ export default function TranscriptEditor({
     }
   }, [effectiveUserId, effectiveRole, activeSlot, fetchSlotsList, loadSlotContent])
 
-  // Fast typing handler with Text Expander (Auto-Replace as you type)
+  // Fast zero-lag typing handler with Text Expander (Auto-Replace as you type)
   const handleEditorInput = () => {
-    setAutoSaveStatus('unsaved')
-
-    if (showFormattingMarks) {
-      requestAnimationFrame(() => updateOverlay())
+    if (autoSaveStatusRef.current !== 'unsaved') {
+      autoSaveStatusRef.current = 'unsaved'
+      setAutoSaveStatus('unsaved')
     }
 
     if (statsDebounceTimerRef.current) clearTimeout(statsDebounceTimerRef.current)
     statsDebounceTimerRef.current = setTimeout(() => {
       updateStats()
-    }, 150)
+    }, 600)
 
     if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current)
     autoSaveTimerRef.current = setTimeout(() => {
@@ -1893,28 +1851,6 @@ export default function TranscriptEditor({
           </div>
         )}
 
-        {/* Synchronized Formatting Marks Overlay (¶ and space dots) */}
-        {showFormattingMarks && (
-          <div
-            ref={overlayRef}
-            aria-hidden="true"
-            style={{
-              fontFamily: getFontFamilyStyle(),
-              fontSize: `${fontSize}px`,
-              lineHeight: `${exactLineHeight}px`,
-              padding: '16px',
-              color: 'transparent',
-              boxSizing: 'border-box',
-              whiteSpace: 'pre-wrap',
-              wordBreak: 'break-word',
-              overflowWrap: 'break-word',
-              tabSize: 4,
-            }}
-            className="absolute inset-0 pointer-events-none select-none z-0 overflow-y-scroll overflow-x-hidden"
-            dangerouslySetInnerHTML={{ __html: overlayHtml }}
-          />
-        )}
-
         <div
           ref={editorRef}
           contentEditable
@@ -1925,12 +1861,6 @@ export default function TranscriptEditor({
           onKeyUp={syncSelectionState}
           onMouseUp={syncSelectionState}
           onSelect={syncSelectionState}
-          onScroll={(e) => {
-            if (overlayRef.current) {
-              overlayRef.current.scrollTop = e.currentTarget.scrollTop
-              overlayRef.current.scrollLeft = e.currentTarget.scrollLeft
-            }
-          }}
           data-show-marks={showFormattingMarks ? 'true' : 'false'}
           style={{
             fontFamily: getFontFamilyStyle(),
@@ -1961,6 +1891,28 @@ export default function TranscriptEditor({
           content: 'Paste raw transcript or start typing...';
           color: #9ca3af;
           pointer-events: none;
+        }
+        .transcript-rich-editor[data-show-marks="true"] > div::after,
+        .transcript-rich-editor[data-show-marks="true"] > p::after,
+        .transcript-rich-editor[data-show-marks="true"] > blockquote::after {
+          content: ' \\00B6';
+          color: #9333ea;
+          opacity: 0.65;
+          font-weight: bold;
+          user-select: none;
+          pointer-events: none;
+          font-size: 0.85em;
+          margin-left: 2px;
+        }
+        .transcript-rich-editor[data-show-marks="true"] > div:empty::before,
+        .transcript-rich-editor[data-show-marks="true"] > p:empty::before {
+          content: '\\00B6';
+          color: #9333ea;
+          opacity: 0.65;
+          font-weight: bold;
+          user-select: none;
+          pointer-events: none;
+          font-size: 0.85em;
         }
       `}</style>
 
