@@ -14,7 +14,6 @@ import {
   Italic,
   Palette,
   Pilcrow,
-  Cloud,
   CheckCircle2,
   Users,
   Eye,
@@ -24,8 +23,6 @@ import {
   Layers,
   ChevronRight,
 } from 'lucide-react'
-
-type AutoSaveState = 'saved' | 'saving' | 'unsaved' | 'offline' | 'idle'
 
 interface WorkerOption {
   id: string
@@ -60,7 +57,6 @@ export default function TranscriptEditor({
 }: TranscriptEditorProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const overlayRef = useRef<HTMLDivElement>(null)
-  const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null)
   const isInitialLoadRef = useRef(true)
 
   // Formatting marks display mode (Microsoft Word style Show/Hide ¶)
@@ -96,7 +92,6 @@ export default function TranscriptEditor({
   const [saving, setSaving] = useState(false)
   const [loading, setLoading] = useState(false)
   const [loadingSlots, setLoadingSlots] = useState(false)
-  const [autoSaveStatus, setAutoSaveStatus] = useState<AutoSaveState>('idle')
   const [lastSavedTime, setLastSavedTime] = useState<Date | null>(null)
   const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error' | 'info'; text: string } | null>(null)
   const [copied, setCopied] = useState(false)
@@ -121,20 +116,13 @@ export default function TranscriptEditor({
     }
   }, [])
 
-  // Load active slot content
+  // Load active slot content from cloud storage
   const loadSlotContent = useCallback(
     async (targetId: string, targetRole: string, slotNum: number) => {
       if (!targetId) return
       setLoading(true)
-      isInitialLoadRef.current = true
-
-      const localKey = `transcript_draft_${targetRole}_${targetId}_slot${slotNum}`
-      const localTimeKey = `transcript_draft_time_${targetRole}_${targetId}_slot${slotNum}`
 
       try {
-        const localDraft = localStorage.getItem(localKey)
-        const localTime = localStorage.getItem(localTimeKey)
-
         const res = await fetch(
           `/api/transcripts?role=${encodeURIComponent(targetRole)}&userId=${encodeURIComponent(
             targetId
@@ -142,32 +130,16 @@ export default function TranscriptEditor({
         )
         const data = await res.json()
 
-        let cloudContent = ''
         if (res.ok && data.content) {
-          cloudContent = data.content
-          setContent(cloudContent)
-          setAutoSaveStatus('saved')
-          setLastSavedTime(new Date())
-        }
-
-        // Restore local draft if newer or cloud is empty
-        if (localDraft && localDraft.trim() && (!cloudContent || localDraft.length >= cloudContent.length)) {
-          setContent(localDraft)
-          setAutoSaveStatus('saved')
-          if (localTime) setLastSavedTime(new Date(parseInt(localTime, 10)))
-        } else if (!cloudContent) {
+          setContent(data.content)
+        } else {
           setContent('')
-          setAutoSaveStatus('idle')
         }
       } catch (err) {
         console.error('Failed to load slot content', err)
-        const localDraft = localStorage.getItem(localKey)
-        if (localDraft) setContent(localDraft)
+        setContent('')
       } finally {
         setLoading(false)
-        setTimeout(() => {
-          isInitialLoadRef.current = false
-        }, 300)
       }
     },
     []
@@ -181,67 +153,10 @@ export default function TranscriptEditor({
     }
   }, [effectiveUserId, effectiveRole, activeSlot, fetchSlotsList, loadSlotContent])
 
-  // Real-time Cloud Auto-Save Function
-  const triggerCloudAutoSave = useCallback(
-    async (textToSave: string, slotNum: number) => {
-      if (!effectiveUserId || !textToSave.trim()) return
-      setAutoSaveStatus('saving')
-      try {
-        const res = await fetch('/api/transcripts', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            role: effectiveRole,
-            userId: effectiveUserId,
-            content: textToSave,
-            slot: slotNum,
-          }),
-        })
-        const data = await res.json()
-        if (res.ok && !data.error) {
-          setAutoSaveStatus('saved')
-          setLastSavedTime(new Date())
-          fetchSlotsList(effectiveUserId, effectiveRole)
-        } else {
-          setAutoSaveStatus('offline')
-        }
-      } catch (err) {
-        console.error('Auto-save error', err)
-        setAutoSaveStatus('offline')
-      }
-    },
-    [effectiveUserId, effectiveRole, fetchSlotsList]
-  )
-
-  // Content change handler: instant localStorage update + debounced cloud auto-save
+  // Content change handler: simple state update without automatic local storage / background saving
   const handleContentChange = (newText: string) => {
     setContent(newText)
-
-    // 1. Immediate local storage snapshot
-    const localKey = `transcript_draft_${effectiveRole}_${effectiveUserId}_slot${activeSlot}`
-    const localTimeKey = `transcript_draft_time_${effectiveRole}_${effectiveUserId}_slot${activeSlot}`
-    try {
-      localStorage.setItem(localKey, newText)
-      localStorage.setItem(localTimeKey, Date.now().toString())
-    } catch (e) {}
-
-    if (isInitialLoadRef.current) return
-
-    setAutoSaveStatus('unsaved')
-
-    // 2. Debounced cloud auto-save (1.5 seconds)
-    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current)
-    autoSaveTimerRef.current = setTimeout(() => {
-      triggerCloudAutoSave(newText, activeSlot)
-    }, 1500)
   }
-
-  // Cleanup auto-save timer on unmount
-  useEffect(() => {
-    return () => {
-      if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current)
-    }
-  }, [])
 
   const handlePasteIntercept = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
     if (content.trim()) {
@@ -304,23 +219,9 @@ export default function TranscriptEditor({
       if (!res.ok || data.error) {
         setStatusMessage({ type: 'error', text: `Save failed: ${data.error || 'Unknown error'}` })
       } else {
-        setAutoSaveStatus('saved')
         setLastSavedTime(new Date())
-        setStatusMessage({ type: 'success', text: `Slot ${activeSlot} saved to cloud successfully!` })
+        setStatusMessage({ type: 'success', text: `Slot ${activeSlot} saved successfully!` })
         fetchSlotsList(effectiveUserId, effectiveRole)
-
-        // Auto-download for workers
-        if (role === 'worker') {
-          const blob = new Blob([content], { type: 'text/plain;charset=utf-8' })
-          const url = URL.createObjectURL(blob)
-          const a = document.createElement('a')
-          a.href = url
-          a.download = `transcript_${effectiveUserId}_slot${activeSlot}.txt`
-          document.body.appendChild(a)
-          a.click()
-          document.body.removeChild(a)
-          URL.revokeObjectURL(url)
-        }
       }
     } catch (err: any) {
       setStatusMessage({ type: 'error', text: `Unexpected error: ${err.message}` })
@@ -626,39 +527,14 @@ export default function TranscriptEditor({
           </div>
         </div>
 
-        {/* Action Buttons & Google Docs Auto-Save Indicator */}
+        {/* Action Buttons */}
         <div className="flex items-center gap-2">
-          {/* Google Docs-style Auto-Save Status Badge */}
-          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-zinc-200/80 rounded-xl shadow-xs">
-            {autoSaveStatus === 'saving' ? (
-              <>
-                <Loader2 className="w-3.5 h-3.5 animate-spin text-purple-600" />
-                <span className="text-zinc-600 font-medium text-[11px]">Saving Slot {activeSlot}...</span>
-              </>
-            ) : autoSaveStatus === 'saved' ? (
-              <>
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                <span className="text-zinc-600 font-medium text-[11px]">
-                  Saved to cloud • Slot {activeSlot} {lastSavedTime ? `(${lastSavedTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})` : ''}
-                </span>
-              </>
-            ) : autoSaveStatus === 'unsaved' ? (
-              <>
-                <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-                <span className="text-zinc-500 text-[11px]">Auto-saving...</span>
-              </>
-            ) : autoSaveStatus === 'offline' ? (
-              <>
-                <Cloud className="w-3.5 h-3.5 text-blue-600" />
-                <span className="text-zinc-600 font-medium text-[11px]">Saved locally</span>
-              </>
-            ) : (
-              <>
-                <Cloud className="w-3.5 h-3.5 text-zinc-400" />
-                <span className="text-zinc-500 text-[11px]">Auto-save ready</span>
-              </>
-            )}
-          </div>
+          {lastSavedTime && (
+            <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 bg-white border border-zinc-200/80 rounded-xl shadow-xs text-zinc-600 text-[11px]">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Saved at {lastSavedTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+            </div>
+          )}
 
           <button
             type="button"
