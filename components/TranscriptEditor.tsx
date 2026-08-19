@@ -17,6 +17,7 @@ import {
   CheckCircle2,
   Users,
   Eye,
+  EyeOff,
   FileText,
   Clock,
   Activity,
@@ -61,6 +62,9 @@ export default function TranscriptEditor({
 
   // Formatting marks display mode (Microsoft Word style Show/Hide ¶)
   const [showFormattingMarks, setShowFormattingMarks] = useState(false)
+
+  // Hide tools / distraction-free focus mode
+  const [hideTools, setHideTools] = useState(false)
 
   // Target User ID (if admin is inspecting a worker, targetUserId is the selected worker's ID)
   const [selectedWorkerId, setSelectedWorkerId] = useState<string>(
@@ -361,295 +365,425 @@ export default function TranscriptEditor({
 
   return (
     <div className="flex flex-col h-full space-y-3">
-      {/* ── ADMIN WORKER PROGRESS & MONITOR BAR ── */}
-      {role === 'admin' && (
-        <div className="bg-gradient-to-r from-slate-900 to-indigo-950 text-white p-3.5 rounded-2xl border border-indigo-500/30 shadow-md">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-purple-500/20 border border-purple-400/40 text-purple-300">
-                <Users className="h-4.5 w-4.5" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold uppercase tracking-wider text-purple-300">Worker Live Monitor</span>
-                  {selectedWorkerObj?.last_seen && (() => {
-                    const diffMins = (Date.now() - new Date(selectedWorkerObj.last_seen).getTime()) / 60000
-                    const isOnline = diffMins < 5
-                    return (
-                      <span
-                        className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${
-                          isOnline
-                            ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                            : 'bg-zinc-700/50 text-zinc-400 border border-zinc-600/30'
-                        }`}
-                      >
-                        <span className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-emerald-400 animate-pulse' : 'bg-zinc-500'}`} />
-                        {isOnline ? 'Online' : 'Offline'}
-                      </span>
-                    )
-                  })()}
-                </div>
-                <p className="text-xs text-zinc-300">
-                  Inspecting live draft slots of:{' '}
-                  <strong className="text-white font-bold">
-                    {selectedWorkerObj?.full_name || selectedWorkerId}
-                  </strong>
-                </p>
-              </div>
-            </div>
+      {/* ── FOCUS / DISTRACTION-FREE HEADER BAR (When tools are hidden) ── */}
+      {hideTools ? (
+        <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white rounded-2xl shadow-md border border-indigo-500/30">
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Show Tools Toggle */}
+            <button
+              type="button"
+              onClick={() => setHideTools(false)}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-purple-600 hover:bg-purple-500 text-white rounded-xl transition-all shadow-xs"
+              title="Show all formatting, tools and find & replace"
+            >
+              <Eye className="w-3.5 h-3.5 text-purple-200" />
+              <span>Show Tools</span>
+            </button>
 
-            {/* Worker Selector Dropdown */}
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-zinc-300 font-medium">Select Worker:</span>
+            <div className="h-4 w-px bg-slate-700 hidden sm:block" />
+
+            {/* Quick Slot Selector */}
+            <div className="flex items-center gap-1.5 bg-slate-800/90 border border-slate-700 px-2.5 py-1 rounded-xl text-xs">
+              <Layers className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+              <span className="text-zinc-400 font-medium">Slot:</span>
               <select
-                value={selectedWorkerId}
-                onChange={(e) => {
-                  setSelectedWorkerId(e.target.value)
-                  setActiveSlot(1)
-                }}
-                className="rounded-xl border border-indigo-400/40 bg-slate-800 px-3 py-1.5 text-xs font-semibold text-white outline-none focus:ring-2 focus:ring-purple-400 cursor-pointer"
+                value={activeSlot}
+                onChange={(e) => setActiveSlot(parseInt(e.target.value, 10))}
+                className="bg-transparent font-bold text-purple-200 outline-none cursor-pointer text-xs"
               >
-                <option value={userId}>My Admin Transcripts</option>
-                {allWorkers.map((w) => (
-                  <option key={w.id} value={w.id}>
-                    {w.full_name || w.id} {w.department ? `(${w.department})` : ''}
-                  </option>
-                ))}
+                {[1, 2, 3, 4, 5].map((s) => {
+                  const meta = slotsMeta.find((item) => item.slot === s)
+                  const hasData = meta?.hasContent || (s === activeSlot && content.trim().length > 0)
+                  return (
+                    <option key={s} value={s} className="bg-slate-900 text-white">
+                      Slot {s} {hasData ? '●' : '(Empty)'}
+                    </option>
+                  )
+                })}
               </select>
             </div>
-          </div>
-        </div>
-      )}
 
-      {/* ── TOP TOOLBAR ── */}
-      <div className="flex flex-wrap items-center justify-between gap-2.5 bg-zinc-50 border border-zinc-200/80 p-2.5 rounded-2xl">
-        {/* Controls & Formatting */}
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Compact Saved Drafts & Revisions Dropdown */}
-          <div className="flex items-center gap-1.5 bg-white border border-purple-200/90 hover:border-purple-300 px-2.5 py-1.5 rounded-xl shadow-xs transition-colors">
-            <Layers className="w-3.5 h-3.5 text-purple-600 shrink-0" />
-            <span className="text-xs font-bold text-zinc-700 whitespace-nowrap">Draft Slot:</span>
-            <select
-              value={activeSlot}
-              onChange={(e) => {
-                const nextSlot = parseInt(e.target.value, 10)
-                if (nextSlot !== activeSlot) {
-                  setActiveSlot(nextSlot)
-                }
-              }}
-              className="text-xs font-bold text-purple-950 bg-transparent outline-none cursor-pointer pr-1"
-            >
-              {[1, 2, 3, 4, 5].map((slotNum) => {
-                const meta = slotsMeta.find((s) => s.slot === slotNum)
-                const hasData = meta?.hasContent || (slotNum === activeSlot && content.trim().length > 0)
-                const words = slotNum === activeSlot ? wordCount : meta?.wordCount || 0
-                return (
-                  <option key={slotNum} value={slotNum} className="text-zinc-900">
-                    Slot {slotNum} {hasData ? `(${words} words)` : '(Empty)'}
-                  </option>
-                )
-              })}
-            </select>
-            {/* Live slot status dot */}
-            <span
-              className={`h-2 w-2 rounded-full shrink-0 ${
-                (slotsMeta.find((s) => s.slot === activeSlot)?.hasContent || content.trim().length > 0)
-                  ? 'bg-emerald-500 ring-2 ring-emerald-100'
-                  : 'bg-zinc-300'
-              }`}
-              title={
-                (slotsMeta.find((s) => s.slot === activeSlot)?.hasContent || content.trim().length > 0)
-                  ? 'Saved content in active slot'
-                  : 'Active slot is empty'
-              }
-            />
-          </div>
-
-          <div className="h-5 w-px bg-zinc-200 hidden sm:block" />
-
-          {/* Font Selector */}
-          <div className="flex items-center gap-1.5 bg-white border border-zinc-200 px-2 py-1.5 rounded-xl shadow-xs">
-            <Type className="w-4 h-4 text-zinc-500" />
-            <select
-              value={font}
-              onChange={(e) => setFont(e.target.value)}
-              className="text-xs font-semibold text-zinc-800 bg-transparent outline-none cursor-pointer"
-            >
-              <option value="Calibri">Calibri</option>
-              <option value="Times New Roman">Times New Roman</option>
-              <option value="Bahnschrift">Bahnschrift</option>
-              <option value="Cambria">Cambria</option>
-            </select>
-          </div>
-
-          {/* Font Size */}
-          <div className="flex items-center gap-1 bg-white border border-zinc-200 px-2 py-1.5 rounded-xl shadow-xs">
-            <span className="text-xs text-zinc-500 font-medium">Size</span>
-            <input
-              type="number"
-              min={10}
-              max={36}
-              value={fontSize}
-              onChange={(e) => setFontSize(Math.max(10, Math.min(36, parseInt(e.target.value) || 14)))}
-              className="w-12 text-xs font-bold text-zinc-800 text-center bg-transparent outline-none"
-            />
-            <span className="text-[10px] text-zinc-400">px</span>
-          </div>
-
-          {/* Color Picker */}
-          <div className="flex items-center gap-1.5 bg-white border border-zinc-200 px-2 py-1.5 rounded-xl shadow-xs">
-            <Palette className="w-4 h-4 text-zinc-500" />
-            <input
-              type="color"
-              value={color}
-              onChange={(e) => setColor(e.target.value)}
-              className="w-5 h-5 rounded cursor-pointer border-0 bg-transparent p-0"
-              title="Text Color"
-            />
-          </div>
-
-          {/* Bold & Italic */}
-          <div className="flex items-center bg-white border border-zinc-200 rounded-xl overflow-hidden shadow-xs">
-            <button
-              type="button"
-              onClick={() => setIsBold(!isBold)}
-              className={`p-2 text-xs font-bold transition-colors ${
-                isBold ? 'bg-purple-600 text-white' : 'text-zinc-700 hover:bg-zinc-100'
-              }`}
-              title="Bold"
-            >
-              <Bold className="w-3.5 h-3.5" />
-            </button>
-            <button
-              type="button"
-              onClick={() => setIsItalic(!isItalic)}
-              className={`p-2 text-xs italic transition-colors border-l border-zinc-200 ${
-                isItalic ? 'bg-purple-600 text-white' : 'text-zinc-700 hover:bg-zinc-100'
-              }`}
-              title="Italic"
-            >
-              <Italic className="w-3.5 h-3.5" />
-            </button>
-          </div>
-
-          {/* Microsoft Word Style Show/Hide ¶ Button */}
-          <div className="flex items-center bg-white border border-zinc-200 rounded-xl overflow-hidden shadow-xs">
-            <button
-              type="button"
-              onClick={() => setShowFormattingMarks(!showFormattingMarks)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold transition-all ${
-                showFormattingMarks
-                  ? 'bg-purple-600 text-white shadow-xs'
-                  : 'text-zinc-700 hover:bg-purple-50 hover:text-purple-700'
-              }`}
-              title="Show/Hide paragraph marks (¶) and formatting symbols like Microsoft Word"
-            >
-              <Pilcrow className="w-3.5 h-3.5" />
-              <span>{showFormattingMarks ? 'Hide ¶' : 'Show ¶'}</span>
-            </button>
-            {content.includes('¶') && (
-              <button
-                type="button"
-                onClick={removeLiteralPilcrows}
-                className="px-2.5 py-1.5 text-[11px] font-semibold text-red-600 hover:bg-red-50 border-l border-zinc-200 transition-colors"
-                title="Remove literal ¶ characters accidentally typed in the text"
-              >
-                Clean literal ¶
-              </button>
+            {/* Admin Worker Monitor & Switcher (if admin) */}
+            {role === 'admin' && (
+              <div className="flex items-center gap-1.5 bg-slate-800/90 border border-indigo-500/40 px-2.5 py-1 rounded-xl text-xs">
+                <Users className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+                <span className="text-zinc-400 text-[11px] font-medium hidden sm:inline">Worker:</span>
+                <select
+                  value={selectedWorkerId}
+                  onChange={(e) => {
+                    setSelectedWorkerId(e.target.value)
+                    setActiveSlot(1)
+                  }}
+                  className="bg-transparent font-bold text-white outline-none cursor-pointer text-xs max-w-[150px] truncate"
+                >
+                  <option value={userId} className="bg-slate-900 text-white">My Admin Transcripts</option>
+                  {allWorkers.map((w) => (
+                    <option key={w.id} value={w.id} className="bg-slate-900 text-white">
+                      {w.full_name || w.id}
+                    </option>
+                  ))}
+                </select>
+                {selectedWorkerObj?.last_seen && (() => {
+                  const diffMins = (Date.now() - new Date(selectedWorkerObj.last_seen).getTime()) / 60000
+                  const isOnline = diffMins < 5
+                  return (
+                    <span
+                      className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full font-bold uppercase ${
+                        isOnline ? 'bg-emerald-500/20 text-emerald-300' : 'bg-zinc-700 text-zinc-400'
+                      }`}
+                      title={isOnline ? 'Worker is Online & Active' : `Last active ${Math.floor(diffMins)}m ago`}
+                    >
+                      <span className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-emerald-400 animate-pulse' : 'bg-zinc-500'}`} />
+                      <span className="hidden md:inline">{isOnline ? 'Online' : 'Offline'}</span>
+                    </span>
+                  )
+                })()}
+              </div>
             )}
           </div>
-        </div>
 
-        {/* Action Buttons */}
-        <div className="flex items-center gap-2">
-          {lastSavedTime && (
-            <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 bg-white border border-zinc-200/80 rounded-xl shadow-xs text-zinc-600 text-[11px]">
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-              <span>Saved at {lastSavedTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+          {/* Right Focus Mode Quick Actions */}
+          <div className="flex items-center gap-2">
+            <span className="text-zinc-300 text-[11px] hidden sm:inline">
+              Words: <strong className="text-white">{wordCount}</strong>
+            </span>
+
+            <button
+              type="button"
+              onClick={handleCopy}
+              disabled={!content.trim()}
+              className="hidden sm:flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-xl bg-slate-800 hover:bg-slate-700 text-zinc-300 hover:text-white border border-slate-700 disabled:opacity-40 transition-all"
+            >
+              {copied ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5" />}
+              <span>{copied ? 'Copied' : 'Copy'}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleManualDownload}
+              disabled={!content.trim()}
+              className="hidden sm:flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-xl bg-slate-800 hover:bg-slate-700 text-zinc-300 hover:text-white border border-slate-700 disabled:opacity-40 transition-all"
+              title="Download .txt"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Export</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleManualSave}
+              disabled={saving || !content.trim()}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold rounded-xl bg-purple-600 hover:bg-purple-500 text-white shadow-sm shadow-purple-500/30 disabled:opacity-50 transition-all"
+            >
+              {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+              <span>Save Slot {activeSlot}</span>
+            </button>
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* ── ADMIN WORKER PROGRESS & MONITOR BAR ── */}
+          {role === 'admin' && (
+            <div className="bg-gradient-to-r from-slate-900 to-indigo-950 text-white p-3.5 rounded-2xl border border-indigo-500/30 shadow-md">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-purple-500/20 border border-purple-400/40 text-purple-300">
+                    <Users className="h-4.5 w-4.5" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold uppercase tracking-wider text-purple-300">Worker Live Monitor</span>
+                      {selectedWorkerObj?.last_seen && (() => {
+                        const diffMins = (Date.now() - new Date(selectedWorkerObj.last_seen).getTime()) / 60000
+                        const isOnline = diffMins < 5
+                        return (
+                          <span
+                            className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${
+                              isOnline
+                                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                                : 'bg-zinc-700/50 text-zinc-400 border border-zinc-600/30'
+                            }`}
+                          >
+                            <span className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-emerald-400 animate-pulse' : 'bg-zinc-500'}`} />
+                            {isOnline ? 'Online' : 'Offline'}
+                          </span>
+                        )
+                      })()}
+                    </div>
+                    <p className="text-xs text-zinc-300">
+                      Inspecting live draft slots of:{' '}
+                      <strong className="text-white font-bold">
+                        {selectedWorkerObj?.full_name || selectedWorkerId}
+                      </strong>
+                    </p>
+                  </div>
+                </div>
+
+                {/* Worker Selector Dropdown */}
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-zinc-300 font-medium">Select Worker:</span>
+                  <select
+                    value={selectedWorkerId}
+                    onChange={(e) => {
+                      setSelectedWorkerId(e.target.value)
+                      setActiveSlot(1)
+                    }}
+                    className="rounded-xl border border-indigo-400/40 bg-slate-800 px-3 py-1.5 text-xs font-semibold text-white outline-none focus:ring-2 focus:ring-purple-400 cursor-pointer"
+                  >
+                    <option value={userId}>My Admin Transcripts</option>
+                    {allWorkers.map((w) => (
+                      <option key={w.id} value={w.id}>
+                        {w.full_name || w.id} {w.department ? `(${w.department})` : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
             </div>
           )}
 
-          <button
-            type="button"
-            onClick={handleCopy}
-            disabled={!content.trim()}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl border border-zinc-200 bg-white hover:bg-zinc-100 text-zinc-700 disabled:opacity-40 transition-all shadow-xs"
-          >
-            {copied ? <Check className="w-3.5 h-3.5 text-green-600" /> : <Copy className="w-3.5 h-3.5" />}
-            {copied ? 'Copied' : 'Copy'}
-          </button>
+          {/* ── TOP TOOLBAR ── */}
+          <div className="flex flex-wrap items-center justify-between gap-2.5 bg-zinc-50 border border-zinc-200/80 p-2.5 rounded-2xl">
+            {/* Controls & Formatting */}
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Compact Saved Drafts & Revisions Dropdown */}
+              <div className="flex items-center gap-1.5 bg-white border border-purple-200/90 hover:border-purple-300 px-2.5 py-1.5 rounded-xl shadow-xs transition-colors">
+                <Layers className="w-3.5 h-3.5 text-purple-600 shrink-0" />
+                <span className="text-xs font-bold text-zinc-700 whitespace-nowrap">Draft Slot:</span>
+                <select
+                  value={activeSlot}
+                  onChange={(e) => {
+                    const nextSlot = parseInt(e.target.value, 10)
+                    if (nextSlot !== activeSlot) {
+                      setActiveSlot(nextSlot)
+                    }
+                  }}
+                  className="text-xs font-bold text-purple-950 bg-transparent outline-none cursor-pointer pr-1"
+                >
+                  {[1, 2, 3, 4, 5].map((slotNum) => {
+                    const meta = slotsMeta.find((s) => s.slot === slotNum)
+                    const hasData = meta?.hasContent || (slotNum === activeSlot && content.trim().length > 0)
+                    const words = slotNum === activeSlot ? wordCount : meta?.wordCount || 0
+                    return (
+                      <option key={slotNum} value={slotNum} className="text-zinc-900">
+                        Slot {slotNum} {hasData ? `(${words} words)` : '(Empty)'}
+                      </option>
+                    )
+                  })}
+                </select>
+                {/* Live slot status dot */}
+                <span
+                  className={`h-2 w-2 rounded-full shrink-0 ${
+                    (slotsMeta.find((s) => s.slot === activeSlot)?.hasContent || content.trim().length > 0)
+                      ? 'bg-emerald-500 ring-2 ring-emerald-100'
+                      : 'bg-zinc-300'
+                  }`}
+                  title={
+                    (slotsMeta.find((s) => s.slot === activeSlot)?.hasContent || content.trim().length > 0)
+                      ? 'Saved content in active slot'
+                      : 'Active slot is empty'
+                  }
+                />
+              </div>
 
-          <button
-            type="button"
-            onClick={handleManualDownload}
-            disabled={!content.trim()}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl border border-zinc-200 bg-white hover:bg-zinc-100 text-zinc-700 disabled:opacity-40 transition-all shadow-xs"
-            title="Download .txt"
-          >
-            <Download className="w-3.5 h-3.5" />
-            Export .txt
-          </button>
+              <div className="h-5 w-px bg-zinc-200 hidden sm:block" />
 
-          <button
-            type="button"
-            onClick={handleManualSave}
-            disabled={saving || !content.trim()}
-            className="flex items-center gap-1.5 px-4 py-1.5 text-xs font-bold rounded-xl bg-gradient-to-br from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-md shadow-purple-500/20 disabled:opacity-50 transition-all"
-          >
-            {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-            {saving ? 'Saving...' : `Save Slot ${activeSlot}`}
-          </button>
-        </div>
-      </div>
+              {/* Font Selector */}
+              <div className="flex items-center gap-1.5 bg-white border border-zinc-200 px-2 py-1.5 rounded-xl shadow-xs">
+                <Type className="w-4 h-4 text-zinc-500" />
+                <select
+                  value={font}
+                  onChange={(e) => setFont(e.target.value)}
+                  className="text-xs font-semibold text-zinc-800 bg-transparent outline-none cursor-pointer"
+                >
+                  <option value="Calibri">Calibri</option>
+                  <option value="Times New Roman">Times New Roman</option>
+                  <option value="Bahnschrift">Bahnschrift</option>
+                  <option value="Cambria">Cambria</option>
+                </select>
+              </div>
 
-      {/* ── FIND & REPLACE BAR ── */}
-      <div className="flex flex-wrap items-center gap-2 bg-purple-50/60 border border-purple-200/60 p-2 rounded-2xl">
-        <div className="flex items-center gap-2 flex-1 min-w-[200px]">
-          <div className="relative flex-1">
-            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-purple-400" />
-            <input
-              type="text"
-              placeholder="Find (case-sensitive)..."
-              value={findText}
-              onChange={(e) => setFindText(e.target.value)}
-              className="w-full pl-8 pr-3 py-1 text-xs rounded-xl border border-purple-200 bg-white text-zinc-800 placeholder-zinc-400 outline-none focus:ring-2 focus:ring-purple-400/30"
-            />
+              {/* Font Size */}
+              <div className="flex items-center gap-1 bg-white border border-zinc-200 px-2 py-1.5 rounded-xl shadow-xs">
+                <span className="text-xs text-zinc-500 font-medium">Size</span>
+                <input
+                  type="number"
+                  min={10}
+                  max={36}
+                  value={fontSize}
+                  onChange={(e) => setFontSize(Math.max(10, Math.min(36, parseInt(e.target.value) || 14)))}
+                  className="w-12 text-xs font-bold text-zinc-800 text-center bg-transparent outline-none"
+                />
+                <span className="text-[10px] text-zinc-400">px</span>
+              </div>
+
+              {/* Color Picker */}
+              <div className="flex items-center gap-1.5 bg-white border border-zinc-200 px-2 py-1.5 rounded-xl shadow-xs">
+                <Palette className="w-4 h-4 text-zinc-500" />
+                <input
+                  type="color"
+                  value={color}
+                  onChange={(e) => setColor(e.target.value)}
+                  className="w-5 h-5 rounded cursor-pointer border-0 bg-transparent p-0"
+                  title="Text Color"
+                />
+              </div>
+
+              {/* Bold & Italic */}
+              <div className="flex items-center bg-white border border-zinc-200 rounded-xl overflow-hidden shadow-xs">
+                <button
+                  type="button"
+                  onClick={() => setIsBold(!isBold)}
+                  className={`p-2 text-xs font-bold transition-colors ${
+                    isBold ? 'bg-purple-600 text-white' : 'text-zinc-700 hover:bg-zinc-100'
+                  }`}
+                  title="Bold"
+                >
+                  <Bold className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsItalic(!isItalic)}
+                  className={`p-2 text-xs italic transition-colors border-l border-zinc-200 ${
+                    isItalic ? 'bg-purple-600 text-white' : 'text-zinc-700 hover:bg-zinc-100'
+                  }`}
+                  title="Italic"
+                >
+                  <Italic className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              {/* Microsoft Word Style Show/Hide ¶ Button */}
+              <div className="flex items-center bg-white border border-zinc-200 rounded-xl overflow-hidden shadow-xs">
+                <button
+                  type="button"
+                  onClick={() => setShowFormattingMarks(!showFormattingMarks)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold transition-all ${
+                    showFormattingMarks
+                      ? 'bg-purple-600 text-white shadow-xs'
+                      : 'text-zinc-700 hover:bg-purple-50 hover:text-purple-700'
+                  }`}
+                  title="Show/Hide paragraph marks (¶) and formatting symbols like Microsoft Word"
+                >
+                  <Pilcrow className="w-3.5 h-3.5" />
+                  <span>{showFormattingMarks ? 'Hide ¶' : 'Show ¶'}</span>
+                </button>
+                {content.includes('¶') && (
+                  <button
+                    type="button"
+                    onClick={removeLiteralPilcrows}
+                    className="px-2.5 py-1.5 text-[11px] font-semibold text-red-600 hover:bg-red-50 border-l border-zinc-200 transition-colors"
+                    title="Remove literal ¶ characters accidentally typed in the text"
+                  >
+                    Clean literal ¶
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex items-center gap-2">
+              {lastSavedTime && (
+                <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 bg-white border border-zinc-200/80 rounded-xl shadow-xs text-zinc-600 text-[11px]">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Saved at {lastSavedTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                </div>
+              )}
+
+              {/* Hide Tools / Focus Mode Toggle Button */}
+              <button
+                type="button"
+                onClick={() => setHideTools(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl border border-purple-200/90 bg-purple-50 hover:bg-purple-100 text-purple-800 transition-all shadow-xs"
+                title="Hide all toolbars for a distraction-free maximized typing area"
+              >
+                <EyeOff className="w-3.5 h-3.5 text-purple-600" />
+                <span className="hidden sm:inline">Hide Tools</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleCopy}
+                disabled={!content.trim()}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl border border-zinc-200 bg-white hover:bg-zinc-100 text-zinc-700 disabled:opacity-40 transition-all shadow-xs"
+              >
+                {copied ? <Check className="w-3.5 h-3.5 text-green-600" /> : <Copy className="w-3.5 h-3.5" />}
+                {copied ? 'Copied' : 'Copy'}
+              </button>
+
+              <button
+                type="button"
+                onClick={handleManualDownload}
+                disabled={!content.trim()}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl border border-zinc-200 bg-white hover:bg-zinc-100 text-zinc-700 disabled:opacity-40 transition-all shadow-xs"
+                title="Download .txt"
+              >
+                <Download className="w-3.5 h-3.5" />
+                Export .txt
+              </button>
+
+              <button
+                type="button"
+                onClick={handleManualSave}
+                disabled={saving || !content.trim()}
+                className="flex items-center gap-1.5 px-4 py-1.5 text-xs font-bold rounded-xl bg-gradient-to-br from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-md shadow-purple-500/20 disabled:opacity-50 transition-all"
+              >
+                {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                <span>Save Slot {activeSlot}</span>
+              </button>
+            </div>
           </div>
-          <div className="relative flex-1">
-            <input
-              type="text"
-              placeholder="Replace with..."
-              value={replaceText}
-              onChange={(e) => setReplaceText(e.target.value)}
-              className="w-full px-3 py-1 text-xs rounded-xl border border-purple-200 bg-white text-zinc-800 placeholder-zinc-400 outline-none focus:ring-2 focus:ring-purple-400/30"
-            />
+
+          {/* ── FIND & REPLACE BAR ── */}
+          <div className="flex flex-wrap items-center gap-2 bg-purple-50/60 border border-purple-200/60 p-2 rounded-2xl">
+            <div className="flex items-center gap-2 flex-1 min-w-[200px]">
+              <div className="relative flex-1">
+                <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-purple-400" />
+                <input
+                  type="text"
+                  placeholder="Find (case-sensitive)..."
+                  value={findText}
+                  onChange={(e) => setFindText(e.target.value)}
+                  className="w-full pl-8 pr-3 py-1 text-xs rounded-xl border border-purple-200 bg-white text-zinc-800 placeholder-zinc-400 outline-none focus:ring-2 focus:ring-purple-400/30"
+                />
+              </div>
+              <div className="relative flex-1">
+                <input
+                  type="text"
+                  placeholder="Replace with..."
+                  value={replaceText}
+                  onChange={(e) => setReplaceText(e.target.value)}
+                  className="w-full px-3 py-1 text-xs rounded-xl border border-purple-200 bg-white text-zinc-800 placeholder-zinc-400 outline-none focus:ring-2 focus:ring-purple-400/30"
+                />
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={performFindReplace}
+              className="flex items-center gap-1.5 px-3.5 py-1 text-xs font-bold rounded-xl bg-purple-600 hover:bg-purple-700 text-white shadow-xs transition-all"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              Replace All
+            </button>
+
+            {content && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (window.confirm(`Clear content in Slot ${activeSlot}?`)) {
+                    handleContentChange('')
+                    setStatusMessage(null)
+                  }
+                }}
+                className="text-xs text-zinc-500 hover:text-red-600 px-2 py-1 transition-colors"
+              >
+                Clear Slot
+              </button>
+            )}
           </div>
-        </div>
-
-        <button
-          type="button"
-          onClick={performFindReplace}
-          className="flex items-center gap-1.5 px-3.5 py-1 text-xs font-bold rounded-xl bg-purple-600 hover:bg-purple-700 text-white shadow-xs transition-all"
-        >
-          <RefreshCw className="w-3.5 h-3.5" />
-          Replace All
-        </button>
-
-        {content && (
-          <button
-            type="button"
-            onClick={() => {
-              if (window.confirm(`Clear content in Slot ${activeSlot}?`)) {
-                handleContentChange('')
-                setStatusMessage(null)
-              }
-            }}
-            className="text-xs text-zinc-500 hover:text-red-600 px-2 py-1 transition-colors"
-          >
-            Clear Slot
-          </button>
-        )}
-      </div>
+        </>
+      )}
 
       {/* Status Messages */}
       {statusMessage && (
