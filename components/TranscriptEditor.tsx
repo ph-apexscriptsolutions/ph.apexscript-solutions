@@ -565,9 +565,7 @@ export default function TranscriptEditor({
   const stopAudio = () => {
     if (!audioRef.current) return
     audioRef.current.pause()
-    audioRef.current.currentTime = 0
     setIsPlaying(false)
-    setAudioCurrentTime(0)
   }
 
   const rewindAudio = (seconds = hotkeys.rewindSeconds || 2) => {
