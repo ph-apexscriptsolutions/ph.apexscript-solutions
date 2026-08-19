@@ -258,7 +258,7 @@ export default function TranscriptEditor({
     setStatusMessage({ type: 'info', text: 'Cleaned all literal ¶ characters from text.' })
   }
 
-  // Microsoft Word Style Visual Formatting Marks Generator (¶ for paragraph ends, · for spaces, → for tabs)
+  // Microsoft Word Style Visual Formatting Marks Generator (¶ for paragraph ends, · for spaces, → for tabs) in solid black
   const renderFormattedMarks = (text: string) => {
     if (!showFormattingMarks || !text) return null
 
@@ -271,22 +271,29 @@ export default function TranscriptEditor({
         const char = line[i]
         if (char === ' ') {
           if (currentWord) {
-            parts.push(<span key={`w-${lineIdx}-${i}`} className="opacity-0">{currentWord}</span>)
+            parts.push(<span key={`w-${lineIdx}-${i}`} className="text-transparent">{currentWord}</span>)
             currentWord = ''
           }
+          // Exact-width space with centered black dot
           parts.push(
-            <span key={`s-${lineIdx}-${i}`} className="text-purple-400 font-bold select-none inline-block">
-              ·
+            <span key={`s-${lineIdx}-${i}`} className="relative inline-block text-transparent">
+              {' '}
+              <span className="absolute inset-0 flex items-center justify-center text-black font-extrabold select-none pointer-events-none text-[9px] leading-none">
+                ·
+              </span>
             </span>
           )
         } else if (char === '\t') {
           if (currentWord) {
-            parts.push(<span key={`w-${lineIdx}-${i}`} className="opacity-0">{currentWord}</span>)
+            parts.push(<span key={`w-${lineIdx}-${i}`} className="text-transparent">{currentWord}</span>)
             currentWord = ''
           }
           parts.push(
-            <span key={`t-${lineIdx}-${i}`} className="text-indigo-400 font-bold select-none inline-block">
-              →{'   '}
+            <span key={`t-${lineIdx}-${i}`} className="relative inline-block text-transparent">
+              {'\t'}
+              <span className="absolute inset-0 flex items-center justify-center text-black font-bold select-none pointer-events-none text-xs">
+                →
+              </span>
             </span>
           )
         } else {
@@ -295,7 +302,7 @@ export default function TranscriptEditor({
       }
 
       if (currentWord) {
-        parts.push(<span key={`w-${lineIdx}-end`} className="opacity-0">{currentWord}</span>)
+        parts.push(<span key={`w-${lineIdx}-end`} className="text-transparent">{currentWord}</span>)
       }
 
       const isLastLine = lineIdx === lines.length - 1
@@ -303,7 +310,7 @@ export default function TranscriptEditor({
       return (
         <React.Fragment key={lineIdx}>
           {parts}
-          <span className="text-purple-600 font-extrabold select-none inline-block px-0.5 bg-purple-100/60 rounded-xs">
+          <span className="text-black font-bold select-none inline-block pl-0.5 pointer-events-none">
             ¶
           </span>
           {!isLastLine && '\n'}
@@ -330,6 +337,25 @@ export default function TranscriptEditor({
     }
   }
 
+  // Shared exact layout and typography styles for both textarea and formatting marks overlay
+  const editorSharedStyle: React.CSSProperties = {
+    fontFamily: getFontFamilyStyle(),
+    fontSize: `${fontSize}px`,
+    lineHeight: '1.625',
+    fontWeight: isBold ? 'bold' : 'normal',
+    fontStyle: isItalic ? 'italic' : 'normal',
+    letterSpacing: 'normal',
+    wordSpacing: 'normal',
+    padding: '16px',
+    margin: 0,
+    border: 'none',
+    boxSizing: 'border-box',
+    whiteSpace: 'pre-wrap',
+    wordBreak: 'break-word',
+    overflowWrap: 'break-word',
+    tabSize: 4,
+  }
+
   // Selected worker details for Admin
   const selectedWorkerObj = allWorkers.find((w) => w.id === selectedWorkerId)
 
@@ -348,20 +374,27 @@ export default function TranscriptEditor({
                   <span className="text-xs font-bold uppercase tracking-wider text-purple-300">Worker Live Monitor</span>
                   {selectedWorkerObj?.last_seen && (() => {
                     const diffMins = (Date.now() - new Date(selectedWorkerObj.last_seen).getTime()) / 60000
-                    return diffMins < 5 ? (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-[10px] font-bold text-emerald-400">
-                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                        Online & Active
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-zinc-800 text-[10px] text-zinc-400">
-                        <Clock className="h-2.5 w-2.5" />
-                        Active {Math.floor(diffMins)}m ago
+                    const isOnline = diffMins < 5
+                    return (
+                      <span
+                        className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${
+                          isOnline
+                            ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                            : 'bg-zinc-700/50 text-zinc-400 border border-zinc-600/30'
+                        }`}
+                      >
+                        <span className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-emerald-400 animate-pulse' : 'bg-zinc-500'}`} />
+                        {isOnline ? 'Online' : 'Offline'}
                       </span>
                     )
                   })()}
                 </div>
-                <p className="text-[11px] text-zinc-400">Inspect real-time progress & all 5 draft slots of any worker</p>
+                <p className="text-xs text-zinc-300">
+                  Inspecting live draft slots of:{' '}
+                  <strong className="text-white font-bold">
+                    {selectedWorkerObj?.full_name || selectedWorkerId}
+                  </strong>
+                </p>
               </div>
             </div>
 
@@ -654,13 +687,10 @@ export default function TranscriptEditor({
             ref={overlayRef}
             aria-hidden="true"
             style={{
-              fontFamily: getFontFamilyStyle(),
-              fontSize: `${fontSize}px`,
-              fontWeight: isBold ? 'bold' : 'normal',
-              fontStyle: isItalic ? 'italic' : 'normal',
-              lineHeight: 1.625,
+              ...editorSharedStyle,
+              color: 'transparent',
             }}
-            className="absolute inset-0 p-4 pointer-events-none whitespace-pre-wrap break-words overflow-y-hidden select-none z-10 font-sans"
+            className="absolute inset-0 pointer-events-none select-none z-10 overflow-y-scroll overflow-x-hidden font-sans"
           >
             {renderFormattedMarks(content)}
           </div>
@@ -679,14 +709,10 @@ export default function TranscriptEditor({
           }}
           placeholder={`Paste raw transcript or start typing in Slot ${activeSlot}...`}
           style={{
-            fontFamily: getFontFamilyStyle(),
-            fontSize: `${fontSize}px`,
-            color: color,
-            fontWeight: isBold ? 'bold' : 'normal',
-            fontStyle: isItalic ? 'italic' : 'normal',
-            lineHeight: 1.625,
+            ...editorSharedStyle,
+            color: color || '#1e293b',
           }}
-          className="w-full flex-1 p-4 bg-transparent text-zinc-900 resize-none outline-none leading-relaxed border-0 relative z-10"
+          className="w-full flex-1 bg-transparent resize-none outline-none overflow-y-scroll overflow-x-hidden relative z-10"
         />
       </div>
 
