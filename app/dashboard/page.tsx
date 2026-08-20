@@ -3247,12 +3247,12 @@ export default function DashboardPage() {
               <>
                 {/* Backdrop to close */}
                 <div className="fixed inset-0 z-40" onClick={() => setIsAnnouncementPopupOpen(false)} />
-                <div className="absolute right-0 top-12 z-50 w-80 sm:w-96 rounded-2xl border border-zinc-200 bg-white shadow-2xl overflow-hidden">
+                <div className="absolute right-0 top-12 z-50 w-96 sm:w-[32rem] rounded-2xl border border-zinc-200 bg-white shadow-2xl overflow-hidden">
                   {/* Header */}
-                  <div className="flex items-center justify-between border-b border-zinc-100 px-4 py-3 bg-gradient-to-r from-amber-50 to-orange-50">
+                  <div className="flex items-center justify-between border-b border-zinc-100 px-5 py-3.5 bg-gradient-to-r from-amber-50 to-orange-50">
                     <div className="flex items-center gap-2">
                       <Bell className="h-4 w-4 text-amber-600" />
-                      <span className="text-sm font-semibold text-zinc-800">Announcements</span>
+                      <span className="text-sm font-bold text-zinc-800">Announcements</span>
                       {announcements.length > 0 && (
                         <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700">{announcements.length}</span>
                       )}
@@ -3263,7 +3263,7 @@ export default function DashboardPage() {
                   </div>
 
                   {/* Body */}
-                  <div className="max-h-96 overflow-y-auto divide-y divide-zinc-100">
+                  <div className="max-h-[32rem] overflow-y-auto divide-y divide-zinc-100">
                     {announcements.length === 0 ? (
                       <div className="flex flex-col items-center justify-center py-10 text-center px-4">
                         <Bell className="h-8 w-8 text-zinc-300 mb-2" />
@@ -8477,7 +8477,7 @@ export default function DashboardPage() {
 
       {isAnnouncementModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl p-6 relative max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl sm:max-w-4xl p-6 sm:p-8 relative max-h-[90vh] overflow-y-auto">
             <button onClick={() => {
               setIsAnnouncementModalOpen(false)
               setAnnouncementMessage('')
@@ -8486,17 +8486,17 @@ export default function DashboardPage() {
               setEditingAnnouncementId(null)
               setShowAnnouncementPreview(false)
               setAnnouncementErrorMessage(null)
-            }} className="absolute right-4 top-4 text-zinc-400 hover:text-zinc-900"><X className="h-5 w-5" /></button>
-            <h3 className="text-lg font-semibold text-zinc-900 mb-4">{isEditingAnnouncement ? 'Edit Announcement' : 'Publish Announcement'}</h3>
+            }} className="absolute right-5 top-5 text-zinc-400 hover:text-zinc-900 transition"><X className="h-5 w-5" /></button>
+            <h3 className="text-xl font-bold text-zinc-900 mb-5">{isEditingAnnouncement ? 'Edit Announcement' : 'Publish Announcement'}</h3>
             
             <div className="space-y-4">
               {/* Formatting Toolbar */}
-              <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-2">
+              <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-2.5">
                 <div className="flex flex-wrap gap-2">
                   <button
                     type="button"
                     onClick={() => document.execCommand('bold', false, undefined)}
-                    className="px-3 py-1.5 rounded-md text-sm font-semibold bg-white border border-zinc-300 text-zinc-700 hover:bg-zinc-50 transition"
+                    className="px-3.5 py-1.5 rounded-lg text-sm font-semibold bg-white border border-zinc-300 text-zinc-700 hover:bg-zinc-50 transition shadow-sm"
                     title="Bold (Ctrl+B)"
                   >
                     B
@@ -8504,7 +8504,7 @@ export default function DashboardPage() {
                   <button
                     type="button"
                     onClick={() => document.execCommand('italic', false, undefined)}
-                    className="px-3 py-1.5 rounded-md text-sm italic bg-white border border-zinc-300 text-zinc-700 hover:bg-zinc-50 transition"
+                    className="px-3.5 py-1.5 rounded-lg text-sm italic bg-white border border-zinc-300 text-zinc-700 hover:bg-zinc-50 transition shadow-sm"
                     title="Italic (Ctrl+I)"
                   >
                     I
@@ -8512,7 +8512,7 @@ export default function DashboardPage() {
                   <button
                     type="button"
                     onClick={() => document.execCommand('underline', false, undefined)}
-                    className="px-3 py-1.5 rounded-md text-sm underline bg-white border border-zinc-300 text-zinc-700 hover:bg-zinc-50 transition"
+                    className="px-3.5 py-1.5 rounded-lg text-sm underline bg-white border border-zinc-300 text-zinc-700 hover:bg-zinc-50 transition shadow-sm"
                     title="Underline (Ctrl+U)"
                   >
                     U
@@ -8520,7 +8520,7 @@ export default function DashboardPage() {
                   <div className="w-px bg-zinc-300 mx-1"></div>
                   <select
                     onChange={(e) => document.execCommand('fontName', false, e.target.value)}
-                    className="px-2 py-1.5 rounded-md text-sm bg-white border border-zinc-300 text-zinc-700 outline-none"
+                    className="px-3 py-1.5 rounded-lg text-sm bg-white border border-zinc-300 text-zinc-700 outline-none shadow-sm"
                   >
                     <option value="Arial">Arial</option>
                     <option value="Georgia">Georgia</option>
@@ -8531,7 +8531,7 @@ export default function DashboardPage() {
                   </select>
                   <select
                     onChange={(e) => document.execCommand('fontSize', false, e.target.value)}
-                    className="px-2 py-1.5 rounded-md text-sm bg-white border border-zinc-300 text-zinc-700 outline-none"
+                    className="px-3 py-1.5 rounded-lg text-sm bg-white border border-zinc-300 text-zinc-700 outline-none shadow-sm"
                   >
                     <option value="1">Small</option>
                     <option value="3">Normal</option>
@@ -8541,25 +8541,25 @@ export default function DashboardPage() {
                   <input
                     type="color"
                     onChange={(e) => document.execCommand('foreColor', false, e.target.value)}
-                    className="h-8 w-10 rounded-md border border-zinc-300 cursor-pointer"
+                    className="h-8 w-10 rounded-lg border border-zinc-300 cursor-pointer"
                     title="Text Color"
                   />
                   <input
                     type="color"
                     onChange={(e) => document.execCommand('hiliteColor', false, e.target.value)}
-                    className="h-8 w-10 rounded-md border border-zinc-300 cursor-pointer"
+                    className="h-8 w-10 rounded-lg border border-zinc-300 cursor-pointer"
                     title="Highlight Color"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-zinc-700 mb-2">Message</label>
+                <label className="block text-sm font-semibold text-zinc-700 mb-2">Message</label>
                 <div
                   ref={(ref) => setEditorRef(ref)}
                   contentEditable={true}
-                  className="w-full rounded-md border border-zinc-300 px-3 py-3 text-sm text-zinc-800 outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 min-h-[200px] max-h-[400px] overflow-y-auto"
-                  style={{ fontFamily: 'Arial', fontSize: '14px' }}
+                  className="w-full rounded-xl border border-zinc-300 p-4 text-base text-zinc-800 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 min-h-[280px] max-h-[480px] overflow-y-auto leading-relaxed shadow-inner"
+                  style={{ fontFamily: 'Arial', fontSize: '15px' }}
                   onInput={(e) => {
                     const content = (e.target as HTMLElement).innerHTML
                     setAnnouncementMessage(content)
@@ -8570,7 +8570,7 @@ export default function DashboardPage() {
                 {editorRef?.innerText?.length || 0} characters
               </div>
               {announcementErrorMessage && (
-                <div className="rounded-2xl border border-red-200 bg-red-50 p-3 text-sm text-red-900">
+                <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-900">
                   {announcementErrorMessage}
                 </div>
               )}
@@ -8587,8 +8587,8 @@ export default function DashboardPage() {
                 setIsEditingAnnouncement(false)
                 setEditingAnnouncementId(null)
                 setShowAnnouncementPreview(false)
-              }} className="rounded-md border border-zinc-200 bg-white px-5 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 transition">Cancel</button>
-              <button type="button" onClick={isEditingAnnouncement ? updateAnnouncement : publishAnnouncement} disabled={isPublishingAnnouncement} className="inline-flex items-center justify-center rounded-md bg-amber-500 px-5 py-2 text-sm font-semibold text-white hover:bg-amber-600 transition disabled:opacity-50">
+              }} className="rounded-xl border border-zinc-200 bg-white px-5 py-2.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 transition">Cancel</button>
+              <button type="button" onClick={isEditingAnnouncement ? updateAnnouncement : publishAnnouncement} disabled={isPublishingAnnouncement} className="inline-flex items-center justify-center rounded-xl bg-amber-500 px-6 py-2.5 text-sm font-semibold text-white hover:bg-amber-600 transition disabled:opacity-50 shadow-md shadow-amber-500/20">
                 {isPublishingAnnouncement ? (isEditingAnnouncement ? 'Updating...' : 'Publishing...') : (isEditingAnnouncement ? 'Update' : 'Publish')}
               </button>
             </div>

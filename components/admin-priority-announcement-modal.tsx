@@ -166,29 +166,29 @@ export default function AdminPriorityAnnouncementModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="relative w-full max-w-2xl overflow-hidden bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl border border-zinc-200 dark:border-zinc-800 flex flex-col max-h-[90vh]">
+      <div className="relative w-full max-w-3xl sm:max-w-4xl overflow-hidden bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl border border-zinc-200 dark:border-zinc-800 flex flex-col max-h-[92vh]">
         
         {/* Header */}
-        <div className="bg-gradient-to-r from-red-700 via-rose-700 to-amber-700 px-6 py-4 text-white flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <AlertTriangle className="h-5 w-5 fill-white text-red-600" />
-            <h2 className="font-bold text-base tracking-wide">
+        <div className="bg-gradient-to-r from-red-700 via-rose-700 to-amber-700 px-6 sm:px-8 py-4 sm:py-5 text-white flex items-center justify-between">
+          <div className="flex items-center space-x-2.5">
+            <AlertTriangle className="h-5 w-5 sm:h-6 sm:w-6 fill-white text-red-600" />
+            <h2 className="font-bold text-base sm:text-lg tracking-wide">
               Live Priority & Rush Assignment Dispatch
             </h2>
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors"
+            className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 px-6">
+        <div className="flex border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 px-6 sm:px-8">
           <button
             onClick={() => setActiveTab('create')}
-            className={`py-3 px-4 text-xs font-bold transition-all border-b-2 ${
+            className={`py-3.5 px-5 text-xs sm:text-sm font-bold transition-all border-b-2 ${
               activeTab === 'create'
                 ? 'border-red-600 text-red-600 dark:text-red-400'
                 : 'border-transparent text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300'
@@ -198,7 +198,7 @@ export default function AdminPriorityAnnouncementModal({
           </button>
           <button
             onClick={() => setActiveTab('history')}
-            className={`py-3 px-4 text-xs font-bold transition-all border-b-2 flex items-center space-x-1.5 ${
+            className={`py-3.5 px-5 text-xs sm:text-sm font-bold transition-all border-b-2 flex items-center space-x-1.5 ${
               activeTab === 'history'
                 ? 'border-red-600 text-red-600 dark:text-red-400'
                 : 'border-transparent text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300'
@@ -206,7 +206,7 @@ export default function AdminPriorityAnnouncementModal({
           >
             <span>📊 Live Responses & Active Log</span>
             {announcements.length > 0 && (
-              <span className="ml-1 rounded-full bg-red-100 dark:bg-red-950 text-red-700 dark:text-red-300 text-[10px] px-2 py-0.5 font-bold">
+              <span className="ml-1.5 rounded-full bg-red-100 dark:bg-red-950 text-red-700 dark:text-red-300 text-xs px-2.5 py-0.5 font-bold">
                 {announcements.length}
               </span>
             )}
@@ -214,7 +214,7 @@ export default function AdminPriorityAnnouncementModal({
         </div>
 
         {/* Body Content */}
-        <div className="p-6 overflow-y-auto flex-1 space-y-4">
+        <div className="p-6 sm:p-8 overflow-y-auto flex-1 space-y-5">
           {activeTab === 'create' ? (
             <form onSubmit={handleSubmit} className="space-y-4">
               {errorMessage && (
@@ -304,11 +304,11 @@ CREATE TABLE IF NOT EXISTS public.priority_announcement_responses (
                   Rush Details / Instructions
                 </label>
                 <textarea
-                  rows={3}
+                  rows={4}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Provide deadline, payment bonus, file links, or priority instructions..."
-                  className="w-full px-3.5 py-2 text-sm border border-zinc-300 dark:border-zinc-700 rounded-xl bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:ring-2 focus:ring-red-500 focus:outline-none"
+                  className="w-full px-3.5 py-2.5 text-sm border border-zinc-300 dark:border-zinc-700 rounded-xl bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:ring-2 focus:ring-red-500 focus:outline-none"
                 />
               </div>
 
@@ -366,7 +366,7 @@ CREATE TABLE IF NOT EXISTS public.priority_announcement_responses (
                     </button>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2 max-h-36 overflow-y-auto pr-1">
+                  <div className="grid grid-cols-2 gap-2 max-h-52 overflow-y-auto pr-1">
                     {eligibleWorkers.map((w) => {
                       const isSelected = selectedWorkerIds.includes(w.id)
                       return (
