@@ -8476,9 +8476,9 @@ export default function DashboardPage() {
       )}
 
       {isAnnouncementModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/60 backdrop-blur-sm overflow-y-auto">
-          <div className="bg-white rounded-2xl shadow-2xl border border-zinc-200 dark:border-zinc-800 w-full max-w-3xl sm:max-w-4xl p-5 sm:p-7 relative max-h-[90vh] sm:max-h-[85vh] flex flex-col my-auto">
-            <div className="shrink-0 flex items-center justify-between pb-3 border-b border-zinc-200 mb-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/50 backdrop-blur-sm overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl sm:max-w-4xl p-5 sm:p-7 relative max-h-[90vh] sm:max-h-[88vh] flex flex-col my-auto">
+            <div className="shrink-0 flex items-center justify-between pb-3 border-b border-zinc-100 mb-4">
               <h3 className="text-lg sm:text-xl font-bold text-zinc-900">{isEditingAnnouncement ? 'Edit Announcement' : 'Publish Announcement'}</h3>
               <button onClick={() => {
                 setIsAnnouncementModalOpen(false)
@@ -8581,7 +8581,7 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            <div className="shrink-0 flex justify-end gap-3 mt-4 pt-4 border-t border-zinc-200">
+            <div className="shrink-0 flex justify-end gap-3 mt-4 pt-3 border-t border-zinc-100">
               <button type="button" onClick={() => {
                 setIsAnnouncementModalOpen(false)
                 setAnnouncementMessage('')

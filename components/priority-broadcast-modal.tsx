@@ -164,7 +164,7 @@ export default function PriorityBroadcastModal({
   return (
     <div
       onClick={handleBackdropClick}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/75 backdrop-blur-sm animate-in fade-in duration-200 overflow-y-auto"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/70 backdrop-blur-sm animate-in fade-in duration-200 overflow-y-auto"
     >
       <style>{`
         @keyframes priorityShake {
@@ -176,7 +176,7 @@ export default function PriorityBroadcastModal({
           animation: priorityShake 0.4s ease-in-out;
         }
       `}</style>
-      <div className={`relative w-full max-w-2xl sm:max-w-3xl max-h-[90vh] sm:max-h-[85vh] flex flex-col my-auto overflow-hidden bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl border-2 border-red-300 dark:border-red-800/80 transform transition-all scale-100 ${
+      <div className={`relative w-full max-w-2xl sm:max-w-3xl max-h-[90vh] sm:max-h-[88vh] flex flex-col my-auto overflow-hidden bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl border border-red-200 dark:border-red-900/40 transform transition-all scale-100 ${
         isShaking ? 'animate-priority-shake ring-4 ring-red-500 border-red-500' : ''
       }`}>
         
@@ -314,7 +314,7 @@ export default function PriorityBroadcastModal({
 
           {/* Action Buttons */}
           {!userResponse && !isClaimedByOther && (
-            <div className="grid grid-cols-2 gap-4 pt-4 border-t border-zinc-200 dark:border-zinc-800">
+            <div className="grid grid-cols-2 gap-4 pt-2">
               <button
                 type="button"
                 onClick={() => handleRespond('declined')}
@@ -338,14 +338,12 @@ export default function PriorityBroadcastModal({
 
           {/* Close button if user already responded or claimed */}
           {(userResponse || isClaimedByOther) && (
-            <div className="pt-4 border-t border-zinc-200 dark:border-zinc-800">
-              <button
-                onClick={onClose}
-                className="w-full py-3 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-semibold text-sm sm:text-base rounded-xl hover:bg-zinc-800 transition-colors"
-              >
-                Done / Close
-              </button>
-            </div>
+            <button
+              onClick={onClose}
+              className="w-full py-3 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-semibold text-sm sm:text-base rounded-xl hover:bg-zinc-800 transition-colors"
+            >
+              Done / Close
+            </button>
           )}
         </div>
       </div>
