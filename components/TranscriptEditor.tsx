@@ -82,6 +82,7 @@ interface TranscriptEditorProps {
   allWorkers?: WorkerOption[]
   initialWorkerId?: string
   initialSlot?: number
+  onSlotChange?: (slot: number) => void
 }
 
 const DEFAULT_HOTKEYS: HotkeySettings = {
@@ -109,6 +110,7 @@ export default function TranscriptEditor({
   allWorkers = [],
   initialWorkerId,
   initialSlot,
+  onSlotChange,
 }: TranscriptEditorProps) {
   const editorRef = useRef<HTMLDivElement>(null)
   const audioRef = useRef<HTMLAudioElement>(null)
@@ -1187,7 +1189,11 @@ export default function TranscriptEditor({
               <span className="text-zinc-400 font-medium">Slot:</span>
               <select
                 value={activeSlot}
-                onChange={(e) => setActiveSlot(parseInt(e.target.value, 10))}
+                onChange={(e) => {
+                  const newSlot = parseInt(e.target.value, 10)
+                  setActiveSlot(newSlot)
+                  onSlotChange?.(newSlot)
+                }}
                 className="bg-transparent font-bold text-purple-200 outline-none cursor-pointer text-xs"
               >
                 {[1, 2, 3, 4, 5].map((s) => {
@@ -1601,6 +1607,7 @@ export default function TranscriptEditor({
                     const nextSlot = parseInt(e.target.value, 10)
                     if (nextSlot !== activeSlot) {
                       setActiveSlot(nextSlot)
+                      onSlotChange?.(nextSlot)
                     }
                   }}
                   className="text-xs font-bold text-purple-950 bg-transparent outline-none cursor-pointer pr-1"

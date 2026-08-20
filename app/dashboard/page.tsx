@@ -6941,6 +6941,8 @@ export default function DashboardPage() {
                 userId={user?.id || activeWorker?.id || ''}
                 allWorkers={allWorkers || []}
                 initialWorkerId={activeWorker?.id}
+                initialSlot={transcriptEditorSlot}
+                onSlotChange={setTranscriptEditorSlot}
               />
             </div>
           </div>
