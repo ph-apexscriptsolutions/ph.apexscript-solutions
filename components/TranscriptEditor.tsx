@@ -803,13 +803,104 @@ export default function TranscriptEditor({
 
   // Find Next / Previous occurrence (Word-style)
   const findNext = (backwards = false) => {
-    if (!findText) return
-    if (typeof window !== 'undefined' && (window as any).find) {
-      const found = (window as any).find(findText, false, backwards, true)
-      if (!found) {
-        setStatusMessage({ type: 'info', text: `Reached end of document for "${findText}".` })
-      }
+    if (!findText || !editorRef.current) return
+
+    const editor = editorRef.current
+    const content = editor.innerText || ''
+    const sel = window.getSelection()
+
+    if (!sel) return
+
+    // Get current selection position
+    const currentRange = sel.rangeCount > 0 ? sel.getRangeAt(0) : null
+    const currentOffset = currentRange ? getTextOffset(editor, currentRange.startContainer, currentRange.startOffset) : 0
+
+    // Find the text
+    const searchText = findText.toLowerCase()
+    const lowerContent = content.toLowerCase()
+
+    let nextIndex: number
+    if (backwards) {
+      // Search backwards from current position
+      const beforeCurrent = lowerContent.substring(0, currentOffset)
+      const lastMatch = beforeCurrent.lastIndexOf(searchText)
+      nextIndex = lastMatch >= 0 ? lastMatch : lowerContent.lastIndexOf(searchText)
+    } else {
+      // Search forwards from current position
+      const afterCurrent = lowerContent.substring(currentOffset + findText.length)
+      const nextMatch = afterCurrent.indexOf(searchText)
+      nextIndex = nextMatch >= 0 ? currentOffset + findText.length + nextMatch : lowerContent.indexOf(searchText)
     }
+
+    if (nextIndex >= 0) {
+      // Create a range and select the found text
+      const range = getTextRange(editor, nextIndex, nextIndex + findText.length)
+      if (range) {
+        sel.removeAllRanges()
+        sel.addRange(range)
+        // Scroll into view
+        const rect = range.getBoundingClientRect()
+        if (rect.top < 0 || rect.bottom > window.innerHeight) {
+          range.startContainer.parentElement?.scrollIntoView({ block: 'center' })
+        }
+      }
+    } else {
+      setStatusMessage({ type: 'info', text: `Reached end of document for "${findText}".` })
+    }
+  }
+
+  // Helper to get text offset from a node
+  const getTextOffset = (root: Node, node: Node, offset: number): number => {
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null)
+    let totalOffset = 0
+    let currentNode = walker.nextNode()
+
+    while (currentNode) {
+      if (currentNode === node) {
+        return totalOffset + offset
+      }
+      totalOffset += currentNode.textContent?.length || 0
+      currentNode = walker.nextNode()
+    }
+    return totalOffset
+  }
+
+  // Helper to get a range from text offsets
+  const getTextRange = (root: Node, startOffset: number, endOffset: number): Range | null => {
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null)
+    let totalOffset = 0
+    let currentNode = walker.nextNode()
+    let startNode: Node | null = null
+    let startNodeOffset = 0
+    let endNode: Node | null = null
+    let endNodeOffset = 0
+
+    while (currentNode) {
+      const nodeLength = currentNode.textContent?.length || 0
+
+      if (startNode === null && totalOffset + nodeLength >= startOffset) {
+        startNode = currentNode
+        startNodeOffset = startOffset - totalOffset
+      }
+
+      if (totalOffset + nodeLength >= endOffset) {
+        endNode = currentNode
+        endNodeOffset = endOffset - totalOffset
+        break
+      }
+
+      totalOffset += nodeLength
+      currentNode = walker.nextNode()
+    }
+
+    if (startNode && endNode) {
+      const range = document.createRange()
+      range.setStart(startNode, startNodeOffset)
+      range.setEnd(endNode, endNodeOffset)
+      return range
+    }
+
+    return null
   }
 
   // Replace current active selection
