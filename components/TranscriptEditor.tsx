@@ -808,19 +808,42 @@ export default function TranscriptEditor({
     if (!findText || !editorRef.current) return
 
     const editor = editorRef.current
-    const content = editor.innerText || ''
     const sel = window.getSelection()
 
     if (!sel) return
 
+    // Build text content mapping using TreeWalker
+    const textNodes: { node: Text; offset: number; text: string }[] = []
+    const walker = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT, null)
+    let totalOffset = 0
+    let currentNode = walker.nextNode()
+
+    while (currentNode) {
+      const text = currentNode.textContent || ''
+      textNodes.push({ node: currentNode as Text, offset: totalOffset, text })
+      totalOffset += text.length
+      currentNode = walker.nextNode()
+    }
+
+    // Build full text content
+    const fullText = textNodes.map(n => n.text).join('')
+    const searchText = findText.toLowerCase()
+    const lowerContent = fullText.toLowerCase()
+
     // Get current selection position
     const currentRange = sel.rangeCount > 0 ? sel.getRangeAt(0) : null
-    const currentOffset = currentRange ? getTextOffset(editor, currentRange.startContainer, currentRange.startOffset) : 0
+    let currentOffset = 0
+    if (currentRange && currentRange.startContainer) {
+      // Find the text node and offset
+      for (const tn of textNodes) {
+        if (tn.node === currentRange.startContainer) {
+          currentOffset = tn.offset + currentRange.startOffset
+          break
+        }
+      }
+    }
 
     // Find the text
-    const searchText = findText.toLowerCase()
-    const lowerContent = content.toLowerCase()
-
     let nextIndex: number
     if (backwards) {
       // Search backwards from current position
@@ -835,9 +858,35 @@ export default function TranscriptEditor({
     }
 
     if (nextIndex >= 0) {
-      // Create a range and select the found text
-      const range = getTextRange(editor, nextIndex, nextIndex + findText.length)
-      if (range) {
+      // Find the text nodes for the match
+      const startIndex = nextIndex
+      const endIndex = nextIndex + findText.length
+
+      let startNode: Text | null = null
+      let startNodeOffset = 0
+      let endNode: Text | null = null
+      let endNodeOffset = 0
+
+      for (const tn of textNodes) {
+        const nodeStart = tn.offset
+        const nodeEnd = tn.offset + tn.text.length
+
+        if (startNode === null && nodeEnd > startIndex) {
+          startNode = tn.node
+          startNodeOffset = startIndex - nodeStart
+        }
+
+        if (nodeEnd >= endIndex) {
+          endNode = tn.node
+          endNodeOffset = endIndex - tn.offset
+          break
+        }
+      }
+
+      if (startNode && endNode) {
+        const range = document.createRange()
+        range.setStart(startNode, startNodeOffset)
+        range.setEnd(endNode, endNodeOffset)
         sel.removeAllRanges()
         sel.addRange(range)
         // Scroll into view
@@ -849,60 +898,6 @@ export default function TranscriptEditor({
     } else {
       setStatusMessage({ type: 'info', text: `Reached end of document for "${findText}".` })
     }
-  }
-
-  // Helper to get text offset from a node
-  const getTextOffset = (root: Node, node: Node, offset: number): number => {
-    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null)
-    let totalOffset = 0
-    let currentNode = walker.nextNode()
-
-    while (currentNode) {
-      if (currentNode === node) {
-        return totalOffset + offset
-      }
-      totalOffset += currentNode.textContent?.length || 0
-      currentNode = walker.nextNode()
-    }
-    return totalOffset
-  }
-
-  // Helper to get a range from text offsets
-  const getTextRange = (root: Node, startOffset: number, endOffset: number): Range | null => {
-    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null)
-    let totalOffset = 0
-    let currentNode = walker.nextNode()
-    let startNode: Node | null = null
-    let startNodeOffset = 0
-    let endNode: Node | null = null
-    let endNodeOffset = 0
-
-    while (currentNode) {
-      const nodeLength = currentNode.textContent?.length || 0
-
-      if (startNode === null && totalOffset + nodeLength >= startOffset) {
-        startNode = currentNode
-        startNodeOffset = startOffset - totalOffset
-      }
-
-      if (totalOffset + nodeLength >= endOffset) {
-        endNode = currentNode
-        endNodeOffset = endOffset - totalOffset
-        break
-      }
-
-      totalOffset += nodeLength
-      currentNode = walker.nextNode()
-    }
-
-    if (startNode && endNode) {
-      const range = document.createRange()
-      range.setStart(startNode, startNodeOffset)
-      range.setEnd(endNode, endNodeOffset)
-      return range
-    }
-
-    return null
   }
 
   // Replace current active selection
