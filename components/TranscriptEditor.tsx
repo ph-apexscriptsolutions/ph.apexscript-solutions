@@ -150,6 +150,7 @@ export default function TranscriptEditor({
   const [showReplaceInput, setShowReplaceInput] = useState(false)
   const [findText, setFindText] = useState('')
   const [replaceText, setReplaceText] = useState('')
+  const [findMode, setFindMode] = useState<'find' | 'replace'>('find')
 
   // Loading & status states
   const [saving, setSaving] = useState(false)
@@ -725,10 +726,10 @@ export default function TranscriptEditor({
         handleManualSave()
       } else if (e.key === 'f' || e.key === 'F') {
         e.preventDefault()
-        openFindBar(false)
-      } else if (e.key === 'h' || e.key === 'H') {
+        openFindBar('find')
+      } else if (e.key === 'r' || e.key === 'R') {
         e.preventDefault()
-        openFindBar(true)
+        openFindBar('replace')
       } else if (e.key === 'z' || e.key === 'Z') {
         if (e.shiftKey) {
           e.preventDefault()
@@ -794,9 +795,10 @@ export default function TranscriptEditor({
   }
 
   // Open and focus the Find / Replace bar
-  const openFindBar = (openReplace = false) => {
+  const openFindBar = (mode: 'find' | 'replace' = 'find') => {
+    setFindMode(mode)
     setShowFindBar(true)
-    if (openReplace) setShowReplaceInput(true)
+    setShowReplaceInput(mode === 'replace')
     setTimeout(() => {
       findInputRef.current?.focus()
       findInputRef.current?.select()
@@ -1294,12 +1296,22 @@ export default function TranscriptEditor({
 
             <button
               type="button"
-              onClick={() => openFindBar(false)}
+              onClick={() => openFindBar('find')}
               className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-xl bg-slate-800 hover:bg-slate-700 text-zinc-300 hover:text-white border border-slate-700 transition-all cursor-pointer"
-              title="Find & Replace in text (Ctrl+F)"
+              title="Find in text (Ctrl+F)"
             >
               <Search className="w-3.5 h-3.5 text-purple-300" />
               <span className="hidden sm:inline">Find</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => openFindBar('replace')}
+              className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-xl bg-slate-800 hover:bg-slate-700 text-zinc-300 hover:text-white border border-slate-700 transition-all cursor-pointer"
+              title="Find & Replace in text (Ctrl+R)"
+            >
+              <Replace className="w-3.5 h-3.5 text-orange-300" />
+              <span className="hidden sm:inline">Replace</span>
             </button>
 
             <button
@@ -1814,7 +1826,7 @@ export default function TranscriptEditor({
                     setShowFindBar(false)
                     editorRef.current?.focus()
                   } else {
-                    openFindBar(false)
+                    openFindBar('find')
                   }
                 }}
                 className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl transition-all shadow-xs cursor-pointer ${
