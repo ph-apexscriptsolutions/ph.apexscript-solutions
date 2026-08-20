@@ -3247,9 +3247,9 @@ export default function DashboardPage() {
               <>
                 {/* Backdrop to close */}
                 <div className="fixed inset-0 z-40" onClick={() => setIsAnnouncementPopupOpen(false)} />
-                <div className="absolute right-0 top-12 z-50 w-96 sm:w-[32rem] rounded-2xl border border-zinc-200 bg-white shadow-2xl overflow-hidden">
+                <div className="absolute right-0 top-12 z-50 w-96 sm:w-[32rem] rounded-2xl border border-zinc-200 bg-white shadow-2xl flex flex-col max-h-[min(32rem,80vh)]">
                   {/* Header */}
-                  <div className="flex items-center justify-between border-b border-zinc-100 px-5 py-3.5 bg-gradient-to-r from-amber-50 to-orange-50">
+                  <div className="shrink-0 flex items-center justify-between border-b border-zinc-200 px-5 py-3.5 bg-gradient-to-r from-amber-50 to-orange-50 rounded-t-2xl">
                     <div className="flex items-center gap-2">
                       <Bell className="h-4 w-4 text-amber-600" />
                       <span className="text-sm font-bold text-zinc-800">Announcements</span>
@@ -3263,7 +3263,7 @@ export default function DashboardPage() {
                   </div>
 
                   {/* Body */}
-                  <div className="max-h-[32rem] overflow-y-auto divide-y divide-zinc-100">
+                  <div className="overflow-y-auto flex-1 divide-y divide-zinc-100 rounded-b-2xl">
                     {announcements.length === 0 ? (
                       <div className="flex flex-col items-center justify-center py-10 text-center px-4">
                         <Bell className="h-8 w-8 text-zinc-300 mb-2" />
