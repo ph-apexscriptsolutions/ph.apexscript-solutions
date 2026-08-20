@@ -165,11 +165,11 @@ export default function AdminPriorityAnnouncementModal({
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="relative w-full max-w-3xl sm:max-w-4xl overflow-hidden bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl border border-zinc-200 dark:border-zinc-800 flex flex-col max-h-[92vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/70 backdrop-blur-sm animate-in fade-in duration-200 overflow-y-auto">
+      <div className="relative w-full max-w-3xl sm:max-w-4xl overflow-hidden bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl border border-zinc-200 dark:border-zinc-800 flex flex-col max-h-[90vh] sm:max-h-[88vh] my-auto">
         
         {/* Header */}
-        <div className="bg-gradient-to-r from-red-700 via-rose-700 to-amber-700 px-6 sm:px-8 py-4 sm:py-5 text-white flex items-center justify-between">
+        <div className="shrink-0 bg-gradient-to-r from-red-700 via-rose-700 to-amber-700 px-6 sm:px-8 py-3.5 sm:py-4 text-white flex items-center justify-between">
           <div className="flex items-center space-x-2.5">
             <AlertTriangle className="h-5 w-5 sm:h-6 sm:w-6 fill-white text-red-600" />
             <h2 className="font-bold text-base sm:text-lg tracking-wide">
@@ -185,10 +185,10 @@ export default function AdminPriorityAnnouncementModal({
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 px-6 sm:px-8">
+        <div className="shrink-0 flex border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 px-6 sm:px-8">
           <button
             onClick={() => setActiveTab('create')}
-            className={`py-3.5 px-5 text-xs sm:text-sm font-bold transition-all border-b-2 ${
+            className={`py-3 px-4 sm:px-5 text-xs sm:text-sm font-bold transition-all border-b-2 ${
               activeTab === 'create'
                 ? 'border-red-600 text-red-600 dark:text-red-400'
                 : 'border-transparent text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300'
@@ -198,7 +198,7 @@ export default function AdminPriorityAnnouncementModal({
           </button>
           <button
             onClick={() => setActiveTab('history')}
-            className={`py-3.5 px-5 text-xs sm:text-sm font-bold transition-all border-b-2 flex items-center space-x-1.5 ${
+            className={`py-3 px-4 sm:px-5 text-xs sm:text-sm font-bold transition-all border-b-2 flex items-center space-x-1.5 ${
               activeTab === 'history'
                 ? 'border-red-600 text-red-600 dark:text-red-400'
                 : 'border-transparent text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300'
@@ -214,7 +214,7 @@ export default function AdminPriorityAnnouncementModal({
         </div>
 
         {/* Body Content */}
-        <div className="p-6 sm:p-8 overflow-y-auto flex-1 space-y-5">
+        <div className="p-5 sm:p-7 overflow-y-auto flex-1 space-y-4">
           {activeTab === 'create' ? (
             <form onSubmit={handleSubmit} className="space-y-4">
               {errorMessage && (

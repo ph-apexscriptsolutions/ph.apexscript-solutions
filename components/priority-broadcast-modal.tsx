@@ -164,7 +164,7 @@ export default function PriorityBroadcastModal({
   return (
     <div
       onClick={handleBackdropClick}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/70 backdrop-blur-sm animate-in fade-in duration-200 overflow-y-auto"
     >
       <style>{`
         @keyframes priorityShake {
@@ -176,12 +176,12 @@ export default function PriorityBroadcastModal({
           animation: priorityShake 0.4s ease-in-out;
         }
       `}</style>
-      <div className={`relative w-full max-w-2xl sm:max-w-3xl overflow-hidden bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl border border-red-200 dark:border-red-900/40 transform transition-all scale-100 ${
+      <div className={`relative w-full max-w-2xl sm:max-w-3xl max-h-[90vh] sm:max-h-[88vh] flex flex-col my-auto overflow-hidden bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl border border-red-200 dark:border-red-900/40 transform transition-all scale-100 ${
         isShaking ? 'animate-priority-shake ring-4 ring-red-500 border-red-500' : ''
       }`}>
         
         {/* Urgent Header Bar */}
-        <div className="bg-gradient-to-r from-red-600 via-rose-600 to-amber-600 px-6 sm:px-8 py-4 sm:py-5 text-white flex items-center justify-between">
+        <div className="shrink-0 bg-gradient-to-r from-red-600 via-rose-600 to-amber-600 px-6 sm:px-8 py-3.5 sm:py-4 text-white flex items-center justify-between">
           <div className="flex items-center space-x-2.5">
             <span className="relative flex h-3.5 w-3.5">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
@@ -196,7 +196,7 @@ export default function PriorityBroadcastModal({
           <div className="flex items-center space-x-2">
             <button
               onClick={toggleMute}
-              className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors"
+              className="p-1.5 sm:p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors"
               title={muted ? 'Unmute alert sound' : 'Mute alert sound'}
             >
               {muted ? <VolumeX className="h-4 w-4 sm:h-5 sm:w-5 text-red-200" /> : <Volume2 className="h-4 w-4 sm:h-5 sm:w-5" />}
@@ -204,7 +204,7 @@ export default function PriorityBroadcastModal({
             {canDismiss && (
               <button
                 onClick={onClose}
-                className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors"
+                className="p-1.5 sm:p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors"
                 title="Close modal"
               >
                 <X className="h-4 w-4 sm:h-5 sm:w-5" />
@@ -214,7 +214,7 @@ export default function PriorityBroadcastModal({
         </div>
 
         {/* Content Body */}
-        <div className="p-6 sm:p-8 space-y-5">
+        <div className="p-5 sm:p-7 overflow-y-auto flex-1 space-y-4">
           {/* Expiration & Info Badges */}
           <div className="flex flex-wrap items-center justify-between gap-2">
             <span className="inline-flex items-center text-xs sm:text-sm font-semibold px-3 py-1 rounded-full bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300">
@@ -249,7 +249,7 @@ export default function PriorityBroadcastModal({
           </div>
 
           {/* Description */}
-          <div className="bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700/60 rounded-xl p-5 text-sm sm:text-base text-zinc-700 dark:text-zinc-300 whitespace-pre-wrap max-h-60 sm:max-h-72 overflow-y-auto leading-relaxed">
+          <div className="bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700/60 rounded-xl p-4 sm:p-5 text-sm sm:text-base text-zinc-700 dark:text-zinc-300 whitespace-pre-wrap max-h-40 sm:max-h-52 overflow-y-auto leading-relaxed">
             {announcement.description || 'No detailed instructions provided. Please confirm if you can take this rush assignment.'}
           </div>
 

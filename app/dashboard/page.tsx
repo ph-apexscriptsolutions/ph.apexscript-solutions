@@ -8476,20 +8476,22 @@ export default function DashboardPage() {
       )}
 
       {isAnnouncementModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl sm:max-w-4xl p-6 sm:p-8 relative max-h-[90vh] overflow-y-auto">
-            <button onClick={() => {
-              setIsAnnouncementModalOpen(false)
-              setAnnouncementMessage('')
-              if (editorRef) editorRef.innerHTML = ''
-              setIsEditingAnnouncement(false)
-              setEditingAnnouncementId(null)
-              setShowAnnouncementPreview(false)
-              setAnnouncementErrorMessage(null)
-            }} className="absolute right-5 top-5 text-zinc-400 hover:text-zinc-900 transition"><X className="h-5 w-5" /></button>
-            <h3 className="text-xl font-bold text-zinc-900 mb-5">{isEditingAnnouncement ? 'Edit Announcement' : 'Publish Announcement'}</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/50 backdrop-blur-sm overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl sm:max-w-4xl p-5 sm:p-7 relative max-h-[90vh] sm:max-h-[88vh] flex flex-col my-auto">
+            <div className="shrink-0 flex items-center justify-between pb-3 border-b border-zinc-100 mb-4">
+              <h3 className="text-lg sm:text-xl font-bold text-zinc-900">{isEditingAnnouncement ? 'Edit Announcement' : 'Publish Announcement'}</h3>
+              <button onClick={() => {
+                setIsAnnouncementModalOpen(false)
+                setAnnouncementMessage('')
+                if (editorRef) editorRef.innerHTML = ''
+                setIsEditingAnnouncement(false)
+                setEditingAnnouncementId(null)
+                setShowAnnouncementPreview(false)
+                setAnnouncementErrorMessage(null)
+              }} className="p-1 rounded-lg text-zinc-400 hover:text-zinc-900 hover:bg-zinc-100 transition"><X className="h-5 w-5" /></button>
+            </div>
             
-            <div className="space-y-4">
+            <div className="overflow-y-auto flex-1 space-y-4 pr-1">
               {/* Formatting Toolbar */}
               <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-2.5">
                 <div className="flex flex-wrap gap-2">
@@ -8558,7 +8560,7 @@ export default function DashboardPage() {
                 <div
                   ref={(ref) => setEditorRef(ref)}
                   contentEditable={true}
-                  className="w-full rounded-xl border border-zinc-300 p-4 text-base text-zinc-800 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 min-h-[280px] max-h-[480px] overflow-y-auto leading-relaxed shadow-inner"
+                  className="w-full rounded-xl border border-zinc-300 p-4 text-base text-zinc-800 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 min-h-[180px] max-h-[340px] overflow-y-auto leading-relaxed shadow-inner"
                   style={{ fontFamily: 'Arial', fontSize: '15px' }}
                   onInput={(e) => {
                     const content = (e.target as HTMLElement).innerHTML
@@ -8579,7 +8581,7 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            <div className="flex justify-end gap-3 mt-6">
+            <div className="shrink-0 flex justify-end gap-3 mt-4 pt-3 border-t border-zinc-100">
               <button type="button" onClick={() => {
                 setIsAnnouncementModalOpen(false)
                 setAnnouncementMessage('')
