@@ -81,6 +81,7 @@ interface TranscriptEditorProps {
   userId: string
   allWorkers?: WorkerOption[]
   initialWorkerId?: string
+  initialSlot?: number
 }
 
 const DEFAULT_HOTKEYS: HotkeySettings = {
@@ -107,6 +108,7 @@ export default function TranscriptEditor({
   userId,
   allWorkers = [],
   initialWorkerId,
+  initialSlot,
 }: TranscriptEditorProps) {
   const editorRef = useRef<HTMLDivElement>(null)
   const audioRef = useRef<HTMLAudioElement>(null)
@@ -127,7 +129,7 @@ export default function TranscriptEditor({
   const effectiveRole = role === 'admin' && selectedWorkerId !== userId ? 'worker' : role
 
   // Multi-slot state (1 to 5)
-  const [activeSlot, setActiveSlot] = useState<number>(1)
+  const [activeSlot, setActiveSlot] = useState<number>(initialSlot || 1)
   const [slotsMeta, setSlotsMeta] = useState<SlotInfo[]>([])
 
   // Editor styling & active selection format state
@@ -661,7 +663,52 @@ export default function TranscriptEditor({
       setTimeout(() => checkTextExpansion(), 0)
     }
 
+    // Handle CTRL+Arrow keys for improved word navigation
     if (e.ctrlKey || e.metaKey) {
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+        // Let browser handle default word navigation
+        return
+      }
+      if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+        // Let browser handle default paragraph navigation
+        return
+      }
+      if (e.key === 'Home') {
+        // Navigate to start of line
+        const sel = window.getSelection()
+        if (sel && editorRef.current) {
+          const range = sel.getRangeAt(0)
+          const currentNode = range.startContainer
+          if (currentNode.nodeType === Node.TEXT_NODE) {
+            const textNode = currentNode as Text
+            const newRange = document.createRange()
+            newRange.setStart(textNode, 0)
+            newRange.collapse(true)
+            sel.removeAllRanges()
+            sel.addRange(newRange)
+            e.preventDefault()
+          }
+        }
+        return
+      }
+      if (e.key === 'End') {
+        // Navigate to end of line
+        const sel = window.getSelection()
+        if (sel && editorRef.current) {
+          const range = sel.getRangeAt(0)
+          const currentNode = range.startContainer
+          if (currentNode.nodeType === Node.TEXT_NODE) {
+            const textNode = currentNode as Text
+            const newRange = document.createRange()
+            newRange.setStart(textNode, textNode.length)
+            newRange.collapse(true)
+            sel.removeAllRanges()
+            sel.addRange(newRange)
+            e.preventDefault()
+          }
+        }
+        return
+      }
       if (e.key === 'b' || e.key === 'B') {
         e.preventDefault()
         applyBold()
@@ -1939,6 +1986,9 @@ export default function TranscriptEditor({
           margin: 0 !important;
           padding: 0 !important;
           line-height: inherit !important;
+        }
+        .transcript-rich-editor p {
+          margin-bottom: 0.5em !important;
         }
         .transcript-rich-editor:empty:before {
           content: 'Paste raw transcript or start typing...';

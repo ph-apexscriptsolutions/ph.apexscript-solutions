@@ -407,6 +407,7 @@ export default function DashboardPage() {
   const [isTranscriptEditorModalOpen, setIsTranscriptEditorModalOpen] = useState(false)
   const [isTranscriptEditorMaximized, setIsTranscriptEditorMaximized] = useState(false)
   const [transcriptContent, setTranscriptContent] = useState("")
+  const [transcriptEditorSlot, setTranscriptEditorSlot] = useState(1)
   const [selectedIssue, setSelectedIssue] = useState<ValidationIssue | null>(null)
   const [debouncedTranscript, setDebouncedTranscript] = useState("")
   const [isReferencesExpanded, setIsReferencesExpanded] = useState(true)
@@ -6894,7 +6895,7 @@ export default function DashboardPage() {
               <div className="flex items-center gap-2">
                 {/* Open in Full Workspace Tab Button */}
                 <a
-                  href="/dashboard/transcript-editor"
+                  href={`/dashboard/transcript-editor?slot=${transcriptEditorSlot}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-100 hover:bg-purple-200 text-purple-800 text-xs font-bold transition-all shadow-xs"

@@ -2,8 +2,8 @@
 
 export const dynamic = 'force-dynamic'
 
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useEffect, useState, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/utils/supabase/client'
 import TranscriptEditor from '@/components/TranscriptEditor'
 import {
@@ -16,23 +16,34 @@ import {
   User,
 } from 'lucide-react'
 
-export default function FullscreenTranscriptEditorPage() {
+function TranscriptEditorContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [user, setUser] = useState<any>(null)
   const [profile, setProfile] = useState<any>(null)
   const [allWorkers, setAllWorkers] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [authError, setAuthError] = useState(false)
+  const [initialSlot, setInitialSlot] = useState<number>(1)
 
   useEffect(() => {
+    // Get initial slot from URL params
+    const slotParam = searchParams.get('slot')
+    if (slotParam) {
+      const slotNum = parseInt(slotParam, 10)
+      if (slotNum >= 1 && slotNum <= 5) {
+        setInitialSlot(slotNum)
+      }
+    }
+
     // Register Service Worker for offline support
     if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js').catch((err) => {
         console.log('SW registration error:', err)
       })
     }
-  }, [])
+  }, [searchParams])
 
   useEffect(() => {
     const init = async () => {
@@ -211,8 +222,22 @@ export default function FullscreenTranscriptEditorPage() {
           userId={userId}
           allWorkers={allWorkers}
           initialWorkerId={userId}
+          initialSlot={initialSlot}
         />
       </main>
     </div>
+  )
+}
+
+export default function FullscreenTranscriptEditorPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-white space-y-3">
+        <Loader2 className="w-8 h-8 animate-spin text-purple-500" />
+        <p className="text-sm font-medium text-zinc-400">Loading Fullscreen Transcript Workspace...</p>
+      </div>
+    }>
+      <TranscriptEditorContent />
+    </Suspense>
   )
 }
