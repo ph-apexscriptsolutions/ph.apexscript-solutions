@@ -3425,114 +3425,6 @@ export default function DashboardPage() {
             )}
           </div>
 
-          {/* Expanded announcement view */}
-          {isAnnouncementExpanded && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm overflow-y-auto">
-              <div className="fixed inset-0" onClick={() => setIsAnnouncementExpanded(false)} />
-              <div className="relative z-10 w-full max-w-2xl sm:max-w-3xl rounded-2xl border border-zinc-200 bg-white shadow-2xl flex flex-col max-h-[85vh] my-auto overflow-hidden">
-                {/* Header */}
-                <div className={`shrink-0 flex items-center justify-between border-b border-zinc-200 px-6 py-4 ${
-                  selectedAnnouncementType === 'website' ? 'bg-gradient-to-r from-blue-50 to-cyan-50' :
-                  selectedAnnouncementType === 'workflow' ? 'bg-gradient-to-r from-green-50 to-emerald-50' :
-                  'bg-gradient-to-r from-purple-50 to-pink-50'
-                }`}>
-                  <div className="flex items-center gap-2.5">
-                    {selectedAnnouncementType === 'website' && <Tv className="h-5 w-5 text-blue-600" />}
-                    {selectedAnnouncementType === 'workflow' && <Calendar className="h-5 w-5 text-green-600" />}
-                    {selectedAnnouncementType === 'general' && <Newspaper className="h-5 w-5 text-purple-600" />}
-                    <span className="text-base font-bold text-zinc-800">
-                      {selectedAnnouncementType === 'website' ? 'Website Updates' :
-                       selectedAnnouncementType === 'workflow' ? 'Assignment Workflow' : 'General Announcements'}
-                    </span>
-                    <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                      selectedAnnouncementType === 'website' ? 'bg-blue-100 text-blue-700' :
-                      selectedAnnouncementType === 'workflow' ? 'bg-green-100 text-green-700' :
-                      'bg-purple-100 text-purple-700'
-                    }`}>
-                      {selectedAnnouncementType === 'website' ? websiteUpdates.length :
-                       selectedAnnouncementType === 'workflow' ? assignmentWorkflow.length :
-                       generalAnnouncements.length}
-                    </span>
-                  </div>
-                  <button onClick={() => setIsAnnouncementExpanded(false)} className="p-1 rounded-lg text-zinc-400 hover:text-zinc-700 hover:bg-black/5 transition">
-                    <X className="h-5 w-5" />
-                  </button>
-                </div>
-
-                {/* Body */}
-                <div className={`overflow-y-auto flex-1 ${
-                  selectedAnnouncementType === 'website' ? 'bg-blue-50/20' :
-                  selectedAnnouncementType === 'workflow' ? 'bg-green-50/20' :
-                  'bg-purple-50/20'
-                }`}>
-                  {(() => {
-                    const currentAnnouncements = selectedAnnouncementType === 'website' ? websiteUpdates :
-                                                  selectedAnnouncementType === 'workflow' ? assignmentWorkflow :
-                                                  generalAnnouncements
-                    if (currentAnnouncements.length === 0) {
-                      return (
-                        <div className="flex flex-col items-center justify-center py-16 text-center px-4">
-                          <Bell className={`h-10 w-10 mb-3 ${
-                            selectedAnnouncementType === 'website' ? 'text-blue-300' :
-                            selectedAnnouncementType === 'workflow' ? 'text-green-300' :
-                            'text-purple-300'
-                          }`} />
-                          <p className="text-base font-medium text-zinc-600">No announcements yet</p>
-                          <p className="text-sm text-zinc-400 mt-1">Check back later for updates.</p>
-                        </div>
-                      )
-                    }
-                    return (
-                      <div className={`divide-y ${
-                        selectedAnnouncementType === 'website' ? 'divide-blue-100' :
-                        selectedAnnouncementType === 'workflow' ? 'divide-green-100' :
-                        'divide-purple-100'
-                      }`}>
-                        {currentAnnouncements.map((ann: any) => (
-                          <div key={ann.id} className={`p-5 hover:transition ${
-                            selectedAnnouncementType === 'website' ? 'hover:bg-blue-100/40' :
-                            selectedAnnouncementType === 'workflow' ? 'hover:bg-green-100/40' :
-                            'hover:bg-purple-100/40'
-                          }`}>
-                            <div className="flex items-start justify-between gap-4">
-                              <div
-                                className="leading-relaxed whitespace-pre-wrap flex-1 text-sm sm:text-base text-zinc-800"
-                                dangerouslySetInnerHTML={{ __html: ann.message }}
-                              />
-                              {isAdmin && (
-                                <div className="flex shrink-0 gap-1.5 ml-2">
-                                  <button
-                                    onClick={() => { startEditingAnnouncement(ann, selectedAnnouncementType); setIsAnnouncementExpanded(false) }}
-                                    className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${
-                                      selectedAnnouncementType === 'website' ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' :
-                                      selectedAnnouncementType === 'workflow' ? 'bg-green-100 text-green-700 hover:bg-green-200' :
-                                      'bg-purple-100 text-purple-700 hover:bg-purple-200'
-                                    }`}
-                                  >
-                                    Edit
-                                  </button>
-                                  <button
-                                    onClick={() => deleteAnnouncement(ann.id, selectedAnnouncementType)}
-                                    className="rounded-md bg-red-50 px-2.5 py-1 text-xs font-medium text-red-600 hover:bg-red-100 transition"
-                                  >
-                                    Delete
-                                  </button>
-                                </div>
-                              )}
-                            </div>
-                            {ann.created_at && (
-                              <p className="mt-2 text-xs text-zinc-400">{new Date(ann.created_at).toLocaleString()}</p>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    )
-                  })()}
-                </div>
-              </div>
-            </div>
-          )}
-
           <a
             href="/download"
             className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 px-3 py-1.5 text-xs font-semibold text-white shadow-lg shadow-purple-600/30 ring-1 ring-white/10 hover:from-purple-700 hover:to-indigo-700 hover:shadow-purple-600/50 transition-all"
@@ -9364,6 +9256,117 @@ export default function DashboardPage() {
         assignment={revisionTargetAssignment}
         onSubmit={handleRequestRevision}
       />
+
+      {/* ── Bell Announcement Full View Modal ── */}
+      {isAnnouncementExpanded && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto">
+          <div className="fixed inset-0" onClick={() => setIsAnnouncementExpanded(false)} />
+          <div className="relative z-10 w-full max-w-2xl sm:max-w-3xl rounded-2xl border border-zinc-200 bg-white shadow-2xl flex flex-col max-h-[85vh] my-auto overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            {/* Header */}
+            <div className={`shrink-0 flex items-center justify-between border-b border-zinc-200 px-6 py-4 ${
+              selectedAnnouncementType === 'website' ? 'bg-gradient-to-r from-blue-50 to-cyan-50' :
+              selectedAnnouncementType === 'workflow' ? 'bg-gradient-to-r from-green-50 to-emerald-50' :
+              'bg-gradient-to-r from-purple-50 to-pink-50'
+            }`}>
+              <div className="flex items-center gap-2.5">
+                {selectedAnnouncementType === 'website' && <Tv className="h-5 w-5 text-blue-600" />}
+                {selectedAnnouncementType === 'workflow' && <Calendar className="h-5 w-5 text-green-600" />}
+                {selectedAnnouncementType === 'general' && <Newspaper className="h-5 w-5 text-purple-600" />}
+                <span className="text-base font-bold text-zinc-900">
+                  {selectedAnnouncementType === 'website' ? 'Website Updates' :
+                   selectedAnnouncementType === 'workflow' ? 'Assignment Workflow' : 'General Announcements'}
+                </span>
+                <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                  selectedAnnouncementType === 'website' ? 'bg-blue-100 text-blue-700' :
+                  selectedAnnouncementType === 'workflow' ? 'bg-green-100 text-green-700' :
+                  'bg-purple-100 text-purple-700'
+                }`}>
+                  {selectedAnnouncementType === 'website' ? websiteUpdates.length :
+                   selectedAnnouncementType === 'workflow' ? assignmentWorkflow.length :
+                   generalAnnouncements.length}
+                </span>
+              </div>
+              <button
+                onClick={() => setIsAnnouncementExpanded(false)}
+                className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-700 hover:bg-black/5 transition"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className={`overflow-y-auto flex-1 ${
+              selectedAnnouncementType === 'website' ? 'bg-blue-50/20' :
+              selectedAnnouncementType === 'workflow' ? 'bg-green-50/20' :
+              'bg-purple-50/20'
+            }`}>
+              {(() => {
+                const currentAnnouncements = selectedAnnouncementType === 'website' ? websiteUpdates :
+                                              selectedAnnouncementType === 'workflow' ? assignmentWorkflow :
+                                              generalAnnouncements
+                if (currentAnnouncements.length === 0) {
+                  return (
+                    <div className="flex flex-col items-center justify-center py-16 text-center px-4">
+                      <Bell className={`h-10 w-10 mb-3 ${
+                        selectedAnnouncementType === 'website' ? 'text-blue-300' :
+                        selectedAnnouncementType === 'workflow' ? 'text-green-300' :
+                        'text-purple-300'
+                      }`} />
+                      <p className="text-base font-medium text-zinc-600">No announcements yet</p>
+                      <p className="text-sm text-zinc-400 mt-1">Check back later for updates.</p>
+                    </div>
+                  )
+                }
+                return (
+                  <div className={`divide-y ${
+                    selectedAnnouncementType === 'website' ? 'divide-blue-100' :
+                    selectedAnnouncementType === 'workflow' ? 'divide-green-100' :
+                    'divide-purple-100'
+                  }`}>
+                    {currentAnnouncements.map((ann: any) => (
+                      <div key={ann.id} className={`p-5 hover:transition ${
+                        selectedAnnouncementType === 'website' ? 'hover:bg-blue-100/40' :
+                        selectedAnnouncementType === 'workflow' ? 'hover:bg-green-100/40' :
+                        'hover:bg-purple-100/40'
+                      }`}>
+                        <div className="flex items-start justify-between gap-4">
+                          <div
+                            className="leading-relaxed whitespace-pre-wrap flex-1 text-sm sm:text-base text-zinc-800"
+                            dangerouslySetInnerHTML={{ __html: ann.message }}
+                          />
+                          {isAdmin && (
+                            <div className="flex shrink-0 gap-1.5 ml-2">
+                              <button
+                                onClick={() => { startEditingAnnouncement(ann, selectedAnnouncementType); setIsAnnouncementExpanded(false) }}
+                                className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${
+                                  selectedAnnouncementType === 'website' ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' :
+                                  selectedAnnouncementType === 'workflow' ? 'bg-green-100 text-green-700 hover:bg-green-200' :
+                                  'bg-purple-100 text-purple-700 hover:bg-purple-200'
+                                }`}
+                              >
+                                Edit
+                              </button>
+                              <button
+                                onClick={() => deleteAnnouncement(ann.id, selectedAnnouncementType)}
+                                className="rounded-md bg-red-50 px-2.5 py-1 text-xs font-medium text-red-600 hover:bg-red-100 transition"
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                        {ann.created_at && (
+                          <p className="mt-2 text-xs text-zinc-400">{new Date(ann.created_at).toLocaleString()}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )
+              })()}
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   )
