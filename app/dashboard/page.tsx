@@ -1616,6 +1616,7 @@ export default function DashboardPage() {
   }
   
   const openEditModal = (r: any) => {
+    if (!isAdmin) return
     setEditingRecord(r)
     setEditForm({
       date_completed: r.date_completed,
@@ -1626,6 +1627,10 @@ export default function DashboardPage() {
   }
   
   const handleDeleteRecord = async (recordId: string) => {
+    if (!isAdmin) {
+      alert('Only administrators are allowed to delete production records.')
+      return
+    }
     if (!confirm('Are you sure you want to delete this record?')) return
     try {
       const response = await fetch('/api/delete-production-record', {
@@ -1684,6 +1689,10 @@ export default function DashboardPage() {
 
   
   const saveEdit = async () => {
+    if (!isAdmin) {
+      alert('Only administrators are allowed to edit production records.')
+      return
+    }
     if (!editingRecord || !activeWorker) return
     setIsSaving(true)
     try {
@@ -2227,7 +2236,7 @@ export default function DashboardPage() {
   )
   const canEditBank = hasBankColumns && (isAdmin || activeWorker?.id === user?.id)
   const canEditProfile = isAdmin || activeWorker?.id === user?.id
-  const canEditRecord = isAdmin || activeWorker?.id === user?.id
+  const canEditRecord = isAdmin
   const filteredTotalFiles = records.length
   const filteredTotalKB = calculateTotalKB(records)
 
