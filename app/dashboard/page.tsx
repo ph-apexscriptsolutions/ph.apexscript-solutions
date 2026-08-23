@@ -1119,8 +1119,43 @@ export default function DashboardPage() {
     if (!profile) return
 
     const announcementsChannel = supabase.channel('announcements', { config: { broadcast: { self: true } } })
-      .on('broadcast', { event: 'new_announcement' }, (payload: any) => {
-        console.debug('Announcement broadcast received:', payload)
+      .on('broadcast', { event: 'new_announcement' }, () => {
+        fetchAllAnnouncements()
+      })
+      .subscribe()
+
+    const websiteUpdatesChannel = supabase.channel('website_updates', { config: { broadcast: { self: true } } })
+      .on('broadcast', { event: 'new_website_update' }, () => {
+        fetchAllAnnouncements()
+      })
+      .on('broadcast', { event: 'website_update_deleted' }, () => {
+        fetchAllAnnouncements()
+      })
+      .on('broadcast', { event: 'website_update_updated' }, () => {
+        fetchAllAnnouncements()
+      })
+      .subscribe()
+
+    const assignmentWorkflowChannel = supabase.channel('assignment_workflow', { config: { broadcast: { self: true } } })
+      .on('broadcast', { event: 'new_assignment_workflow' }, () => {
+        fetchAllAnnouncements()
+      })
+      .on('broadcast', { event: 'assignment_workflow_deleted' }, () => {
+        fetchAllAnnouncements()
+      })
+      .on('broadcast', { event: 'assignment_workflow_updated' }, () => {
+        fetchAllAnnouncements()
+      })
+      .subscribe()
+
+    const generalAnnouncementsChannel = supabase.channel('general_announcements', { config: { broadcast: { self: true } } })
+      .on('broadcast', { event: 'new_general_announcement' }, () => {
+        fetchAllAnnouncements()
+      })
+      .on('broadcast', { event: 'general_announcement_deleted' }, () => {
+        fetchAllAnnouncements()
+      })
+      .on('broadcast', { event: 'general_announcement_updated' }, () => {
         fetchAllAnnouncements()
       })
       .subscribe()
@@ -1129,6 +1164,9 @@ export default function DashboardPage() {
 
     return () => {
       supabase.removeChannel(announcementsChannel)
+      supabase.removeChannel(websiteUpdatesChannel)
+      supabase.removeChannel(assignmentWorkflowChannel)
+      supabase.removeChannel(generalAnnouncementsChannel)
     }
   }, [profile?.id])
 

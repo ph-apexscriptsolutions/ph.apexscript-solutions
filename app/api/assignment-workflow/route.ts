@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getSupabaseServerClient } from '@/utils/supabase/server'
-import nodemailer from 'nodemailer'
+import { sendAnnouncementEmailToWorkers } from '@/utils/announcement-email'
 
 export async function GET() {
   try {
@@ -48,77 +48,31 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: insertResult.error.message || 'Failed to create assignment workflow' }, { status: 500 })
     }
 
-    // Broadcast to real-time channel
+    // Broadcast to real-time channels
     try {
-      await supabase.channel('assignment_workflow').send({
-        type: 'broadcast',
-        event: 'new_assignment_workflow',
-        payload: insertResult.data,
-      })
+      await Promise.allSettled([
+        supabase.channel('assignment_workflow').send({
+          type: 'broadcast',
+          event: 'new_assignment_workflow',
+          payload: insertResult.data,
+        }),
+        supabase.channel('announcements').send({
+          type: 'broadcast',
+          event: 'new_announcement',
+          payload: insertResult.data,
+        }),
+      ])
     } catch (broadcastErr) {
       console.warn('Assignment workflow broadcast failed:', broadcastErr)
     }
 
-    // Send email notifications to all workers (optional)
-    let emailDebug = {
-      emailConfigured: false,
-      workersFound: 0,
-      workersWithEmail: 0,
-      emailSent: false,
-      error: null as string | null
-    }
-
-    try {
-      emailDebug.emailConfigured = !!(process.env.EMAIL_HOST && process.env.EMAIL_USER && process.env.EMAIL_PASS)
-      
-      if (emailDebug.emailConfigured) {
-        const transporter = nodemailer.createTransport({
-          host: process.env.EMAIL_HOST,
-          port: parseInt(process.env.EMAIL_PORT || '587'),
-          secure: process.env.EMAIL_SECURE === 'true',
-          auth: {
-            user: process.env.EMAIL_USER,
-            pass: process.env.EMAIL_PASS,
-          },
-        })
-
-        const { data: workers, error: workersError } = await supabase
-          .from('worker_profiles')
-          .select('email, full_name')
-
-        if (!workersError && workers && workers.length > 0) {
-          emailDebug.workersFound = workers.length
-          const workerEmails = workers
-            .filter((w: any) => w.email)
-            .map((w: any) => `"${w.full_name || 'Worker'}" <${w.email}>`)
-
-          emailDebug.workersWithEmail = workerEmails.length
-
-          if (workerEmails.length > 0) {
-            const result = await transporter.sendMail({
-              from: `"[WORKER] ApexScript Transcription Services" <ph.apexscriptsolutions@gmail.com>`,
-              to: 'ph.apexscriptsolutions@gmail.com',
-              bcc: workerEmails.join(', '),
-              subject: '[ASSIGNMENT WORKFLOW] New Assignment Workflow Announcement',
-              html: `
-                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                  <h2 style="color: #333;">New Assignment Workflow Announcement</h2>
-                  <p style="color: #666; line-height: 1.6;">Please check your dashboard for the latest assignment workflow announcement.</p>
-                  <p style="color: #999; font-size: 12px; margin-top: 20px;">
-                    This is an automated message from ApexScript Transcription Services.
-                  </p>
-                </div>
-              `,
-            })
-            emailDebug.emailSent = true
-          }
-        }
-      } else {
-        emailDebug.error = 'Email environment variables not configured (email notifications skipped)'
-      }
-    } catch (emailError: any) {
-      emailDebug.error = `Email sending failed: ${emailError.message}`
-    }
+    // Send email notifications to all workers via BCC
+    const emailDebug = await sendAnnouncementEmailToWorkers({
+      supabase,
+      categoryTitle: 'Assignment Workflow',
+      categoryBadge: 'ASSIGNMENT WORKFLOW',
+      message: message.trim(),
+    })
 
     return NextResponse.json({ announcement: insertResult.data, emailDebug })
   } catch (err: any) {

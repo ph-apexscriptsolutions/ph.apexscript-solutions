@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getSupabaseServerClient } from '@/utils/supabase/server'
-import nodemailer from 'nodemailer'
+import { sendAnnouncementEmailToWorkers } from '@/utils/announcement-email'
 
 const getAnnouncementSchemaHint = (error: any) => {
   const message = typeof error?.message === 'string' ? error.message : String(error || '')
@@ -80,16 +80,7 @@ export async function GET() {
   }
 }
 
-// Initialize Nodemailer transporter with Gmail
-const transporter = process.env.EMAIL_USER && process.env.EMAIL_PASS
-  ? nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
-    })
-  : null
+
 
 export async function POST(request: Request) {
   try {
@@ -169,47 +160,20 @@ export async function POST(request: Request) {
       console.warn('Announcements broadcast failed:', broadcastErr)
     }
 
-    // Send email notifications to all workers (DISABLED FOR TESTING)
-    // if (transporter) {
-    //   try {
-    //     const { data: workers, error: workersError } = await supabase
-    //       .from('worker_profiles')
-    //       .select('email, full_name')
-
-    //     if (!workersError && workers && workers.length > 0) {
-    //       const workerEmails = workers
-    //         .filter((w: any) => w.email)
-    //         .map((w: any) => `"${w.full_name || 'Worker'}" <${w.email}>`)
-
-    //       if (workerEmails.length > 0) {
-    //         const result = await transporter.sendMail({
-    //           from: `"[WORKER] ApexScript Transcription Services" <${process.env.EMAIL_USER}>`,
-    //           to: process.env.EMAIL_USER,
-    //           bcc: workerEmails.join(', '),
-    //           subject: '[ANNOUNCEMENT] New Announcement from Admin',
-    //           html: `
-    //             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-    //               <h2 style="color: #333;">New Announcement</h2>
-    //               <p style="color: #666; line-height: 1.6;">Please check your dashboard for the latest announcement.</p>
-    //               <p style="color: #999; font-size: 12px; margin-top: 20px;">
-    //                 This is an automated message from ApexScript Transcription Services.
-    //               </p>
-    //             </div>
-    //           `,
-    //         })
-    //         console.log('Announcement emails sent successfully. Result:', result)
-    //       }
-    //     } else if (workersError) {
-    //       console.error('Failed to fetch workers for announcement emails:', workersError)
-    //     }
-    //   } catch (emailError) {
-    //     console.error('Failed to send announcement notification emails. Error details:', emailError)
-    //   }
-    // }
+    // Send email notifications to all workers via BCC
+    const emailDebug = await sendAnnouncementEmailToWorkers({
+      supabase,
+      categoryTitle: announcementCategory === 'website_updates' ? 'Website Updates' :
+                     announcementCategory === 'assignment_workflow' ? 'Assignment Workflow' : 'General Announcement',
+      categoryBadge: announcementCategory === 'website_updates' ? 'WEBSITE UPDATE' :
+                     announcementCategory === 'assignment_workflow' ? 'ASSIGNMENT WORKFLOW' : 'GENERAL ANNOUNCEMENT',
+      message: message.trim(),
+    })
 
     return NextResponse.json({
       announcement: data,
       schemaHint,
+      emailDebug,
     })
   } catch (err: any) {
     console.error('Announcements POST error:', err)

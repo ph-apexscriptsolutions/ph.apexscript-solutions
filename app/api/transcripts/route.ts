@@ -124,7 +124,7 @@ export async function GET(request: Request) {
       }
     }
 
-    if (error) {
+    if (error || !data) {
       return NextResponse.json({ content: null, slot: slotNum, message: 'No saved transcript found for this slot' }, { status: 200 })
     }
 
