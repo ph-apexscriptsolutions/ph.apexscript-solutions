@@ -2468,7 +2468,6 @@ export default function DashboardPage() {
     try {
       const res = await fetch('/api/website-updates')
       const data = await res.json()
-      console.log('Website updates data:', data)
       if (!res.ok) throw new Error(data.error || 'Failed to fetch website updates')
       setWebsiteUpdates(data.announcements || [])
     } catch (err: any) {
@@ -2481,7 +2480,6 @@ export default function DashboardPage() {
     try {
       const res = await fetch('/api/assignment-workflow')
       const data = await res.json()
-      console.log('Assignment workflow data:', data)
       if (!res.ok) throw new Error(data.error || 'Failed to fetch assignment workflow')
       setAssignmentWorkflow(data.announcements || [])
     } catch (err: any) {
@@ -2494,7 +2492,6 @@ export default function DashboardPage() {
     try {
       const res = await fetch('/api/general-announcements')
       const data = await res.json()
-      console.log('General announcements data:', data)
       if (!res.ok) throw new Error(data.error || 'Failed to fetch general announcements')
       setGeneralAnnouncements(data.announcements || [])
     } catch (err: any) {
@@ -2549,8 +2546,6 @@ export default function DashboardPage() {
                           selectedAnnouncementType === 'workflow' ? '/api/assignment-workflow' :
                           '/api/general-announcements'
       
-      console.log('Publishing announcement to:', apiEndpoint, 'Type:', selectedAnnouncementType)
-      
       const res = await fetch(apiEndpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -2559,7 +2554,6 @@ export default function DashboardPage() {
         }),
       })
       const data = await res.json()
-      console.log('Publish response:', data)
       setAnnouncementSchemaHint(data.schemaHint || null)
       if (!res.ok) {
         const message = getAnnouncementErrorMessage({ message: data.error }, `Failed to publish announcement: ${data.error || 'Unknown error'}`)
