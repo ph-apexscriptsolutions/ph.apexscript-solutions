@@ -59,7 +59,7 @@ export async function POST(request: Request) {
       console.warn('Website updates broadcast failed:', broadcastErr)
     }
 
-    // Send email notifications to all workers
+    // Send email notifications to all workers (optional)
     let emailDebug = {
       emailConfigured: false,
       workersFound: 0,
@@ -71,61 +71,50 @@ export async function POST(request: Request) {
     try {
       emailDebug.emailConfigured = !!(process.env.EMAIL_HOST && process.env.EMAIL_USER && process.env.EMAIL_PASS)
       
-      if (!emailDebug.emailConfigured) {
-        emailDebug.error = 'Email environment variables not configured'
-        return NextResponse.json({ announcement: insertResult.data, emailDebug })
-      }
+      if (emailDebug.emailConfigured) {
+        const transporter = nodemailer.createTransport({
+          host: process.env.EMAIL_HOST,
+          port: parseInt(process.env.EMAIL_PORT || '587'),
+          secure: process.env.EMAIL_SECURE === 'true',
+          auth: {
+            user: process.env.EMAIL_USER,
+            pass: process.env.EMAIL_PASS,
+          },
+        })
 
-      const transporter = nodemailer.createTransport({
-        host: process.env.EMAIL_HOST,
-        port: parseInt(process.env.EMAIL_PORT || '587'),
-        secure: process.env.EMAIL_SECURE === 'true',
-        auth: {
-          user: process.env.EMAIL_USER,
-          pass: process.env.EMAIL_PASS,
-        },
-      })
+        const { data: workers, error: workersError } = await supabase
+          .from('worker_profiles')
+          .select('email, full_name')
 
-      const { data: workers, error: workersError } = await supabase
-        .from('worker_profiles')
-        .select('email, full_name')
+        if (!workersError && workers && workers.length > 0) {
+          emailDebug.workersFound = workers.length
+          const workerEmails = workers
+            .filter((w: any) => w.email)
+            .map((w: any) => `"${w.full_name || 'Worker'}" <${w.email}>`)
 
-      if (workersError) {
-        emailDebug.error = `Failed to fetch workers: ${workersError.message}`
-        return NextResponse.json({ announcement: insertResult.data, emailDebug })
-      }
+          emailDebug.workersWithEmail = workerEmails.length
 
-      emailDebug.workersFound = workers ? workers.length : 0
-
-      if (workers && workers.length > 0) {
-        const workerEmails = workers
-          .filter((w: any) => w.email)
-          .map((w: any) => `"${w.full_name || 'Worker'}" <${w.email}>`)
-
-        emailDebug.workersWithEmail = workerEmails.length
-
-        if (workerEmails.length > 0) {
-          const result = await transporter.sendMail({
-            from: `"[WORKER] ApexScript Transcription Services" <${process.env.EMAIL_USER}>`,
-            to: process.env.EMAIL_USER,
-            bcc: workerEmails.join(', '),
-            subject: '[WEBSITE UPDATE] New Website Update from Admin',
-            html: `
-              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                <h2 style="color: #333;">New Website Update</h2>
-                <p style="color: #666; line-height: 1.6;">Please check your dashboard for the latest website update announcement.</p>
-                <p style="color: #999; font-size: 12px; margin-top: 20px;">
-                  This is an automated message from ApexScript Transcription Services.
-                </p>
-              </div>
-            `,
-          })
-          emailDebug.emailSent = true
-        } else {
-          emailDebug.error = 'No workers with email addresses found'
+          if (workerEmails.length > 0) {
+            const result = await transporter.sendMail({
+              from: `"[WORKER] ApexScript Transcription Services" <ph.apexscriptsolutions@gmail.com>`,
+              to: 'ph.apexscriptsolutions@gmail.com',
+              bcc: workerEmails.join(', '),
+              subject: '[WEBSITE UPDATE] New Website Update from Admin',
+              html: `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                  <h2 style="color: #333;">New Website Update</h2>
+                  <p style="color: #666; line-height: 1.6;">Please check your dashboard for the latest website update announcement.</p>
+                  <p style="color: #999; font-size: 12px; margin-top: 20px;">
+                    This is an automated message from ApexScript Transcription Services.
+                  </p>
+                </div>
+              `,
+            })
+            emailDebug.emailSent = true
+          }
         }
       } else {
-        emailDebug.error = 'No workers found in database'
+        emailDebug.error = 'Email environment variables not configured (email notifications skipped)'
       }
     } catch (emailError: any) {
       emailDebug.error = `Email sending failed: ${emailError.message}`

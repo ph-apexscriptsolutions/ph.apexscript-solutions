@@ -59,32 +59,45 @@ export async function POST(request: Request) {
       console.warn('Assignment workflow broadcast failed:', broadcastErr)
     }
 
-    // Send email notifications to all workers
-    const transporter = nodemailer.createTransport({
-      host: process.env.EMAIL_HOST,
-      port: parseInt(process.env.EMAIL_PORT || '587'),
-      secure: process.env.EMAIL_SECURE === 'true',
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
-    })
+    // Send email notifications to all workers (optional)
+    let emailDebug = {
+      emailConfigured: false,
+      workersFound: 0,
+      workersWithEmail: 0,
+      emailSent: false,
+      error: null as string | null
+    }
 
-    if (transporter) {
-      try {
+    try {
+      emailDebug.emailConfigured = !!(process.env.EMAIL_HOST && process.env.EMAIL_USER && process.env.EMAIL_PASS)
+      
+      if (emailDebug.emailConfigured) {
+        const transporter = nodemailer.createTransport({
+          host: process.env.EMAIL_HOST,
+          port: parseInt(process.env.EMAIL_PORT || '587'),
+          secure: process.env.EMAIL_SECURE === 'true',
+          auth: {
+            user: process.env.EMAIL_USER,
+            pass: process.env.EMAIL_PASS,
+          },
+        })
+
         const { data: workers, error: workersError } = await supabase
           .from('worker_profiles')
           .select('email, full_name')
 
         if (!workersError && workers && workers.length > 0) {
+          emailDebug.workersFound = workers.length
           const workerEmails = workers
             .filter((w: any) => w.email)
             .map((w: any) => `"${w.full_name || 'Worker'}" <${w.email}>`)
 
+          emailDebug.workersWithEmail = workerEmails.length
+
           if (workerEmails.length > 0) {
             const result = await transporter.sendMail({
-              from: `"[WORKER] ApexScript Transcription Services" <${process.env.EMAIL_USER}>`,
-              to: process.env.EMAIL_USER,
+              from: `"[WORKER] ApexScript Transcription Services" <ph.apexscriptsolutions@gmail.com>`,
+              to: 'ph.apexscriptsolutions@gmail.com',
               bcc: workerEmails.join(', '),
               subject: '[ASSIGNMENT WORKFLOW] New Assignment Workflow Announcement',
               html: `
@@ -97,17 +110,17 @@ export async function POST(request: Request) {
                 </div>
               `,
             })
-            console.log('Assignment workflow emails sent successfully. Result:', result)
+            emailDebug.emailSent = true
           }
-        } else if (workersError) {
-          console.error('Failed to fetch workers for assignment workflow emails:', workersError)
         }
-      } catch (emailError) {
-        console.error('Failed to send assignment workflow notification emails. Error details:', emailError)
+      } else {
+        emailDebug.error = 'Email environment variables not configured (email notifications skipped)'
       }
+    } catch (emailError: any) {
+      emailDebug.error = `Email sending failed: ${emailError.message}`
     }
 
-    return NextResponse.json({ announcement: insertResult.data })
+    return NextResponse.json({ announcement: insertResult.data, emailDebug })
   } catch (err: any) {
     console.error('Assignment workflow POST error:', err)
     return NextResponse.json({ error: err.message || 'Failed to create assignment workflow' }, { status: 500 })
