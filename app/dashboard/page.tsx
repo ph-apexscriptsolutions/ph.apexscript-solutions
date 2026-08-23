@@ -3427,24 +3427,24 @@ export default function DashboardPage() {
 
           {/* Expanded announcement view */}
           {isAnnouncementExpanded && (
-            <>
-              <div className="fixed inset-0 z-40" onClick={() => setIsAnnouncementExpanded(false)} />
-              <div className="absolute right-0 top-12 z-50 w-96 sm:w-[32rem] rounded-2xl border border-zinc-200 bg-white shadow-2xl flex flex-col max-h-[min(32rem,80vh)]">
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm overflow-y-auto">
+              <div className="fixed inset-0" onClick={() => setIsAnnouncementExpanded(false)} />
+              <div className="relative z-10 w-full max-w-2xl sm:max-w-3xl rounded-2xl border border-zinc-200 bg-white shadow-2xl flex flex-col max-h-[85vh] my-auto overflow-hidden">
                 {/* Header */}
-                <div className={`shrink-0 flex items-center justify-between border-b border-zinc-200 px-5 py-3.5 rounded-t-2xl ${
+                <div className={`shrink-0 flex items-center justify-between border-b border-zinc-200 px-6 py-4 ${
                   selectedAnnouncementType === 'website' ? 'bg-gradient-to-r from-blue-50 to-cyan-50' :
                   selectedAnnouncementType === 'workflow' ? 'bg-gradient-to-r from-green-50 to-emerald-50' :
                   'bg-gradient-to-r from-purple-50 to-pink-50'
                 }`}>
-                  <div className="flex items-center gap-2">
-                    {selectedAnnouncementType === 'website' && <Tv className="h-4 w-4 text-blue-600" />}
-                    {selectedAnnouncementType === 'workflow' && <Calendar className="h-4 w-4 text-green-600" />}
-                    {selectedAnnouncementType === 'general' && <Newspaper className="h-4 w-4 text-purple-600" />}
-                    <span className="text-sm font-bold text-zinc-800">
+                  <div className="flex items-center gap-2.5">
+                    {selectedAnnouncementType === 'website' && <Tv className="h-5 w-5 text-blue-600" />}
+                    {selectedAnnouncementType === 'workflow' && <Calendar className="h-5 w-5 text-green-600" />}
+                    {selectedAnnouncementType === 'general' && <Newspaper className="h-5 w-5 text-purple-600" />}
+                    <span className="text-base font-bold text-zinc-800">
                       {selectedAnnouncementType === 'website' ? 'Website Updates' :
-                       selectedAnnouncementType === 'workflow' ? 'Assignment Workflow' : 'General'}
+                       selectedAnnouncementType === 'workflow' ? 'Assignment Workflow' : 'General Announcements'}
                     </span>
-                    <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
+                    <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
                       selectedAnnouncementType === 'website' ? 'bg-blue-100 text-blue-700' :
                       selectedAnnouncementType === 'workflow' ? 'bg-green-100 text-green-700' :
                       'bg-purple-100 text-purple-700'
@@ -3454,16 +3454,16 @@ export default function DashboardPage() {
                        generalAnnouncements.length}
                     </span>
                   </div>
-                  <button onClick={() => setIsAnnouncementExpanded(false)} className="text-zinc-400 hover:text-zinc-700 transition">
-                    <X className="h-4 w-4" />
+                  <button onClick={() => setIsAnnouncementExpanded(false)} className="p-1 rounded-lg text-zinc-400 hover:text-zinc-700 hover:bg-black/5 transition">
+                    <X className="h-5 w-5" />
                   </button>
                 </div>
 
                 {/* Body */}
-                <div className={`overflow-y-auto flex-1 rounded-b-2xl ${
-                  selectedAnnouncementType === 'website' ? 'bg-blue-50/30' :
-                  selectedAnnouncementType === 'workflow' ? 'bg-green-50/30' :
-                  'bg-purple-50/30'
+                <div className={`overflow-y-auto flex-1 ${
+                  selectedAnnouncementType === 'website' ? 'bg-blue-50/20' :
+                  selectedAnnouncementType === 'workflow' ? 'bg-green-50/20' :
+                  'bg-purple-50/20'
                 }`}>
                   {(() => {
                     const currentAnnouncements = selectedAnnouncementType === 'website' ? websiteUpdates :
@@ -3471,14 +3471,14 @@ export default function DashboardPage() {
                                                   generalAnnouncements
                     if (currentAnnouncements.length === 0) {
                       return (
-                        <div className="flex flex-col items-center justify-center py-10 text-center px-4">
-                          <Bell className={`h-8 w-8 mb-2 ${
+                        <div className="flex flex-col items-center justify-center py-16 text-center px-4">
+                          <Bell className={`h-10 w-10 mb-3 ${
                             selectedAnnouncementType === 'website' ? 'text-blue-300' :
                             selectedAnnouncementType === 'workflow' ? 'text-green-300' :
                             'text-purple-300'
                           }`} />
-                          <p className="text-sm font-medium text-zinc-500">No announcements yet</p>
-                          <p className="text-xs text-zinc-400 mt-1">Check back later for updates.</p>
+                          <p className="text-base font-medium text-zinc-600">No announcements yet</p>
+                          <p className="text-sm text-zinc-400 mt-1">Check back later for updates.</p>
                         </div>
                       )
                     }
@@ -3489,21 +3489,21 @@ export default function DashboardPage() {
                         'divide-purple-100'
                       }`}>
                         {currentAnnouncements.map((ann: any) => (
-                          <div key={ann.id} className={`px-4 py-3 hover:transition ${
-                            selectedAnnouncementType === 'website' ? 'hover:bg-blue-100/50' :
-                            selectedAnnouncementType === 'workflow' ? 'hover:bg-green-100/50' :
-                            'hover:bg-purple-100/50'
+                          <div key={ann.id} className={`p-5 hover:transition ${
+                            selectedAnnouncementType === 'website' ? 'hover:bg-blue-100/40' :
+                            selectedAnnouncementType === 'workflow' ? 'hover:bg-green-100/40' :
+                            'hover:bg-purple-100/40'
                           }`}>
-                            <div className="flex items-start justify-between gap-2">
+                            <div className="flex items-start justify-between gap-4">
                               <div
-                                className="leading-relaxed whitespace-pre-wrap flex-1 text-sm"
+                                className="leading-relaxed whitespace-pre-wrap flex-1 text-sm sm:text-base text-zinc-800"
                                 dangerouslySetInnerHTML={{ __html: ann.message }}
                               />
                               {isAdmin && (
-                                <div className="flex shrink-0 gap-1 ml-2">
+                                <div className="flex shrink-0 gap-1.5 ml-2">
                                   <button
                                     onClick={() => { startEditingAnnouncement(ann, selectedAnnouncementType); setIsAnnouncementExpanded(false) }}
-                                    className={`rounded-md px-2 py-1 text-xs font-medium transition ${
+                                    className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${
                                       selectedAnnouncementType === 'website' ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' :
                                       selectedAnnouncementType === 'workflow' ? 'bg-green-100 text-green-700 hover:bg-green-200' :
                                       'bg-purple-100 text-purple-700 hover:bg-purple-200'
@@ -3513,7 +3513,7 @@ export default function DashboardPage() {
                                   </button>
                                   <button
                                     onClick={() => deleteAnnouncement(ann.id, selectedAnnouncementType)}
-                                    className="rounded-md bg-red-50 px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-100 transition"
+                                    className="rounded-md bg-red-50 px-2.5 py-1 text-xs font-medium text-red-600 hover:bg-red-100 transition"
                                   >
                                     Delete
                                   </button>
@@ -3521,7 +3521,7 @@ export default function DashboardPage() {
                               )}
                             </div>
                             {ann.created_at && (
-                              <p className="mt-1.5 text-xs text-zinc-400">{new Date(ann.created_at).toLocaleString()}</p>
+                              <p className="mt-2 text-xs text-zinc-400">{new Date(ann.created_at).toLocaleString()}</p>
                             )}
                           </div>
                         ))}
@@ -3530,7 +3530,7 @@ export default function DashboardPage() {
                   })()}
                 </div>
               </div>
-            </>
+            </div>
           )}
 
           <a
