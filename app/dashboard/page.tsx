@@ -2555,6 +2555,15 @@ export default function DashboardPage() {
       })
       const data = await res.json()
       setAnnouncementSchemaHint(data.schemaHint || null)
+      
+      // Log email debug information
+      if (data.emailDebug) {
+        console.log('Email Debug Information:', data.emailDebug)
+        if (data.emailDebug.error) {
+          console.warn('Email Error:', data.emailDebug.error)
+        }
+      }
+      
       if (!res.ok) {
         const message = getAnnouncementErrorMessage({ message: data.error }, `Failed to publish announcement: ${data.error || 'Unknown error'}`)
         setAnnouncementErrorMessage(message)
