@@ -3384,16 +3384,24 @@ export default function DashboardPage() {
               <div className="fixed inset-0 z-40" onClick={() => setIsAnnouncementExpanded(false)} />
               <div className="absolute right-0 top-12 z-50 w-96 sm:w-[32rem] rounded-2xl border border-zinc-200 bg-white shadow-2xl flex flex-col max-h-[min(32rem,80vh)]">
                 {/* Header */}
-                <div className="shrink-0 flex items-center justify-between border-b border-zinc-200 px-5 py-3.5 bg-gradient-to-r from-amber-50 to-orange-50 rounded-t-2xl">
+                <div className={`shrink-0 flex items-center justify-between border-b border-zinc-200 px-5 py-3.5 rounded-t-2xl ${
+                  selectedAnnouncementType === 'website' ? 'bg-gradient-to-r from-blue-50 to-cyan-50' :
+                  selectedAnnouncementType === 'workflow' ? 'bg-gradient-to-r from-green-50 to-emerald-50' :
+                  'bg-gradient-to-r from-purple-50 to-pink-50'
+                }`}>
                   <div className="flex items-center gap-2">
                     {selectedAnnouncementType === 'website' && <Tv className="h-4 w-4 text-blue-600" />}
                     {selectedAnnouncementType === 'workflow' && <Calendar className="h-4 w-4 text-green-600" />}
                     {selectedAnnouncementType === 'general' && <Newspaper className="h-4 w-4 text-purple-600" />}
                     <span className="text-sm font-bold text-zinc-800">
-                      {selectedAnnouncementType === 'website' ? 'Website Updates' : 
+                      {selectedAnnouncementType === 'website' ? 'Website Updates' :
                        selectedAnnouncementType === 'workflow' ? 'Assignment Workflow' : 'General'}
                     </span>
-                    <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700">
+                    <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
+                      selectedAnnouncementType === 'website' ? 'bg-blue-100 text-blue-700' :
+                      selectedAnnouncementType === 'workflow' ? 'bg-green-100 text-green-700' :
+                      'bg-purple-100 text-purple-700'
+                    }`}>
                       {selectedAnnouncementType === 'website' ? websiteUpdates.length :
                        selectedAnnouncementType === 'workflow' ? assignmentWorkflow.length :
                        generalAnnouncements.length}
@@ -3405,7 +3413,11 @@ export default function DashboardPage() {
                 </div>
 
                 {/* Body */}
-                <div className="overflow-y-auto flex-1 rounded-b-2xl">
+                <div className={`overflow-y-auto flex-1 rounded-b-2xl ${
+                  selectedAnnouncementType === 'website' ? 'bg-blue-50/30' :
+                  selectedAnnouncementType === 'workflow' ? 'bg-green-50/30' :
+                  'bg-purple-50/30'
+                }`}>
                   {(() => {
                     const currentAnnouncements = selectedAnnouncementType === 'website' ? websiteUpdates :
                                                   selectedAnnouncementType === 'workflow' ? assignmentWorkflow :
@@ -3413,16 +3425,28 @@ export default function DashboardPage() {
                     if (currentAnnouncements.length === 0) {
                       return (
                         <div className="flex flex-col items-center justify-center py-10 text-center px-4">
-                          <Bell className="h-8 w-8 text-zinc-300 mb-2" />
+                          <Bell className={`h-8 w-8 mb-2 ${
+                            selectedAnnouncementType === 'website' ? 'text-blue-300' :
+                            selectedAnnouncementType === 'workflow' ? 'text-green-300' :
+                            'text-purple-300'
+                          }`} />
                           <p className="text-sm font-medium text-zinc-500">No announcements yet</p>
                           <p className="text-xs text-zinc-400 mt-1">Check back later for updates.</p>
                         </div>
                       )
                     }
                     return (
-                      <div className="divide-y divide-zinc-100">
+                      <div className={`divide-y ${
+                        selectedAnnouncementType === 'website' ? 'divide-blue-100' :
+                        selectedAnnouncementType === 'workflow' ? 'divide-green-100' :
+                        'divide-purple-100'
+                      }`}>
                         {currentAnnouncements.map((ann: any) => (
-                          <div key={ann.id} className="px-4 py-3 hover:bg-zinc-50 transition">
+                          <div key={ann.id} className={`px-4 py-3 hover:transition ${
+                            selectedAnnouncementType === 'website' ? 'hover:bg-blue-100/50' :
+                            selectedAnnouncementType === 'workflow' ? 'hover:bg-green-100/50' :
+                            'hover:bg-purple-100/50'
+                          }`}>
                             <div className="flex items-start justify-between gap-2">
                               <div
                                 className="leading-relaxed whitespace-pre-wrap flex-1 text-sm"
@@ -3432,7 +3456,11 @@ export default function DashboardPage() {
                                 <div className="flex shrink-0 gap-1 ml-2">
                                   <button
                                     onClick={() => { startEditingAnnouncement(ann, selectedAnnouncementType); setIsAnnouncementExpanded(false) }}
-                                    className="rounded-md bg-zinc-100 px-2 py-1 text-xs font-medium text-zinc-600 hover:bg-zinc-200 transition"
+                                    className={`rounded-md px-2 py-1 text-xs font-medium transition ${
+                                      selectedAnnouncementType === 'website' ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' :
+                                      selectedAnnouncementType === 'workflow' ? 'bg-green-100 text-green-700 hover:bg-green-200' :
+                                      'bg-purple-100 text-purple-700 hover:bg-purple-200'
+                                    }`}
                                   >
                                     Edit
                                   </button>
