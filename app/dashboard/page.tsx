@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic'
 import { useEffect, useState, FormEvent, useMemo, useCallback, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/utils/supabase/client"
-import { FileText, HardDrive, LogOut, Calendar, X, Pencil, Save, User, ArrowLeft, Upload, UserPlus, CreditCard, Trash2, Check, Bell, AlertCircle, Tv, Mic, Headphones, FileEdit, Newspaper, Radio, Video, BookOpen, Gavel, TrendingUp, Activity, Search, Loader2, Copy, ChevronDown, ChevronUp, Building2, Eye, MessageSquare, Zap, MoreVertical, Maximize2, Minimize2, ExternalLink, Laptop, Download, Monitor } from "lucide-react"
+import { FileText, HardDrive, LogOut, Calendar, X, Pencil, Save, User, ArrowLeft, Upload, UserPlus, CreditCard, Trash2, Check, Bell, AlertCircle, Tv, Mic, Headphones, FileEdit, Newspaper, Radio, Video, BookOpen, Gavel, TrendingUp, Activity, Search, Loader2, Copy, ChevronDown, ChevronUp, ChevronRight, Building2, Eye, MessageSquare, Zap, MoreVertical, Maximize2, Minimize2, ExternalLink, Laptop, Download, Monitor } from "lucide-react"
 import { FlagIcon } from "@/components/flag-icon"
 import TranscriptCleanup from '@/components/TranscriptCleanup'
 import TranscriptEditor from '@/components/TranscriptEditor'
@@ -366,9 +366,14 @@ export default function DashboardPage() {
   const [loadingWorkerId, setLoadingWorkerId] = useState<string | null>(null)
   const [isProcessingRequest, setIsProcessingRequest] = useState(false)
 
-  const [announcements, setAnnouncements] = useState<any[]>([])
+  // Separate announcement systems
+  const [websiteUpdates, setWebsiteUpdates] = useState<any[]>([])
+  const [assignmentWorkflow, setAssignmentWorkflow] = useState<any[]>([])
+  const [generalAnnouncements, setGeneralAnnouncements] = useState<any[]>([])
+  
   const [isAnnouncementExpanded, setIsAnnouncementExpanded] = useState(false)
   const [isAnnouncementPopupOpen, setIsAnnouncementPopupOpen] = useState(false)
+  const [selectedAnnouncementType, setSelectedAnnouncementType] = useState<'website' | 'workflow' | 'general'>('general')
   const [isAnnouncementModalOpen, setIsAnnouncementModalOpen] = useState(false)
   const [announcementMessage, setAnnouncementMessage] = useState("")
   const [isPublishingAnnouncement, setIsPublishingAnnouncement] = useState(false)
@@ -377,7 +382,7 @@ export default function DashboardPage() {
   const [assignmentEditorRef, setAssignmentEditorRef] = useState<HTMLDivElement | null>(null)
   const [commentEditorRef, setCommentEditorRef] = useState<HTMLDivElement | null>(null)
   const [isEditingAnnouncement, setIsEditingAnnouncement] = useState(false)
-  const [editingAnnouncementId, setEditingAnnouncementId] = useState<number | null>(null)
+  const [editingAnnouncementId, setEditingAnnouncementId] = useState<string | null>(null)
   const [announcementSchemaHint, setAnnouncementSchemaHint] = useState<string | null>(null)
   const [announcementErrorMessage, setAnnouncementErrorMessage] = useState<string | null>(null)
 
@@ -897,6 +902,15 @@ export default function DashboardPage() {
   }, [isAddAssignmentModalOpen, editAssignmentId, assignmentEditorRef, assignments])
 
   useEffect(() => {
+    if (isAnnouncementModalOpen && isEditingAnnouncement && editingAnnouncementId && editorRef) {
+      const announcement = [...websiteUpdates, ...assignmentWorkflow, ...generalAnnouncements].find((a: any) => a.id === editingAnnouncementId)
+      if (announcement && announcement.message) {
+        editorRef.innerHTML = announcement.message
+      }
+    }
+  }, [isAnnouncementModalOpen, isEditingAnnouncement, editingAnnouncementId, editorRef, websiteUpdates, assignmentWorkflow, generalAnnouncements])
+
+  useEffect(() => {
     if (!activeWorker) return
     setBankForm({
       bankName: activeWorker.bank_name || "",
@@ -1107,11 +1121,11 @@ export default function DashboardPage() {
     const announcementsChannel = supabase.channel('announcements', { config: { broadcast: { self: true } } })
       .on('broadcast', { event: 'new_announcement' }, (payload: any) => {
         console.debug('Announcement broadcast received:', payload)
-        fetchAnnouncements()
+        fetchAllAnnouncements()
       })
       .subscribe()
 
-    fetchAnnouncements()
+    fetchAllAnnouncements()
 
     return () => {
       supabase.removeChannel(announcementsChannel)
@@ -2450,16 +2464,51 @@ export default function DashboardPage() {
     }
   }
 
-  const fetchAnnouncements = async () => {
+  const fetchWebsiteUpdates = async () => {
     try {
-      const res = await fetch('/api/announcements')
+      const res = await fetch('/api/website-updates')
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Failed to fetch announcements')
-      setAnnouncements(data.announcements || [])
+      console.log('Website updates data:', data)
+      if (!res.ok) throw new Error(data.error || 'Failed to fetch website updates')
+      setWebsiteUpdates(data.announcements || [])
     } catch (err: any) {
-      console.error('Fetch announcements error:', err)
-      setAnnouncements([])
+      console.error('Fetch website updates error:', err)
+      setWebsiteUpdates([])
     }
+  }
+
+  const fetchAssignmentWorkflow = async () => {
+    try {
+      const res = await fetch('/api/assignment-workflow')
+      const data = await res.json()
+      console.log('Assignment workflow data:', data)
+      if (!res.ok) throw new Error(data.error || 'Failed to fetch assignment workflow')
+      setAssignmentWorkflow(data.announcements || [])
+    } catch (err: any) {
+      console.error('Fetch assignment workflow error:', err)
+      setAssignmentWorkflow([])
+    }
+  }
+
+  const fetchGeneralAnnouncements = async () => {
+    try {
+      const res = await fetch('/api/general-announcements')
+      const data = await res.json()
+      console.log('General announcements data:', data)
+      if (!res.ok) throw new Error(data.error || 'Failed to fetch general announcements')
+      setGeneralAnnouncements(data.announcements || [])
+    } catch (err: any) {
+      console.error('Fetch general announcements error:', err)
+      setGeneralAnnouncements([])
+    }
+  }
+
+  const fetchAllAnnouncements = async () => {
+    await Promise.all([
+      fetchWebsiteUpdates(),
+      fetchAssignmentWorkflow(),
+      fetchGeneralAnnouncements()
+    ])
   }
 
   const getAnnouncementErrorMessage = (error: any, defaultMessage: string) => {
@@ -2496,7 +2545,13 @@ export default function DashboardPage() {
     setAnnouncementErrorMessage(null)
     setIsPublishingAnnouncement(true)
     try {
-      const res = await fetch('/api/announcements', {
+      const apiEndpoint = selectedAnnouncementType === 'website' ? '/api/website-updates' :
+                          selectedAnnouncementType === 'workflow' ? '/api/assignment-workflow' :
+                          '/api/general-announcements'
+      
+      console.log('Publishing announcement to:', apiEndpoint, 'Type:', selectedAnnouncementType)
+      
+      const res = await fetch(apiEndpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -2504,6 +2559,7 @@ export default function DashboardPage() {
         }),
       })
       const data = await res.json()
+      console.log('Publish response:', data)
       setAnnouncementSchemaHint(data.schemaHint || null)
       if (!res.ok) {
         const message = getAnnouncementErrorMessage({ message: data.error }, `Failed to publish announcement: ${data.error || 'Unknown error'}`)
@@ -2517,7 +2573,7 @@ export default function DashboardPage() {
       setToastMessage('✅ Announcement published')
       setShowToast(true)
       setTimeout(() => { setShowToast(false); setToastMessage(null) }, 3000)
-      await fetchAnnouncements()
+      await fetchAllAnnouncements()
     } catch (err: any) {
       console.error('Publish announcement error:', err)
       if (!announcementErrorMessage) {
@@ -2528,11 +2584,15 @@ export default function DashboardPage() {
     }
   }
 
-  const deleteAnnouncement = async (id: number) => {
+  const deleteAnnouncement = async (id: string, type: 'website' | 'workflow' | 'general') => {
     if (!confirm('Delete this announcement?')) return
     setAnnouncementErrorMessage(null)
     try {
-      const res = await fetch('/api/announcements', {
+      const apiEndpoint = type === 'website' ? '/api/website-updates' :
+                          type === 'workflow' ? '/api/assignment-workflow' :
+                          '/api/general-announcements'
+      
+      const res = await fetch(apiEndpoint, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id }),
@@ -2548,7 +2608,7 @@ export default function DashboardPage() {
       setToastMessage('✅ Announcement deleted')
       setShowToast(true)
       setTimeout(() => { setShowToast(false); setToastMessage(null) }, 3000)
-      await fetchAnnouncements()
+      await fetchAllAnnouncements()
     } catch (err: any) {
       console.error('Delete announcement error:', err)
       if (!announcementErrorMessage) {
@@ -2558,15 +2618,13 @@ export default function DashboardPage() {
     }
   }
 
-  const startEditingAnnouncement = (announcement: any) => {
+  const startEditingAnnouncement = (announcement: any, type: 'website' | 'workflow' | 'general') => {
     setEditingAnnouncementId(announcement.id)
     setAnnouncementMessage(announcement.message)
+    setSelectedAnnouncementType(type)
     setIsEditingAnnouncement(true)
     setShowAnnouncementPreview(false)
     setIsAnnouncementModalOpen(true)
-    setTimeout(() => {
-      if (editorRef) editorRef.innerHTML = announcement.message
-    }, 100)
   }
 
   const updateAnnouncement = async () => {
@@ -2579,7 +2637,11 @@ export default function DashboardPage() {
     setAnnouncementErrorMessage(null)
     setIsPublishingAnnouncement(true)
     try {
-      const res = await fetch('/api/announcements', {
+      const apiEndpoint = selectedAnnouncementType === 'website' ? '/api/website-updates' :
+                          selectedAnnouncementType === 'workflow' ? '/api/assignment-workflow' :
+                          '/api/general-announcements'
+      
+      const res = await fetch(apiEndpoint, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -2604,7 +2666,7 @@ export default function DashboardPage() {
       setToastMessage('✅ Announcement updated')
       setShowToast(true)
       setTimeout(() => { setShowToast(false); setToastMessage(null) }, 3000)
-      await fetchAnnouncements()
+      await fetchAllAnnouncements()
     } catch (err: any) {
       console.error('Update announcement error:', err)
       if (!announcementErrorMessage) {
@@ -3236,77 +3298,171 @@ export default function DashboardPage() {
               title="Announcements"
             >
               <Bell className="h-5 w-5" />
-              {announcements.length > 0 && (
+              {(websiteUpdates.length + assignmentWorkflow.length + generalAnnouncements.length) > 0 && (
                 <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white shadow">
-                  {announcements.length}
+                  {websiteUpdates.length + assignmentWorkflow.length + generalAnnouncements.length}
                 </span>
               )}
             </button>
 
-            {/* Announcement popup */}
+            {/* Announcement type selector */}
             {isAnnouncementPopupOpen && (
               <>
                 {/* Backdrop to close */}
                 <div className="fixed inset-0 z-40" onClick={() => setIsAnnouncementPopupOpen(false)} />
-                <div className="absolute right-0 top-12 z-50 w-96 sm:w-[32rem] rounded-2xl border border-zinc-200 bg-white shadow-2xl flex flex-col max-h-[min(32rem,80vh)]">
-                  {/* Header */}
-                  <div className="shrink-0 flex items-center justify-between border-b border-zinc-200 px-5 py-3.5 bg-gradient-to-r from-amber-50 to-orange-50 rounded-t-2xl">
+                <div className="absolute right-0 top-12 z-50 w-64 rounded-2xl border border-zinc-200 bg-white shadow-2xl overflow-hidden">
+                  <div className="px-4 py-3 bg-gradient-to-r from-amber-50 to-orange-50 border-b border-zinc-200">
                     <div className="flex items-center gap-2">
                       <Bell className="h-4 w-4 text-amber-600" />
-                      <span className="text-sm font-bold text-zinc-800">Announcements</span>
-                      {announcements.length > 0 && (
-                        <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700">{announcements.length}</span>
-                      )}
+                      <span className="text-sm font-bold text-zinc-800">Select Announcement Type</span>
                     </div>
-                    <button onClick={() => setIsAnnouncementPopupOpen(false)} className="text-zinc-400 hover:text-zinc-700 transition">
-                      <X className="h-4 w-4" />
-                    </button>
                   </div>
-
-                  {/* Body */}
-                  <div className="overflow-y-auto flex-1 divide-y divide-zinc-100 rounded-b-2xl">
-                    {announcements.length === 0 ? (
-                      <div className="flex flex-col items-center justify-center py-10 text-center px-4">
-                        <Bell className="h-8 w-8 text-zinc-300 mb-2" />
-                        <p className="text-sm font-medium text-zinc-500">No announcements yet</p>
-                        <p className="text-xs text-zinc-400 mt-1">Check back later for updates.</p>
-                      </div>
-                    ) : (
-                      announcements.map((ann: any) => (
-                        <div key={ann.id} className="px-4 py-3 hover:bg-zinc-50 transition">
-                          <div className="flex items-start justify-between gap-2">
-                            <div
-                              className="leading-relaxed whitespace-pre-wrap flex-1 text-sm"
-                              dangerouslySetInnerHTML={{ __html: ann.message }}
-                            />
-                            {isAdmin && (
-                              <div className="flex shrink-0 gap-1 ml-2">
-                                <button
-                                  onClick={() => { startEditingAnnouncement(ann); setIsAnnouncementPopupOpen(false) }}
-                                  className="rounded-md bg-zinc-100 px-2 py-1 text-xs font-medium text-zinc-600 hover:bg-zinc-200 transition"
-                                >
-                                  Edit
-                                </button>
-                                <button
-                                  onClick={() => deleteAnnouncement(ann.id)}
-                                  className="rounded-md bg-red-50 px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-100 transition"
-                                >
-                                  Delete
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                          {ann.created_at && (
-                            <p className="mt-1.5 text-xs text-zinc-400">{new Date(ann.created_at).toLocaleString()}</p>
-                          )}
+                  
+                  <div className="p-2 space-y-1">
+                    <button
+                      onClick={() => {
+                        setSelectedAnnouncementType('website')
+                        setIsAnnouncementPopupOpen(false)
+                        setIsAnnouncementExpanded(true)
+                      }}
+                      className="w-full flex items-center justify-between px-4 py-3 rounded-xl hover:bg-blue-50 transition group"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="h-8 w-8 rounded-lg bg-blue-100 flex items-center justify-center">
+                          <Tv className="h-4 w-4 text-blue-600" />
                         </div>
-                      ))
-                    )}
+                        <div className="text-left">
+                          <p className="text-sm font-medium text-zinc-700 group-hover:text-blue-700">Website Updates</p>
+                          <p className="text-xs text-zinc-400">{websiteUpdates.length} announcement{websiteUpdates.length !== 1 ? 's' : ''}</p>
+                        </div>
+                      </div>
+                      <ChevronRight className="h-4 w-4 text-zinc-400 group-hover:text-blue-600" />
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setSelectedAnnouncementType('workflow')
+                        setIsAnnouncementPopupOpen(false)
+                        setIsAnnouncementExpanded(true)
+                      }}
+                      className="w-full flex items-center justify-between px-4 py-3 rounded-xl hover:bg-green-50 transition group"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="h-8 w-8 rounded-lg bg-green-100 flex items-center justify-center">
+                          <Calendar className="h-4 w-4 text-green-600" />
+                        </div>
+                        <div className="text-left">
+                          <p className="text-sm font-medium text-zinc-700 group-hover:text-green-700">Assignment Workflow</p>
+                          <p className="text-xs text-zinc-400">{assignmentWorkflow.length} announcement{assignmentWorkflow.length !== 1 ? 's' : ''}</p>
+                        </div>
+                      </div>
+                      <ChevronRight className="h-4 w-4 text-zinc-400 group-hover:text-green-600" />
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setSelectedAnnouncementType('general')
+                        setIsAnnouncementPopupOpen(false)
+                        setIsAnnouncementExpanded(true)
+                      }}
+                      className="w-full flex items-center justify-between px-4 py-3 rounded-xl hover:bg-purple-50 transition group"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="h-8 w-8 rounded-lg bg-purple-100 flex items-center justify-center">
+                          <Newspaper className="h-4 w-4 text-purple-600" />
+                        </div>
+                        <div className="text-left">
+                          <p className="text-sm font-medium text-zinc-700 group-hover:text-purple-700">General</p>
+                          <p className="text-xs text-zinc-400">{generalAnnouncements.length} announcement{generalAnnouncements.length !== 1 ? 's' : ''}</p>
+                        </div>
+                      </div>
+                      <ChevronRight className="h-4 w-4 text-zinc-400 group-hover:text-purple-600" />
+                    </button>
                   </div>
                 </div>
               </>
             )}
           </div>
+
+          {/* Expanded announcement view */}
+          {isAnnouncementExpanded && (
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => setIsAnnouncementExpanded(false)} />
+              <div className="absolute right-0 top-12 z-50 w-96 sm:w-[32rem] rounded-2xl border border-zinc-200 bg-white shadow-2xl flex flex-col max-h-[min(32rem,80vh)]">
+                {/* Header */}
+                <div className="shrink-0 flex items-center justify-between border-b border-zinc-200 px-5 py-3.5 bg-gradient-to-r from-amber-50 to-orange-50 rounded-t-2xl">
+                  <div className="flex items-center gap-2">
+                    {selectedAnnouncementType === 'website' && <Tv className="h-4 w-4 text-blue-600" />}
+                    {selectedAnnouncementType === 'workflow' && <Calendar className="h-4 w-4 text-green-600" />}
+                    {selectedAnnouncementType === 'general' && <Newspaper className="h-4 w-4 text-purple-600" />}
+                    <span className="text-sm font-bold text-zinc-800">
+                      {selectedAnnouncementType === 'website' ? 'Website Updates' : 
+                       selectedAnnouncementType === 'workflow' ? 'Assignment Workflow' : 'General'}
+                    </span>
+                    <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700">
+                      {selectedAnnouncementType === 'website' ? websiteUpdates.length :
+                       selectedAnnouncementType === 'workflow' ? assignmentWorkflow.length :
+                       generalAnnouncements.length}
+                    </span>
+                  </div>
+                  <button onClick={() => setIsAnnouncementExpanded(false)} className="text-zinc-400 hover:text-zinc-700 transition">
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+
+                {/* Body */}
+                <div className="overflow-y-auto flex-1 rounded-b-2xl">
+                  {(() => {
+                    const currentAnnouncements = selectedAnnouncementType === 'website' ? websiteUpdates :
+                                                  selectedAnnouncementType === 'workflow' ? assignmentWorkflow :
+                                                  generalAnnouncements
+                    if (currentAnnouncements.length === 0) {
+                      return (
+                        <div className="flex flex-col items-center justify-center py-10 text-center px-4">
+                          <Bell className="h-8 w-8 text-zinc-300 mb-2" />
+                          <p className="text-sm font-medium text-zinc-500">No announcements yet</p>
+                          <p className="text-xs text-zinc-400 mt-1">Check back later for updates.</p>
+                        </div>
+                      )
+                    }
+                    return (
+                      <div className="divide-y divide-zinc-100">
+                        {currentAnnouncements.map((ann: any) => (
+                          <div key={ann.id} className="px-4 py-3 hover:bg-zinc-50 transition">
+                            <div className="flex items-start justify-between gap-2">
+                              <div
+                                className="leading-relaxed whitespace-pre-wrap flex-1 text-sm"
+                                dangerouslySetInnerHTML={{ __html: ann.message }}
+                              />
+                              {isAdmin && (
+                                <div className="flex shrink-0 gap-1 ml-2">
+                                  <button
+                                    onClick={() => { startEditingAnnouncement(ann, selectedAnnouncementType); setIsAnnouncementExpanded(false) }}
+                                    className="rounded-md bg-zinc-100 px-2 py-1 text-xs font-medium text-zinc-600 hover:bg-zinc-200 transition"
+                                  >
+                                    Edit
+                                  </button>
+                                  <button
+                                    onClick={() => deleteAnnouncement(ann.id, selectedAnnouncementType)}
+                                    className="rounded-md bg-red-50 px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-100 transition"
+                                  >
+                                    Delete
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                            {ann.created_at && (
+                              <p className="mt-1.5 text-xs text-zinc-400">{new Date(ann.created_at).toLocaleString()}</p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )
+                  })()}
+                </div>
+              </div>
+            </>
+          )}
 
           <a
             href="/download"
@@ -8495,6 +8651,21 @@ export default function DashboardPage() {
             </div>
             
             <div className="overflow-y-auto flex-1 space-y-4 pr-1">
+              {!isEditingAnnouncement && (
+                <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-2.5">
+                  <label className="block text-sm font-semibold text-zinc-700 mb-2">Announcement Type</label>
+                  <select
+                    value={selectedAnnouncementType}
+                    onChange={(e) => setSelectedAnnouncementType(e.target.value as 'website' | 'workflow' | 'general')}
+                    className="w-full px-3 py-2 rounded-lg text-sm bg-white border border-zinc-300 text-zinc-700 outline-none shadow-sm"
+                  >
+                    <option value="general">General</option>
+                    <option value="website">Website Updates</option>
+                    <option value="workflow">Assignment Workflow</option>
+                  </select>
+                </div>
+              )}
+
               {/* Formatting Toolbar */}
               <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-2.5">
                 <div className="flex flex-wrap gap-2">

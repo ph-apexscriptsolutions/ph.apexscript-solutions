@@ -9,7 +9,7 @@ const getAnnouncementSchemaHint = (error: any) => {
   }
 
   if (/could not find.*active.*column/i.test(message) || /active.*column.*could not find/i.test(message) || /column "active" does not exist/i.test(message)) {
-    return `ALTER TABLE public.announcements ADD COLUMN IF NOT EXISTS active boolean NOT NULL DEFAULT true;`
+    return `ALTER TABLE public.announcements ADD COLUMN IF NOT EXISTS active boolean NOT NULL DEFAULT true; UPDATE public.announcements SET active = true WHERE active IS NULL;`
   }
 
   if (/could not find.*created_at.*column/i.test(message) || /created_at.*column.*could not find/i.test(message) || /column "created_at" does not exist/i.test(message)) {
@@ -59,14 +59,12 @@ export async function GET() {
       .select('*')
       .eq('active', true)
       .order('created_at', { ascending: false })
-      .limit(1)
 
     if (result.error && isActiveColumnError(result.error)) {
       result = await supabase
         .from('announcements')
         .select('*')
         .order('created_at', { ascending: false })
-        .limit(1)
     }
 
     if (result.error) {
@@ -95,25 +93,25 @@ const transporter = process.env.EMAIL_USER && process.env.EMAIL_PASS
 
 export async function POST(request: Request) {
   try {
-    const { message } = await request.json()
+    const { message, category } = await request.json()
     if (!message || typeof message !== 'string') {
       return NextResponse.json({ error: 'Missing announcement message' }, { status: 400 })
     }
+    
+    const validCategories = ['website_updates', 'assignment_workflow', 'general']
+    const announcementCategory = (category && validCategories.includes(category)) ? category : 'general'
 
     const supabase = getSupabaseServerClient(true)
-    const deactivate = await supabase
-      .from('announcements')
-      .update({ active: false })
-      .eq('active', true)
+    
+    // Remove the deactivation logic to allow multiple announcements
+    // const deactivate = await supabase
+    //   .from('announcements')
+    //   .update({ active: false })
+    //   .eq('active', true)
 
-    const hasActiveColumn = !deactivate.error || !isAnnouncementSchemaError(deactivate.error)
-    if (deactivate.error && !hasActiveColumn) {
-      console.warn('Announcements active column missing: disabling active updates for announcements')
-    } else if (deactivate.error) {
-      console.error('Announcements deactivate error:', deactivate.error)
-    }
+    const hasActiveColumn = true // Assume active column exists since we added it in migration
 
-    const insertPayload: any = { message: message.trim(), content: message.trim() }
+    const insertPayload: any = { message: message.trim(), content: message.trim(), category: announcementCategory }
     if (hasActiveColumn) {
       insertPayload.active = true
     }
@@ -171,43 +169,43 @@ export async function POST(request: Request) {
       console.warn('Announcements broadcast failed:', broadcastErr)
     }
 
-    // Send email notifications to all workers
-    if (transporter) {
-      try {
-        const { data: workers, error: workersError } = await supabase
-          .from('worker_profiles')
-          .select('email, full_name')
+    // Send email notifications to all workers (DISABLED FOR TESTING)
+    // if (transporter) {
+    //   try {
+    //     const { data: workers, error: workersError } = await supabase
+    //       .from('worker_profiles')
+    //       .select('email, full_name')
 
-        if (!workersError && workers && workers.length > 0) {
-          const workerEmails = workers
-            .filter((w: any) => w.email)
-            .map((w: any) => `"${w.full_name || 'Worker'}" <${w.email}>`)
+    //     if (!workersError && workers && workers.length > 0) {
+    //       const workerEmails = workers
+    //         .filter((w: any) => w.email)
+    //         .map((w: any) => `"${w.full_name || 'Worker'}" <${w.email}>`)
 
-          if (workerEmails.length > 0) {
-            const result = await transporter.sendMail({
-              from: `"[WORKER] ApexScript Transcription Services" <${process.env.EMAIL_USER}>`,
-              to: process.env.EMAIL_USER,
-              bcc: workerEmails.join(', '),
-              subject: '[ANNOUNCEMENT] New Announcement from Admin',
-              html: `
-                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                  <h2 style="color: #333;">New Announcement</h2>
-                  <p style="color: #666; line-height: 1.6;">Please check your dashboard for the latest announcement.</p>
-                  <p style="color: #999; font-size: 12px; margin-top: 20px;">
-                    This is an automated message from ApexScript Transcription Services.
-                  </p>
-                </div>
-              `,
-            })
-            console.log('Announcement emails sent successfully. Result:', result)
-          }
-        } else if (workersError) {
-          console.error('Failed to fetch workers for announcement emails:', workersError)
-        }
-      } catch (emailError) {
-        console.error('Failed to send announcement notification emails. Error details:', emailError)
-      }
-    }
+    //       if (workerEmails.length > 0) {
+    //         const result = await transporter.sendMail({
+    //           from: `"[WORKER] ApexScript Transcription Services" <${process.env.EMAIL_USER}>`,
+    //           to: process.env.EMAIL_USER,
+    //           bcc: workerEmails.join(', '),
+    //           subject: '[ANNOUNCEMENT] New Announcement from Admin',
+    //           html: `
+    //             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+    //               <h2 style="color: #333;">New Announcement</h2>
+    //               <p style="color: #666; line-height: 1.6;">Please check your dashboard for the latest announcement.</p>
+    //               <p style="color: #999; font-size: 12px; margin-top: 20px;">
+    //                 This is an automated message from ApexScript Transcription Services.
+    //               </p>
+    //             </div>
+    //           `,
+    //         })
+    //         console.log('Announcement emails sent successfully. Result:', result)
+    //       }
+    //     } else if (workersError) {
+    //       console.error('Failed to fetch workers for announcement emails:', workersError)
+    //     }
+    //   } catch (emailError) {
+    //     console.error('Failed to send announcement notification emails. Error details:', emailError)
+    //   }
+    // }
 
     return NextResponse.json({
       announcement: data,
@@ -274,13 +272,16 @@ export async function DELETE(request: Request) {
 
 export async function PUT(request: Request) {
   try {
-    const { id, message } = await request.json()
+    const { id, message, category } = await request.json()
     if (!id || !message || typeof message !== 'string') {
       return NextResponse.json({ error: 'Missing announcement id or message' }, { status: 400 })
     }
 
+    const validCategories = ['website_updates', 'assignment_workflow', 'general']
+    const announcementCategory = (category && validCategories.includes(category)) ? category : 'general'
+
     const supabase = getSupabaseServerClient(true)
-    let updatePayload: any = { message: message.trim(), content: message.trim() }
+    let updatePayload: any = { message: message.trim(), content: message.trim(), category: announcementCategory }
     let updateResult = await supabase
       .from('announcements')
       .update(updatePayload)
