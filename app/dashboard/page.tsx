@@ -11,6 +11,7 @@ import { validateTranscript, replaceInTranscript, getHighlightClass, validationH
 import PriorityBroadcastModal from '@/components/priority-broadcast-modal'
 import AdminPriorityAnnouncementModal from '@/components/admin-priority-announcement-modal'
 import RevisionRequestModal from '@/components/revision-request-modal'
+import { DashboardCardStyleModal } from '@/components/dashboard-card-style-modal'
 
 const getDepartmentIcon = (department: string) => {
   const dept = department.toLowerCase()
@@ -4859,1170 +4860,129 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {isBankStyleModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6 relative max-h-[90vh] overflow-y-auto">
-            <button onClick={() => setIsBankStyleModalOpen(false)} className="absolute right-4 top-4 text-zinc-400 hover:text-zinc-900"><X className="h-5 w-5" /></button>
-            <h3 className="text-lg font-semibold text-zinc-900 mb-4">Bank Details Styling</h3>
-            
-            <div className="space-y-6">
-              {/* Background Gradient */}
-              <div>
-                <label className="block text-sm font-medium text-zinc-700 mb-2">Background Gradient</label>
-                <div className="grid grid-cols-2 gap-2">
-                  {[
-                    { name: 'Cyan-Blue', value: 'from-cyan-50 to-blue-50/80' },
-                    { name: 'Emerald-Teal', value: 'from-emerald-50 to-teal-50/80' },
-                    { name: 'Violet-Purple', value: 'from-violet-50 to-purple-50/80' },
-                    { name: 'Rose-Pink', value: 'from-rose-50 to-pink-50/80' },
-                    { name: 'Amber-Yellow', value: 'from-amber-50 to-yellow-50/80' },
-                    { name: 'Slate-Gray', value: 'from-slate-50 to-slate-100/80' },
-                    { name: 'Orange-Red', value: 'from-orange-50 to-red-50/80' },
-                    { name: 'Indigo-Violet', value: 'from-indigo-50 to-violet-50/80' },
-                    { name: 'Slate Dark', value: 'from-slate-800 to-slate-900' },
-                    { name: 'Zinc Dark', value: 'from-zinc-800 to-zinc-900' },
-                    { name: 'Blue Dark', value: 'from-blue-900 to-slate-900' },
-                    { name: 'Purple Dark', value: 'from-purple-900 to-slate-900' },
-                    { name: 'Emerald Dark', value: 'from-emerald-900 to-slate-900' },
-                    { name: 'Cyan Dark', value: 'from-cyan-900 to-slate-900' },
-                    { name: 'Rose Dark', value: 'from-rose-900 to-slate-900' },
-                    { name: 'Orange Dark', value: 'from-orange-900 to-slate-900' },
-                  ].map((gradient) => (
-                    <button
-                      key={gradient.value}
-                      onClick={() => setBankStyle({ ...bankStyle, bgGradient: gradient.value })}
-                      className={`p-3 rounded-lg border-2 text-xs font-medium transition-all ${
-                        bankStyle.bgGradient === gradient.value 
-                          ? 'border-cyan-500 bg-cyan-50 text-cyan-700' 
-                          : 'border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300'
-                      }`}
-                    >
-                      {gradient.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
+      {/* ── Bank Details Style Modal ── */}
+      <DashboardCardStyleModal
+        isOpen={isBankStyleModalOpen}
+        onClose={() => setIsBankStyleModalOpen(false)}
+        title="Bank Details Styling"
+        description="Customize colors, gradients, and typography for Bank Details."
+        cardType="bank"
+        styleData={bankStyle}
+        onStyleChange={setBankStyle}
+        onSave={() => saveDashboardStyles({ bankStyle })}
+        onReset={() => setBankStyle({
+          bgGradient: 'from-cyan-50 to-blue-50/80',
+          borderColor: 'border-zinc-200/80',
+          borderWidth: 'border',
+          textColor: 'text-zinc-700',
+          headerColor: 'text-zinc-800',
+          labelColor: 'text-zinc-600',
+          valueColor: 'text-zinc-900',
+          fontFamily: 'font-sans',
+          customBorderColor: '#e4e4e7',
+          customHeaderColor: '#27272a',
+          customTextColor: '#52525b',
+          customLabelColor: '#52525b',
+          customValueColor: '#18181b'
+        })}
+      />
 
-              {/* Border Width */}
-              <div>
-                <label className="block text-sm font-medium text-zinc-700 mb-2">Border Width</label>
-                <div className="flex gap-2">
-                  {[
-                    { name: 'None', value: '' },
-                    { name: 'Thin', value: 'border' },
-                    { name: 'Medium', value: 'border-2' },
-                    { name: 'Thick', value: 'border-4' },
-                  ].map((border) => (
-                    <button
-                      key={border.value}
-                      onClick={() => setBankStyle({ ...bankStyle, borderWidth: border.value })}
-                      className={`flex-1 p-2 rounded-lg border-2 text-xs font-medium transition-all ${
-                        bankStyle.borderWidth === border.value 
-                          ? 'border-cyan-500 bg-cyan-50 text-cyan-700' 
-                          : 'border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300'
-                      }`}
-                    >
-                      {border.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
+      {/* ── Worker Profile Style Modal ── */}
+      <DashboardCardStyleModal
+        isOpen={isWorkerStyleModalOpen}
+        onClose={() => setIsWorkerStyleModalOpen(false)}
+        title="Worker Profile Styling"
+        description="Customize colors, gradients, and title for Worker Profile."
+        cardType="worker"
+        styleData={workerStyle}
+        onStyleChange={setWorkerStyle}
+        extraHeaderField={{
+          label: "Worker Badge Title",
+          value: workerTitle,
+          onChange: setWorkerTitle,
+          placeholder: "WORKER"
+        }}
+        onSave={() => saveDashboardStyles({ workerStyle, workerTitle })}
+        onReset={() => setWorkerStyle({
+          bgGradient: 'from-slate-800 to-slate-900',
+          borderColor: 'border-[#334155]',
+          borderWidth: 'border',
+          textColor: 'text-gray-300',
+          headerColor: 'text-white',
+          labelColor: 'text-gray-400',
+          valueColor: 'text-white',
+          fontFamily: 'font-sans',
+          customBorderColor: '#334155',
+          customHeaderColor: '#ffffff',
+          customTextColor: '#d1d5db',
+          customLabelColor: '#9ca3af',
+          customValueColor: '#ffffff'
+        })}
+      />
 
-              {/* Border Color */}
-              <div>
-                <label className="block text-sm font-medium text-zinc-700 mb-2">Border Color</label>
-                <div className="grid grid-cols-3 gap-2 mb-3">
-                  {[
-                    { name: 'Gray', value: 'border-zinc-200/80' },
-                    { name: 'Blue', value: 'border-blue-300/80' },
-                    { name: 'Green', value: 'border-emerald-300/80' },
-                    { name: 'Purple', value: 'border-purple-300/80' },
-                    { name: 'Orange', value: 'border-orange-300/80' },
-                    { name: 'Red', value: 'border-red-300/80' },
-                  ].map((color) => (
-                    <button
-                      key={color.value}
-                      onClick={() => setBankStyle({ ...bankStyle, borderColor: color.value })}
-                      className={`p-2 rounded-lg border-2 text-xs font-medium transition-all ${
-                        bankStyle.borderColor === color.value 
-                          ? 'border-cyan-500 bg-cyan-50 text-cyan-700' 
-                          : 'border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300'
-                      }`}
-                    >
-                      {color.name}
-                    </button>
-                  ))}
-                </div>
-                <div className="flex items-center gap-2">
-                  <label className="text-xs text-zinc-500">Custom:</label>
-                  <input
-                    type="color"
-                    value={bankStyle.customBorderColor}
-                    onChange={(e) => setBankStyle({ ...bankStyle, borderColor: `border-[${e.target.value}]`, customBorderColor: e.target.value })}
-                    className="h-8 w-16 rounded cursor-pointer border border-zinc-300"
-                  />
-                </div>
-              </div>
+      {/* ── Stats Cards Style Modal (Total KB, Files, Earnings) ── */}
+      <DashboardCardStyleModal
+        isOpen={isStatsStyleModalOpen}
+        onClose={() => setIsStatsStyleModalOpen(false)}
+        title="Stats Cards Styling"
+        description="Customize styling for Total Kilobytes, Total Files, and Total Earnings cards."
+        cardType="stats"
+        styleData={statsStyle}
+        onStyleChange={setStatsStyle}
+        onSave={() => saveDashboardStyles({ statsStyle })}
+        onReset={() => setStatsStyle({
+          bgGradient: 'from-slate-800 to-slate-900',
+          borderColor: 'border-cyan-500/30',
+          borderWidth: 'border',
+          textColor: 'text-white',
+          headerColor: 'text-white',
+          labelColor: 'text-cyan-100',
+          valueColor: 'text-white',
+          fontFamily: 'font-sans',
+          customBorderColor: '#06b6d4',
+          customHeaderColor: '#ffffff',
+          customTextColor: '#ffffff',
+          customLabelColor: '#67e8f9',
+          customValueColor: '#ffffff'
+        })}
+      />
 
-              {/* Text Colors */}
-              <div>
-                <label className="block text-sm font-medium text-zinc-700 mb-2">Text Colors</label>
-                <div className="space-y-3">
-                  <div>
-                    <label className="block text-xs text-zinc-500 mb-1">Header Color</label>
-                    <div className="flex gap-2">
-                      <select 
-                        value={bankStyle.headerColor}
-                        onChange={(e) => setBankStyle({ ...bankStyle, headerColor: e.target.value })}
-                        className="flex-1 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm"
-                      >
-                        <option value="text-black">Black</option>
-                        <option value="text-zinc-800">Dark Gray</option>
-                        <option value="text-zinc-900">Near Black</option>
-                        <option value="text-blue-900">Blue</option>
-                        <option value="text-emerald-900">Green</option>
-                        <option value="text-purple-900">Purple</option>
-                        <option value="text-orange-900">Orange</option>
-                      </select>
-                      <input
-                        type="color"
-                        value={bankStyle.customHeaderColor}
-                        onChange={(e) => setBankStyle({ ...bankStyle, headerColor: `text-[${e.target.value}]`, customHeaderColor: e.target.value })}
-                        className="h-9 w-12 rounded cursor-pointer border border-zinc-300"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs text-zinc-500 mb-1">Text Color</label>
-                    <div className="flex gap-2">
-                      <select 
-                        value={bankStyle.textColor}
-                        onChange={(e) => setBankStyle({ ...bankStyle, textColor: e.target.value })}
-                        className="flex-1 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm"
-                      >
-                        <option value="text-black">Black</option>
-                        <option value="text-zinc-700">Dark Gray</option>
-                        <option value="text-zinc-800">Near Black</option>
-                        <option value="text-blue-700">Blue</option>
-                        <option value="text-emerald-700">Green</option>
-                        <option value="text-purple-700">Purple</option>
-                        <option value="text-orange-700">Orange</option>
-                      </select>
-                      <input
-                        type="color"
-                        value={bankStyle.customTextColor}
-                        onChange={(e) => setBankStyle({ ...bankStyle, textColor: `text-[${e.target.value}]`, customTextColor: e.target.value })}
-                        className="h-9 w-12 rounded cursor-pointer border border-zinc-300"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs text-zinc-500 mb-1">Label Color</label>
-                    <div className="flex gap-2">
-                      <select 
-                        value={bankStyle.labelColor}
-                        onChange={(e) => setBankStyle({ ...bankStyle, labelColor: e.target.value })}
-                        className="flex-1 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm"
-                      >
-                        <option value="text-black">Black</option>
-                        <option value="text-zinc-600">Medium Gray</option>
-                        <option value="text-zinc-700">Dark Gray</option>
-                        <option value="text-blue-700">Blue</option>
-                        <option value="text-emerald-700">Green</option>
-                        <option value="text-purple-700">Purple</option>
-                        <option value="text-orange-700">Orange</option>
-                      </select>
-                      <input
-                        type="color"
-                        value={bankStyle.customLabelColor}
-                        onChange={(e) => setBankStyle({ ...bankStyle, labelColor: `text-[${e.target.value}]`, customLabelColor: e.target.value })}
-                        className="h-9 w-12 rounded cursor-pointer border border-zinc-300"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs text-zinc-500 mb-1">Value Color</label>
-                    <div className="flex gap-2">
-                      <select 
-                        value={bankStyle.valueColor}
-                        onChange={(e) => setBankStyle({ ...bankStyle, valueColor: e.target.value })}
-                        className="flex-1 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm"
-                      >
-                        <option value="text-black">Black</option>
-                        <option value="text-zinc-900">Near Black</option>
-                        <option value="text-zinc-800">Dark Gray</option>
-                        <option value="text-blue-900">Blue</option>
-                        <option value="text-emerald-900">Green</option>
-                        <option value="text-purple-900">Purple</option>
-                        <option value="text-orange-900">Orange</option>
-                      </select>
-                      <input
-                        type="color"
-                        value={bankStyle.customValueColor}
-                        onChange={(e) => setBankStyle({ ...bankStyle, valueColor: `text-[${e.target.value}]`, customValueColor: e.target.value })}
-                        className="h-9 w-12 rounded cursor-pointer border border-zinc-300"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Font Family */}
-              <div>
-                <label className="block text-sm font-medium text-zinc-700 mb-2">Font Family</label>
-                <div className="flex gap-2">
-                  {[
-                    { name: 'Sans', value: 'font-sans' },
-                    { name: 'Serif', value: 'font-serif' },
-                    { name: 'Mono', value: 'font-mono' },
-                  ].map((font) => (
-                    <button
-                      key={font.value}
-                      onClick={() => setBankStyle({ ...bankStyle, fontFamily: font.value })}
-                      className={`flex-1 p-2 rounded-lg border-2 text-xs font-medium transition-all ${
-                        bankStyle.fontFamily === font.value 
-                          ? 'border-cyan-500 bg-cyan-50 text-cyan-700' 
-                          : 'border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300'
-                      }`}
-                    >
-                      {font.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Reset Button */}
-              <div className="flex gap-3 pt-4 border-t border-zinc-200">
-                <button 
-                  onClick={() => setBankStyle({
-                    bgGradient: 'from-cyan-50 to-blue-50/80',
-                    borderColor: 'border-zinc-200/80',
-                    borderWidth: 'border',
-                    textColor: 'text-zinc-700',
-                    headerColor: 'text-zinc-800',
-                    labelColor: 'text-zinc-600',
-                    valueColor: 'text-zinc-900',
-                    fontFamily: 'font-sans',
-                    customBorderColor: '#e4e4e7',
-                    customHeaderColor: '#27272a',
-                    customTextColor: '#52525b',
-                    customLabelColor: '#52525b',
-                    customValueColor: '#18181b'
-                  })}
-                  className="flex-1 rounded-md border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-100 transition"
-                >
-                  Reset to Default
-                </button>
-                <button 
-                  onClick={() => { saveDashboardStyles({ bankStyle }); setIsBankStyleModalOpen(false) }}
-                  className="flex-1 rounded-md bg-gradient-to-r from-cyan-600 to-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-cyan-600/20 hover:from-cyan-700 hover:to-sky-700 transition"
-                >
-                  Apply & Close
-                </button>
-              </div>
+      {/* ── Production Records Style Modal ── */}
+      <DashboardCardStyleModal
+        isOpen={isProductionStyleModalOpen}
+        onClose={() => setIsProductionStyleModalOpen(false)}
+        title="Production Records Styling"
+        description="Customize colors, themes, and tables for the Production Records section."
+        cardType="production"
+        styleData={productionStyle}
+        onStyleChange={setProductionStyle}
+        helperNote={
+          <div className="p-3 rounded-xl bg-cyan-50 border border-cyan-200 text-xs text-cyan-900 space-y-1">
+            <div className="font-bold flex items-center gap-1.5 text-cyan-900">
+              <span>💡</span> Editing Submitted Worker Assignments & Records
             </div>
+            <p className="text-[11px] text-cyan-800 leading-relaxed">
+              To edit or update an assignment submitted by a worker, filter the dates or search the file in the <strong>Production Records table</strong>, then click the <strong><Pencil className="inline h-3 w-3" /> Edit</strong> button next to that record.
+            </p>
           </div>
-        </div>
-      )}
-
-      {isWorkerStyleModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6 relative max-h-[90vh] overflow-y-auto">
-            <button onClick={() => setIsWorkerStyleModalOpen(false)} className="absolute right-4 top-4 text-zinc-400 hover:text-zinc-900"><X className="h-5 w-5" /></button>
-            <h3 className="text-lg font-semibold text-zinc-900 mb-4">Worker Details Styling</h3>
-            
-            <div className="space-y-6">
-              {/* Worker Title */}
-              <div>
-                <label className="block text-sm font-medium text-zinc-700 mb-2">Worker Title</label>
-                <input
-                  type="text"
-                  value={workerTitle}
-                  onChange={(e) => setWorkerTitle(e.target.value)}
-                  className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm"
-                  placeholder="WORKER"
-                />
-              </div>
-
-              {/* Background Gradient */}
-              <div>
-                <label className="block text-sm font-medium text-zinc-700 mb-2">Background Gradient</label>
-                <div className="grid grid-cols-2 gap-2">
-                  {[
-                    { name: 'Cyan-Blue', value: 'from-cyan-50 to-blue-50/80' },
-                    { name: 'Emerald-Teal', value: 'from-emerald-50 to-teal-50/80' },
-                    { name: 'Violet-Purple', value: 'from-violet-50 to-purple-50/80' },
-                    { name: 'Rose-Pink', value: 'from-rose-50 to-pink-50/80' },
-                    { name: 'Amber-Yellow', value: 'from-amber-50 to-yellow-50/80' },
-                    { name: 'Slate-Gray', value: 'from-slate-50 to-slate-100/80' },
-                    { name: 'Orange-Red', value: 'from-orange-50 to-red-50/80' },
-                    { name: 'Indigo-Violet', value: 'from-indigo-50 to-violet-50/80' },
-                    { name: 'Slate Dark', value: 'from-slate-800 to-slate-900' },
-                    { name: 'Zinc Dark', value: 'from-zinc-800 to-zinc-900' },
-                    { name: 'Blue Dark', value: 'from-blue-900 to-slate-900' },
-                    { name: 'Purple Dark', value: 'from-purple-900 to-slate-900' },
-                    { name: 'Emerald Dark', value: 'from-emerald-900 to-slate-900' },
-                    { name: 'Cyan Dark', value: 'from-cyan-900 to-slate-900' },
-                    { name: 'Rose Dark', value: 'from-rose-900 to-slate-900' },
-                    { name: 'Orange Dark', value: 'from-orange-900 to-slate-900' },
-                  ].map((gradient) => (
-                    <button
-                      key={gradient.value}
-                      onClick={() => setWorkerStyle({ ...workerStyle, bgGradient: gradient.value })}
-                      className={`p-3 rounded-lg border-2 text-xs font-medium transition-all ${
-                        workerStyle.bgGradient === gradient.value 
-                          ? 'border-cyan-500 bg-cyan-50 text-cyan-700' 
-                          : 'border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300'
-                      }`}
-                    >
-                      {gradient.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Border Width */}
-              <div>
-                <label className="block text-sm font-medium text-zinc-700 mb-2">Border Width</label>
-                <div className="flex gap-2">
-                  {[
-                    { name: 'None', value: '' },
-                    { name: 'Thin', value: 'border' },
-                    { name: 'Medium', value: 'border-2' },
-                    { name: 'Thick', value: 'border-4' },
-                  ].map((border) => (
-                    <button
-                      key={border.value}
-                      onClick={() => setWorkerStyle({ ...workerStyle, borderWidth: border.value })}
-                      className={`flex-1 p-2 rounded-lg border-2 text-xs font-medium transition-all ${
-                        workerStyle.borderWidth === border.value 
-                          ? 'border-cyan-500 bg-cyan-50 text-cyan-700' 
-                          : 'border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300'
-                      }`}
-                    >
-                      {border.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Border Color */}
-              <div>
-                <label className="block text-sm font-medium text-zinc-700 mb-2">Border Color</label>
-                <div className="grid grid-cols-3 gap-2 mb-3">
-                  {[
-                    { name: 'Gray', value: 'border-zinc-200/80' },
-                    { name: 'Blue', value: 'border-blue-300/80' },
-                    { name: 'Green', value: 'border-emerald-300/80' },
-                    { name: 'Purple', value: 'border-purple-300/80' },
-                    { name: 'Orange', value: 'border-orange-300/80' },
-                    { name: 'Red', value: 'border-red-300/80' },
-                  ].map((color) => (
-                    <button
-                      key={color.value}
-                      onClick={() => setWorkerStyle({ ...workerStyle, borderColor: color.value })}
-                      className={`p-2 rounded-lg border-2 text-xs font-medium transition-all ${
-                        workerStyle.borderColor === color.value 
-                          ? 'border-cyan-500 bg-cyan-50 text-cyan-700' 
-                          : 'border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300'
-                      }`}
-                    >
-                      {color.name}
-                    </button>
-                  ))}
-                </div>
-                <div className="flex items-center gap-2">
-                  <label className="text-xs text-zinc-500">Custom:</label>
-                  <input
-                    type="color"
-                    value={workerStyle.customBorderColor}
-                    onChange={(e) => setWorkerStyle({ ...workerStyle, borderColor: `border-[${e.target.value}]`, customBorderColor: e.target.value })}
-                    className="h-8 w-16 rounded cursor-pointer border border-zinc-300"
-                  />
-                </div>
-              </div>
-
-              {/* Text Colors */}
-              <div>
-                <label className="block text-sm font-medium text-zinc-700 mb-2">Text Colors</label>
-                <div className="space-y-3">
-                  <div>
-                    <label className="block text-xs text-zinc-500 mb-1">Header Color</label>
-                    <div className="flex gap-2">
-                      <select 
-                        value={workerStyle.headerColor}
-                        onChange={(e) => setWorkerStyle({ ...workerStyle, headerColor: e.target.value })}
-                        className="flex-1 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm"
-                      >
-                        <option value="text-black">Black</option>
-                        <option value="text-white">White</option>
-                        <option value="text-zinc-100">Light Gray</option>
-                        <option value="text-zinc-200">Gray</option>
-                        <option value="text-cyan-100">Cyan Light</option>
-                        <option value="text-emerald-100">Emerald Light</option>
-                        <option value="text-purple-100">Purple Light</option>
-                      </select>
-                      <input
-                        type="color"
-                        value={workerStyle.customHeaderColor}
-                        onChange={(e) => setWorkerStyle({ ...workerStyle, headerColor: `text-[${e.target.value}]`, customHeaderColor: e.target.value })}
-                        className="h-9 w-12 rounded cursor-pointer border border-zinc-300"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs text-zinc-500 mb-1">Text Color</label>
-                    <div className="flex gap-2">
-                      <select 
-                        value={workerStyle.textColor}
-                        onChange={(e) => setWorkerStyle({ ...workerStyle, textColor: e.target.value })}
-                        className="flex-1 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm"
-                      >
-                        <option value="text-black">Black</option>
-                        <option value="text-gray-300">Light Gray</option>
-                        <option value="text-gray-200">Gray</option>
-                        <option value="text-white">White</option>
-                        <option value="text-zinc-300">Zinc Light</option>
-                        <option value="text-cyan-200">Cyan</option>
-                        <option value="text-emerald-200">Emerald</option>
-                      </select>
-                      <input
-                        type="color"
-                        value={workerStyle.customTextColor}
-                        onChange={(e) => setWorkerStyle({ ...workerStyle, textColor: `text-[${e.target.value}]`, customTextColor: e.target.value })}
-                        className="h-9 w-12 rounded cursor-pointer border border-zinc-300"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs text-zinc-500 mb-1">Label Color</label>
-                    <div className="flex gap-2">
-                      <select 
-                        value={workerStyle.labelColor}
-                        onChange={(e) => setWorkerStyle({ ...workerStyle, labelColor: e.target.value })}
-                        className="flex-1 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm"
-                      >
-                        <option value="text-black">Black</option>
-                        <option value="text-zinc-600">Medium Gray</option>
-                        <option value="text-zinc-700">Dark Gray</option>
-                        <option value="text-blue-700">Blue</option>
-                        <option value="text-emerald-700">Green</option>
-                        <option value="text-purple-700">Purple</option>
-                        <option value="text-orange-700">Orange</option>
-                      </select>
-                      <input
-                        type="color"
-                        value={workerStyle.customLabelColor}
-                        onChange={(e) => setWorkerStyle({ ...workerStyle, labelColor: `text-[${e.target.value}]`, customLabelColor: e.target.value })}
-                        className="h-9 w-12 rounded cursor-pointer border border-zinc-300"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs text-zinc-500 mb-1">Value Color</label>
-                    <div className="flex gap-2">
-                      <select 
-                        value={workerStyle.valueColor}
-                        onChange={(e) => setWorkerStyle({ ...workerStyle, valueColor: e.target.value })}
-                        className="flex-1 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm"
-                      >
-                        <option value="text-black">Black</option>
-                        <option value="text-zinc-900">Near Black</option>
-                        <option value="text-zinc-800">Dark Gray</option>
-                        <option value="text-blue-900">Blue</option>
-                        <option value="text-emerald-900">Green</option>
-                        <option value="text-purple-900">Purple</option>
-                        <option value="text-orange-900">Orange</option>
-                      </select>
-                      <input
-                        type="color"
-                        value={workerStyle.customValueColor}
-                        onChange={(e) => setWorkerStyle({ ...workerStyle, valueColor: `text-[${e.target.value}]`, customValueColor: e.target.value })}
-                        className="h-9 w-12 rounded cursor-pointer border border-zinc-300"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Font Family */}
-              <div>
-                <label className="block text-sm font-medium text-zinc-700 mb-2">Font Family</label>
-                <div className="flex gap-2">
-                  {[
-                    { name: 'Sans', value: 'font-sans' },
-                    { name: 'Serif', value: 'font-serif' },
-                    { name: 'Mono', value: 'font-mono' },
-                  ].map((font) => (
-                    <button
-                      key={font.value}
-                      onClick={() => setWorkerStyle({ ...workerStyle, fontFamily: font.value })}
-                      className={`flex-1 p-2 rounded-lg border-2 text-xs font-medium transition-all ${
-                        workerStyle.fontFamily === font.value 
-                          ? 'border-cyan-500 bg-cyan-50 text-cyan-700' 
-                          : 'border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300'
-                      }`}
-                    >
-                      {font.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Reset Button */}
-              <div className="flex gap-3 pt-4 border-t border-zinc-200">
-                <button 
-                  onClick={() => setWorkerStyle({
-                    bgGradient: 'from-slate-800 to-slate-900',
-                    borderColor: 'border-[#334155]',
-                    borderWidth: 'border',
-                    textColor: 'text-gray-300',
-                    headerColor: 'text-white',
-                    labelColor: 'text-gray-400',
-                    valueColor: 'text-white',
-                    fontFamily: 'font-sans',
-                    customBorderColor: '#334155',
-                    customHeaderColor: '#ffffff',
-                    customTextColor: '#d1d5db',
-                    customLabelColor: '#9ca3af',
-                    customValueColor: '#ffffff'
-                  })}
-                  className="flex-1 rounded-md border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-100 transition"
-                >
-                  Reset to Default
-                </button>
-                <button 
-                  onClick={() => { saveDashboardStyles({ workerStyle, workerTitle }); setIsWorkerStyleModalOpen(false) }}
-                  className="flex-1 rounded-md bg-gradient-to-r from-cyan-600 to-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-cyan-600/20 hover:from-cyan-700 hover:to-sky-700 transition"
-                >
-                  Apply & Close
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {isStatsStyleModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6 relative max-h-[90vh] overflow-y-auto">
-            <button onClick={() => setIsStatsStyleModalOpen(false)} className="absolute right-4 top-4 text-zinc-400 hover:text-zinc-900"><X className="h-5 w-5" /></button>
-            <h3 className="text-lg font-semibold text-zinc-900 mb-4">Stats Cards Styling</h3>
-            
-            <div className="space-y-6">
-              {/* Background Gradient */}
-              <div>
-                <label className="block text-sm font-medium text-zinc-700 mb-2">Background Gradient</label>
-                <div className="grid grid-cols-2 gap-2">
-                  {[
-                    { name: 'Cyan-Blue', value: 'from-cyan-50 to-blue-50/80' },
-                    { name: 'Emerald-Teal', value: 'from-emerald-50 to-teal-50/80' },
-                    { name: 'Violet-Purple', value: 'from-violet-50 to-purple-50/80' },
-                    { name: 'Rose-Pink', value: 'from-rose-50 to-pink-50/80' },
-                    { name: 'Amber-Yellow', value: 'from-amber-50 to-yellow-50/80' },
-                    { name: 'Slate-Gray', value: 'from-slate-50 to-slate-100/80' },
-                    { name: 'Orange-Red', value: 'from-orange-50 to-red-50/80' },
-                    { name: 'Indigo-Violet', value: 'from-indigo-50 to-violet-50/80' },
-                    { name: 'Slate Dark', value: 'from-slate-800 to-slate-900' },
-                    { name: 'Zinc Dark', value: 'from-zinc-800 to-zinc-900' },
-                    { name: 'Blue Dark', value: 'from-blue-900 to-slate-900' },
-                    { name: 'Purple Dark', value: 'from-purple-900 to-slate-900' },
-                    { name: 'Emerald Dark', value: 'from-emerald-900 to-slate-900' },
-                    { name: 'Cyan Dark', value: 'from-cyan-900 to-slate-900' },
-                    { name: 'Rose Dark', value: 'from-rose-900 to-slate-900' },
-                    { name: 'Orange Dark', value: 'from-orange-900 to-slate-900' },
-                  ].map((gradient) => (
-                    <button
-                      key={gradient.value}
-                      onClick={() => setStatsStyle({ ...statsStyle, bgGradient: gradient.value })}
-                      className={`p-3 rounded-lg border-2 text-xs font-medium transition-all ${
-                        statsStyle.bgGradient === gradient.value 
-                          ? 'border-cyan-500 bg-cyan-50 text-cyan-700' 
-                          : 'border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300'
-                      }`}
-                    >
-                      {gradient.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Border Width */}
-              <div>
-                <label className="block text-sm font-medium text-zinc-700 mb-2">Border Width</label>
-                <div className="flex gap-2">
-                  {[
-                    { name: 'None', value: '' },
-                    { name: 'Thin', value: 'border' },
-                    { name: 'Medium', value: 'border-2' },
-                    { name: 'Thick', value: 'border-4' },
-                  ].map((border) => (
-                    <button
-                      key={border.value}
-                      onClick={() => setStatsStyle({ ...statsStyle, borderWidth: border.value })}
-                      className={`flex-1 p-2 rounded-lg border-2 text-xs font-medium transition-all ${
-                        statsStyle.borderWidth === border.value 
-                          ? 'border-cyan-500 bg-cyan-50 text-cyan-700' 
-                          : 'border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300'
-                      }`}
-                    >
-                      {border.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Border Color */}
-              <div>
-                <label className="block text-sm font-medium text-zinc-700 mb-2">Border Color</label>
-                <div className="grid grid-cols-3 gap-2 mb-3">
-                  {[
-                    { name: 'Gray', value: 'border-zinc-200/80' },
-                    { name: 'Blue', value: 'border-blue-300/80' },
-                    { name: 'Green', value: 'border-emerald-300/80' },
-                    { name: 'Purple', value: 'border-purple-300/80' },
-                    { name: 'Orange', value: 'border-orange-300/80' },
-                    { name: 'Red', value: 'border-red-300/80' },
-                  ].map((color) => (
-                    <button
-                      key={color.value}
-                      onClick={() => setStatsStyle({ ...statsStyle, borderColor: color.value })}
-                      className={`p-2 rounded-lg border-2 text-xs font-medium transition-all ${
-                        statsStyle.borderColor === color.value 
-                          ? 'border-cyan-500 bg-cyan-50 text-cyan-700' 
-                          : 'border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300'
-                      }`}
-                    >
-                      {color.name}
-                    </button>
-                  ))}
-                </div>
-                <div className="flex items-center gap-2">
-                  <label className="text-xs text-zinc-500">Custom:</label>
-                  <input
-                    type="color"
-                    value={statsStyle.customBorderColor}
-                    onChange={(e) => setStatsStyle({ ...statsStyle, borderColor: `border-[${e.target.value}]`, customBorderColor: e.target.value })}
-                    className="h-8 w-16 rounded cursor-pointer border border-zinc-300"
-                  />
-                </div>
-              </div>
-
-              {/* Text Colors */}
-              <div>
-                <label className="block text-sm font-medium text-zinc-700 mb-2">Text Colors</label>
-                <div className="space-y-3">
-                  <div>
-                    <label className="block text-xs text-zinc-500 mb-1">Header Color</label>
-                    <div className="flex gap-2">
-                      <select 
-                        value={statsStyle.headerColor}
-                        onChange={(e) => setStatsStyle({ ...statsStyle, headerColor: e.target.value })}
-                        className="flex-1 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm"
-                      >
-                        <option value="text-black">Black</option>
-                        <option value="text-white">White</option>
-                        <option value="text-zinc-100">Light Gray</option>
-                        <option value="text-cyan-100">Cyan Light</option>
-                        <option value="text-emerald-100">Emerald Light</option>
-                        <option value="text-purple-100">Purple Light</option>
-                        <option value="text-rose-100">Rose Light</option>
-                      </select>
-                      <input
-                        type="color"
-                        value={statsStyle.customHeaderColor}
-                        onChange={(e) => setStatsStyle({ ...statsStyle, headerColor: `text-[${e.target.value}]`, customHeaderColor: e.target.value })}
-                        className="h-9 w-12 rounded cursor-pointer border border-zinc-300"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs text-zinc-500 mb-1">Text Color</label>
-                    <div className="flex gap-2">
-                      <select 
-                        value={statsStyle.textColor}
-                        onChange={(e) => setStatsStyle({ ...statsStyle, textColor: e.target.value })}
-                        className="flex-1 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm"
-                      >
-                        <option value="text-black">Black</option>
-                        <option value="text-white">White</option>
-                        <option value="text-zinc-100">Light Gray</option>
-                        <option value="text-cyan-100">Cyan Light</option>
-                        <option value="text-emerald-100">Emerald Light</option>
-                        <option value="text-purple-100">Purple Light</option>
-                        <option value="text-rose-100">Rose Light</option>
-                      </select>
-                      <input
-                        type="color"
-                        value={statsStyle.customTextColor}
-                        onChange={(e) => setStatsStyle({ ...statsStyle, textColor: `text-[${e.target.value}]`, customTextColor: e.target.value })}
-                        className="h-9 w-12 rounded cursor-pointer border border-zinc-300"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs text-zinc-500 mb-1">Label Color</label>
-                    <div className="flex gap-2">
-                      <select 
-                        value={statsStyle.labelColor}
-                        onChange={(e) => setStatsStyle({ ...statsStyle, labelColor: e.target.value })}
-                        className="flex-1 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm"
-                      >
-                        <option value="text-black">Black</option>
-                        <option value="text-zinc-600">Medium Gray</option>
-                        <option value="text-zinc-700">Dark Gray</option>
-                        <option value="text-blue-700">Blue</option>
-                        <option value="text-emerald-700">Green</option>
-                        <option value="text-purple-700">Purple</option>
-                        <option value="text-orange-700">Orange</option>
-                      </select>
-                      <input
-                        type="color"
-                        value={statsStyle.customLabelColor}
-                        onChange={(e) => setStatsStyle({ ...statsStyle, labelColor: `text-[${e.target.value}]`, customLabelColor: e.target.value })}
-                        className="h-9 w-12 rounded cursor-pointer border border-zinc-300"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs text-zinc-500 mb-1">Value Color</label>
-                    <div className="flex gap-2">
-                      <select 
-                        value={statsStyle.valueColor}
-                        onChange={(e) => setStatsStyle({ ...statsStyle, valueColor: e.target.value })}
-                        className="flex-1 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm"
-                      >
-                        <option value="text-black">Black</option>
-                        <option value="text-zinc-900">Near Black</option>
-                        <option value="text-zinc-800">Dark Gray</option>
-                        <option value="text-blue-900">Blue</option>
-                        <option value="text-emerald-900">Green</option>
-                        <option value="text-purple-900">Purple</option>
-                        <option value="text-orange-900">Orange</option>
-                      </select>
-                      <input
-                        type="color"
-                        value={statsStyle.customValueColor}
-                        onChange={(e) => setStatsStyle({ ...statsStyle, valueColor: `text-[${e.target.value}]`, customValueColor: e.target.value })}
-                        className="h-9 w-12 rounded cursor-pointer border border-zinc-300"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Font Family */}
-              <div>
-                <label className="block text-sm font-medium text-zinc-700 mb-2">Font Family</label>
-                <div className="flex gap-2">
-                  {[
-                    { name: 'Sans', value: 'font-sans' },
-                    { name: 'Serif', value: 'font-serif' },
-                    { name: 'Mono', value: 'font-mono' },
-                  ].map((font) => (
-                    <button
-                      key={font.value}
-                      onClick={() => setStatsStyle({ ...statsStyle, fontFamily: font.value })}
-                      className={`flex-1 p-2 rounded-lg border-2 text-xs font-medium transition-all ${
-                        statsStyle.fontFamily === font.value 
-                          ? 'border-cyan-500 bg-cyan-50 text-cyan-700' 
-                          : 'border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300'
-                      }`}
-                    >
-                      {font.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Reset Button */}
-              <div className="flex gap-3 pt-4 border-t border-zinc-200">
-                <button 
-                  onClick={() => setStatsStyle({
-                    bgGradient: 'from-slate-800 to-slate-900',
-                    borderColor: 'border-cyan-500/30',
-                    borderWidth: 'border',
-                    textColor: 'text-white',
-                    headerColor: 'text-white',
-                    labelColor: 'text-cyan-100',
-                    valueColor: 'text-white',
-                    fontFamily: 'font-sans',
-                    customBorderColor: '#06b6d4',
-                    customHeaderColor: '#ffffff',
-                    customTextColor: '#ffffff',
-                    customLabelColor: '#67e8f9',
-                    customValueColor: '#ffffff'
-                  })}
-                  className="flex-1 rounded-md border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-100 transition"
-                >
-                  Reset to Default
-                </button>
-                <button 
-                  onClick={() => { saveDashboardStyles({ statsStyle }); setIsStatsStyleModalOpen(false) }}
-                  className="flex-1 rounded-md bg-gradient-to-r from-cyan-600 to-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-cyan-600/20 hover:from-cyan-700 hover:to-sky-700 transition"
-                >
-                  Apply & Close
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {isProductionStyleModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6 relative max-h-[90vh] overflow-y-auto">
-            <button onClick={() => setIsProductionStyleModalOpen(false)} className="absolute right-4 top-4 text-zinc-400 hover:text-zinc-900"><X className="h-5 w-5" /></button>
-            <h3 className="text-lg font-semibold text-zinc-900 mb-1">Production Records Styling</h3>
-            <p className="text-xs text-zinc-500 mb-4">Customize colors and visual themes for the Production Records section.</p>
-
-            {/* Helper Alert regarding Editing Submitted Assignments */}
-            <div className="mb-5 p-3 rounded-lg bg-cyan-50 border border-cyan-200 text-xs text-cyan-900 space-y-1">
-              <div className="font-bold flex items-center gap-1.5 text-cyan-900">
-                <span>💡</span> Editing Submitted Worker Assignments & Records
-              </div>
-              <p className="text-[11px] text-cyan-800 leading-relaxed">
-                To edit or update an assignment submitted by a worker, filter the dates or search the file in the <strong>Production Records table</strong>, then click the <strong><Pencil className="inline h-3 w-3" /> Edit</strong> button next to that record.
-              </p>
-            </div>
-
-            {/* Quick Contrast Auto Presets */}
-            <div className="mb-5 p-3 rounded-lg bg-zinc-50 border border-zinc-200">
-              <label className="block text-xs font-bold text-zinc-700 mb-2">Quick Contrast Auto Presets</label>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setProductionStyle({
-                    ...productionStyle,
-                    bgGradient: 'from-slate-50 to-slate-100/80',
-                    borderColor: 'border-zinc-300',
-                    borderWidth: 'border',
-                    headerColor: 'text-zinc-900',
-                    textColor: 'text-zinc-900',
-                    labelColor: 'text-zinc-700',
-                    valueColor: 'text-cyan-700',
-                    customBorderColor: '#d4d4d8',
-                    customHeaderColor: '#111827',
-                    customTextColor: '#111827',
-                    customLabelColor: '#374151',
-                    customValueColor: '#0e7490'
-                  })}
-                  className="flex-1 py-2 px-3 rounded-md bg-white border border-zinc-300 text-xs font-semibold text-zinc-800 hover:bg-zinc-100 transition shadow-sm flex items-center justify-center gap-1.5"
-                >
-                  <span>☀️</span> Auto Light Theme (High Contrast)
-                </button>
-                <button
-                  onClick={() => setProductionStyle({
-                    ...productionStyle,
-                    bgGradient: 'from-slate-800 to-slate-900',
-                    borderColor: 'border-[#334155]',
-                    borderWidth: 'border',
-                    headerColor: 'text-white',
-                    textColor: 'text-white',
-                    labelColor: 'text-gray-400',
-                    valueColor: 'text-white',
-                    customBorderColor: '#334155',
-                    customHeaderColor: '#ffffff',
-                    customTextColor: '#ffffff',
-                    customLabelColor: '#9ca3af',
-                    customValueColor: '#ffffff'
-                  })}
-                  className="flex-1 py-2 px-3 rounded-md bg-slate-900 text-xs font-semibold text-white hover:bg-slate-800 transition shadow-sm flex items-center justify-center gap-1.5"
-                >
-                  <span>🌙</span> Auto Dark Theme
-                </button>
-              </div>
-            </div>
-            
-            <div className="space-y-6">
-              {/* Background Gradient */}
-              <div>
-                <label className="block text-sm font-medium text-zinc-700 mb-2">Background Gradient</label>
-                <div className="grid grid-cols-2 gap-2">
-                  {[
-                    { name: 'Cyan-Blue', value: 'from-cyan-50 to-blue-50/80', isLight: true },
-                    { name: 'Emerald-Teal', value: 'from-emerald-50 to-teal-50/80', isLight: true },
-                    { name: 'Violet-Purple', value: 'from-violet-50 to-purple-50/80', isLight: true },
-                    { name: 'Rose-Pink', value: 'from-rose-50 to-pink-50/80', isLight: true },
-                    { name: 'Amber-Yellow', value: 'from-amber-50 to-yellow-50/80', isLight: true },
-                    { name: 'Slate-Gray', value: 'from-slate-50 to-slate-100/80', isLight: true },
-                    { name: 'Orange-Red', value: 'from-orange-50 to-red-50/80', isLight: true },
-                    { name: 'Indigo-Violet', value: 'from-indigo-50 to-violet-50/80', isLight: true },
-                    { name: 'Slate Dark', value: 'from-slate-800 to-slate-900', isLight: false },
-                    { name: 'Zinc Dark', value: 'from-zinc-800 to-zinc-900', isLight: false },
-                    { name: 'Blue Dark', value: 'from-blue-900 to-slate-900', isLight: false },
-                    { name: 'Purple Dark', value: 'from-purple-900 to-slate-900', isLight: false },
-                    { name: 'Emerald Dark', value: 'from-emerald-900 to-slate-900', isLight: false },
-                    { name: 'Cyan Dark', value: 'from-cyan-900 to-slate-900', isLight: false },
-                    { name: 'Rose Dark', value: 'from-rose-900 to-slate-900', isLight: false },
-                    { name: 'Orange Dark', value: 'from-orange-900 to-slate-900', isLight: false },
-                  ].map((gradient) => (
-                    <button
-                      key={gradient.value}
-                      onClick={() => {
-                        const isCurrentlyWhiteText = productionStyle.textColor === 'text-white' || productionStyle.textColor?.includes('white')
-                        const isCurrentlyDarkText = productionStyle.textColor === 'text-black' || productionStyle.textColor?.includes('zinc-900') || productionStyle.textColor?.includes('zinc-800')
-                        
-                        setProductionStyle({
-                          ...productionStyle,
-                          bgGradient: gradient.value,
-                          ...(gradient.isLight && isCurrentlyWhiteText ? {
-                            headerColor: 'text-zinc-900',
-                            textColor: 'text-zinc-900',
-                            labelColor: 'text-zinc-700',
-                            valueColor: 'text-zinc-900',
-                            customHeaderColor: '#111827',
-                            customTextColor: '#111827',
-                            customLabelColor: '#374151',
-                            customValueColor: '#111827',
-                          } : {}),
-                          ...(!gradient.isLight && isCurrentlyDarkText ? {
-                            headerColor: 'text-white',
-                            textColor: 'text-white',
-                            labelColor: 'text-gray-400',
-                            valueColor: 'text-white',
-                            customHeaderColor: '#ffffff',
-                            customTextColor: '#ffffff',
-                            customLabelColor: '#9ca3af',
-                            customValueColor: '#ffffff',
-                          } : {})
-                        })
-                      }}
-                      className={`p-3 rounded-lg border-2 text-xs font-medium transition-all ${
-                        productionStyle.bgGradient === gradient.value 
-                          ? 'border-cyan-500 bg-cyan-50 text-cyan-700 font-bold' 
-                          : 'border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300'
-                      }`}
-                    >
-                      {gradient.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Border Width */}
-              <div>
-                <label className="block text-sm font-medium text-zinc-700 mb-2">Border Width</label>
-                <div className="flex gap-2">
-                  {[
-                    { name: 'None', value: '' },
-                    { name: 'Thin', value: 'border' },
-                    { name: 'Medium', value: 'border-2' },
-                    { name: 'Thick', value: 'border-4' },
-                  ].map((width) => (
-                    <button
-                      key={width.value}
-                      onClick={() => setProductionStyle({ ...productionStyle, borderWidth: width.value })}
-                      className={`flex-1 p-2 rounded-lg border-2 text-xs font-medium transition-all ${
-                        productionStyle.borderWidth === width.value 
-                          ? 'border-cyan-500 bg-cyan-50 text-cyan-700' 
-                          : 'border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300'
-                      }`}
-                    >
-                      {width.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Border Color */}
-              <div>
-                <label className="block text-sm font-medium text-zinc-700 mb-2">Border Color</label>
-                <div className="flex gap-2">
-                  <select 
-                    value={productionStyle.borderColor}
-                    onChange={(e) => setProductionStyle({ ...productionStyle, borderColor: e.target.value })}
-                    className="flex-1 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm"
-                  >
-                    <option value="border-zinc-200">Light Gray</option>
-                    <option value="border-zinc-300">Medium Gray</option>
-                    <option value="border-zinc-400">Dark Gray</option>
-                    <option value="border-cyan-300">Cyan</option>
-                    <option value="border-emerald-300">Emerald</option>
-                    <option value="border-purple-300">Purple</option>
-                    <option value="border-orange-300">Orange</option>
-                    <option value="border-rose-300">Rose</option>
-                    <option value="border-blue-300">Blue</option>
-                    <option value="border-indigo-300">Indigo</option>
-                    <option value="border-[#334155]">Slate Dark</option>
-                    <option value="border-cyan-500/30">Cyan Transparent</option>
-                    <option value="border-emerald-500/30">Emerald Transparent</option>
-                    <option value="border-purple-500/30">Purple Transparent</option>
-                    <option value="border-rose-500/30">Rose Transparent</option>
-                  </select>
-                  <input
-                    type="color"
-                    value={productionStyle.customBorderColor}
-                    onChange={(e) => setProductionStyle({ ...productionStyle, borderColor: `border-[${e.target.value}]`, customBorderColor: e.target.value })}
-                    className="h-9 w-12 rounded cursor-pointer border border-zinc-300"
-                  />
-                </div>
-              </div>
-
-              {/* Text Colors */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-zinc-700 mb-1">Header Color</label>
-                  <div className="flex gap-2">
-                    <select 
-                      value={productionStyle.headerColor}
-                      onChange={(e) => setProductionStyle({ ...productionStyle, headerColor: e.target.value })}
-                      className="flex-1 rounded-md border border-zinc-300 bg-white px-3 py-2 text-xs"
-                    >
-                      <option value="text-black">Black</option>
-                      <option value="text-zinc-900">Near Black</option>
-                      <option value="text-zinc-800">Dark Gray</option>
-                      <option value="text-zinc-700">Medium Gray</option>
-                      <option value="text-cyan-900">Cyan Dark</option>
-                      <option value="text-blue-900">Blue Dark</option>
-                      <option value="text-white">White</option>
-                      <option value="text-zinc-100">Light Gray</option>
-                      <option value="text-cyan-100">Cyan Light</option>
-                      <option value="text-emerald-100">Emerald Light</option>
-                      <option value="text-purple-100">Purple Light</option>
-                    </select>
-                    <input
-                      type="color"
-                      value={productionStyle.customHeaderColor}
-                      onChange={(e) => setProductionStyle({ ...productionStyle, headerColor: `text-[${e.target.value}]`, customHeaderColor: e.target.value })}
-                      className="h-9 w-10 rounded cursor-pointer border border-zinc-300"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-zinc-700 mb-1">Table Text Color</label>
-                  <div className="flex gap-2">
-                    <select 
-                      value={productionStyle.textColor}
-                      onChange={(e) => setProductionStyle({ ...productionStyle, textColor: e.target.value })}
-                      className="flex-1 rounded-md border border-zinc-300 bg-white px-3 py-2 text-xs"
-                    >
-                      <option value="text-black">Black</option>
-                      <option value="text-zinc-900">Near Black</option>
-                      <option value="text-zinc-800">Dark Gray</option>
-                      <option value="text-zinc-700">Medium Gray</option>
-                      <option value="text-cyan-900">Cyan Dark</option>
-                      <option value="text-white">White</option>
-                      <option value="text-zinc-100">Light Gray</option>
-                      <option value="text-cyan-100">Cyan Light</option>
-                    </select>
-                    <input
-                      type="color"
-                      value={productionStyle.customTextColor}
-                      onChange={(e) => setProductionStyle({ ...productionStyle, textColor: `text-[${e.target.value}]`, customTextColor: e.target.value })}
-                      className="h-9 w-10 rounded cursor-pointer border border-zinc-300"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-zinc-700 mb-1">Label Color</label>
-                  <div className="flex gap-2">
-                    <select 
-                      value={productionStyle.labelColor}
-                      onChange={(e) => setProductionStyle({ ...productionStyle, labelColor: e.target.value })}
-                      className="flex-1 rounded-md border border-zinc-300 bg-white px-3 py-2 text-xs"
-                    >
-                      <option value="text-black">Black</option>
-                      <option value="text-zinc-800">Dark Gray</option>
-                      <option value="text-zinc-700">Medium Gray</option>
-                      <option value="text-zinc-600">Light Gray</option>
-                      <option value="text-blue-700">Blue</option>
-                      <option value="text-emerald-700">Green</option>
-                      <option value="text-purple-700">Purple</option>
-                      <option value="text-white">White</option>
-                      <option value="text-gray-400">Gray Soft</option>
-                    </select>
-                    <input
-                      type="color"
-                      value={productionStyle.customLabelColor}
-                      onChange={(e) => setProductionStyle({ ...productionStyle, labelColor: `text-[${e.target.value}]`, customLabelColor: e.target.value })}
-                      className="h-9 w-10 rounded cursor-pointer border border-zinc-300"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-zinc-700 mb-1">Value / KB Color</label>
-                  <div className="flex gap-2">
-                    <select 
-                      value={productionStyle.valueColor}
-                      onChange={(e) => setProductionStyle({ ...productionStyle, valueColor: e.target.value })}
-                      className="flex-1 rounded-md border border-zinc-300 bg-white px-3 py-2 text-xs"
-                    >
-                      <option value="text-black">Black</option>
-                      <option value="text-zinc-900">Near Black</option>
-                      <option value="text-zinc-800">Dark Gray</option>
-                      <option value="text-cyan-700">Cyan Dark</option>
-                      <option value="text-blue-700">Blue Dark</option>
-                      <option value="text-emerald-700">Green Dark</option>
-                      <option value="text-white">White</option>
-                      <option value="text-cyan-400">Cyan Light</option>
-                    </select>
-                    <input
-                      type="color"
-                      value={productionStyle.customValueColor}
-                      onChange={(e) => setProductionStyle({ ...productionStyle, valueColor: `text-[${e.target.value}]`, customValueColor: e.target.value })}
-                      className="h-9 w-10 rounded cursor-pointer border border-zinc-300"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Font Family */}
-              <div>
-                <label className="block text-sm font-medium text-zinc-700 mb-2">Font Family</label>
-                <div className="flex gap-2">
-                  {[
-                    { name: 'Sans', value: 'font-sans' },
-                    { name: 'Serif', value: 'font-serif' },
-                    { name: 'Mono', value: 'font-mono' },
-                  ].map((font) => (
-                    <button
-                      key={font.value}
-                      onClick={() => setProductionStyle({ ...productionStyle, fontFamily: font.value })}
-                      className={`flex-1 p-2 rounded-lg border-2 text-xs font-medium transition-all ${
-                        productionStyle.fontFamily === font.value 
-                          ? 'border-cyan-500 bg-cyan-50 text-cyan-700 font-bold' 
-                          : 'border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300'
-                      }`}
-                    >
-                      {font.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Reset Button */}
-              <div className="flex gap-3 pt-4 border-t border-zinc-200">
-                <button 
-                  onClick={() => setProductionStyle({
-                    bgGradient: 'from-slate-800 to-slate-900',
-                    borderColor: 'border-[#334155]',
-                    borderWidth: 'border',
-                    textColor: 'text-white',
-                    headerColor: 'text-white',
-                    labelColor: 'text-gray-400',
-                    valueColor: 'text-white',
-                    fontFamily: 'font-sans',
-                    customBorderColor: '#334155',
-                    customHeaderColor: '#ffffff',
-                    customTextColor: '#d1d5db',
-                    customLabelColor: '#9ca3af',
-                    customValueColor: '#ffffff'
-                  })}
-                  className="flex-1 rounded-md border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-100 transition"
-                >
-                  Reset to Default
-                </button>
-                <button 
-                  onClick={() => { saveDashboardStyles({ productionStyle }); setIsProductionStyleModalOpen(false) }}
-                  className="flex-1 rounded-md bg-gradient-to-r from-cyan-600 to-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-cyan-600/20 hover:from-cyan-700 hover:to-sky-700 transition"
-                >
-                  Apply & Close
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+        }
+        onSave={() => saveDashboardStyles({ productionStyle })}
+        onReset={() => setProductionStyle({
+          bgGradient: 'from-slate-800 to-slate-900',
+          borderColor: 'border-[#334155]',
+          borderWidth: 'border',
+          textColor: 'text-white',
+          headerColor: 'text-white',
+          labelColor: 'text-gray-400',
+          valueColor: 'text-white',
+          fontFamily: 'font-sans',
+          customBorderColor: '#334155',
+          customHeaderColor: '#ffffff',
+          customTextColor: '#d1d5db',
+          customLabelColor: '#9ca3af',
+          customValueColor: '#ffffff'
+        })}
+      />
 
       {isPayslipAdminModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
