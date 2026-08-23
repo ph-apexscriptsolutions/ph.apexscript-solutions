@@ -9261,9 +9261,9 @@ export default function DashboardPage() {
       {isAnnouncementExpanded && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto">
           <div className="fixed inset-0" onClick={() => setIsAnnouncementExpanded(false)} />
-          <div className="relative z-10 w-full max-w-2xl sm:max-w-3xl rounded-2xl border border-zinc-200 bg-white shadow-2xl flex flex-col max-h-[85vh] my-auto overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+          <div className="relative z-10 w-full max-w-md sm:max-w-lg rounded-2xl border border-zinc-200 bg-white shadow-2xl flex flex-col max-h-[85vh] my-auto overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             {/* Header */}
-            <div className={`shrink-0 flex items-center justify-between border-b border-zinc-200 px-6 py-4 ${
+            <div className={`shrink-0 flex items-center justify-between border-b border-zinc-200 px-5 py-3.5 ${
               selectedAnnouncementType === 'website' ? 'bg-gradient-to-r from-blue-50 to-cyan-50' :
               selectedAnnouncementType === 'workflow' ? 'bg-gradient-to-r from-green-50 to-emerald-50' :
               'bg-gradient-to-r from-purple-50 to-pink-50'
