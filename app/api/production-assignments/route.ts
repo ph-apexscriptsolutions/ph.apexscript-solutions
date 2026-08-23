@@ -75,27 +75,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: error.message || 'Failed to create assignment' }, { status: 500 })
     }
 
-    // Fetch worker's email to send notification
+    // Fetch worker's email to send notification (optional)
     const { data: workerData, error: workerError } = await supabase
       .from('worker_profiles')
       .select('email, full_name')
       .eq('id', workerId)
       .single()
 
-    console.log('Email notification check:', {
-      hasWorkerError: !!workerError,
-      hasWorkerEmail: !!workerData?.email,
-      hasTransporter: !!transporter,
-      hasEmailUser: !!process.env.EMAIL_USER,
-      hasEmailPass: !!process.env.EMAIL_PASS,
-      workerEmail: workerData?.email
-    })
-
     if (!workerError && workerData?.email && transporter) {
       try {
-        console.log('Attempting to send email to:', workerData.email)
-        console.log('Using from email:', process.env.EMAIL_USER)
-        
         const subject = isPriority 
           ? '[URGENT] Priority Assignment Available' 
           : '[ALERT] New Assignment Available'
@@ -107,7 +95,7 @@ export async function POST(request: Request) {
           : ''
 
         const result = await transporter.sendMail({
-          from: `"[WORKER] ApexScript Transcription Services" <${process.env.EMAIL_USER}>`,
+          from: `"[WORKER] ApexScript Transcription Services" <ph.apexscriptsolutions@gmail.com>`,
           to: `"${workerData.full_name || 'Worker'}" <${workerData.email}>`,
           subject,
           html: `
@@ -123,20 +111,11 @@ export async function POST(request: Request) {
             </div>
           `,
         })
-        console.log('Email sent successfully. Result:', result)
+        console.log('Assignment email sent successfully to:', workerData.email)
       } catch (emailError) {
-        console.error('Failed to send assignment notification email. Error details:', emailError)
-        console.error('Error name:', (emailError as any).name)
-        console.error('Error message:', (emailError as any).message)
-        console.error('Error stack:', (emailError as any).stack)
+        console.error('Failed to send assignment notification email (email notifications skipped):', emailError)
         // Don't fail the request if email sending fails
       }
-    } else {
-      console.log('Email notification skipped:', {
-        workerError,
-        hasEmail: !!workerData?.email,
-        hasTransporter: !!transporter
-      })
     }
 
     // Broadcast a lightweight notification to realtime clients subscribed to this worker's channel
