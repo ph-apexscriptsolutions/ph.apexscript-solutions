@@ -60,54 +60,78 @@ export async function POST(request: Request) {
     }
 
     // Send email notifications to all workers
-    const transporter = nodemailer.createTransport({
-      host: process.env.EMAIL_HOST,
-      port: parseInt(process.env.EMAIL_PORT || '587'),
-      secure: process.env.EMAIL_SECURE === 'true',
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
-    })
-
-    if (transporter) {
-      try {
-        const { data: workers, error: workersError } = await supabase
-          .from('worker_profiles')
-          .select('email, full_name')
-
-        if (!workersError && workers && workers.length > 0) {
-          const workerEmails = workers
-            .filter((w: any) => w.email)
-            .map((w: any) => `"${w.full_name || 'Worker'}" <${w.email}>`)
-
-          if (workerEmails.length > 0) {
-            const result = await transporter.sendMail({
-              from: `"[WORKER] ApexScript Transcription Services" <${process.env.EMAIL_USER}>`,
-              to: process.env.EMAIL_USER,
-              bcc: workerEmails.join(', '),
-              subject: '[WEBSITE UPDATE] New Website Update from Admin',
-              html: `
-                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                  <h2 style="color: #333;">New Website Update</h2>
-                  <p style="color: #666; line-height: 1.6;">Please check your dashboard for the latest website update announcement.</p>
-                  <p style="color: #999; font-size: 12px; margin-top: 20px;">
-                    This is an automated message from ApexScript Transcription Services.
-                  </p>
-                </div>
-              `,
-            })
-            console.log('Website update emails sent successfully. Result:', result)
-          }
-        } else if (workersError) {
-          console.error('Failed to fetch workers for website update emails:', workersError)
-        }
-      } catch (emailError) {
-        console.error('Failed to send website update notification emails. Error details:', emailError)
-      }
+    let emailDebug = {
+      emailConfigured: false,
+      workersFound: 0,
+      workersWithEmail: 0,
+      emailSent: false,
+      error: null as string | null
     }
 
-    return NextResponse.json({ announcement: insertResult.data })
+    try {
+      emailDebug.emailConfigured = !!(process.env.EMAIL_HOST && process.env.EMAIL_USER && process.env.EMAIL_PASS)
+      
+      if (!emailDebug.emailConfigured) {
+        emailDebug.error = 'Email environment variables not configured'
+        return NextResponse.json({ announcement: insertResult.data, emailDebug })
+      }
+
+      const transporter = nodemailer.createTransport({
+        host: process.env.EMAIL_HOST,
+        port: parseInt(process.env.EMAIL_PORT || '587'),
+        secure: process.env.EMAIL_SECURE === 'true',
+        auth: {
+          user: process.env.EMAIL_USER,
+          pass: process.env.EMAIL_PASS,
+        },
+      })
+
+      const { data: workers, error: workersError } = await supabase
+        .from('worker_profiles')
+        .select('email, full_name')
+
+      if (workersError) {
+        emailDebug.error = `Failed to fetch workers: ${workersError.message}`
+        return NextResponse.json({ announcement: insertResult.data, emailDebug })
+      }
+
+      emailDebug.workersFound = workers ? workers.length : 0
+
+      if (workers && workers.length > 0) {
+        const workerEmails = workers
+          .filter((w: any) => w.email)
+          .map((w: any) => `"${w.full_name || 'Worker'}" <${w.email}>`)
+
+        emailDebug.workersWithEmail = workerEmails.length
+
+        if (workerEmails.length > 0) {
+          const result = await transporter.sendMail({
+            from: `"[WORKER] ApexScript Transcription Services" <${process.env.EMAIL_USER}>`,
+            to: process.env.EMAIL_USER,
+            bcc: workerEmails.join(', '),
+            subject: '[WEBSITE UPDATE] New Website Update from Admin',
+            html: `
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <h2 style="color: #333;">New Website Update</h2>
+                <p style="color: #666; line-height: 1.6;">Please check your dashboard for the latest website update announcement.</p>
+                <p style="color: #999; font-size: 12px; margin-top: 20px;">
+                  This is an automated message from ApexScript Transcription Services.
+                </p>
+              </div>
+            `,
+          })
+          emailDebug.emailSent = true
+        } else {
+          emailDebug.error = 'No workers with email addresses found'
+        }
+      } else {
+        emailDebug.error = 'No workers found in database'
+      }
+    } catch (emailError: any) {
+      emailDebug.error = `Email sending failed: ${emailError.message}`
+    }
+
+    return NextResponse.json({ announcement: insertResult.data, emailDebug })
   } catch (err: any) {
     console.error('Website updates POST error:', err)
     return NextResponse.json({ error: err.message || 'Failed to create website update' }, { status: 500 })
