@@ -4530,52 +4530,6 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {selectedAssignment && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-                <div className="w-full max-w-md overflow-hidden rounded-xl bg-gradient-to-br from-white to-cyan-50 shadow-2xl shadow-cyan-500/20 max-h-[90vh] overflow-y-auto border border-cyan-200">
-                  <div className="flex items-start justify-between gap-4 border-b border-cyan-200 p-5">
-                    <div>
-                      <h3 className="text-lg font-semibold text-cyan-900">Assignment details</h3>
-                      <p className="text-sm text-cyan-600">Assignment description and attachments</p>
-                    </div>
-                    <button type="button" onClick={() => setSelectedAssignment(null)} className="text-cyan-400 hover:text-cyan-700">
-                      <X className="h-5 w-5" />
-                    </button>
-                  </div>
-                  <div className="space-y-4 p-5">
-                    {selectedAssignment.description && (
-                      <div>
-                        <div className="text-xs font-semibold text-cyan-500 uppercase">Description</div>
-                        <div className="mt-1 text-sm text-black whitespace-pre-wrap break-words" dangerouslySetInnerHTML={{ __html: selectedAssignment.description }} />
-                      </div>
-                    )}
-                    {selectedAssignment.attachment_url && (
-                      <div>
-                        <div className="text-xs font-semibold text-cyan-500 uppercase">Attachment</div>
-                        <a
-                          href={selectedAssignment.attachment_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="mt-1 inline-flex items-center gap-1.5 rounded border border-cyan-200 bg-cyan-50 px-2 py-1 text-xs font-medium text-cyan-700 hover:bg-cyan-100 transition max-w-full"
-                          title={decodeURIComponent(selectedAssignment.attachment_url.split('/').pop()?.replace(/^attachment-\d+-/, '') ?? 'attachment')}
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" /></svg>
-                          <span className="truncate">{decodeURIComponent(selectedAssignment.attachment_url.split('/').pop()?.replace(/^attachment-\d+-/, '') ?? 'attachment')}</span>
-                        </a>
-                      </div>
-                    )}
-                  </div>
-                  <div className="border-t border-cyan-200 p-5 flex gap-3 justify-end">
-                    <button type="button" onClick={() => { setSelectedAssignment(null); setIsCurrentAssignmentsModalOpen(true) }} className="inline-flex items-center justify-center rounded-md bg-gradient-to-r from-cyan-600 to-sky-600 px-4 py-2 text-sm font-semibold text-white hover:from-cyan-700 hover:to-sky-700 transition">
-                      Back
-                    </button>
-                    <button type="button" onClick={() => { setIsAssignmentReportIssueModalOpen(true); setReportIssueAssignment(selectedAssignment) }} className="inline-flex items-center justify-center rounded-md bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800 transition">
-                      Report Issue
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
 
             {isAddAssignmentModalOpen && activeWorker && (
               <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
@@ -6957,10 +6911,11 @@ export default function DashboardPage() {
 
             <div className="flex-1 overflow-y-auto min-h-0 space-y-1.5 mb-3">
               <div className="space-y-1">
-                <div className="hidden sm:grid gap-1 items-center bg-cyan-100/80 px-2.5 py-2 border-b border-cyan-200/60 rounded-t-lg" style={{ gridTemplateColumns: isAdmin && assignmentViewMode === 'admin' ? '1fr 100px 60px 52px 62px auto' : '1fr 100px 60px 52px 62px' }}>
+                <div className="hidden sm:grid gap-2 items-center bg-cyan-100/80 px-3 py-2 border-b border-cyan-200/60 rounded-t-lg" style={{ gridTemplateColumns: isAdmin && assignmentViewMode === 'admin' ? '1fr 110px 140px auto' : '1fr 110px 140px' }}>
                   <div className="text-[10px] font-bold text-cyan-700 uppercase tracking-wider">Filename</div>
                   <div className="text-[10px] font-bold text-cyan-700 uppercase tracking-wider">Status</div>
-                  {isAdmin && assignmentViewMode === 'admin' && <div className="text-[10px] font-bold text-cyan-700 uppercase tracking-wider">Actions</div>}
+                  <div className="text-[10px] font-bold text-cyan-700 uppercase tracking-wider">Actions</div>
+                  {isAdmin && assignmentViewMode === 'admin' && <div className="text-[10px] font-bold text-cyan-700 uppercase tracking-wider text-right">Manage</div>}
                 </div>
                 {showAllSubmittedMessage ? (
                   <div className="text-center py-3 flex flex-col items-center gap-1.5">
@@ -6972,7 +6927,7 @@ export default function DashboardPage() {
                 ) : assignments.length === 0 ? (
                   <p className="text-center text-xs text-zinc-500 font-medium py-3">No assignments for this worker.</p>
                 ) : (
-                  <div className="space-y-1">
+                  <div className="space-y-2">
                     {assignments.map((a: any) => {
                       const isRush = Boolean(a.is_priority)
                       const isPriority = !isRush && (autoPriorityAssignmentId === a.id)
@@ -6988,53 +6943,16 @@ export default function DashboardPage() {
                       : 'border-l-4 border-l-cyan-400 border-cyan-200/60 bg-white hover:bg-cyan-50/50'
 
                     return (
-                      <div key={a.id} className={`py-2 sm:py-2 px-3 rounded-none border transition-all duration-200 shadow-2xs ${cardBorderClass}`}>
-                        {/* Mobile layout: stacked vertically */}
-                        <div className="sm:hidden space-y-2">
-                          <button type="button" onClick={() => { setSelectedAssignment(a); setIsCurrentAssignmentsModalOpen(false); }} className="text-xs font-bold text-slate-800 hover:text-cyan-700 underline-offset-4 hover:underline transition-colors text-left truncate w-full">
-                            {getDisplayFileName(a.filename)}
-                          </button>
-                          <div className="flex flex-wrap gap-1.5 items-center">
-                            {a.status === 'done' ? (
-                              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[9px] font-bold text-gray-400 whitespace-nowrap">✓ Done</span>
-                            ) : a.status === 'needs_revision' ? (
-                              <span className="inline-flex items-center gap-1 rounded-full bg-rose-50 border border-rose-300 px-2 py-0.5 text-[9px] font-bold text-rose-700 whitespace-nowrap">↩ Revision</span>
-                            ) : a.status === 'cancelled' ? (
-                              <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 border border-slate-200 px-2 py-0.5 text-[9px] font-bold text-slate-600 whitespace-nowrap">✕ Cancelled</span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1 rounded-full bg-sky-50 border border-sky-200 px-2 py-0.5 text-[9px] font-bold text-sky-700 whitespace-nowrap">
-                                <svg className="h-2.5 w-2.5 animate-spin text-sky-500 flex-shrink-0" fill="none" viewBox="0 0 24 24">
-                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                                </svg>
-                                In Progress
-                              </span>
-                            )}
-                            {isUpdated && (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-teal-50 border border-teal-300 text-teal-700 text-[9px] font-bold tracking-wide uppercase whitespace-nowrap">
-                                Updated
-                              </span>
-                            )}
-                            {isRush && (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-600 text-white text-[9px] font-black tracking-wider uppercase shadow-sm whitespace-nowrap">
-                                <span className="relative flex h-1.5 w-1.5 flex-shrink-0">
-                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-200 opacity-75" />
-                                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-white" />
-                                </span>
-                                RUSH
-                              </span>
-                            )}
-                            {isPriority && (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-violet-100 border border-violet-300 text-violet-800 text-[9px] font-bold tracking-wide uppercase whitespace-nowrap">
-                                <span className="relative flex h-1.5 w-1.5 flex-shrink-0">
-                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-violet-400 opacity-75" />
-                                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-violet-500" />
-                                </span>
-                                Priority
-                              </span>
-                            )}
+                      <div key={a.id} className={`p-3 rounded-xl border transition-all duration-200 shadow-2xs ${cardBorderClass}`}>
+                        {/* Mobile layout: stacked vertically with clear action buttons */}
+                        <div className="sm:hidden space-y-2.5">
+                          <div className="flex items-start justify-between gap-2">
+                            <button type="button" onClick={() => { setSelectedAssignment(a); setIsCurrentAssignmentsModalOpen(false); }} className="text-xs font-bold text-slate-900 hover:text-cyan-700 transition-colors text-left break-all flex items-center gap-1.5">
+                              <FileText className="h-3.5 w-3.5 text-cyan-600 shrink-0" />
+                              <span>{getDisplayFileName(a.filename)}</span>
+                            </button>
                             {isAdmin && assignmentViewMode === 'admin' && (
-                              <div className="flex items-center justify-end relative ml-auto">
+                              <div className="flex items-center justify-end relative shrink-0">
                                 <button
                                   onClick={() => setAssignmentActionDropdown(assignmentActionDropdown === a.id ? null : a.id)}
                                   className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-slate-50 hover:bg-slate-100 transition-all border border-slate-200 text-slate-600"
@@ -7042,7 +6960,7 @@ export default function DashboardPage() {
                                   <MoreVertical className="h-3.5 w-3.5" />
                                 </button>
                                 {assignmentActionDropdown === a.id && (
-                                  <div className="absolute right-0 top-full mt-1 bg-white rounded-lg border border-slate-200 shadow-lg z-10 min-w-[100px] py-1">
+                                  <div className="absolute right-0 top-full mt-1 bg-white rounded-lg border border-slate-200 shadow-lg z-20 min-w-[100px] py-1">
                                     {a.status === 'done' && (
                                       <button
                                         onClick={() => { setRevisionTargetAssignment(a); setIsRevisionModalOpen(true); setAssignmentActionDropdown(null) }}
@@ -7076,21 +6994,101 @@ export default function DashboardPage() {
                               </div>
                             )}
                           </div>
+
+                          {/* Badges */}
+                          <div className="flex flex-wrap gap-1.5 items-center">
+                            {a.status === 'done' ? (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[9px] font-bold text-emerald-700 whitespace-nowrap">✓ Done</span>
+                            ) : a.status === 'needs_revision' ? (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-rose-50 border border-rose-300 px-2 py-0.5 text-[9px] font-bold text-rose-700 whitespace-nowrap">↩ Revision</span>
+                            ) : a.status === 'cancelled' ? (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 border border-slate-200 px-2 py-0.5 text-[9px] font-bold text-slate-600 whitespace-nowrap">✕ Cancelled</span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-sky-50 border border-sky-200 px-2 py-0.5 text-[9px] font-bold text-sky-700 whitespace-nowrap">
+                                <svg className="h-2.5 w-2.5 animate-spin text-sky-500 flex-shrink-0" fill="none" viewBox="0 0 24 24">
+                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                                </svg>
+                                In Progress
+                              </span>
+                            )}
+                            {isUpdated && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-teal-50 border border-teal-300 text-teal-700 text-[9px] font-bold tracking-wide uppercase whitespace-nowrap">
+                                Updated
+                              </span>
+                            )}
+                            {isRush && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-600 text-white text-[9px] font-black tracking-wider uppercase shadow-sm whitespace-nowrap">
+                                <span className="relative flex h-1.5 w-1.5 flex-shrink-0">
+                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-200 opacity-75" />
+                                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-white" />
+                                </span>
+                                RUSH
+                              </span>
+                            )}
+                            {isPriority && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-violet-100 border border-violet-300 text-violet-800 text-[9px] font-bold tracking-wide uppercase whitespace-nowrap">
+                                <span className="relative flex h-1.5 w-1.5 flex-shrink-0">
+                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-violet-400 opacity-75" />
+                                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-violet-500" />
+                                </span>
+                                Priority
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Mobile Action Buttons (Visible and easy to tap) */}
+                          <div className="flex items-center gap-2 pt-1 border-t border-zinc-100">
+                            <button
+                              type="button"
+                              onClick={() => { setSelectedAssignment(a); setIsCurrentAssignmentsModalOpen(false); }}
+                              className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg border border-cyan-300 bg-cyan-50/80 px-2.5 py-1.5 text-xs font-semibold text-cyan-800 hover:bg-cyan-100 transition"
+                            >
+                              <Eye className="h-3.5 w-3.5 text-cyan-600" />
+                              <span>Details</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => { setReportIssueAssignment(a); setIsCurrentAssignmentsModalOpen(false); setIsAssignmentReportIssueModalOpen(true); }}
+                              className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg bg-red-600 hover:bg-red-700 px-2.5 py-1.5 text-xs font-semibold text-white shadow-xs transition"
+                            >
+                              <AlertCircle className="h-3.5 w-3.5 text-white" />
+                              <span>Report Issue</span>
+                            </button>
+                          </div>
                         </div>
+
                         {/* Desktop layout: grid */}
                         <div
-                          className="hidden sm:grid items-center gap-x-3"
-                          style={{ gridTemplateColumns: isAdmin && assignmentViewMode === 'admin' ? '1fr 100px 60px 52px 62px auto' : '1fr 100px 60px 52px 62px' }}
+                          className="hidden sm:grid items-center gap-x-2"
+                          style={{ gridTemplateColumns: isAdmin && assignmentViewMode === 'admin' ? '1fr 110px 140px auto' : '1fr 110px 140px' }}
                         >
-                          {/* Col 1: Filename */}
-                          <button type="button" onClick={() => { setSelectedAssignment(a); setIsCurrentAssignmentsModalOpen(false); }} className="text-xs font-bold text-slate-800 hover:text-cyan-700 underline-offset-4 hover:underline transition-colors text-left truncate">
-                            {getDisplayFileName(a.filename)}
-                          </button>
+                          {/* Col 1: Filename + badges */}
+                          <div className="flex items-center gap-2 min-w-0 pr-2">
+                            <button type="button" onClick={() => { setSelectedAssignment(a); setIsCurrentAssignmentsModalOpen(false); }} className="text-xs font-bold text-slate-800 hover:text-cyan-700 underline-offset-4 hover:underline transition-colors text-left truncate">
+                              {getDisplayFileName(a.filename)}
+                            </button>
+                            {isUpdated && (
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-teal-50 border border-teal-300 text-teal-700 text-[8px] font-bold tracking-wide uppercase shrink-0">
+                                Updated
+                              </span>
+                            )}
+                            {isRush && (
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-red-600 text-white text-[8px] font-black uppercase shrink-0">
+                                RUSH
+                              </span>
+                            )}
+                            {isPriority && (
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-violet-100 border border-violet-300 text-violet-800 text-[8px] font-bold uppercase shrink-0">
+                                Priority
+                              </span>
+                            )}
+                          </div>
 
                           {/* Col 2: Status */}
                           <div>
                             {a.status === 'done' ? (
-                              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[9px] font-bold text-gray-400 whitespace-nowrap">✓ Done</span>
+                              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[9px] font-bold text-emerald-700 whitespace-nowrap">✓ Done</span>
                             ) : a.status === 'needs_revision' ? (
                               <span className="inline-flex items-center gap-1 rounded-full bg-rose-50 border border-rose-300 px-2 py-0.5 text-[9px] font-bold text-rose-700 whitespace-nowrap">↩ Revision</span>
                             ) : a.status === 'cancelled' ? (
@@ -7106,42 +7104,27 @@ export default function DashboardPage() {
                             )}
                           </div>
 
-                          {/* Col 3: Updated */}
-                          <div>
-                            {isUpdated && (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-teal-50 border border-teal-300 text-teal-700 text-[9px] font-bold tracking-wide uppercase whitespace-nowrap">
-                                Updated
-                              </span>
-                            )}
+                          {/* Col 3: Actions (Details + Report Issue) */}
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => { setSelectedAssignment(a); setIsCurrentAssignmentsModalOpen(false); }}
+                              className="inline-flex items-center gap-1 rounded-md border border-cyan-300 bg-cyan-50 px-2 py-1 text-[10px] font-semibold text-cyan-800 hover:bg-cyan-100 transition shadow-2xs"
+                              title="View Details"
+                            >
+                              <Eye className="h-3 w-3 text-cyan-600" /> Details
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => { setReportIssueAssignment(a); setIsCurrentAssignmentsModalOpen(false); setIsAssignmentReportIssueModalOpen(true); }}
+                              className="inline-flex items-center gap-1 rounded-md bg-red-600 hover:bg-red-700 px-2 py-1 text-[10px] font-semibold text-white transition shadow-2xs"
+                              title="Report Issue"
+                            >
+                              <AlertCircle className="h-3 w-3" /> Report
+                            </button>
                           </div>
 
-                          {/* Col 4: RUSH */}
-                          <div>
-                            {isRush && (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-600 text-white text-[9px] font-black tracking-wider uppercase shadow-sm whitespace-nowrap">
-                                <span className="relative flex h-1.5 w-1.5 flex-shrink-0">
-                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-200 opacity-75" />
-                                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-white" />
-                                </span>
-                                RUSH
-                              </span>
-                            )}
-                          </div>
-
-                          {/* Col 5: Priority */}
-                          <div>
-                            {isPriority && (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-violet-100 border border-violet-300 text-violet-800 text-[9px] font-bold tracking-wide uppercase whitespace-nowrap">
-                                <span className="relative flex h-1.5 w-1.5 flex-shrink-0">
-                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-violet-400 opacity-75" />
-                                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-violet-500" />
-                                </span>
-                                Priority
-                              </span>
-                            )}
-                          </div>
-
-                          {/* Col 6: Admin actions */}
+                          {/* Col 4: Admin dropdown */}
                           {isAdmin && assignmentViewMode === 'admin' && (
                             <div className="flex items-center justify-end relative">
                               <button
@@ -7151,7 +7134,7 @@ export default function DashboardPage() {
                                 <MoreVertical className="h-3.5 w-3.5" />
                               </button>
                               {assignmentActionDropdown === a.id && (
-                                <div className="absolute right-0 top-full mt-1 bg-white rounded-lg border border-slate-200 shadow-lg z-10 min-w-[100px] py-1">
+                                <div className="absolute right-0 top-full mt-1 bg-white rounded-lg border border-slate-200 shadow-lg z-20 min-w-[100px] py-1">
                                   {a.status === 'done' && (
                                     <button
                                       onClick={() => { setRevisionTargetAssignment(a); setIsRevisionModalOpen(true); setAssignmentActionDropdown(null) }}
@@ -8060,6 +8043,53 @@ export default function DashboardPage() {
                   {isUpdatingRole ? "Updating..." : <span className="flex items-center gap-2"><Save className="h-4 w-4" /> Update Role</span>}
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* ── Assignment Details Modal (global, works from any view) ── */}
+      {selectedAssignment && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="w-full max-w-md overflow-hidden rounded-xl bg-gradient-to-br from-white to-cyan-50 shadow-2xl shadow-cyan-500/20 max-h-[90vh] overflow-y-auto border border-cyan-200">
+            <div className="flex items-start justify-between gap-4 border-b border-cyan-200 p-5">
+              <div>
+                <h3 className="text-lg font-semibold text-cyan-900">Assignment details</h3>
+                <p className="text-sm text-cyan-600">Assignment description and attachments</p>
+              </div>
+              <button type="button" onClick={() => setSelectedAssignment(null)} className="text-cyan-400 hover:text-cyan-700">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="space-y-4 p-5">
+              {selectedAssignment.description && (
+                <div>
+                  <div className="text-xs font-semibold text-cyan-500 uppercase">Description</div>
+                  <div className="mt-1 text-sm text-black whitespace-pre-wrap break-words" dangerouslySetInnerHTML={{ __html: selectedAssignment.description }} />
+                </div>
+              )}
+              {selectedAssignment.attachment_url && (
+                <div>
+                  <div className="text-xs font-semibold text-cyan-500 uppercase">Attachment</div>
+                  <a
+                    href={selectedAssignment.attachment_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-1 inline-flex items-center gap-1.5 rounded border border-cyan-200 bg-cyan-50 px-2 py-1 text-xs font-medium text-cyan-700 hover:bg-cyan-100 transition max-w-full"
+                    title={decodeURIComponent(selectedAssignment.attachment_url.split('/').pop()?.replace(/^attachment-\d+-/, '') ?? 'attachment')}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" /></svg>
+                    <span className="truncate">{decodeURIComponent(selectedAssignment.attachment_url.split('/').pop()?.replace(/^attachment-\d+-/, '') ?? 'attachment')}</span>
+                  </a>
+                </div>
+              )}
+            </div>
+            <div className="border-t border-cyan-200 p-5 flex gap-3 justify-end flex-wrap">
+              <button type="button" onClick={() => { setSelectedAssignment(null); setIsCurrentAssignmentsModalOpen(true) }} className="inline-flex items-center justify-center rounded-md bg-gradient-to-r from-cyan-600 to-sky-600 px-4 py-2 text-sm font-semibold text-white hover:from-cyan-700 hover:to-sky-700 transition">
+                Back
+              </button>
+              <button type="button" onClick={() => { setIsAssignmentReportIssueModalOpen(true); setReportIssueAssignment(selectedAssignment); setSelectedAssignment(null) }} className="inline-flex items-center justify-center gap-1.5 rounded-md bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800 transition">
+                <AlertCircle className="h-4 w-4" /> Report Issue
+              </button>
             </div>
           </div>
         </div>
