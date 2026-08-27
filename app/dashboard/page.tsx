@@ -371,6 +371,7 @@ export default function DashboardPage() {
   const [websiteUpdates, setWebsiteUpdates] = useState<any[]>([])
   const [assignmentWorkflow, setAssignmentWorkflow] = useState<any[]>([])
   const [generalAnnouncements, setGeneralAnnouncements] = useState<any[]>([])
+  const [readAnnouncementIds, setReadAnnouncementIds] = useState<string[]>([])
   
   const [isAnnouncementExpanded, setIsAnnouncementExpanded] = useState(false)
   const [isAnnouncementPopupOpen, setIsAnnouncementPopupOpen] = useState(false)
@@ -2228,6 +2229,65 @@ export default function DashboardPage() {
     if (savedRow) setAssignmentRowTemplate(savedRow)
   }, [])
 
+  // Load read announcement IDs from localStorage for the current worker/user
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const userId = profile?.id || user?.id || 'default'
+    try {
+      const stored = window.localStorage.getItem(`read_announcements_${userId}`)
+      if (stored) {
+        const parsed = JSON.parse(stored)
+        if (Array.isArray(parsed)) {
+          setReadAnnouncementIds(parsed)
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to parse read announcements from localStorage', e)
+    }
+  }, [user?.id, profile?.id])
+
+  const markAnnouncementsAsRead = (idsToMark: string[]) => {
+    if (!idsToMark || idsToMark.length === 0) return
+    setReadAnnouncementIds(prev => {
+      const merged = Array.from(new Set([...prev, ...idsToMark]))
+      if (typeof window !== 'undefined') {
+        const userId = profile?.id || user?.id || 'default'
+        try {
+          window.localStorage.setItem(`read_announcements_${userId}`, JSON.stringify(merged))
+        } catch (e) {
+          console.warn('Failed to save read announcements to localStorage', e)
+        }
+      }
+      return merged
+    })
+  }
+
+  const markAllAnnouncementsAsRead = () => {
+    const allIds = [
+      ...websiteUpdates.map((a: any) => a.id),
+      ...assignmentWorkflow.map((a: any) => a.id),
+      ...generalAnnouncements.map((a: any) => a.id)
+    ].filter(Boolean)
+    markAnnouncementsAsRead(allIds)
+  }
+
+  const unreadWebsiteUpdates = websiteUpdates.filter((a: any) => !readAnnouncementIds.includes(a.id))
+  const unreadAssignmentWorkflow = assignmentWorkflow.filter((a: any) => !readAnnouncementIds.includes(a.id))
+  const unreadGeneralAnnouncements = generalAnnouncements.filter((a: any) => !readAnnouncementIds.includes(a.id))
+  const totalUnreadAnnouncementsCount = unreadWebsiteUpdates.length + unreadAssignmentWorkflow.length + unreadGeneralAnnouncements.length
+
+  // Automatically mark announcements as read when full view modal is opened
+  useEffect(() => {
+    if (isAnnouncementExpanded) {
+      const currentList = selectedAnnouncementType === 'website' ? websiteUpdates :
+                          selectedAnnouncementType === 'workflow' ? assignmentWorkflow :
+                          generalAnnouncements
+      if (currentList && currentList.length > 0) {
+        markAnnouncementsAsRead(currentList.map((a: any) => a.id))
+      }
+    }
+  }, [isAnnouncementExpanded, selectedAnnouncementType, websiteUpdates, assignmentWorkflow, generalAnnouncements])
+
   const hasBankColumns = !!activeWorker && (
     Object.prototype.hasOwnProperty.call(activeWorker, 'bank_name') ||
     Object.prototype.hasOwnProperty.call(activeWorker, 'account_number') ||
@@ -3349,9 +3409,9 @@ export default function DashboardPage() {
               title="Announcements"
             >
               <Bell className="h-5 w-5" />
-              {(websiteUpdates.length + assignmentWorkflow.length + generalAnnouncements.length) > 0 && (
+              {totalUnreadAnnouncementsCount > 0 && (
                 <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white shadow">
-                  {websiteUpdates.length + assignmentWorkflow.length + generalAnnouncements.length}
+                  {totalUnreadAnnouncementsCount}
                 </span>
               )}
             </button>
@@ -3361,29 +3421,48 @@ export default function DashboardPage() {
               <>
                 {/* Backdrop to close */}
                 <div className="fixed inset-0 z-40" onClick={() => setIsAnnouncementPopupOpen(false)} />
-                <div className="absolute right-0 top-12 z-50 w-64 rounded-2xl border border-zinc-200 bg-white shadow-2xl overflow-hidden">
-                  <div className="px-4 py-3 bg-gradient-to-r from-amber-50 to-orange-50 border-b border-zinc-200">
+                <div className="absolute right-0 top-12 z-50 w-72 rounded-2xl border border-zinc-200 bg-white shadow-2xl overflow-hidden">
+                  <div className="px-4 py-3 bg-gradient-to-r from-amber-50 to-orange-50 border-b border-zinc-200 flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Bell className="h-4 w-4 text-amber-600" />
-                      <span className="text-sm font-bold text-zinc-800">Select Announcement Type</span>
+                      <span className="text-sm font-bold text-zinc-800">Announcements</span>
                     </div>
+                    {totalUnreadAnnouncementsCount > 0 && (
+                      <button
+                        onClick={markAllAnnouncementsAsRead}
+                        className="text-[11px] font-semibold text-amber-700 hover:text-amber-900 hover:underline transition"
+                      >
+                        Mark all read
+                      </button>
+                    )}
                   </div>
                   
                   <div className="p-2 space-y-1">
                     <button
                       onClick={() => {
+                        markAnnouncementsAsRead(websiteUpdates.map((a: any) => a.id))
                         setSelectedAnnouncementType('website')
                         setIsAnnouncementPopupOpen(false)
                         setIsAnnouncementExpanded(true)
                       }}
-                      className="w-full flex items-center justify-between px-4 py-3 rounded-xl hover:bg-blue-50 transition group"
+                      className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl hover:bg-blue-50 transition group"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="h-8 w-8 rounded-lg bg-blue-100 flex items-center justify-center">
+                        <div className="h-8 w-8 rounded-lg bg-blue-100 flex items-center justify-center relative">
                           <Tv className="h-4 w-4 text-blue-600" />
+                          {unreadWebsiteUpdates.length > 0 && (
+                            <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white" />
+                          )}
                         </div>
                         <div className="text-left">
-                          <p className="text-sm font-medium text-zinc-700 group-hover:text-blue-700">Website Updates</p>
+                          <div className="flex items-center gap-1.5">
+                            <p className="text-sm font-medium text-zinc-700 group-hover:text-blue-700">Website Updates</p>
+                            {unreadWebsiteUpdates.length > 0 && (
+                              <span className="rounded-full bg-blue-100 px-1.5 py-0.2 text-[10px] font-bold text-blue-700">
+                                {unreadWebsiteUpdates.length} new
+                              </span>
+                            )}
+                          </div>
                           <p className="text-xs text-zinc-400">{websiteUpdates.length} announcement{websiteUpdates.length !== 1 ? 's' : ''}</p>
                         </div>
                       </div>
@@ -3392,18 +3471,29 @@ export default function DashboardPage() {
 
                     <button
                       onClick={() => {
+                        markAnnouncementsAsRead(assignmentWorkflow.map((a: any) => a.id))
                         setSelectedAnnouncementType('workflow')
                         setIsAnnouncementPopupOpen(false)
                         setIsAnnouncementExpanded(true)
                       }}
-                      className="w-full flex items-center justify-between px-4 py-3 rounded-xl hover:bg-green-50 transition group"
+                      className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl hover:bg-green-50 transition group"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="h-8 w-8 rounded-lg bg-green-100 flex items-center justify-center">
+                        <div className="h-8 w-8 rounded-lg bg-green-100 flex items-center justify-center relative">
                           <Calendar className="h-4 w-4 text-green-600" />
+                          {unreadAssignmentWorkflow.length > 0 && (
+                            <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white" />
+                          )}
                         </div>
                         <div className="text-left">
-                          <p className="text-sm font-medium text-zinc-700 group-hover:text-green-700">Assignment Workflow</p>
+                          <div className="flex items-center gap-1.5">
+                            <p className="text-sm font-medium text-zinc-700 group-hover:text-green-700">Assignment Workflow</p>
+                            {unreadAssignmentWorkflow.length > 0 && (
+                              <span className="rounded-full bg-green-100 px-1.5 py-0.2 text-[10px] font-bold text-green-700">
+                                {unreadAssignmentWorkflow.length} new
+                              </span>
+                            )}
+                          </div>
                           <p className="text-xs text-zinc-400">{assignmentWorkflow.length} announcement{assignmentWorkflow.length !== 1 ? 's' : ''}</p>
                         </div>
                       </div>
@@ -3412,18 +3502,29 @@ export default function DashboardPage() {
 
                     <button
                       onClick={() => {
+                        markAnnouncementsAsRead(generalAnnouncements.map((a: any) => a.id))
                         setSelectedAnnouncementType('general')
                         setIsAnnouncementPopupOpen(false)
                         setIsAnnouncementExpanded(true)
                       }}
-                      className="w-full flex items-center justify-between px-4 py-3 rounded-xl hover:bg-purple-50 transition group"
+                      className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl hover:bg-purple-50 transition group"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="h-8 w-8 rounded-lg bg-purple-100 flex items-center justify-center">
+                        <div className="h-8 w-8 rounded-lg bg-purple-100 flex items-center justify-center relative">
                           <Newspaper className="h-4 w-4 text-purple-600" />
+                          {unreadGeneralAnnouncements.length > 0 && (
+                            <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white" />
+                          )}
                         </div>
                         <div className="text-left">
-                          <p className="text-sm font-medium text-zinc-700 group-hover:text-purple-700">General</p>
+                          <div className="flex items-center gap-1.5">
+                            <p className="text-sm font-medium text-zinc-700 group-hover:text-purple-700">General</p>
+                            {unreadGeneralAnnouncements.length > 0 && (
+                              <span className="rounded-full bg-purple-100 px-1.5 py-0.2 text-[10px] font-bold text-purple-700">
+                                {unreadGeneralAnnouncements.length} new
+                              </span>
+                            )}
+                          </div>
                           <p className="text-xs text-zinc-400">{generalAnnouncements.length} announcement{generalAnnouncements.length !== 1 ? 's' : ''}</p>
                         </div>
                       </div>
