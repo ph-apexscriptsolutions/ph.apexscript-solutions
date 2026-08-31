@@ -42,6 +42,14 @@ import {
   Volume2,
   Zap,
 } from 'lucide-react'
+import {
+  saveAudioToDB,
+  getAudioFromDB,
+  deleteAudioFromDB,
+  saveAudioPosition,
+  getAudioPosition,
+  clearAudioPosition,
+} from '@/lib/transcript-audio-storage'
 
 interface WorkerOption {
   id: string
@@ -181,11 +189,61 @@ export default function TranscriptEditor({
   const audioSrcRef = useRef<string | null>(null)
   const audioCurrentTimeRef = useRef(0)
   const playbackSpeedRef = useRef(1.0)
+  const pendingSeekTimeRef = useRef<number | null>(null)
   const hotkeysRef = useRef<HotkeySettings>(DEFAULT_HOTKEYS)
   const shortcutsRef = useRef<TextShortcut[]>(DEFAULT_SHORTCUTS)
 
   // Throttle timer ref: display updates at max 4Hz (250ms) instead of every browser frame
   const audioDisplayThrottleRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Protect against accidental tab closure (Ctrl+W, tab close, page refresh)
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      // Prompt browser confirmation before closing or reloading
+      e.preventDefault()
+      e.returnValue = ''
+      return ''
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload)
+    }
+  }, [])
+
+  // Restore audio file from IndexedDB and playback timestamp on mount / user change
+  useEffect(() => {
+    if (!userId) return
+    let isMounted = true
+
+    const restorePersistedAudio = async () => {
+      try {
+        const stored = await getAudioFromDB(userId)
+        if (stored && isMounted) {
+          const url = URL.createObjectURL(stored.blob)
+          audioSrcRef.current = url
+          setAudioSrc(url)
+          setAudioFileName(stored.name || 'Audio File')
+
+          // Read saved playback position
+          const savedTime = getAudioPosition(userId)
+          if (savedTime > 0) {
+            pendingSeekTimeRef.current = savedTime
+            audioCurrentTimeRef.current = savedTime
+            setAudioCurrentTime(savedTime)
+          }
+        }
+      } catch (err) {
+        console.warn('Could not restore audio from IndexedDB:', err)
+      }
+    }
+
+    restorePersistedAudio()
+
+    return () => {
+      isMounted = false
+    }
+  }, [userId])
 
   // ── WORKER PREFERENCES (Hotkeys & Text Expander Shortcuts) ──
   const [hotkeys, setHotkeys] = useState<HotkeySettings>(DEFAULT_HOTKEYS)
@@ -527,9 +585,15 @@ export default function TranscriptEditor({
     ].join(':')
   }
 
-  const handleAudioFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAudioFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
+
+    // Revoke previous blob URL if needed
+    if (audioSrcRef.current && audioSrcRef.current.startsWith('blob:')) {
+      URL.revokeObjectURL(audioSrcRef.current)
+    }
+
     const url = URL.createObjectURL(file)
     audioSrcRef.current = url
     setAudioSrc(url)
@@ -538,7 +602,45 @@ export default function TranscriptEditor({
     setIsPlaying(false)
     audioCurrentTimeRef.current = 0
     setAudioCurrentTime(0)
-  }, [])
+    pendingSeekTimeRef.current = 0
+
+    // Persist audio blob in IndexedDB and reset saved position
+    if (userId) {
+      await saveAudioToDB(userId, file, file.name)
+      saveAudioPosition(userId, 0)
+    }
+    setStatusMessage({ type: 'success', text: `Loaded audio: ${file.name}` })
+  }, [userId])
+
+  const handleClearAudio = useCallback(async () => {
+    if (audioSrcRef.current && audioSrcRef.current.startsWith('blob:')) {
+      URL.revokeObjectURL(audioSrcRef.current)
+    }
+    if (audioRef.current) {
+      audioRef.current.pause()
+      audioRef.current.currentTime = 0
+    }
+    audioSrcRef.current = null
+    setAudioSrc(null)
+    setAudioFileName('')
+    isPlayingRef.current = false
+    setIsPlaying(false)
+    audioCurrentTimeRef.current = 0
+    setAudioCurrentTime(0)
+    setAudioDuration(0)
+    pendingSeekTimeRef.current = null
+
+    if (userId) {
+      await deleteAudioFromDB(userId)
+      clearAudioPosition(userId)
+    }
+
+    if (audioInputRef.current) {
+      audioInputRef.current.value = ''
+    }
+
+    setStatusMessage({ type: 'info', text: 'Audio file removed and cleared from local storage.' })
+  }, [userId])
 
   // Stable play and pause using refs — no stale closures, no listener re-registration
   const playAudio = useCallback(() => {
@@ -556,8 +658,11 @@ export default function TranscriptEditor({
       audioRef.current.pause()
       isPlayingRef.current = false
       setIsPlaying(false)
+      if (userId) {
+        saveAudioPosition(userId, audioRef.current.currentTime)
+      }
     }
-  }, [])
+  }, [userId])
 
   const togglePlayPause = useCallback(() => {
     if (!audioRef.current || !audioSrcRef.current) return
@@ -573,7 +678,10 @@ export default function TranscriptEditor({
     audioRef.current.pause()
     isPlayingRef.current = false
     setIsPlaying(false)
-  }, [])
+    if (userId) {
+      saveAudioPosition(userId, audioRef.current.currentTime)
+    }
+  }, [userId])
 
   const rewindAudio = useCallback((seconds?: number) => {
     if (!audioRef.current) return
@@ -582,7 +690,10 @@ export default function TranscriptEditor({
     const newTime = audioRef.current.currentTime
     audioCurrentTimeRef.current = newTime
     setAudioCurrentTime(newTime)
-  }, [])
+    if (userId) {
+      saveAudioPosition(userId, newTime)
+    }
+  }, [userId])
 
   const toggleFastSpeed = useCallback(() => {
     if (!audioRef.current) return
@@ -614,6 +725,16 @@ export default function TranscriptEditor({
   // Registered ONCE on mount with empty deps — reads all live values through refs, never stale
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      // Intercept accidental tab close (Ctrl+W / Cmd+W)
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'w' || e.key === 'W')) {
+        e.preventDefault()
+        setStatusMessage({
+          type: 'info',
+          text: 'Accidental tab closure (Ctrl+W) was blocked to protect your workspace.',
+        })
+        return
+      }
+
       if (showHotkeysModal) return
 
       const keyName = e.key.toUpperCase()
@@ -738,6 +859,12 @@ export default function TranscriptEditor({
           e.preventDefault()
           applyUndo()
         }
+      } else if (e.key === 'w' || e.key === 'W') {
+        e.preventDefault()
+        setStatusMessage({
+          type: 'info',
+          text: 'Accidental tab closure (Ctrl+W) was blocked to protect your workspace.',
+        })
       } else if (e.key === 'y' || e.key === 'Y') {
         e.preventDefault()
         applyRedo()
@@ -1091,17 +1218,27 @@ export default function TranscriptEditor({
           if (!audioRef.current) return
           // Always keep the ref up-to-date (zero cost, used by hotkey callbacks)
           audioCurrentTimeRef.current = audioRef.current.currentTime
-          // Throttle React state updates to 4Hz — prevents render churn on every browser frame
+          // Throttle React state updates & storage persistence to 4Hz (250ms)
           if (!audioDisplayThrottleRef.current) {
             audioDisplayThrottleRef.current = setTimeout(() => {
               audioDisplayThrottleRef.current = null
               setAudioCurrentTime(audioCurrentTimeRef.current)
+              if (userId) {
+                saveAudioPosition(userId, audioCurrentTimeRef.current)
+              }
             }, 250)
           }
         }}
         onLoadedMetadata={() => {
           if (audioRef.current) {
             setAudioDuration(audioRef.current.duration)
+            if (pendingSeekTimeRef.current !== null && pendingSeekTimeRef.current > 0) {
+              const target = Math.min(pendingSeekTimeRef.current, audioRef.current.duration || pendingSeekTimeRef.current)
+              audioRef.current.currentTime = target
+              audioCurrentTimeRef.current = target
+              setAudioCurrentTime(target)
+              pendingSeekTimeRef.current = null
+            }
           }
         }}
         onEnded={() => {
@@ -1176,6 +1313,14 @@ export default function TranscriptEditor({
                   title={`Insert Timestamp (${hotkeys.copyTimestamp})`}
                 >
                   +Time
+                </button>
+                <button
+                  type="button"
+                  onClick={handleClearAudio}
+                  className="p-1 text-zinc-400 hover:text-rose-300 transition-colors"
+                  title="Remove audio file"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
                 </button>
               </div>
             )}
@@ -1527,6 +1672,17 @@ export default function TranscriptEditor({
                       <FastForward className="w-3.5 h-3.5 text-purple-300" />
                       <span>{playbackSpeed}x</span>
                     </button>
+
+                    {/* Clear / Eject Audio */}
+                    <button
+                      type="button"
+                      onClick={handleClearAudio}
+                      className="flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-xl bg-slate-800/90 hover:bg-rose-950/50 text-zinc-300 hover:text-rose-300 border border-slate-700 hover:border-rose-800/60 transition-all cursor-pointer"
+                      title="Clear / Remove audio file from editor"
+                    >
+                      <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+                      <span className="hidden lg:inline text-[11px]">Clear</span>
+                    </button>
                   </>
                 )}
               </div>
@@ -1546,7 +1702,11 @@ export default function TranscriptEditor({
                       const val = parseFloat(e.target.value)
                       if (audioRef.current) {
                         audioRef.current.currentTime = val
+                        audioCurrentTimeRef.current = val
                         setAudioCurrentTime(val)
+                        if (userId) {
+                          saveAudioPosition(userId, val)
+                        }
                       }
                     }}
                     className="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-purple-500"
