@@ -6,7 +6,6 @@ import { supabase } from "@/utils/supabase/client"
 import { FileText, HardDrive, LogOut, Calendar, X, Pencil, Save, User, ArrowLeft, Upload, UserPlus, CreditCard, Trash2, Check, Bell, AlertCircle, Tv, Mic, Headphones, FileEdit, Newspaper, Radio, Video, BookOpen, Gavel, TrendingUp, Activity, Search, Loader2, Copy, ChevronDown, ChevronUp, ChevronRight, Building2, Eye, MessageSquare, Zap, MoreVertical, Maximize2, Minimize2, ExternalLink, Laptop, Download, Monitor } from "lucide-react"
 import { FlagIcon } from "@/components/flag-icon"
 import TranscriptCleanup from '@/components/TranscriptCleanup'
-import TranscriptEditor from '@/components/TranscriptEditor'
 import { validateTranscript, replaceInTranscript, getHighlightClass, validationHighlightStyles, ValidationIssue, ValidationRule, Participant, extractParticipants, getValidUncommonWords, detectFillerWords, extractSenateSpeakers, detectTranscriptFormat } from '@/utils/transcript-validation'
 import PriorityBroadcastModal from '@/components/priority-broadcast-modal'
 import AdminPriorityAnnouncementModal from '@/components/admin-priority-announcement-modal'
@@ -411,10 +410,7 @@ export default function DashboardPage() {
   const [issueSearchQuery, setIssueSearchQuery] = useState("")
   const [showValidationPanel, setShowValidationPanel] = useState(false)
   const [isTranscriptCleanupModalOpen, setIsTranscriptCleanupModalOpen] = useState(false)
-  const [isTranscriptEditorModalOpen, setIsTranscriptEditorModalOpen] = useState(false)
-  const [isTranscriptEditorMaximized, setIsTranscriptEditorMaximized] = useState(false)
   const [transcriptContent, setTranscriptContent] = useState("")
-  const [transcriptEditorSlot, setTranscriptEditorSlot] = useState(1)
   const [selectedIssue, setSelectedIssue] = useState<ValidationIssue | null>(null)
   const [debouncedTranscript, setDebouncedTranscript] = useState("")
   const [isReferencesExpanded, setIsReferencesExpanded] = useState(true)
@@ -4101,9 +4097,10 @@ export default function DashboardPage() {
                       </button>
 
                       {/* Transcript Editor */}
-                      <button
-                        type="button"
-                        onClick={() => setIsTranscriptEditorModalOpen(true)}
+                      <a
+                        href="/dashboard/transcript-editor"
+                        target="_blank"
+                        rel="noopener noreferrer"
                         className="group relative flex flex-col items-start gap-1 rounded-md border border-white/10 bg-white/5 p-2 text-left backdrop-blur-sm hover:bg-white/10 hover:border-purple-400/40 transition-all duration-200 hover:shadow-xl hover:shadow-purple-600/20"
                       >
                         <div className="flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br from-purple-500 to-indigo-600 shadow-lg shadow-purple-500/30 group-hover:scale-110 transition-transform duration-200">
@@ -4116,7 +4113,7 @@ export default function DashboardPage() {
                         <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
                           <svg className="h-2.5 w-2.5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
                         </div>
-                      </button>
+                      </a>
 
                       {/* Desktop App */}
                       <a
@@ -4591,9 +4588,10 @@ export default function DashboardPage() {
                       </button>
 
                       {/* Transcript Editor */}
-                      <button
-                        type="button"
-                        onClick={() => setIsTranscriptEditorModalOpen(true)}
+                      <a
+                        href="/dashboard/transcript-editor"
+                        target="_blank"
+                        rel="noopener noreferrer"
                         className="group relative flex flex-col items-start gap-1 rounded-md border border-white/10 bg-white/5 p-2 text-left backdrop-blur-sm hover:bg-white/10 hover:border-purple-400/40 transition-all duration-200 hover:shadow-xl hover:shadow-purple-600/20"
                       >
                         <div className="flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br from-purple-500 to-indigo-600 shadow-lg shadow-purple-500/30 group-hover:scale-110 transition-transform duration-200">
@@ -4606,7 +4604,7 @@ export default function DashboardPage() {
                         <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
                           <svg className="h-2.5 w-2.5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
                         </div>
-                      </button>
+                      </a>
 
                       {/* Desktop App */}
                       <a
@@ -6003,92 +6001,7 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* ── Transcript Editor Modal ── */}
-      {isTranscriptEditorModalOpen && (
-        <div className={`fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-md animate-fade-in ${
-          isTranscriptEditorMaximized ? 'p-0' : 'p-3 sm:p-4'
-        }`}>
-          <div className={`bg-gradient-to-b from-purple-50/90 to-white border border-purple-200/60 shadow-2xl flex flex-col overflow-hidden animate-scale-up transition-all duration-200 ${
-            isTranscriptEditorMaximized
-              ? 'w-screen h-screen max-w-none max-h-none rounded-none p-4 sm:p-5'
-              : 'w-full max-w-5xl rounded-3xl p-5 sm:p-6 relative max-h-[92vh]'
-          }`}>
-            {/* Header */}
-            <div className="flex items-center justify-between gap-3 mb-3 flex-shrink-0">
-              <div className="flex items-center gap-2.5">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 text-white shadow-lg shadow-purple-500/30 flex-shrink-0">
-                  <FileEdit className="h-4.5 w-4.5" />
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-zinc-900 flex items-center gap-2">
-                    Transcript Editor
-                    {isTranscriptEditorMaximized && (
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 font-semibold uppercase">
-                        Maximized
-                      </span>
-                    )}
-                  </h3>
-                  <p className="text-[10px] text-zinc-500">Edit, find & replace, format fonts, 5 saved draft slots ({isAdmin ? 'Admin' : 'Worker'})</p>
-                </div>
-              </div>
 
-              {/* Action Controls */}
-              <div className="flex items-center gap-2">
-                {/* Open in Full Workspace Tab Button */}
-                <a
-                  href={`/dashboard/transcript-editor?slot=${transcriptEditorSlot}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-100 hover:bg-purple-200 text-purple-800 text-xs font-bold transition-all shadow-xs"
-                  title="Open in a dedicated full browser tab for distraction-free typing"
-                >
-                  <ExternalLink className="w-3.5 h-3.5" />
-                  <span>Open in Full Tab</span>
-                </a>
-
-                {/* Maximize / Restore Toggle Button */}
-                <button
-                  type="button"
-                  onClick={() => setIsTranscriptEditorMaximized(!isTranscriptEditorMaximized)}
-                  className="p-2 rounded-xl text-zinc-500 hover:text-purple-600 hover:bg-purple-100/70 transition-all border border-zinc-200 bg-white"
-                  title={isTranscriptEditorMaximized ? 'Restore normal size' : 'Maximize window'}
-                >
-                  {isTranscriptEditorMaximized ? (
-                    <Minimize2 className="w-4 h-4" />
-                  ) : (
-                    <Maximize2 className="w-4 h-4" />
-                  )}
-                </button>
-
-                {/* Close Button */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsTranscriptEditorModalOpen(false)
-                    setIsTranscriptEditorMaximized(false)
-                  }}
-                  className="p-2 rounded-xl text-zinc-400 hover:text-red-500 hover:bg-red-50 transition-all border border-zinc-200 bg-white"
-                  title="Close editor"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-
-            {/* Transcript Editor Component */}
-            <div className="flex-1 overflow-y-auto min-h-0">
-              <TranscriptEditor
-                role={isAdmin ? 'admin' : 'worker'}
-                userId={user?.id || activeWorker?.id || ''}
-                allWorkers={allWorkers || []}
-                initialWorkerId={activeWorker?.id}
-                initialSlot={transcriptEditorSlot}
-                onSlotChange={setTranscriptEditorSlot}
-              />
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* ── Style Guides Admin Modal ── */}
       {isStyleGuidesAdminModalOpen && (

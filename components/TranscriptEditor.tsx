@@ -150,7 +150,12 @@ export default function TranscriptEditor({
   const [isSelectionItalic, setIsSelectionItalic] = useState(false)
   const [isSelectionUnderline, setIsSelectionUnderline] = useState(false)
 
-  // Text Highlighter state
+  // Floating mini-toolbar (appears above selected text)
+  const [floatToolbar, setFloatToolbar] = useState<{ x: number; y: number } | null>(null)
+  const [showFloatHighlightPalette, setShowFloatHighlightPalette] = useState(false)
+  const floatToolbarRef = useRef<HTMLDivElement | null>(null)
+
+  // Text Highlighter state (main toolbar palette)
   const [showHighlightPalette, setShowHighlightPalette] = useState(false)
 
   // Word-Style Find & Replace state
@@ -340,14 +345,36 @@ export default function TranscriptEditor({
     setDoubleSpaceCount(matches ? matches.length : 0)
   }, [])
 
-  // Sync toolbar active states (Bold/Italic/Underline)
+  // Sync toolbar active states (Bold/Italic/Underline) + show floating mini-toolbar on selection
   const syncSelectionState = useCallback(() => {
     try {
       setIsSelectionBold(document.queryCommandState('bold'))
       setIsSelectionItalic(document.queryCommandState('italic'))
       setIsSelectionUnderline(document.queryCommandState('underline'))
     } catch {}
+
+    // Show floating toolbar when text is selected inside the editor
+    const sel = window.getSelection()
+    if (
+      sel &&
+      !sel.isCollapsed &&
+      sel.rangeCount > 0 &&
+      editorRef.current?.contains(sel.anchorNode)
+    ) {
+      const range = sel.getRangeAt(0)
+      const rect = range.getBoundingClientRect()
+      const containerRect = editorRef.current!.getBoundingClientRect()
+      // Position toolbar centered above the selection, relative to the editor container's parent
+      const x = rect.left - containerRect.left + rect.width / 2
+      const y = rect.top - containerRect.top - 8 // 8px above selection
+      setFloatToolbar({ x, y })
+      setShowFloatHighlightPalette(false)
+    } else {
+      setFloatToolbar(null)
+      setShowFloatHighlightPalette(false)
+    }
   }, [])
+
 
   // Refresh slots metadata list
   const fetchSlotsList = useCallback(async (targetId: string, targetRole: string) => {
@@ -2243,10 +2270,111 @@ export default function TranscriptEditor({
       )}
 
       {/* ── HIGH-PERFORMANCE WYSIWYG RICH TEXT EDITOR ── */}
-      <div className="relative flex-1 min-h-[300px] flex flex-col rounded-2xl border border-zinc-200 bg-white shadow-inner focus-within:border-purple-500 focus-within:ring-2 focus-within:ring-purple-500/20 transition-all overflow-hidden">
+      <div className="relative flex-1 min-h-[300px] flex flex-col rounded-2xl border border-zinc-200 bg-white shadow-inner focus-within:border-purple-500 focus-within:ring-2 focus-within:ring-purple-500/20 transition-all overflow-visible">
         {loading && (
           <div className="absolute inset-0 bg-white/70 backdrop-blur-xs flex items-center justify-center z-20">
             <Loader2 className="w-6 h-6 animate-spin text-purple-600" />
+          </div>
+        )}
+
+        {/* ── FLOATING SELECTION MINI-TOOLBAR ── */}
+        {floatToolbar && (
+          <div
+            ref={floatToolbarRef}
+            className="absolute z-50 flex items-center gap-0.5 p-1 bg-slate-900 text-white rounded-xl shadow-xl border border-slate-700 animate-fade-in pointer-events-auto select-none"
+            style={{
+              left: floatToolbar.x,
+              top: floatToolbar.y,
+              transform: 'translate(-50%, -100%)',
+              marginTop: '-6px',
+            }}
+            onMouseDown={(e) => e.preventDefault()} // keep selection alive on click
+          >
+            {/* Bold */}
+            <button
+              type="button"
+              onMouseDown={(e) => { e.preventDefault(); applyBold() }}
+              className={`flex items-center justify-center h-7 w-7 rounded-lg text-xs font-bold transition-colors cursor-pointer ${isSelectionBold ? 'bg-purple-600 text-white' : 'text-zinc-300 hover:bg-slate-700 hover:text-white'}`}
+              title="Bold (Ctrl+B)"
+            >
+              <Bold className="w-3.5 h-3.5" />
+            </button>
+
+            {/* Italic */}
+            <button
+              type="button"
+              onMouseDown={(e) => { e.preventDefault(); applyItalic() }}
+              className={`flex items-center justify-center h-7 w-7 rounded-lg text-xs italic transition-colors cursor-pointer ${isSelectionItalic ? 'bg-purple-600 text-white' : 'text-zinc-300 hover:bg-slate-700 hover:text-white'}`}
+              title="Italic (Ctrl+I)"
+            >
+              <Italic className="w-3.5 h-3.5" />
+            </button>
+
+            {/* Underline */}
+            <button
+              type="button"
+              onMouseDown={(e) => { e.preventDefault(); applyUnderline() }}
+              className={`flex items-center justify-center h-7 w-7 rounded-lg text-xs transition-colors cursor-pointer ${isSelectionUnderline ? 'bg-purple-600 text-white' : 'text-zinc-300 hover:bg-slate-700 hover:text-white'}`}
+              title="Underline (Ctrl+U)"
+            >
+              <Underline className="w-3.5 h-3.5" />
+            </button>
+
+            <div className="w-px h-4 bg-slate-600 mx-0.5" />
+
+            {/* Highlight Palette Toggle */}
+            <div className="relative">
+              <button
+                type="button"
+                onMouseDown={(e) => { e.preventDefault(); setShowFloatHighlightPalette(v => !v) }}
+                className={`flex items-center justify-center h-7 w-7 rounded-lg text-xs transition-colors cursor-pointer ${showFloatHighlightPalette ? 'bg-amber-500 text-white' : 'text-amber-300 hover:bg-slate-700 hover:text-amber-200'}`}
+                title="Highlight text"
+              >
+                <Highlighter className="w-3.5 h-3.5" />
+              </button>
+              {showFloatHighlightPalette && (
+                <div
+                  className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 flex items-center gap-1 p-1.5 bg-white border border-slate-200 rounded-xl shadow-xl z-50"
+                  onMouseDown={(e) => e.preventDefault()}
+                >
+                  {[
+                    { color: '#fef08a', cls: 'bg-yellow-200 border-yellow-400', label: 'Yellow' },
+                    { color: '#bbf7d0', cls: 'bg-green-200 border-green-400', label: 'Green' },
+                    { color: '#a5f3fc', cls: 'bg-cyan-200 border-cyan-400', label: 'Cyan' },
+                    { color: '#fbcfe8', cls: 'bg-pink-200 border-pink-400', label: 'Pink' },
+                    { color: '#fed7aa', cls: 'bg-orange-200 border-orange-400', label: 'Orange' },
+                  ].map(({ color: hc, cls, label }) => (
+                    <button
+                      key={hc}
+                      type="button"
+                      onMouseDown={(e) => { e.preventDefault(); applyHighlight(hc); setShowFloatHighlightPalette(false) }}
+                      className={`w-5 h-5 rounded-full ${cls} border hover:scale-110 shadow-xs transition-transform cursor-pointer`}
+                      title={`${label} Highlight`}
+                    />
+                  ))}
+                  <button
+                    type="button"
+                    onMouseDown={(e) => { e.preventDefault(); applyHighlight('transparent'); setShowFloatHighlightPalette(false) }}
+                    className="text-[10px] text-zinc-500 hover:text-red-600 px-1.5 py-0.5 border border-zinc-200 rounded-md cursor-pointer"
+                    title="Remove Highlight"
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <div className="w-px h-4 bg-slate-600 mx-0.5" />
+
+            {/* Clear Formatting */}
+            <button
+              type="button"
+              onMouseDown={(e) => { e.preventDefault(); clearFormatting() }}
+              className="flex items-center justify-center h-7 w-7 rounded-lg text-xs text-zinc-400 hover:bg-red-900/40 hover:text-red-300 transition-colors cursor-pointer"
+              title="Clear formatting"
+            >
+              <RemoveFormatting className="w-3.5 h-3.5" />
+            </button>
           </div>
         )}
 
