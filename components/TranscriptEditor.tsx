@@ -1325,15 +1325,17 @@ export default function TranscriptEditor({
         className="hidden"
       />
 
+
       {/* ── FOCUS / DISTRACTION-FREE HEADER BAR (When tools are hidden) ── */}
+
       {hideTools ? (
-        <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white rounded-2xl shadow-md border border-indigo-500/30">
+        <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 bg-slate-900 text-white rounded-2xl shadow-md border border-slate-800">
           <div className="flex flex-wrap items-center gap-2">
             {/* Show Tools Toggle */}
             <button
               type="button"
               onClick={() => setHideTools(false)}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-purple-600 hover:bg-purple-500 text-white rounded-xl transition-all shadow-xs cursor-pointer"
+              className="flex items-center gap-1.5 h-8 px-3 text-xs font-bold bg-purple-600 hover:bg-purple-500 text-white rounded-xl transition-all shadow-xs cursor-pointer"
               title="Show all formatting tools, font controls, and find & replace"
             >
               <Eye className="w-3.5 h-3.5 text-purple-200" />
@@ -1344,11 +1346,11 @@ export default function TranscriptEditor({
 
             {/* Quick Audio Controls in Focus Bar */}
             {audioSrc && (
-              <div className="flex items-center gap-1.5 bg-slate-800/90 border border-slate-700 px-2.5 py-1 rounded-xl text-xs">
+              <div className="flex items-center gap-1.5 bg-slate-800/90 border border-slate-700 h-8 px-2.5 rounded-xl text-xs">
                 <button
                   type="button"
                   onClick={playAudio}
-                  className={`p-1 rounded-md transition-colors ${
+                  className={`p-1 rounded-lg transition-colors ${
                     isPlaying ? 'text-emerald-400 bg-emerald-950/60 font-bold' : 'text-emerald-300 hover:text-white'
                   }`}
                   title={`Play Audio (${hotkeys.play})`}
@@ -1358,7 +1360,7 @@ export default function TranscriptEditor({
                 <button
                   type="button"
                   onClick={pauseAudio}
-                  className={`p-1 rounded-md transition-colors ${
+                  className={`p-1 rounded-lg transition-colors ${
                     !isPlaying ? 'text-amber-400 bg-amber-950/60 font-bold' : 'text-amber-300 hover:text-white'
                   }`}
                   title={`Pause Audio (${hotkeys.pause})`}
@@ -1368,7 +1370,7 @@ export default function TranscriptEditor({
                 <button
                   type="button"
                   onClick={() => rewindAudio()}
-                  className="p-1 text-zinc-300 hover:text-white"
+                  className="p-1 text-zinc-300 hover:text-white rounded-lg"
                   title={`Rewind ${hotkeys.rewindSeconds}s (${hotkeys.rewind})`}
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
@@ -1387,7 +1389,7 @@ export default function TranscriptEditor({
                 <button
                   type="button"
                   onClick={handleClearAudio}
-                  className="p-1 text-zinc-400 hover:text-rose-300 transition-colors"
+                  className="p-1 text-zinc-400 hover:text-rose-300 transition-colors rounded-lg"
                   title="Remove audio file"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
@@ -1396,7 +1398,7 @@ export default function TranscriptEditor({
             )}
 
             {/* Quick Slot Selector */}
-            <div className="flex items-center gap-1.5 bg-slate-800/90 border border-slate-700 px-2.5 py-1 rounded-xl text-xs">
+            <div className="flex items-center gap-1.5 bg-slate-800/90 border border-slate-700 h-8 px-2.5 rounded-xl text-xs">
               <Layers className="w-3.5 h-3.5 text-purple-400 shrink-0" />
               <span className="text-zinc-400 font-medium">Slot:</span>
               <select
@@ -1422,7 +1424,7 @@ export default function TranscriptEditor({
 
             {/* Admin Worker Monitor & Switcher (if admin) */}
             {role === 'admin' && (
-              <div className="flex items-center gap-1.5 bg-slate-800/90 border border-indigo-500/40 px-2.5 py-1 rounded-xl text-xs">
+              <div className="flex items-center gap-1.5 bg-slate-800/90 border border-indigo-500/40 h-8 px-2.5 rounded-xl text-xs">
                 <Users className="w-3.5 h-3.5 text-purple-400 shrink-0" />
                 <span className="text-zinc-400 text-[11px] font-medium hidden sm:inline">Worker:</span>
                 <select
@@ -1431,7 +1433,7 @@ export default function TranscriptEditor({
                     setSelectedWorkerId(e.target.value)
                     setActiveSlot(1)
                   }}
-                  className="bg-transparent font-bold text-white outline-none cursor-pointer text-xs max-w-[150px] truncate"
+                  className="bg-transparent font-bold text-white outline-none cursor-pointer text-xs max-w-[140px] truncate"
                 >
                   <option value={userId} className="bg-slate-900 text-white">
                     My Admin Transcripts
@@ -1446,47 +1448,14 @@ export default function TranscriptEditor({
                   const diffMins = (Date.now() - new Date(selectedWorkerObj.last_seen).getTime()) / 60000
                   const isOnline = diffMins < 5
                   return (
-                    <div className="flex items-center gap-1.5">
-                      <span
-                        className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full font-bold uppercase ${
-                          isOnline ? 'bg-emerald-500/20 text-emerald-300' : 'bg-zinc-700 text-zinc-400'
-                        }`}
-                        title={isOnline ? 'Worker is Online & Active' : `Last active ${Math.floor(diffMins)}m ago`}
-                      >
-                        <span
-                          className={`w-1.5 h-1.5 rounded-full ${
-                            isOnline ? 'bg-emerald-400 animate-pulse' : 'bg-zinc-500'
-                          }`}
-                        />
-                        <span className="hidden md:inline">{isOnline ? 'Online' : 'Offline'}</span>
-                      </span>
-
-                      {/* Desktop App vs Browser Badge */}
-                      <span
-                        className={`hidden lg:inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full font-bold uppercase ${
-                          workerClientType === 'desktop'
-                            ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30'
-                            : 'bg-sky-500/20 text-sky-300 border border-sky-500/30'
-                        }`}
-                        title={
-                          workerClientType === 'desktop'
-                            ? 'Worker is typing inside the Desktop Application'
-                            : 'Worker is typing in a Web Browser tab'
-                        }
-                      >
-                        {workerClientType === 'desktop' ? (
-                          <>
-                            <Laptop className="w-2.5 h-2.5 text-indigo-300" />
-                            <span>App</span>
-                          </>
-                        ) : (
-                          <>
-                            <Globe className="w-2.5 h-2.5 text-sky-300" />
-                            <span>Browser</span>
-                          </>
-                        )}
-                      </span>
-                    </div>
+                    <span
+                      className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full font-bold uppercase ${
+                        isOnline ? 'bg-emerald-500/20 text-emerald-300' : 'bg-zinc-700 text-zinc-400'
+                      }`}
+                    >
+                      <span className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-emerald-400 animate-pulse' : 'bg-zinc-500'}`} />
+                      <span className="hidden md:inline">{isOnline ? 'Online' : 'Offline'}</span>
+                    </span>
                   )
                 })()}
               </div>
@@ -1497,15 +1466,15 @@ export default function TranscriptEditor({
           <div className="flex items-center gap-2">
             {autoSaveStatus === 'saving' ? (
               <span className="text-[10px] text-purple-300 animate-pulse hidden md:inline">
-                Auto-saving to Slot 5...
+                Auto-saving...
               </span>
             ) : autoSaveTime ? (
               <span className="text-[10px] text-emerald-400 hidden md:inline" title="Ongoing work auto-saved to Slot 5">
-                ● Auto-saved ({autoSaveTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})
+                ● Auto-saved
               </span>
             ) : null}
 
-            <span className="text-zinc-300 text-[11px] hidden sm:inline">
+            <span className="text-zinc-300 text-[11px] hidden sm:inline font-mono">
               Words: <strong className="text-white">{wordCount}</strong>
             </span>
 
@@ -1514,7 +1483,7 @@ export default function TranscriptEditor({
               <button
                 type="button"
                 onClick={fixAllDoubleSpaces}
-                className="flex items-center gap-1 px-2 py-1 text-[11px] font-bold bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 rounded-xl transition-all cursor-pointer"
+                className="flex items-center gap-1 h-8 px-2.5 text-xs font-bold bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 rounded-xl transition-all cursor-pointer"
                 title="Click to fix all double spaces into single spaces"
               >
                 <span className="underline decoration-wavy decoration-red-400 font-mono">␣␣</span>
@@ -1525,7 +1494,7 @@ export default function TranscriptEditor({
             <button
               type="button"
               onClick={() => openFindBar('find')}
-              className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-xl bg-slate-800 hover:bg-slate-700 text-zinc-300 hover:text-white border border-slate-700 transition-all cursor-pointer"
+              className="flex items-center gap-1 h-8 px-2.5 text-xs font-semibold rounded-xl bg-slate-800 hover:bg-slate-700 text-zinc-300 hover:text-white border border-slate-700 transition-all cursor-pointer"
               title="Find in text (Ctrl+F)"
             >
               <Search className="w-3.5 h-3.5 text-purple-300" />
@@ -1534,19 +1503,9 @@ export default function TranscriptEditor({
 
             <button
               type="button"
-              onClick={() => openFindBar('replace')}
-              className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-xl bg-slate-800 hover:bg-slate-700 text-zinc-300 hover:text-white border border-slate-700 transition-all cursor-pointer"
-              title="Find & Replace in text (Ctrl+R)"
-            >
-              <Replace className="w-3.5 h-3.5 text-orange-300" />
-              <span className="hidden sm:inline">Replace</span>
-            </button>
-
-            <button
-              type="button"
               onClick={handleCopy}
               disabled={wordCount === 0}
-              className="hidden sm:flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-xl bg-slate-800 hover:bg-slate-700 text-zinc-300 hover:text-white border border-slate-700 disabled:opacity-40 transition-all cursor-pointer"
+              className="hidden sm:flex items-center gap-1 h-8 px-2.5 text-xs font-semibold rounded-xl bg-slate-800 hover:bg-slate-700 text-zinc-300 hover:text-white border border-slate-700 disabled:opacity-40 transition-all cursor-pointer"
             >
               {copied ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5" />}
               <span>{copied ? 'Copied' : 'Copy'}</span>
@@ -1554,20 +1513,9 @@ export default function TranscriptEditor({
 
             <button
               type="button"
-              onClick={handleManualDownload}
-              disabled={wordCount === 0}
-              className="hidden sm:flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-xl bg-slate-800 hover:bg-slate-700 text-zinc-300 hover:text-white border border-slate-700 disabled:opacity-40 transition-all cursor-pointer"
-              title="Download .txt"
-            >
-              <Download className="w-3.5 h-3.5" />
-              <span>Export</span>
-            </button>
-
-            <button
-              type="button"
               onClick={handleManualSave}
               disabled={saving || wordCount === 0}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold rounded-xl bg-purple-600 hover:bg-purple-500 text-white shadow-sm shadow-purple-500/30 disabled:opacity-50 transition-all cursor-pointer"
+              className="flex items-center gap-1.5 h-8 px-3.5 text-xs font-bold rounded-xl bg-purple-600 hover:bg-purple-500 text-white shadow-sm shadow-purple-500/30 disabled:opacity-50 transition-all cursor-pointer"
             >
               {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
               <span>Save Slot {activeSlot}</span>
@@ -1575,129 +1523,90 @@ export default function TranscriptEditor({
           </div>
         </div>
       ) : (
-        <>
-          {/* ── ADMIN WORKER PROGRESS & MONITOR BAR ── */}
+        <div className="flex flex-col rounded-2xl border border-slate-200/90 bg-white shadow-xs overflow-hidden divide-y divide-slate-100">
+          {/* ── ROW 1: ADMIN WORKER LIVE MONITOR (Admin only) ── */}
           {role === 'admin' && (
-            <div className="bg-gradient-to-r from-slate-900 to-indigo-950 text-white p-3 rounded-2xl border border-indigo-500/30 shadow-md">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-purple-500/20 border border-purple-400/40 text-purple-300">
-                    <Users className="h-4 w-4" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold uppercase tracking-wider text-purple-300">
-                        Worker Live Monitor
-                      </span>
-                      {selectedWorkerObj?.last_seen && (() => {
-                        const diffMins = (Date.now() - new Date(selectedWorkerObj.last_seen).getTime()) / 60000
-                        const isOnline = diffMins < 5
-                        return (
-                          <div className="flex items-center gap-1.5">
-                            <span
-                              className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${
-                                isOnline
-                                  ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                                  : 'bg-zinc-700/50 text-zinc-400 border border-zinc-600/30'
-                              }`}
-                            >
-                              <span
-                                className={`w-1.5 h-1.5 rounded-full ${
-                                  isOnline ? 'bg-emerald-400 animate-pulse' : 'bg-zinc-500'
-                                }`}
-                              />
-                              {isOnline ? 'Online' : 'Offline'}
-                            </span>
-
-                            {/* Desktop App vs Web Browser Badge */}
-                            <span
-                              className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${
-                                workerClientType === 'desktop'
-                                  ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30'
-                                  : 'bg-sky-500/20 text-sky-300 border border-sky-500/30'
-                              }`}
-                              title={
-                                workerClientType === 'desktop'
-                                  ? 'Worker is active on the installed Desktop Application'
-                                  : 'Worker is active on a Web Browser'
-                              }
-                            >
-                              {workerClientType === 'desktop' ? (
-                                <>
-                                  <Laptop className="w-3 h-3 text-indigo-300" />
-                                  <span>Desktop App</span>
-                                </>
-                              ) : (
-                                <>
-                                  <Globe className="w-3 h-3 text-sky-300" />
-                                  <span>Web Browser</span>
-                                </>
-                              )}
-                            </span>
-                          </div>
-                        )
-                      })()}
-                    </div>
-                    <p className="text-xs text-zinc-300">
-                      Inspecting live draft slots of:{' '}
-                      <strong className="text-white font-bold">
-                        {selectedWorkerObj?.full_name || selectedWorkerId}
-                      </strong>
-                    </p>
-                  </div>
+            <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-purple-500/20 border border-purple-400/40 text-purple-300">
+                  <Users className="h-3.5 w-3.5" />
                 </div>
-
-                {/* Worker Selector Dropdown */}
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-zinc-300 font-medium">Select Worker:</span>
-                  <select
-                    value={selectedWorkerId}
-                    onChange={(e) => {
-                      setSelectedWorkerId(e.target.value)
-                      setActiveSlot(1)
-                    }}
-                    className="rounded-xl border border-indigo-400/40 bg-slate-800 px-3 py-1.5 text-xs font-semibold text-white outline-none focus:ring-2 focus:ring-purple-400 cursor-pointer"
-                  >
-                    <option value={userId}>My Admin Transcripts</option>
-                    {allWorkers.map((w) => (
-                      <option key={w.id} value={w.id}>
-                        {w.full_name || w.id} {w.department ? `(${w.department})` : ''}
-                      </option>
-                    ))}
-                  </select>
+                  <span className="text-xs font-bold uppercase tracking-wider text-purple-300">
+                    Live Monitor:
+                  </span>
+                  <strong className="text-xs text-white font-bold">
+                    {selectedWorkerObj?.full_name || selectedWorkerId}
+                  </strong>
+                  {selectedWorkerObj?.last_seen && (() => {
+                    const diffMins = (Date.now() - new Date(selectedWorkerObj.last_seen).getTime()) / 60000
+                    const isOnline = diffMins < 5
+                    return (
+                      <span
+                        className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
+                          isOnline
+                            ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                            : 'bg-zinc-700/50 text-zinc-400 border border-zinc-600/30'
+                        }`}
+                      >
+                        <span className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-emerald-400 animate-pulse' : 'bg-zinc-500'}`} />
+                        {isOnline ? 'Online' : 'Offline'}
+                      </span>
+                    )
+                  })()}
                 </div>
+              </div>
+
+              {/* Worker Selector Dropdown */}
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-zinc-300 font-medium hidden sm:inline">Inspect Worker:</span>
+                <select
+                  value={selectedWorkerId}
+                  onChange={(e) => {
+                    setSelectedWorkerId(e.target.value)
+                    setActiveSlot(1)
+                  }}
+                  className="rounded-xl border border-indigo-400/40 bg-slate-800 px-3 py-1 text-xs font-semibold text-white outline-none focus:ring-2 focus:ring-purple-400 cursor-pointer"
+                >
+                  <option value={userId}>My Admin Transcripts</option>
+                  {allWorkers.map((w) => (
+                    <option key={w.id} value={w.id}>
+                      {w.full_name || w.id} {w.department ? `(${w.department})` : ''}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
           )}
 
-          {/* ── EXPRESS SCRIBE STYLE INTEGRATED AUDIO PLAYER BAR ── */}
+          {/* ── ROW 2: INTEGRATED EXPRESS SCRIBE AUDIO PLAYER BAR ── */}
           {showAudioPlayer && (
-            <div className="flex flex-wrap items-center justify-between gap-2.5 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white p-2.5 rounded-2xl border border-indigo-500/30 shadow-md">
+            <div className="flex flex-wrap items-center justify-between gap-2.5 px-3 py-2 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white">
               {/* Left Playback Controls */}
-              <div className="flex items-center gap-2 flex-wrap">
+              <div className="flex items-center gap-1.5 flex-wrap">
                 {/* Audio File Loader Button */}
                 <button
                   type="button"
                   onClick={() => audioInputRef.current?.click()}
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-purple-600 hover:bg-purple-500 text-white rounded-xl shadow-xs transition-all cursor-pointer"
+                  className="flex items-center gap-1.5 h-8 px-3 text-xs font-bold bg-purple-600 hover:bg-purple-500 text-white rounded-xl shadow-xs transition-all cursor-pointer"
                   title="Open local audio/video file for transcription (MP3, WAV, M4A, AAC, MP4)"
                 >
                   <Music className="w-3.5 h-3.5 text-purple-200" />
-                  <span className="max-w-[120px] truncate">
+                  <span className="max-w-[130px] truncate">
                     {audioFileName ? audioFileName : 'Load Audio File'}
                   </span>
                 </button>
 
                 {audioSrc && (
                   <>
-                    {/* Separate Play Button */}
+                    {/* Play Button */}
                     <button
                       type="button"
                       onClick={playAudio}
-                      className={`flex items-center justify-center h-8 px-2.5 gap-1.5 rounded-xl text-white shadow-xs transition-all cursor-pointer ${
+                      className={`flex items-center justify-center h-8 px-3 gap-1.5 rounded-xl text-white shadow-xs transition-all cursor-pointer ${
                         isPlaying
                           ? 'bg-emerald-600 ring-2 ring-emerald-400 font-bold shadow-emerald-500/20'
-                          : 'bg-emerald-700/90 hover:bg-emerald-600'
+                          : 'bg-emerald-700 hover:bg-emerald-600'
                       }`}
                       title={`Play Audio (${hotkeys.play})`}
                     >
@@ -1705,14 +1614,14 @@ export default function TranscriptEditor({
                       <span className="text-[10px] font-mono font-bold uppercase">{hotkeys.play}</span>
                     </button>
 
-                    {/* Separate Pause Button */}
+                    {/* Pause Button */}
                     <button
                       type="button"
                       onClick={pauseAudio}
-                      className={`flex items-center justify-center h-8 px-2.5 gap-1.5 rounded-xl text-white shadow-xs transition-all cursor-pointer ${
+                      className={`flex items-center justify-center h-8 px-3 gap-1.5 rounded-xl text-white shadow-xs transition-all cursor-pointer ${
                         !isPlaying
                           ? 'bg-amber-600 ring-2 ring-amber-400 font-bold shadow-amber-500/20'
-                          : 'bg-amber-700/90 hover:bg-amber-600'
+                          : 'bg-amber-700 hover:bg-amber-600'
                       }`}
                       title={`Pause Audio (${hotkeys.pause})`}
                     >
@@ -1720,21 +1629,21 @@ export default function TranscriptEditor({
                       <span className="text-[10px] font-mono font-bold uppercase">{hotkeys.pause}</span>
                     </button>
 
-                    {/* Stop */}
+                    {/* Stop Button */}
                     <button
                       type="button"
                       onClick={stopAudio}
-                      className="p-1.5 text-zinc-300 hover:text-white bg-slate-800/80 hover:bg-slate-700 border border-slate-700 rounded-xl transition-all cursor-pointer"
+                      className="flex items-center justify-center h-8 w-8 text-zinc-300 hover:text-white bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl transition-all cursor-pointer"
                       title="Stop Audio"
                     >
-                      <div className="w-3.5 h-3.5 bg-current rounded-xs" />
+                      <div className="w-3 h-3 bg-current rounded-xs" />
                     </button>
 
                     {/* Rewind */}
                     <button
                       type="button"
                       onClick={() => rewindAudio()}
-                      className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-xl bg-slate-800/90 hover:bg-slate-700 text-zinc-200 border border-slate-700 transition-all cursor-pointer"
+                      className="flex items-center gap-1 h-8 px-2.5 text-xs font-semibold rounded-xl bg-slate-800 hover:bg-slate-700 text-zinc-200 border border-slate-700 transition-all cursor-pointer"
                       title={`Rewind ${hotkeys.rewindSeconds}s (${hotkeys.rewind})`}
                     >
                       <RotateCcw className="w-3.5 h-3.5 text-purple-400" />
@@ -1745,10 +1654,10 @@ export default function TranscriptEditor({
                     <button
                       type="button"
                       onClick={toggleFastSpeed}
-                      className={`flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-xl border transition-all cursor-pointer ${
+                      className={`flex items-center gap-1 h-8 px-2.5 text-xs font-semibold rounded-xl border transition-all cursor-pointer ${
                         playbackSpeed > 1.0
                           ? 'bg-purple-600 text-white border-purple-400 shadow-xs'
-                          : 'bg-slate-800/90 text-zinc-200 border-slate-700 hover:bg-slate-700'
+                          : 'bg-slate-800 text-zinc-200 border-slate-700 hover:bg-slate-700'
                       }`}
                       title={`Fast Forward Speed ${hotkeys.fastSpeed}x (${hotkeys.fastForward})`}
                     >
@@ -1760,11 +1669,10 @@ export default function TranscriptEditor({
                     <button
                       type="button"
                       onClick={handleClearAudio}
-                      className="flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-xl bg-slate-800/90 hover:bg-rose-950/50 text-zinc-300 hover:text-rose-300 border border-slate-700 hover:border-rose-800/60 transition-all cursor-pointer"
-                      title="Clear / Remove audio file from editor"
+                      className="flex items-center justify-center h-8 w-8 rounded-xl bg-slate-800 hover:bg-rose-950/50 text-zinc-400 hover:text-rose-300 border border-slate-700 hover:border-rose-800/60 transition-all cursor-pointer"
+                      title="Remove / Eject audio file from editor"
                     >
-                      <Trash2 className="w-3.5 h-3.5 text-rose-400" />
-                      <span className="hidden lg:inline text-[11px]">Clear</span>
+                      <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   </>
                 )}
@@ -1773,7 +1681,7 @@ export default function TranscriptEditor({
               {/* Center Timeline Scrubber */}
               {audioSrc ? (
                 <div className="flex items-center gap-2 flex-1 min-w-[200px] max-w-md mx-2">
-                  <span className="text-[11px] font-mono text-purple-300 font-bold">
+                  <span className="text-[11px] font-mono text-purple-300 font-bold shrink-0">
                     {formatTime(audioCurrentTime)}
                   </span>
                   <input
@@ -1794,7 +1702,7 @@ export default function TranscriptEditor({
                     }}
                     className="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-purple-500"
                   />
-                  <span className="text-[11px] font-mono text-zinc-400">
+                  <span className="text-[11px] font-mono text-zinc-400 shrink-0">
                     {formatTime(audioDuration)}
                   </span>
                 </div>
@@ -1810,7 +1718,7 @@ export default function TranscriptEditor({
                   <button
                     type="button"
                     onClick={() => copyOrInsertTimestamp(true)}
-                    className="flex items-center gap-1 px-2.5 py-1 text-xs font-bold rounded-xl bg-purple-600/80 hover:bg-purple-600 text-white border border-purple-400/40 transition-all cursor-pointer shadow-xs"
+                    className="flex items-center gap-1 h-8 px-2.5 text-xs font-bold rounded-xl bg-purple-600/80 hover:bg-purple-600 text-white border border-purple-400/40 transition-all cursor-pointer shadow-xs"
                     title={`Insert current audio timestamp at cursor in transcript (${hotkeys.copyTimestamp})`}
                   >
                     <Clock className="w-3.5 h-3.5 text-purple-200" />
@@ -1822,7 +1730,7 @@ export default function TranscriptEditor({
                 <button
                   type="button"
                   onClick={() => setShowHotkeysModal(true)}
-                  className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-xl bg-slate-800 hover:bg-slate-700 text-zinc-300 hover:text-white border border-slate-700 transition-all cursor-pointer"
+                  className="flex items-center gap-1 h-8 px-2.5 text-xs font-semibold rounded-xl bg-slate-800 hover:bg-slate-700 text-zinc-300 hover:text-white border border-slate-700 transition-all cursor-pointer"
                   title="Configure Audio Player Hotkeys and Rewind Seconds"
                 >
                   <Settings className="w-3.5 h-3.5 text-purple-400" />
@@ -1833,7 +1741,7 @@ export default function TranscriptEditor({
                 <button
                   type="button"
                   onClick={() => setShowShortcutsModal(true)}
-                  className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-xl bg-slate-800 hover:bg-slate-700 text-zinc-300 hover:text-white border border-slate-700 transition-all cursor-pointer"
+                  className="flex items-center gap-1 h-8 px-2.5 text-xs font-semibold rounded-xl bg-slate-800 hover:bg-slate-700 text-zinc-300 hover:text-white border border-slate-700 transition-all cursor-pointer"
                   title="Configure Auto-Replace text shortcuts (e.g. s1: -> Speaker 1:)"
                 >
                   <Zap className="w-3.5 h-3.5 text-amber-400" />
@@ -1843,12 +1751,12 @@ export default function TranscriptEditor({
             </div>
           )}
 
-          {/* ── TOP TOOLBAR WITH SELECTION FORMATTING, HIGHLIGHT & UNDO/REDO ── */}
-          <div className="flex flex-wrap items-center justify-between gap-2 bg-zinc-50 border border-zinc-200/80 p-2 rounded-2xl">
-            {/* Controls & Formatting */}
+          {/* ── ROW 3: SYNCHRONIZED FORMATTING, PROOFING & ACTIONS RIBBON ── */}
+          <div className="flex flex-wrap items-center justify-between gap-2 p-2 bg-slate-50/70">
+            {/* Left Controls & Formatting Groups */}
             <div className="flex flex-wrap items-center gap-1.5">
-              {/* Draft Slot Selector */}
-              <div className="flex items-center gap-1.5 bg-white border border-purple-200/90 hover:border-purple-300 px-2.5 py-1.5 rounded-xl shadow-xs transition-colors">
+              {/* Group 1: Draft Slot Selector */}
+              <div className="flex items-center gap-1.5 bg-white border border-purple-200/90 h-8 px-2.5 rounded-xl shadow-xs">
                 <Layers className="w-3.5 h-3.5 text-purple-600 shrink-0" />
                 <span className="text-xs font-bold text-zinc-700 whitespace-nowrap">Draft:</span>
                 <select
@@ -1884,14 +1792,14 @@ export default function TranscriptEditor({
                 />
               </div>
 
-              <div className="h-4 w-px bg-zinc-200 hidden sm:block" />
+              <div className="h-4 w-px bg-slate-200 hidden sm:block" />
 
-              {/* Undo / Redo Buttons */}
-              <div className="flex items-center bg-white border border-zinc-200 rounded-xl overflow-hidden shadow-xs">
+              {/* Group 2: Undo / Redo */}
+              <div className="flex items-center h-8 bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xs">
                 <button
                   type="button"
                   onClick={applyUndo}
-                  className="p-1.5 text-zinc-700 hover:bg-purple-50 hover:text-purple-700 transition-colors cursor-pointer"
+                  className="h-full px-2 text-zinc-700 hover:bg-purple-50 hover:text-purple-700 transition-colors cursor-pointer"
                   title="Undo (Ctrl+Z)"
                 >
                   <Undo className="w-3.5 h-3.5" />
@@ -1899,15 +1807,17 @@ export default function TranscriptEditor({
                 <button
                   type="button"
                   onClick={applyRedo}
-                  className="p-1.5 text-zinc-700 hover:bg-purple-50 hover:text-purple-700 transition-colors border-l border-zinc-200 cursor-pointer"
+                  className="h-full px-2 text-zinc-700 hover:bg-purple-50 hover:text-purple-700 transition-colors border-l border-slate-200 cursor-pointer"
                   title="Redo (Ctrl+Y)"
                 >
                   <Redo className="w-3.5 h-3.5" />
                 </button>
               </div>
 
-              {/* Font Selector */}
-              <div className="flex items-center gap-1 bg-white border border-zinc-200 px-2 py-1.5 rounded-xl shadow-xs">
+              <div className="h-4 w-px bg-slate-200 hidden sm:block" />
+
+              {/* Group 3: Font Family */}
+              <div className="flex items-center gap-1 bg-white border border-slate-200 h-8 px-2.5 rounded-xl shadow-xs">
                 <Type className="w-3.5 h-3.5 text-zinc-500" />
                 <select
                   value={font}
@@ -1922,7 +1832,7 @@ export default function TranscriptEditor({
               </div>
 
               {/* Font Size */}
-              <div className="flex items-center gap-1 bg-white border border-zinc-200 px-2 py-1.5 rounded-xl shadow-xs">
+              <div className="flex items-center gap-1 bg-white border border-slate-200 h-8 px-2 rounded-xl shadow-xs">
                 <span className="text-xs text-zinc-500 font-medium">Size</span>
                 <input
                   type="number"
@@ -1930,16 +1840,15 @@ export default function TranscriptEditor({
                   max={36}
                   value={fontSize}
                   onChange={(e) => setFontSize(Math.max(10, Math.min(36, parseInt(e.target.value) || 14)))}
-                  className="w-10 text-xs font-bold text-zinc-800 text-center bg-transparent outline-none"
+                  className="w-8 text-xs font-bold text-zinc-800 text-center bg-transparent outline-none"
                 />
               </div>
 
-              {/* Selection Text Color Picker */}
+              {/* Font Color */}
               <div
-                className="flex items-center gap-1 bg-white border border-zinc-200 px-2 py-1.5 rounded-xl shadow-xs"
+                className="flex items-center justify-center bg-white border border-slate-200 h-8 w-8 rounded-xl shadow-xs"
                 title="Change font color of selected text"
               >
-                <Palette className="w-3.5 h-3.5 text-purple-600" />
                 <input
                   type="color"
                   value={color}
@@ -1954,8 +1863,8 @@ export default function TranscriptEditor({
                 <button
                   type="button"
                   onClick={() => setShowHighlightPalette(!showHighlightPalette)}
-                  className={`flex items-center gap-1 px-2 py-1.5 text-xs font-bold rounded-xl border border-zinc-200 bg-white transition-all shadow-xs cursor-pointer ${
-                    showHighlightPalette ? 'bg-amber-100 border-amber-300' : 'hover:bg-amber-50'
+                  className={`flex items-center gap-1 h-8 px-2.5 text-xs font-semibold rounded-xl border border-slate-200 bg-white transition-all shadow-xs cursor-pointer ${
+                    showHighlightPalette ? 'bg-amber-100 border-amber-300 text-amber-900 font-bold' : 'text-zinc-700 hover:bg-amber-50'
                   }`}
                   title="Highlight selected text"
                 >
@@ -1964,7 +1873,7 @@ export default function TranscriptEditor({
                 </button>
 
                 {showHighlightPalette && (
-                  <div className="absolute top-full left-0 mt-1 z-30 flex items-center gap-1.5 p-2 bg-white border border-zinc-200 rounded-xl shadow-lg animate-fade-in">
+                  <div className="absolute top-full left-0 mt-1 z-30 flex items-center gap-1.5 p-2 bg-white border border-slate-200 rounded-xl shadow-lg animate-fade-in">
                     <button
                       type="button"
                       onClick={() => applyHighlight('#fef08a')}
@@ -2007,15 +1916,17 @@ export default function TranscriptEditor({
                 )}
               </div>
 
-              {/* Selection Rich Formatting Buttons (Bold, Italic, Underline, Clear) */}
-              <div className="flex items-center bg-white border border-zinc-200 rounded-xl overflow-hidden shadow-xs">
+              <div className="h-4 w-px bg-slate-200 hidden sm:block" />
+
+              {/* Group 4: Rich Text Formatting (Bold, Italic, Underline, Clear) */}
+              <div className="flex items-center h-8 bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xs">
                 <button
                   type="button"
                   onMouseDown={(e) => {
                     e.preventDefault()
                     applyBold()
                   }}
-                  className={`p-2 text-xs font-bold transition-colors cursor-pointer ${
+                  className={`h-full px-2.5 text-xs font-bold transition-colors cursor-pointer ${
                     isSelectionBold ? 'bg-purple-600 text-white' : 'text-zinc-700 hover:bg-purple-50'
                   }`}
                   title="Bold Highlighted Text (Ctrl+B)"
@@ -2028,7 +1939,7 @@ export default function TranscriptEditor({
                     e.preventDefault()
                     applyItalic()
                   }}
-                  className={`p-2 text-xs italic transition-colors border-l border-zinc-200 cursor-pointer ${
+                  className={`h-full px-2.5 text-xs italic transition-colors border-l border-slate-200 cursor-pointer ${
                     isSelectionItalic ? 'bg-purple-600 text-white' : 'text-zinc-700 hover:bg-purple-50'
                   }`}
                   title="Italicize Highlighted Text (Ctrl+I)"
@@ -2041,7 +1952,7 @@ export default function TranscriptEditor({
                     e.preventDefault()
                     applyUnderline()
                   }}
-                  className={`p-2 text-xs transition-colors border-l border-zinc-200 cursor-pointer ${
+                  className={`h-full px-2.5 text-xs transition-colors border-l border-slate-200 cursor-pointer ${
                     isSelectionUnderline ? 'bg-purple-600 text-white' : 'text-zinc-700 hover:bg-purple-50'
                   }`}
                   title="Underline Highlighted Text (Ctrl+U)"
@@ -2054,14 +1965,16 @@ export default function TranscriptEditor({
                     e.preventDefault()
                     clearFormatting()
                   }}
-                  className="p-2 text-xs text-zinc-600 hover:text-red-600 hover:bg-red-50 transition-colors border-l border-zinc-200 cursor-pointer"
+                  className="h-full px-2.5 text-xs text-zinc-600 hover:text-red-600 hover:bg-red-50 transition-colors border-l border-slate-200 cursor-pointer"
                   title="Clear formatting on selection"
                 >
                   <RemoveFormatting className="w-3.5 h-3.5" />
                 </button>
               </div>
 
-              {/* Find & Replace Toggle Button (Word Style Ctrl+F) */}
+              <div className="h-4 w-px bg-slate-200 hidden sm:block" />
+
+              {/* Group 5: Proofreading (Find & Double Space Fixer) */}
               <button
                 type="button"
                 onClick={() => {
@@ -2072,10 +1985,10 @@ export default function TranscriptEditor({
                     openFindBar('find')
                   }
                 }}
-                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl transition-all shadow-xs cursor-pointer ${
+                className={`flex items-center gap-1.5 h-8 px-2.5 text-xs font-bold rounded-xl transition-all shadow-xs cursor-pointer ${
                   showFindBar
                     ? 'bg-purple-600 text-white shadow-xs'
-                    : 'bg-white border border-zinc-200 text-zinc-700 hover:bg-purple-50 hover:text-purple-700'
+                    : 'bg-white border border-slate-200 text-zinc-700 hover:bg-purple-50 hover:text-purple-700'
                 }`}
                 title="Find & Replace text in transcript (Ctrl+F)"
               >
@@ -2086,7 +1999,7 @@ export default function TranscriptEditor({
 
               {/* Double Space Detector, Highlight & Fixer */}
               {doubleSpaceCount > 0 ? (
-                <div className="flex items-center gap-1 bg-amber-50 border border-amber-300 px-2 py-1 rounded-xl shadow-xs animate-fade-in">
+                <div className="flex items-center gap-1 bg-amber-50 border border-amber-300 h-8 px-2 rounded-xl shadow-xs animate-fade-in">
                   <button
                     type="button"
                     onClick={highlightDoubleSpaces}
@@ -2094,12 +2007,12 @@ export default function TranscriptEditor({
                     title="Highlight all double spaces in editor with red underline"
                   >
                     <span className="font-mono text-red-600 font-extrabold underline decoration-wavy decoration-red-500">␣␣</span>
-                    <span>{doubleSpaceCount} Double {doubleSpaceCount === 1 ? 'Space' : 'Spaces'}</span>
+                    <span>{doubleSpaceCount} Spaces</span>
                   </button>
                   <button
                     type="button"
                     onClick={fixAllDoubleSpaces}
-                    className="px-2 py-0.5 text-[11px] font-bold bg-amber-600 hover:bg-amber-500 text-white rounded-lg transition-all shadow-xs cursor-pointer"
+                    className="h-6 px-2 text-[11px] font-bold bg-amber-600 hover:bg-amber-500 text-white rounded-lg transition-all shadow-xs cursor-pointer"
                     title="Click to fix all double spaces into single spaces automatically"
                   >
                     Fix All
@@ -2109,7 +2022,7 @@ export default function TranscriptEditor({
                 <button
                   type="button"
                   onClick={highlightDoubleSpaces}
-                  className="hidden xl:flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold rounded-xl bg-white border border-zinc-200 text-zinc-600 hover:bg-purple-50 hover:text-purple-700 transition-all shadow-xs cursor-pointer"
+                  className="hidden xl:flex items-center gap-1 h-8 px-2.5 text-xs font-semibold rounded-xl bg-white border border-slate-200 text-zinc-600 hover:bg-purple-50 hover:text-purple-700 transition-all shadow-xs cursor-pointer"
                   title="Check and highlight double spaces in transcript"
                 >
                   <span className="font-mono text-purple-600 font-bold underline decoration-wavy decoration-purple-400">␣␣</span>
@@ -2118,16 +2031,16 @@ export default function TranscriptEditor({
               )}
             </div>
 
-            {/* Action Buttons */}
+            {/* Right Actions & Save Group */}
             <div className="flex items-center gap-1.5">
               {autoSaveStatus === 'saving' ? (
-                <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 bg-purple-50 border border-purple-200 rounded-xl shadow-xs text-purple-700 text-[11px]">
+                <div className="hidden sm:flex items-center gap-1.5 h-8 px-2.5 bg-purple-50 border border-purple-200 rounded-xl shadow-xs text-purple-700 text-[11px]">
                   <Loader2 className="w-3.5 h-3.5 animate-spin text-purple-600" />
                   <span>Auto-saving...</span>
                 </div>
               ) : autoSaveTime ? (
                 <div
-                  className="hidden sm:flex items-center gap-1 px-2.5 py-1.5 bg-emerald-50 border border-emerald-200 rounded-xl shadow-xs text-emerald-800 text-[11px]"
+                  className="hidden sm:flex items-center gap-1 h-8 px-2.5 bg-emerald-50 border border-emerald-200 rounded-xl shadow-xs text-emerald-800 text-[11px]"
                   title="Ongoing work auto-saved in Slot 5"
                 >
                   <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
@@ -2137,55 +2050,59 @@ export default function TranscriptEditor({
                 </div>
               ) : null}
 
-              {/* Hide Tools / Focus Mode Toggle Button */}
+              {/* Focus Mode Button */}
               <button
                 type="button"
                 onClick={() => setHideTools(true)}
-                className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold rounded-xl border border-purple-200/90 bg-purple-50 hover:bg-purple-100 text-purple-800 transition-all shadow-xs cursor-pointer"
+                className="flex items-center gap-1 h-8 px-2.5 text-xs font-bold rounded-xl border border-purple-200/90 bg-purple-50 hover:bg-purple-100 text-purple-800 transition-all shadow-xs cursor-pointer"
                 title="Hide all toolbars for a distraction-free maximized typing area"
               >
                 <EyeOff className="w-3.5 h-3.5 text-purple-600" />
                 <span className="hidden sm:inline">Focus</span>
               </button>
 
+              {/* Copy */}
               <button
                 type="button"
                 onClick={handleCopy}
                 disabled={wordCount === 0}
-                className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold rounded-xl border border-zinc-200 bg-white hover:bg-zinc-100 text-zinc-700 disabled:opacity-40 transition-all shadow-xs cursor-pointer"
+                className="flex items-center gap-1 h-8 px-2.5 text-xs font-semibold rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-zinc-700 disabled:opacity-40 transition-all shadow-xs cursor-pointer"
+                title="Copy transcript"
               >
                 {copied ? <Check className="w-3.5 h-3.5 text-green-600" /> : <Copy className="w-3.5 h-3.5" />}
                 <span className="hidden sm:inline">{copied ? 'Copied' : 'Copy'}</span>
               </button>
 
+              {/* Export */}
               <button
                 type="button"
                 onClick={handleManualDownload}
                 disabled={wordCount === 0}
-                className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold rounded-xl border border-zinc-200 bg-white hover:bg-zinc-100 text-zinc-700 disabled:opacity-40 transition-all shadow-xs cursor-pointer"
+                className="flex items-center gap-1 h-8 px-2.5 text-xs font-semibold rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-zinc-700 disabled:opacity-40 transition-all shadow-xs cursor-pointer"
                 title="Download .txt"
               >
                 <Download className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">Export</span>
               </button>
 
+              {/* Save */}
               <button
                 type="button"
                 onClick={handleManualSave}
                 disabled={saving || wordCount === 0}
-                className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold rounded-xl bg-gradient-to-br from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-md shadow-purple-500/20 disabled:opacity-50 transition-all cursor-pointer"
+                className="flex items-center gap-1.5 h-8 px-3.5 text-xs font-bold rounded-xl bg-gradient-to-br from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-md shadow-purple-500/20 disabled:opacity-50 transition-all cursor-pointer"
               >
                 {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
                 <span>Save Slot {activeSlot}</span>
               </button>
             </div>
           </div>
-        </>
+        </div>
       )}
 
       {/* ── WORD-STYLE COMPACT FIND & REPLACE FLOATING/DOCKED TOOLBAR (Ctrl+F) ── */}
       {showFindBar && (
-        <div className="flex flex-col gap-2 p-2.5 bg-gradient-to-r from-purple-50/90 via-white to-purple-50/90 border border-purple-200 rounded-2xl shadow-md">
+        <div className="flex flex-col gap-2 p-2.5 bg-white border border-slate-200 rounded-2xl shadow-xs">
           {/* Main Search Row */}
           <div className="flex flex-wrap items-center gap-2">
             {/* Search Input Box */}
@@ -2194,11 +2111,11 @@ export default function TranscriptEditor({
               <input
                 ref={findInputRef}
                 type="text"
-                placeholder="Find in transcript (press Enter for next)..."
+                placeholder="Find in transcript…"
                 value={findText}
                 onChange={(e) => setFindText(e.target.value)}
                 onKeyDown={handleFindInputKeyDown}
-                className="w-full pl-8 pr-24 py-1.5 text-xs rounded-xl border border-purple-200 bg-white text-zinc-900 placeholder-zinc-400 outline-none focus:ring-2 focus:ring-purple-400/40 shadow-xs font-medium"
+                className="w-full pl-8 pr-24 py-1.5 text-xs rounded-xl border border-slate-200 bg-slate-50 text-zinc-900 placeholder-zinc-400 outline-none focus:ring-2 focus:ring-purple-400/40 focus:border-purple-300 shadow-xs font-medium"
               />
               {findText && (
                 <span className="absolute right-2 text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-purple-100 text-purple-700 select-none pointer-events-none">
@@ -2208,12 +2125,12 @@ export default function TranscriptEditor({
             </div>
 
             {/* Previous & Next Navigation Buttons */}
-            <div className="flex items-center bg-white border border-zinc-200 rounded-xl overflow-hidden shadow-xs">
+            <div className="flex items-center h-8 bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xs">
               <button
                 type="button"
                 onClick={() => findNext(true)}
                 disabled={!findText}
-                className="p-1.5 text-zinc-600 hover:bg-purple-50 hover:text-purple-700 disabled:opacity-30 transition-colors cursor-pointer"
+                className="h-full px-2 text-zinc-600 hover:bg-purple-50 hover:text-purple-700 disabled:opacity-30 transition-colors cursor-pointer"
                 title="Previous Match (Shift + Enter)"
               >
                 <ChevronUp className="w-4 h-4" />
@@ -2222,7 +2139,7 @@ export default function TranscriptEditor({
                 type="button"
                 onClick={() => findNext(false)}
                 disabled={!findText}
-                className="p-1.5 text-zinc-600 hover:bg-purple-50 hover:text-purple-700 disabled:opacity-30 transition-colors border-l border-zinc-200 cursor-pointer"
+                className="h-full px-2 text-zinc-600 hover:bg-purple-50 hover:text-purple-700 disabled:opacity-30 transition-colors border-l border-slate-200 cursor-pointer"
                 title="Next Match (Enter)"
               >
                 <ChevronDown className="w-4 h-4" />
@@ -2233,10 +2150,10 @@ export default function TranscriptEditor({
             <button
               type="button"
               onClick={() => setShowReplaceInput(!showReplaceInput)}
-              className={`flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+              className={`flex items-center gap-1 h-8 px-2.5 text-xs font-semibold rounded-xl transition-all cursor-pointer ${
                 showReplaceInput
                   ? 'bg-purple-100 text-purple-800 border border-purple-300 shadow-xs'
-                  : 'bg-white border border-zinc-200 text-zinc-700 hover:bg-purple-50 shadow-xs'
+                  : 'bg-white border border-slate-200 text-zinc-700 hover:bg-purple-50 shadow-xs'
               }`}
               title="Toggle Replace with..."
             >
@@ -2251,7 +2168,7 @@ export default function TranscriptEditor({
                 setShowFindBar(false)
                 editorRef.current?.focus()
               }}
-              className="p-1.5 text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 rounded-xl transition-colors cursor-pointer ml-auto"
+              className="flex items-center justify-center h-8 w-8 text-zinc-400 hover:text-zinc-700 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer ml-auto"
               title="Close search (Esc)"
             >
               <X className="w-4 h-4" />
@@ -2260,7 +2177,7 @@ export default function TranscriptEditor({
 
           {/* Optional Replace Row */}
           {showReplaceInput && (
-            <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-purple-100">
+            <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100">
               <div className="relative flex-1 min-w-[200px]">
                 <Replace className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-purple-400 pointer-events-none" />
                 <input
@@ -2274,7 +2191,7 @@ export default function TranscriptEditor({
                       replaceCurrentMatch()
                     }
                   }}
-                  className="w-full pl-8 pr-3 py-1.5 text-xs rounded-xl border border-purple-200 bg-white text-zinc-900 placeholder-zinc-400 outline-none focus:ring-2 focus:ring-purple-400/40 shadow-xs font-medium"
+                  className="w-full pl-8 pr-3 py-1.5 text-xs rounded-xl border border-slate-200 bg-slate-50 text-zinc-900 placeholder-zinc-400 outline-none focus:ring-2 focus:ring-purple-400/40 focus:border-purple-300 shadow-xs font-medium"
                 />
               </div>
 
@@ -2282,7 +2199,7 @@ export default function TranscriptEditor({
                 type="button"
                 onClick={replaceCurrentMatch}
                 disabled={!findText}
-                className="px-3 py-1.5 text-xs font-bold rounded-xl bg-purple-100 hover:bg-purple-200 text-purple-900 transition-all disabled:opacity-40 cursor-pointer shadow-xs"
+                className="h-8 px-3 text-xs font-bold rounded-xl bg-purple-100 hover:bg-purple-200 text-purple-900 transition-all disabled:opacity-40 cursor-pointer shadow-xs"
                 title="Replace currently selected match"
               >
                 Replace
@@ -2292,7 +2209,7 @@ export default function TranscriptEditor({
                 type="button"
                 onClick={performFindReplaceAll}
                 disabled={!findText}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl bg-purple-600 hover:bg-purple-700 text-white transition-all disabled:opacity-40 cursor-pointer shadow-xs"
+                className="flex items-center gap-1.5 h-8 px-3 text-xs font-bold rounded-xl bg-purple-600 hover:bg-purple-700 text-white transition-all disabled:opacity-40 cursor-pointer shadow-xs"
                 title="Replace all matching occurrences in transcript"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
