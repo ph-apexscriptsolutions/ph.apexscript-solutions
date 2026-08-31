@@ -171,9 +171,10 @@ export default function TranscriptEditor({
   const [copied, setCopied] = useState(false)
   const [workerClientType, setWorkerClientType] = useState<'desktop' | 'browser'>('browser')
 
-  // Word & Character count states
+  // Word, Character, and Double Space count states
   const [wordCount, setWordCount] = useState(0)
   const [charCount, setCharCount] = useState(0)
+  const [doubleSpaceCount, setDoubleSpaceCount] = useState(0)
 
   // ── AUDIO PLAYER (Express Scribe Style) STATE ──
   const [showAudioPlayer, setShowAudioPlayer] = useState(true)
@@ -335,6 +336,8 @@ export default function TranscriptEditor({
     const trimmed = text.trim()
     setWordCount(trimmed ? trimmed.split(/\s+/).length : 0)
     setCharCount(text.length)
+    const matches = text.match(/[ \u00A0]{2,}/g)
+    setDoubleSpaceCount(matches ? matches.length : 0)
   }, [])
 
   // Sync toolbar active states (Bold/Italic/Underline)
@@ -379,6 +382,7 @@ export default function TranscriptEditor({
       editorRef.current.innerHTML = ''
       setWordCount(0)
       setCharCount(0)
+      setDoubleSpaceCount(0)
       return
     }
 
@@ -392,6 +396,8 @@ export default function TranscriptEditor({
     const trimmed = text.trim()
     setWordCount(trimmed ? trimmed.split(/\s+/).length : 0)
     setCharCount(text.length)
+    const matches = text.match(/[ \u00A0]{2,}/g)
+    setDoubleSpaceCount(matches ? matches.length : 0)
   }, [])
 
   // Normalize default paragraph separator for consistent Enter key behavior
@@ -921,6 +927,70 @@ export default function TranscriptEditor({
     handleEditorInput()
   }
 
+  // Clean / fix all double or multiple consecutive spaces into a single space
+  const fixAllDoubleSpaces = useCallback(() => {
+    if (!editorRef.current) return
+    const currentHtml = editorRef.current.innerHTML
+    if (!currentHtml) return
+
+    // 1. Remove double-space-flag wrappers if any exist
+    let cleaned = currentHtml.replace(/<span class="double-space-flag"[^>]*>[\s\S]*?<\/span>/gi, ' ')
+    // 2. Collapse consecutive spaces, &nbsp;, and mixed spaces
+    cleaned = cleaned
+      .replace(/(?:&nbsp;| ){2,}/g, ' ')
+      .replace(/(&nbsp; )|( &nbsp;)/g, ' ')
+      .replace(/\u00A0{2,}/g, ' ')
+
+    editorRef.current.innerHTML = cleaned
+    updateStats()
+    triggerAutoSaveToSlot5(cleaned)
+    setStatusMessage({
+      type: 'success',
+      text: 'All double spaces have been cleaned! Standard 1-space format restored.',
+    })
+  }, [updateStats, triggerAutoSaveToSlot5])
+
+  // Visually underline all double spaces with a distinct red wavy underline
+  const highlightDoubleSpaces = useCallback(() => {
+    if (!editorRef.current) return
+    const editor = editorRef.current
+
+    // Remove existing double-space flags first
+    let html = editor.innerHTML.replace(/<span class="double-space-flag"[^>]*>([\s\S]*?)<\/span>/gi, '$1')
+
+    const flagWrapper = '<span class="double-space-flag" style="border-bottom: 2px wavy #ef4444; background-color: #fee2e2; border-radius: 2px; padding: 0 2px; margin: 0 1px; color: #b91c1c; font-weight: bold;" title="Double space detected! Should be single space.">&nbsp;&nbsp;</span>'
+
+    // Replace double spaces outside HTML tags
+    const parts = html.split(/(<[^>]+>)/g)
+    let countFound = 0
+    const newParts = parts.map((part) => {
+      if (part.startsWith('<')) return part
+      const replaced = part.replace(/[ \u00A0]{2,}/g, () => {
+        countFound++
+        return flagWrapper
+      })
+      return replaced
+    })
+
+    const updatedHtml = newParts.join('')
+    editor.innerHTML = updatedHtml
+    updateStats()
+
+    if (countFound > 0) {
+      setStatusMessage({
+        type: 'info',
+        text: `Found ${countFound} double space${countFound > 1 ? 's' : ''} (marked with red underline). Click "Fix All" to clean them.`,
+      })
+      const firstFlag = editor.querySelector('.double-space-flag')
+      firstFlag?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    } else {
+      setStatusMessage({
+        type: 'success',
+        text: 'Great! No double spaces detected in this transcript.',
+      })
+    }
+  }, [updateStats])
+
   // Open and focus the Find / Replace bar
   const openFindBar = (mode: 'find' | 'replace' = 'find') => {
     setFindMode(mode)
@@ -1438,6 +1508,19 @@ export default function TranscriptEditor({
             <span className="text-zinc-300 text-[11px] hidden sm:inline">
               Words: <strong className="text-white">{wordCount}</strong>
             </span>
+
+            {/* Quick Double-Space Fix in Focus Bar */}
+            {doubleSpaceCount > 0 && (
+              <button
+                type="button"
+                onClick={fixAllDoubleSpaces}
+                className="flex items-center gap-1 px-2 py-1 text-[11px] font-bold bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 rounded-xl transition-all cursor-pointer"
+                title="Click to fix all double spaces into single spaces"
+              >
+                <span className="underline decoration-wavy decoration-red-400 font-mono">␣␣</span>
+                <span>{doubleSpaceCount} Fix</span>
+              </button>
+            )}
 
             <button
               type="button"
@@ -2000,6 +2083,39 @@ export default function TranscriptEditor({
                 <span>Find</span>
                 <span className="text-[10px] opacity-70 hidden xl:inline font-mono">Ctrl+F</span>
               </button>
+
+              {/* Double Space Detector, Highlight & Fixer */}
+              {doubleSpaceCount > 0 ? (
+                <div className="flex items-center gap-1 bg-amber-50 border border-amber-300 px-2 py-1 rounded-xl shadow-xs animate-fade-in">
+                  <button
+                    type="button"
+                    onClick={highlightDoubleSpaces}
+                    className="flex items-center gap-1 text-xs font-bold text-amber-900 hover:text-red-700 transition-colors cursor-pointer"
+                    title="Highlight all double spaces in editor with red underline"
+                  >
+                    <span className="font-mono text-red-600 font-extrabold underline decoration-wavy decoration-red-500">␣␣</span>
+                    <span>{doubleSpaceCount} Double {doubleSpaceCount === 1 ? 'Space' : 'Spaces'}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={fixAllDoubleSpaces}
+                    className="px-2 py-0.5 text-[11px] font-bold bg-amber-600 hover:bg-amber-500 text-white rounded-lg transition-all shadow-xs cursor-pointer"
+                    title="Click to fix all double spaces into single spaces automatically"
+                  >
+                    Fix All
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={highlightDoubleSpaces}
+                  className="hidden xl:flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold rounded-xl bg-white border border-zinc-200 text-zinc-600 hover:bg-purple-50 hover:text-purple-700 transition-all shadow-xs cursor-pointer"
+                  title="Check and highlight double spaces in transcript"
+                >
+                  <span className="font-mono text-purple-600 font-bold underline decoration-wavy decoration-purple-400">␣␣</span>
+                  <span>Check Spaces</span>
+                </button>
+              )}
             </div>
 
             {/* Action Buttons */}
@@ -2244,7 +2360,7 @@ export default function TranscriptEditor({
         />
       </div>
 
-      {/* ── CSS for Instant Paragraph Spacing Normalization ── */}
+      {/* ── CSS for Instant Paragraph Spacing Normalization & Double Space Highlighting ── */}
       <style jsx global>{`
         .transcript-rich-editor p,
         .transcript-rich-editor div {
@@ -2260,11 +2376,20 @@ export default function TranscriptEditor({
           color: #9ca3af;
           pointer-events: none;
         }
+        .transcript-rich-editor .double-space-flag {
+          border-bottom: 2px wavy #ef4444 !important;
+          background-color: #fee2e2 !important;
+          color: #b91c1c !important;
+          border-radius: 2px !important;
+          padding: 0 2px !important;
+          margin: 0 1px !important;
+          font-weight: bold !important;
+        }
       `}</style>
 
       {/* Bottom Counter Bar */}
-      <div className="flex items-center justify-between text-[11px] text-zinc-500 px-2">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-zinc-500 px-2">
+        <div className="flex flex-wrap items-center gap-4">
           <span>
             Active Slot: <strong className="text-purple-700">Slot {activeSlot}</strong>
           </span>
@@ -2274,6 +2399,23 @@ export default function TranscriptEditor({
           <span>
             Characters: <strong className="text-zinc-700">{charCount}</strong>
           </span>
+          <div className="flex items-center gap-1">
+            <span>Spaces:</span>
+            {doubleSpaceCount > 0 ? (
+              <button
+                type="button"
+                onClick={fixAllDoubleSpaces}
+                className="flex items-center gap-1 px-1.5 py-0.5 rounded-md font-bold text-amber-800 bg-amber-100 hover:bg-amber-200 border border-amber-300 underline decoration-wavy decoration-red-500 transition-colors cursor-pointer"
+                title="Click to fix all double spaces into standard 1 space"
+              >
+                <span>{doubleSpaceCount} double space{doubleSpaceCount > 1 ? 's' : ''} (Click to Fix All)</span>
+              </button>
+            ) : (
+              <span className="font-semibold text-emerald-600 flex items-center gap-0.5">
+                <Check className="w-3 h-3 text-emerald-600" /> 1-space clean
+              </span>
+            )}
+          </div>
         </div>
         <div className="text-[10px] text-zinc-400">
           User: <span className="font-semibold text-zinc-600">{effectiveUserId}</span> • Role:{' '}
