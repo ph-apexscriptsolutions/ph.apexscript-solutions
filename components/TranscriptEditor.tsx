@@ -752,7 +752,174 @@ export default function TranscriptEditor({
       navigator.clipboard.writeText(ts)
       setStatusMessage({ type: 'info', text: `Copied timestamp ${ts} to clipboard.` })
     }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Helper: Find closest block element ancestor inside editor
+  const getClosestBlock = (node: Node, root: HTMLElement): HTMLElement => {
+    let cur = node.parentElement
+    while (cur && cur !== root) {
+      const tag = cur.tagName.toLowerCase()
+      if (['div', 'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'li', 'blockquote'].includes(tag)) {
+        return cur
+      }
+      cur = cur.parentElement
+    }
+    return root
+  }
+
+  // Helper: Retrieve all paragraph start positions (first non-whitespace character of each paragraph/block)
+  const getParagraphStarts = (root: HTMLElement): Array<{ node: Node; offset: number }> => {
+    const starts: Array<{ node: Node; offset: number }> = []
+    let lastBlock: HTMLElement | null = null
+    let pendingParagraphStart = true
+
+    const walker = document.createTreeWalker(
+      root,
+      NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT,
+      {
+        acceptNode(node) {
+          if (node.nodeType === Node.ELEMENT_NODE) {
+            const tag = (node as Element).tagName.toLowerCase()
+            if (tag === 'br') return NodeFilter.FILTER_ACCEPT
+            if (['div', 'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'li', 'blockquote'].includes(tag)) {
+              return NodeFilter.FILTER_ACCEPT
+            }
+            return NodeFilter.FILTER_SKIP
+          }
+          return NodeFilter.FILTER_ACCEPT
+        },
+      }
+    )
+
+    let node: Node | null
+    while ((node = walker.nextNode())) {
+      if (node.nodeType === Node.ELEMENT_NODE) {
+        const tag = (node as Element).tagName.toLowerCase()
+        if (tag === 'br') {
+          pendingParagraphStart = true
+        }
+        continue
+      }
+
+      const block = getClosestBlock(node, root)
+      if (block !== lastBlock) {
+        lastBlock = block
+        pendingParagraphStart = true
+      }
+
+      const text = node.textContent || ''
+      if (!text) continue
+
+      let checkFrom = 0
+      if (pendingParagraphStart) {
+        const m = text.match(/\S/)
+        if (m && m.index !== undefined) {
+          starts.push({
+            node,
+            offset: m.index,
+          })
+          checkFrom = m.index + 1
+          pendingParagraphStart = false
+        }
+      }
+
+      const newlineRegex = /[\r\n]+(\s*\S)/g
+      newlineRegex.lastIndex = checkFrom
+      let match: RegExpExecArray | null
+      while ((match = newlineRegex.exec(text)) !== null) {
+        const targetOffset = match.index + match[0].length - 1
+        starts.push({
+          node,
+          offset: targetOffset,
+        })
+      }
+    }
+
+    return starts
+  }
+
+  // Helper: Compare two DOM points using Range.compareBoundaryPoints
+  const compareDOMPoints = (nodeA: Node, offsetA: number, nodeB: Node, offsetB: number): number => {
+    try {
+      const rangeA = document.createRange()
+      rangeA.setStart(nodeA, offsetA)
+      rangeA.collapse(true)
+
+      const rangeB = document.createRange()
+      rangeB.setStart(nodeB, offsetB)
+      rangeB.collapse(true)
+
+      return rangeA.compareBoundaryPoints(Range.START_TO_START, rangeB)
+    } catch {
+      return 0
+    }
+  }
+
+  // Helper: Move caret or extend selection to specified DOM point
+  const moveCaretTo = (node: Node, offset: number, extendSelection: boolean) => {
+    const sel = window.getSelection()
+    if (!sel) return
+    try {
+      if (extendSelection) {
+        sel.extend(node, offset)
+      } else {
+        const range = document.createRange()
+        range.setStart(node, offset)
+        range.collapse(true)
+        sel.removeAllRanges()
+        sel.addRange(range)
+      }
+      const parentEl = node.nodeType === Node.TEXT_NODE ? node.parentElement : (node as HTMLElement)
+      parentEl?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+      syncSelectionState()
+    } catch {}
+  }
+
+  // Paragraph navigation handler for Ctrl+ArrowDown and Ctrl+ArrowUp
+  const navigateParagraph = (direction: 'up' | 'down', extendSelection: boolean) => {
+    if (!editorRef.current) return false
+    const sel = window.getSelection()
+    if (!sel || !sel.rangeCount) return false
+
+    const starts = getParagraphStarts(editorRef.current)
+    if (!starts.length) return false
+
+    const focusNode = sel.focusNode || sel.anchorNode
+    const focusOffset = sel.focusOffset || sel.anchorOffset
+    if (!focusNode) return false
+
+    if (direction === 'down') {
+      // Find the first paragraph start strictly after current focus point
+      for (let i = 0; i < starts.length; i++) {
+        if (compareDOMPoints(focusNode, focusOffset, starts[i].node, starts[i].offset) < 0) {
+          moveCaretTo(starts[i].node, starts[i].offset, extendSelection)
+          return true
+        }
+      }
+      // If already at or after the last paragraph start, jump to the end of editor
+      const last = starts[starts.length - 1].node
+      moveCaretTo(last, last.textContent?.length || 0, extendSelection)
+      return true
+    } else if (direction === 'up') {
+      // Find the last paragraph start strictly before current focus point
+      let targetIdx = -1
+      for (let i = starts.length - 1; i >= 0; i--) {
+        if (compareDOMPoints(focusNode, focusOffset, starts[i].node, starts[i].offset) > 0) {
+          targetIdx = i
+          break
+        }
+      }
+      if (targetIdx !== -1) {
+        moveCaretTo(starts[targetIdx].node, starts[targetIdx].offset, extendSelection)
+        return true
+      } else {
+        // Move to the very first paragraph start
+        moveCaretTo(starts[0].node, starts[0].offset, extendSelection)
+        return true
+      }
+    }
+    return false
+  }
 
   // ── GLOBAL AUDIO & SHORTCUT HOTKEY DISPATCHER ──
   // Registered ONCE on mount with empty deps — reads all live values through refs, never stale
@@ -820,52 +987,55 @@ export default function TranscriptEditor({
       setTimeout(() => checkTextExpansion(), 0)
     }
 
-    // Handle CTRL+Arrow keys for improved word navigation
+    // Handle CTRL+Arrow keys for precise paragraph & word navigation
     if (e.ctrlKey || e.metaKey) {
-      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
-        // Let browser handle default word navigation
+      if (e.key === 'ArrowDown') {
+        e.preventDefault()
+        navigateParagraph('down', e.shiftKey)
         return
       }
-      if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
-        // Let browser handle default paragraph navigation
+      if (e.key === 'ArrowUp') {
+        e.preventDefault()
+        navigateParagraph('up', e.shiftKey)
+        return
+      }
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+        // Let browser handle default word navigation natively
         return
       }
       if (e.key === 'Home') {
-        // Navigate to start of line
-        const sel = window.getSelection()
-        if (sel && editorRef.current) {
-          const range = sel.getRangeAt(0)
-          const currentNode = range.startContainer
-          if (currentNode.nodeType === Node.TEXT_NODE) {
-            const textNode = currentNode as Text
-            const newRange = document.createRange()
-            newRange.setStart(textNode, 0)
-            newRange.collapse(true)
-            sel.removeAllRanges()
-            sel.addRange(newRange)
-            e.preventDefault()
+        // Navigate to beginning of document
+        e.preventDefault()
+        if (editorRef.current) {
+          const starts = getParagraphStarts(editorRef.current)
+          if (starts.length > 0) {
+            moveCaretTo(starts[0].node, starts[0].offset, e.shiftKey)
+          } else if (editorRef.current.firstChild) {
+            moveCaretTo(editorRef.current.firstChild, 0, e.shiftKey)
           }
         }
         return
       }
       if (e.key === 'End') {
-        // Navigate to end of line
-        const sel = window.getSelection()
-        if (sel && editorRef.current) {
-          const range = sel.getRangeAt(0)
-          const currentNode = range.startContainer
-          if (currentNode.nodeType === Node.TEXT_NODE) {
-            const textNode = currentNode as Text
-            const newRange = document.createRange()
-            newRange.setStart(textNode, textNode.length)
-            newRange.collapse(true)
-            sel.removeAllRanges()
-            sel.addRange(newRange)
-            e.preventDefault()
+        // Navigate to end of document
+        e.preventDefault()
+        if (editorRef.current) {
+          const walker = document.createTreeWalker(editorRef.current, NodeFilter.SHOW_TEXT)
+          let lastTextNode: Node | null = null
+          let n: Node | null
+          while ((n = walker.nextNode())) {
+            lastTextNode = n
+          }
+          if (lastTextNode) {
+            moveCaretTo(lastTextNode, lastTextNode.textContent?.length || 0, e.shiftKey)
+          } else if (editorRef.current.lastChild) {
+            const last = editorRef.current.lastChild
+            moveCaretTo(last, last.textContent?.length || 0, e.shiftKey)
           }
         }
         return
       }
+
       if (e.key === 'b' || e.key === 'B') {
         e.preventDefault()
         applyBold()
