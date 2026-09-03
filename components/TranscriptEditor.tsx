@@ -176,6 +176,13 @@ export default function TranscriptEditor({
   const [copied, setCopied] = useState(false)
   const [workerClientType, setWorkerClientType] = useState<'desktop' | 'browser'>('browser')
 
+  // Auto-dismiss success and info banners after 4 seconds; errors stay until manually closed
+  useEffect(() => {
+    if (!statusMessage || statusMessage.type === 'error') return
+    const timer = setTimeout(() => setStatusMessage(null), 4000)
+    return () => clearTimeout(timer)
+  }, [statusMessage])
+
   // Word, Character, and Double Space count states
   const [wordCount, setWordCount] = useState(0)
   const [charCount, setCharCount] = useState(0)
