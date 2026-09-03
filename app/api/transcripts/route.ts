@@ -40,10 +40,10 @@ export async function GET(request: Request) {
     const supabase = getSupabaseClient()
     await ensureBucket(supabase)
 
-    // Action: list all 5 slots for this user
+    // Action: list all 2 slots (Save Slot & Auto-Save) for this user
     if (action === 'list') {
       const slotsData = []
-      for (let i = 1; i <= 5; i++) {
+      for (let i = 1; i <= 2; i++) {
         const slotPath = `${role}/${userId}/slot_${i}.txt`
         const legacyPath = i === 1 ? `${role}/${userId}.txt` : null
 
@@ -60,6 +60,14 @@ export async function GET(request: Request) {
             error = null
           }
         }
+        // Fallback to legacy slot 5 for auto-save (slot 2) if migrating
+        if (error && i === 2) {
+          const legacyAuto = await supabase.storage.from(BUCKET).download(`${role}/${userId}/slot_5.txt`)
+          if (!legacyAuto.error && legacyAuto.data) {
+            data = legacyAuto.data
+            error = null
+          }
+        }
 
         if (!error && data) {
           content = await data.text()
@@ -72,7 +80,7 @@ export async function GET(request: Request) {
 
         slotsData.push({
           slot: i,
-          title: `Draft / Revision ${i}`,
+          title: i === 2 ? 'Auto-Save' : 'Save Slot',
           hasContent: content.length > 0,
           wordCount,
           charCount,
@@ -110,8 +118,8 @@ export async function GET(request: Request) {
       return NextResponse.json({ slots: slotsData, worker: workerInfo, clientInfo }, { status: 200 })
     }
 
-    // Default action: Get specific slot content
-    const slotNum = isNaN(slot) || slot < 1 || slot > 5 ? 1 : slot
+    // Default action: Get specific slot content (1 = Save Slot, 2 = Auto-Save)
+    const slotNum = isNaN(slot) || slot < 1 || slot > 2 ? 1 : slot
     const slotPath = `${role}/${userId}/slot_${slotNum}.txt`
     const legacyPath = slotNum === 1 ? `${role}/${userId}.txt` : null
 
@@ -120,6 +128,14 @@ export async function GET(request: Request) {
       const legacy = await supabase.storage.from(BUCKET).download(legacyPath)
       if (!legacy.error && legacy.data) {
         data = legacy.data
+        error = null
+      }
+    }
+    // Fallback to legacy slot 5 for auto-save (slot 2)
+    if (error && slotNum === 2) {
+      const legacyAuto = await supabase.storage.from(BUCKET).download(`${role}/${userId}/slot_5.txt`)
+      if (!legacyAuto.error && legacyAuto.data) {
+        data = legacyAuto.data
         error = null
       }
     }
@@ -154,7 +170,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing userId' }, { status: 400 })
     }
 
-    const slotNum = isNaN(parseInt(slot, 10)) || parseInt(slot, 10) < 1 || parseInt(slot, 10) > 5 ? 1 : parseInt(slot, 10)
+    const slotNum = isNaN(parseInt(slot, 10)) || parseInt(slot, 10) < 1 || parseInt(slot, 10) > 2 ? 1 : parseInt(slot, 10)
 
     const supabase = getSupabaseClient()
     await ensureBucket(supabase)

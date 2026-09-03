@@ -138,8 +138,8 @@ export default function TranscriptEditor({
   const effectiveUserId = role === 'admin' ? selectedWorkerId : userId
   const effectiveRole = role === 'admin' && selectedWorkerId !== userId ? 'worker' : role
 
-  // Multi-slot state (1 to 5)
-  const [activeSlot, setActiveSlot] = useState<number>(initialSlot || 1)
+  // Slot state: 1 = Save Slot (manual), 2 = Auto-Save
+  const [activeSlot, setActiveSlot] = useState<number>(initialSlot === 2 || initialSlot === 5 ? 2 : 1)
   const [slotsMeta, setSlotsMeta] = useState<SlotInfo[]>([])
 
   // Editor styling & active selection format state
@@ -434,8 +434,8 @@ export default function TranscriptEditor({
     } catch {}
   }, [])
 
-  // Dedicated Auto-Save Function: automatically backs up ongoing text into Slot 5 (only for the worker themselves)
-  const triggerAutoSaveToSlot5 = useCallback(
+  // Dedicated Auto-Save Function: automatically backs up ongoing text into Auto-Save (Slot 2)
+  const triggerAutoSave = useCallback(
     async (htmlContent: string) => {
       // Do NOT auto-save when admin is inspecting a worker
       if (role === 'admin' && selectedWorkerId !== userId) return
@@ -447,9 +447,9 @@ export default function TranscriptEditor({
       }
 
       try {
-        localStorage.setItem(`transcript_autosave_slot5_${effectiveRole}_${effectiveUserId}`, htmlContent)
+        localStorage.setItem(`transcript_autosave_slot2_${effectiveRole}_${effectiveUserId}`, htmlContent)
         localStorage.setItem(
-          `transcript_autosave_time_slot5_${effectiveRole}_${effectiveUserId}`,
+          `transcript_autosave_time_slot2_${effectiveRole}_${effectiveUserId}`,
           Date.now().toString()
         )
       } catch {}
@@ -462,7 +462,7 @@ export default function TranscriptEditor({
             role: effectiveRole,
             userId: effectiveUserId,
             content: htmlContent,
-            slot: 5,
+            slot: 2,
             clientType: getMyClientType(),
             actorRole: role,
             actorUserId: userId,
@@ -479,7 +479,7 @@ export default function TranscriptEditor({
           setAutoSaveStatus('idle')
         }
       } catch (err) {
-        console.error('Auto-save to slot 5 error:', err)
+        console.error('Auto-save error:', err)
         autoSaveStatusRef.current = 'idle'
         setAutoSaveStatus('idle')
       }
@@ -487,7 +487,7 @@ export default function TranscriptEditor({
     [effectiveUserId, effectiveRole, fetchSlotsList, getMyClientType, role, selectedWorkerId, userId]
   )
 
-  // Load active slot content from cloud storage (with crash recovery for Slot 5)
+  // Load active slot content from cloud storage (with crash recovery for Auto-Save / Slot 2)
   const loadSlotContent = useCallback(
     async (targetId: string, targetRole: string, slotNum: number) => {
       if (!targetId) return
@@ -503,9 +503,11 @@ export default function TranscriptEditor({
 
         if (res.ok && data.content) {
           setEditorContent(data.content)
-        } else if (slotNum === 5) {
+        } else if (slotNum === 2) {
           try {
-            const emergencyDraft = localStorage.getItem(`transcript_autosave_slot5_${targetRole}_${targetId}`)
+            const emergencyDraft =
+              localStorage.getItem(`transcript_autosave_slot2_${targetRole}_${targetId}`) ||
+              localStorage.getItem(`transcript_autosave_slot5_${targetRole}_${targetId}`)
             if (emergencyDraft && emergencyDraft.trim()) {
               setEditorContent(emergencyDraft)
               setStatusMessage({
@@ -523,9 +525,11 @@ export default function TranscriptEditor({
         }
       } catch (err) {
         console.error('Failed to load slot content', err)
-        if (slotNum === 5) {
+        if (slotNum === 2) {
           try {
-            const emergencyDraft = localStorage.getItem(`transcript_autosave_slot5_${targetRole}_${targetId}`)
+            const emergencyDraft =
+              localStorage.getItem(`transcript_autosave_slot2_${targetRole}_${targetId}`) ||
+              localStorage.getItem(`transcript_autosave_slot5_${targetRole}_${targetId}`)
             if (emergencyDraft && emergencyDraft.trim()) {
               setEditorContent(emergencyDraft)
             } else {
@@ -567,7 +571,7 @@ export default function TranscriptEditor({
     if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current)
     autoSaveTimerRef.current = setTimeout(() => {
       if (editorRef.current) {
-        triggerAutoSaveToSlot5(editorRef.current.innerHTML)
+        triggerAutoSave(editorRef.current.innerHTML)
       }
     }, 2000)
   }
@@ -745,7 +749,7 @@ export default function TranscriptEditor({
       if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current)
       autoSaveTimerRef.current = setTimeout(() => {
         if (editorRef.current) {
-          triggerAutoSaveToSlot5(editorRef.current.innerHTML)
+          triggerAutoSave(editorRef.current.innerHTML)
         }
       }, 2000)
     } else {
@@ -1140,12 +1144,12 @@ export default function TranscriptEditor({
 
     editorRef.current.innerHTML = cleaned
     updateStats()
-    triggerAutoSaveToSlot5(cleaned)
+    triggerAutoSave(cleaned)
     setStatusMessage({
       type: 'success',
       text: 'All double spaces have been cleaned! Standard 1-space format restored.',
     })
-  }, [updateStats, triggerAutoSaveToSlot5])
+  }, [updateStats, triggerAutoSave])
 
   // Visually underline all double spaces with a distinct red wavy underline
   const highlightDoubleSpaces = useCallback(() => {
@@ -1394,7 +1398,10 @@ export default function TranscriptEditor({
         setStatusMessage({ type: 'error', text: `Save failed: ${data.error || 'Unknown error'}` })
       } else {
         setLastSavedTime(new Date())
-        setStatusMessage({ type: 'success', text: `Slot ${activeSlot} saved successfully!` })
+        setStatusMessage({
+          type: 'success',
+          text: activeSlot === 2 ? 'Auto-Save slot saved successfully!' : 'Save Slot saved successfully!',
+        })
         fetchSlotsList(effectiveUserId, effectiveRole)
       }
     } catch (err: any) {
@@ -1414,7 +1421,8 @@ export default function TranscriptEditor({
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `transcript_${effectiveRole}_${effectiveUserId}_slot${activeSlot}.txt`
+    const slotSuffix = activeSlot === 2 ? 'autosave' : 'saveslot'
+    a.download = `transcript_${effectiveRole}_${effectiveUserId}_${slotSuffix}.txt`
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)
@@ -1607,12 +1615,12 @@ export default function TranscriptEditor({
                 }}
                 className="bg-transparent font-bold text-purple-200 outline-none cursor-pointer text-xs"
               >
-                {[1, 2, 3, 4, 5].map((s) => {
+                {[1, 2].map((s) => {
                   const meta = slotsMeta.find((item) => item.slot === s)
                   const hasData = meta?.hasContent || (s === activeSlot && wordCount > 0)
                   return (
                     <option key={s} value={s} className="bg-slate-900 text-white">
-                      {s === 5 ? 'Slot 5 (Auto-Save)' : `Slot ${s}`} {hasData ? '●' : '(Empty)'}
+                      {s === 2 ? 'Auto-Save' : 'Save Slot'} {hasData ? '●' : '(Empty)'}
                     </option>
                   )
                 })}
@@ -1666,7 +1674,7 @@ export default function TranscriptEditor({
                 Auto-saving...
               </span>
             ) : autoSaveTime ? (
-              <span className="text-[10px] text-emerald-400 hidden md:inline" title="Ongoing work auto-saved to Slot 5">
+              <span className="text-[10px] text-emerald-400 hidden md:inline" title="Ongoing work auto-saved">
                 ● Auto-saved
               </span>
             ) : null}
@@ -1715,7 +1723,7 @@ export default function TranscriptEditor({
               className="flex items-center gap-1.5 h-8 px-3.5 text-xs font-bold rounded-xl bg-purple-600 hover:bg-purple-500 text-white shadow-sm shadow-purple-500/30 disabled:opacity-50 transition-all cursor-pointer"
             >
               {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-              <span>Save Slot {activeSlot}</span>
+              <span>{activeSlot === 2 ? 'Save Auto-Save' : 'Save Slot'}</span>
             </button>
           </div>
         </div>
@@ -1955,7 +1963,7 @@ export default function TranscriptEditor({
               {/* Group 1: Draft Slot Selector */}
               <div className="flex items-center gap-1.5 bg-white border border-purple-200/90 h-8 px-2.5 rounded-xl shadow-xs">
                 <Layers className="w-3.5 h-3.5 text-purple-600 shrink-0" />
-                <span className="text-xs font-bold text-zinc-700 whitespace-nowrap">Draft:</span>
+                <span className="text-xs font-bold text-zinc-700 whitespace-nowrap">Slot:</span>
                 <select
                   value={activeSlot}
                   onChange={(e) => {
@@ -1967,15 +1975,15 @@ export default function TranscriptEditor({
                   }}
                   className="text-xs font-bold text-purple-950 bg-transparent outline-none cursor-pointer pr-1"
                 >
-                  {[1, 2, 3, 4, 5].map((slotNum) => {
+                  {[1, 2].map((slotNum) => {
                     const meta = slotsMeta.find((s) => s.slot === slotNum)
                     const hasData = meta?.hasContent || (slotNum === activeSlot && wordCount > 0)
                     const words = slotNum === activeSlot ? wordCount : meta?.wordCount || 0
                     return (
                       <option key={slotNum} value={slotNum} className="text-zinc-900">
-                        {slotNum === 5
-                          ? `Slot 5 (Auto-Save) ${hasData ? `(${words}w)` : '(Empty)'}`
-                          : `Slot ${slotNum} ${hasData ? `(${words}w)` : '(Empty)'}`}
+                        {slotNum === 2
+                          ? `Auto-Save ${hasData ? `(${words}w)` : '(Empty)'}`
+                          : `Save Slot ${hasData ? `(${words}w)` : '(Empty)'}`}
                       </option>
                     )
                   })}
@@ -2238,7 +2246,7 @@ export default function TranscriptEditor({
               ) : autoSaveTime ? (
                 <div
                   className="hidden sm:flex items-center gap-1 h-8 px-2.5 bg-emerald-50 border border-emerald-200 rounded-xl shadow-xs text-emerald-800 text-[11px]"
-                  title="Ongoing work auto-saved in Slot 5"
+                  title="Ongoing work auto-saved"
                 >
                   <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
                   <span>
@@ -2290,7 +2298,7 @@ export default function TranscriptEditor({
                 className="flex items-center gap-1.5 h-8 px-3.5 text-xs font-bold rounded-xl bg-gradient-to-br from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-md shadow-purple-500/20 disabled:opacity-50 transition-all cursor-pointer"
               >
                 {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-                <span>Save Slot {activeSlot}</span>
+                <span>{activeSlot === 2 ? 'Save Auto-Save' : 'Save Slot'}</span>
               </button>
             </div>
           </div>
@@ -2606,7 +2614,7 @@ export default function TranscriptEditor({
       <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-zinc-500 px-2">
         <div className="flex flex-wrap items-center gap-4">
           <span>
-            Active Slot: <strong className="text-purple-700">Slot {activeSlot}</strong>
+            Active: <strong className="text-purple-700">{activeSlot === 2 ? 'Auto-Save' : 'Save Slot'}</strong>
           </span>
           <span>
             Words: <strong className="text-zinc-700">{wordCount}</strong>

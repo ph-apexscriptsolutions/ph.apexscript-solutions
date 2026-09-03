@@ -32,8 +32,10 @@ function TranscriptEditorContent() {
     const slotParam = searchParams.get('slot')
     if (slotParam) {
       const slotNum = parseInt(slotParam, 10)
-      if (slotNum >= 1 && slotNum <= 5) {
+      if (slotNum >= 1 && slotNum <= 2) {
         setInitialSlot(slotNum)
+      } else if (slotNum === 5) {
+        setInitialSlot(2)
       }
     }
 
