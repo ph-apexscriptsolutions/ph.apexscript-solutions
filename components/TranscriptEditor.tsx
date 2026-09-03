@@ -1669,16 +1669,6 @@ export default function TranscriptEditor({
 
           {/* Right Focus Mode Quick Actions */}
           <div className="flex items-center gap-2">
-            {autoSaveStatus === 'saving' ? (
-              <span className="text-[10px] text-purple-300 animate-pulse hidden md:inline">
-                Auto-saving...
-              </span>
-            ) : autoSaveTime ? (
-              <span className="text-[10px] text-emerald-400 hidden md:inline" title="Ongoing work auto-saved">
-                ● Auto-saved
-              </span>
-            ) : null}
-
             <span className="text-zinc-300 text-[11px] hidden sm:inline font-mono">
               Words: <strong className="text-white">{wordCount}</strong>
             </span>
@@ -2238,23 +2228,6 @@ export default function TranscriptEditor({
 
             {/* Right Actions & Save Group */}
             <div className="flex items-center gap-1.5">
-              {autoSaveStatus === 'saving' ? (
-                <div className="hidden sm:flex items-center gap-1.5 h-8 px-2.5 bg-purple-50 border border-purple-200 rounded-xl shadow-xs text-purple-700 text-[11px]">
-                  <Loader2 className="w-3.5 h-3.5 animate-spin text-purple-600" />
-                  <span>Auto-saving...</span>
-                </div>
-              ) : autoSaveTime ? (
-                <div
-                  className="hidden sm:flex items-center gap-1 h-8 px-2.5 bg-emerald-50 border border-emerald-200 rounded-xl shadow-xs text-emerald-800 text-[11px]"
-                  title="Ongoing work auto-saved"
-                >
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>
-                    Auto-saved ({autoSaveTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})
-                  </span>
-                </div>
-              ) : null}
-
               {/* Focus Mode Button */}
               <button
                 type="button"
@@ -2639,6 +2612,17 @@ export default function TranscriptEditor({
               </span>
             )}
           </div>
+          {autoSaveStatus === 'saving' ? (
+            <span className="flex items-center gap-1 text-purple-600 animate-pulse">
+              <Loader2 className="w-3 h-3 animate-spin" />
+              Auto-saving...
+            </span>
+          ) : autoSaveTime ? (
+            <span className="flex items-center gap-0.5 text-emerald-600" title="Ongoing work auto-saved">
+              <CheckCircle2 className="w-3 h-3" />
+              Auto-saved ({autoSaveTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})
+            </span>
+          ) : null}
         </div>
         <div className="text-[10px] text-zinc-400">
           User: <span className="font-semibold text-zinc-600">{effectiveUserId}</span> • Role:{' '}
