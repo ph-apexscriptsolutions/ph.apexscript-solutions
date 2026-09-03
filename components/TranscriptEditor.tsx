@@ -271,6 +271,9 @@ export default function TranscriptEditor({
   useEffect(() => { hotkeysRef.current = hotkeys }, [hotkeys])
   useEffect(() => { shortcutsRef.current = shortcuts }, [shortcuts])
 
+  // Stable ref for openFindBar — lets the capture-phase global listener call it without stale closure
+  const openFindBarRef = useRef<(mode?: 'find' | 'replace') => void>(() => {})
+
   // Helper to detect if the current session is running inside the Desktop App
   const getMyClientType = useCallback(() => {
     if (typeof window === 'undefined') return 'browser'
@@ -299,6 +302,9 @@ export default function TranscriptEditor({
           if (Array.isArray(data.preferences.shortcuts)) {
             setShortcuts(data.preferences.shortcuts)
           }
+          // Restore saved font & size
+          if (data.preferences.font) setFont(data.preferences.font)
+          if (data.preferences.fontSize) setFontSize(data.preferences.fontSize)
         }
       } catch (err) {
         console.error('Failed to load worker preferences:', err)
@@ -308,7 +314,7 @@ export default function TranscriptEditor({
   }, [userId])
 
   // Save Worker Editor Preferences to Supabase
-  const savePreferences = async (newHotkeys = hotkeys, newShortcuts = shortcuts) => {
+  const savePreferences = async (newHotkeys = hotkeys, newShortcuts = shortcuts, newFont = font, newFontSize = fontSize) => {
     if (!userId) return
     try {
       await fetch('/api/worker-editor-preferences', {
@@ -319,6 +325,8 @@ export default function TranscriptEditor({
           preferences: {
             hotkeys: newHotkeys,
             shortcuts: newShortcuts,
+            font: newFont,
+            fontSize: newFontSize,
           },
         }),
       })
@@ -326,6 +334,17 @@ export default function TranscriptEditor({
       console.error('Failed to save preferences:', err)
     }
   }
+
+  // Auto-save font & size preferences whenever they change (debounced)
+  const fontPrefTimerRef = useRef<NodeJS.Timeout | null>(null)
+  useEffect(() => {
+    if (fontPrefTimerRef.current) clearTimeout(fontPrefTimerRef.current)
+    fontPrefTimerRef.current = setTimeout(() => {
+      savePreferences(hotkeys, shortcuts, font, fontSize)
+    }, 1000)
+    return () => { if (fontPrefTimerRef.current) clearTimeout(fontPrefTimerRef.current) }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [font, fontSize])
 
   // Calculate matching occurrences for Find & Replace (only when Find Bar is open)
   const findMatchesCount = useMemo(() => {
@@ -446,7 +465,9 @@ export default function TranscriptEditor({
     async (htmlContent: string) => {
       // Do NOT auto-save when admin is inspecting a worker
       if (role === 'admin' && selectedWorkerId !== userId) return
-      if (!effectiveUserId || !htmlContent.trim()) return
+      // Guard: check actual visible text (not raw HTML) to avoid saving blank <br> content
+      const visibleText = editorRef.current?.innerText?.trim() || ''
+      if (!effectiveUserId || !visibleText) return
 
       if (autoSaveStatusRef.current !== 'saving') {
         autoSaveStatusRef.current = 'saving'
@@ -985,10 +1006,24 @@ export default function TranscriptEditor({
         copyOrInsertTimestamp(true)
         return
       }
+
+      // 6. Capture Ctrl+F / Cmd+F and Ctrl+H (Find & Replace) before the browser handles it
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'f' || e.key === 'F')) {
+        e.preventDefault()
+        e.stopPropagation()
+        openFindBarRef.current('find')
+        return
+      }
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'h' || e.key === 'H')) {
+        e.preventDefault()
+        e.stopPropagation()
+        openFindBarRef.current('replace')
+        return
+      }
     }
 
-    window.addEventListener('keydown', handleGlobalKeyDown)
-    return () => window.removeEventListener('keydown', handleGlobalKeyDown)
+    window.addEventListener('keydown', handleGlobalKeyDown, true)
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown, true)
   }, [playAudio, pauseAudio, rewindAudio, toggleFastSpeed, copyOrInsertTimestamp, showHotkeysModal])
 
   // Handle hotkeys inside contenteditable (Ctrl+B, Ctrl+I, Ctrl+U, Ctrl+S, Ctrl+F, Ctrl+H, Ctrl+Z, Ctrl+Y, Space for Text Expander)
@@ -1209,6 +1244,8 @@ export default function TranscriptEditor({
       findInputRef.current?.select()
     }, 50)
   }
+  // Keep ref in sync so global capture handler always calls the latest version
+  openFindBarRef.current = openFindBar
 
   // Find Next / Previous occurrence (Word-style)
   const findNext = (backwards = false) => {
@@ -1966,6 +2003,17 @@ export default function TranscriptEditor({
                   onChange={(e) => {
                     const nextSlot = parseInt(e.target.value, 10)
                     if (nextSlot !== activeSlot) {
+                      if (
+                        autoSaveStatus === 'unsaved' &&
+                        !window.confirm(
+                          'You have unsaved changes. Auto-Save will back them up shortly, but switching now may lose the last few seconds of typing.\n\nSwitch slot anyway?'
+                        )
+                      ) {
+                        e.target.value = String(activeSlot) // revert dropdown
+                        return
+                      }
+                      // Cancel any pending auto-save timer before switching
+                      if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current)
                       setActiveSlot(nextSlot)
                       onSlotChange?.(nextSlot)
                     }
@@ -2630,6 +2678,12 @@ export default function TranscriptEditor({
               Auto-saved ({autoSaveTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})
             </span>
           ) : null}
+          {lastSavedTime && (
+            <span className="flex items-center gap-0.5 text-purple-700 font-medium" title="Manual save to slot completed">
+              <Check className="w-3 h-3 text-purple-600" />
+              Saved ({lastSavedTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})
+            </span>
+          )}
         </div>
         <div className="text-[10px] text-zinc-400">
           User: <span className="font-semibold text-zinc-600">{effectiveUserId}</span> • Role:{' '}
