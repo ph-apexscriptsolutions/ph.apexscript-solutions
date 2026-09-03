@@ -711,6 +711,16 @@ export default function TranscriptEditor({
   const playAudio = useCallback(() => {
     if (!audioRef.current || !audioSrcRef.current) return
     if (!isPlayingRef.current) {
+      // Comfort feature: auto-backstep 1.0s on resume (classic Express Scribe / FTW behavior)
+      if (audioRef.current.currentTime > 1.0) {
+        audioRef.current.currentTime = Math.max(0, audioRef.current.currentTime - 1.0)
+        audioCurrentTimeRef.current = audioRef.current.currentTime
+        setAudioCurrentTime(audioCurrentTimeRef.current)
+      }
+      // Ensure pitch is preserved when playing at speeds like 1.25x or 1.5x (no chipmunk effect)
+      if ('preservesPitch' in audioRef.current) {
+        audioRef.current.preservesPitch = true
+      }
       audioRef.current.play().catch((err) => console.error('Audio play error:', err))
       isPlayingRef.current = true
       setIsPlaying(true)
@@ -763,6 +773,9 @@ export default function TranscriptEditor({
   const toggleFastSpeed = useCallback(() => {
     if (!audioRef.current) return
     const newSpeed = playbackSpeedRef.current === 1.0 ? (hotkeysRef.current.fastSpeed || 1.5) : 1.0
+    if ('preservesPitch' in audioRef.current) {
+      audioRef.current.preservesPitch = true
+    }
     audioRef.current.playbackRate = newSpeed
     playbackSpeedRef.current = newSpeed
     setPlaybackSpeed(newSpeed)
