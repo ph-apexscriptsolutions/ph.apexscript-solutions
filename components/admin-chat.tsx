@@ -335,9 +335,9 @@ export default function AdminChat({
 
       {/* Popout */}
       {isOpen && (
-        <div className="fixed bottom-24 right-6 z-50 w-[720px] max-w-[calc(100vw-3rem)] h-[550px] bg-white rounded-3xl border border-zinc-200/80 shadow-2xl flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-200">
+        <div className="fixed inset-0 sm:inset-auto sm:bottom-24 sm:right-6 z-50 w-full sm:w-[720px] sm:max-w-[calc(100vw-3rem)] h-full sm:h-[550px] bg-white sm:rounded-3xl border-0 sm:border border-zinc-200/80 shadow-2xl flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-200">
           {/* Header */}
-          <div className="flex items-center justify-between border-b border-zinc-100 bg-gradient-to-r from-zinc-50 to-white px-5 py-4 flex-shrink-0">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-zinc-100 bg-gradient-to-r from-zinc-50 to-white px-4 sm:px-5 py-3 sm:py-4 flex-shrink-0">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-cyan-100 text-cyan-600 shadow-sm">
                 <MessageSquare className="h-5 w-5" />
@@ -350,7 +350,7 @@ export default function AdminChat({
             
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-1 bg-zinc-50 p-1 rounded-xl border border-zinc-200/60">
-                <input value={adminName} onChange={(e) => setAdminName(e.target.value)} className="rounded-lg border-0 bg-transparent px-2 py-1 text-xs font-medium focus:ring-1 focus:ring-cyan-500/30 w-24" placeholder="Your Name" />
+                <input value={adminName} onChange={(e) => setAdminName(e.target.value)} className="rounded-lg border-0 bg-transparent px-2 py-1 text-xs font-medium focus:ring-1 focus:ring-cyan-500/30 w-20 sm:w-24" placeholder="Your Name" />
                 <select
                   value={adminRole}
                   onChange={(e) => setAdminRole(e.target.value as AdminRole)}
@@ -372,8 +372,8 @@ export default function AdminChat({
 
           {/* Body: Split View */}
           <div className="flex flex-1 min-h-0 divide-x divide-zinc-100">
-            {/* Left Column: Workers list */}
-            <div className={`${collapsed ? 'w-16' : 'w-60'} flex flex-col bg-zinc-50/50 flex-shrink-0 transition-all duration-200`}>
+            {/* Left Column: Workers list — hidden on mobile when a chat is open */}
+            <div className={`${activeWorker ? 'hidden sm:flex' : 'flex'} ${collapsed ? 'w-16' : 'w-full sm:w-60'} flex-col bg-zinc-50/50 flex-shrink-0 transition-all duration-200`}>
               <div className="p-3 border-b border-zinc-100 flex items-center justify-between flex-shrink-0">
                 {!collapsed && <span className="text-xs font-bold text-zinc-700 uppercase tracking-wider">Active Chats</span>}
                 <button onClick={() => setCollapsed((prev) => !prev)} className="rounded-xl border border-zinc-200/80 bg-white p-1.5 text-zinc-500 hover:bg-zinc-100 shadow-sm ml-auto">
@@ -426,10 +426,20 @@ export default function AdminChat({
               {activeWorker ? (
                 <div className="flex flex-col flex-1 min-h-0">
                   {/* Chat header */}
-                  <div className="px-4 py-3 border-b border-zinc-100 flex items-center justify-between flex-shrink-0 bg-zinc-50/30">
-                    <div>
-                      <div className="text-xs font-bold text-zinc-900">Chatting with {selectedWorker?.full_name || activeWorker}</div>
-                      <div className="text-[10px] text-zinc-500">Worker ID: {activeWorker}</div>
+                  <div className="px-3 sm:px-4 py-3 border-b border-zinc-100 flex items-center justify-between flex-shrink-0 bg-zinc-50/30">
+                    <div className="flex items-center gap-2">
+                      {/* Back button — mobile only */}
+                      <button
+                        onClick={() => setActiveWorker(null)}
+                        className="sm:hidden flex items-center justify-center rounded-lg p-1.5 text-zinc-500 hover:bg-zinc-100 transition-colors"
+                        title="Back to worker list"
+                      >
+                        ←
+                      </button>
+                      <div>
+                        <div className="text-xs font-bold text-zinc-900">Chatting with {selectedWorker?.full_name || activeWorker}</div>
+                        <div className="text-[10px] text-zinc-500">Worker ID: {activeWorker}</div>
+                      </div>
                     </div>
                     <button onClick={() => clearChat(activeWorker)} className="rounded-xl bg-red-50 border border-red-100 px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-100 transition-all flex items-center gap-1.5">
                       <Trash className="h-3.5 w-3.5" /> Clear Chat

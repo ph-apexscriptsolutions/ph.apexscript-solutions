@@ -366,7 +366,7 @@ CREATE TABLE IF NOT EXISTS public.priority_announcement_responses (
                     </button>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2 max-h-52 overflow-y-auto pr-1">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-52 overflow-y-auto pr-1">
                     {eligibleWorkers.map((w) => {
                       const isSelected = selectedWorkerIds.includes(w.id)
                       return (
@@ -393,7 +393,7 @@ CREATE TABLE IF NOT EXISTS public.priority_announcement_responses (
               )}
 
               {/* Advanced Options Grid */}
-              <div className="grid grid-cols-2 gap-3 pt-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                 {/* Expiration timer */}
                 <div>
                   <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300 mb-1">
