@@ -158,7 +158,19 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: insertError.message || 'Failed to save production record' }, { status: 500 })
     }
 
-    return NextResponse.json({ success: true, emailWarning, isRevisionResubmission })
+    // Mark the matched assignment as 'done'
+    if (matchedAssignment?.id) {
+      const { error: updateAssignmentError } = await supabase
+        .from('production_assignments')
+        .update({ status: 'done' })
+        .eq('id', matchedAssignment.id)
+
+      if (updateAssignmentError) {
+        console.error('Failed to update assignment status to done:', updateAssignmentError)
+      }
+    }
+
+    return NextResponse.json({ success: true, emailWarning, isRevisionResubmission, assignmentId: matchedAssignment?.id })
   } catch (error: any) {
     console.error('Email sending error:', error)
     // Ibabalik natin ang exact error message para makita sa browser
