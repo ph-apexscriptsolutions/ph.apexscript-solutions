@@ -273,6 +273,8 @@ export default function TranscriptEditor({
 
   // Stable ref for openFindBar — lets the capture-phase global listener call it without stale closure
   const openFindBarRef = useRef<(mode?: 'find' | 'replace') => void>(() => {})
+  // Stable ref for toggleCase (Shift+F3)
+  const toggleCaseRef = useRef<() => void>(() => {})
 
   // Helper to detect if the current session is running inside the Desktop App
   const getMyClientType = useCallback(() => {
@@ -995,36 +997,47 @@ export default function TranscriptEditor({
       const keyName = e.key.toUpperCase()
       const hk = hotkeysRef.current
 
+      // Shift+F3: Change Case (MS Word Style: UPPERCASE -> lowercase -> Capitalize Each Word)
+      if (e.shiftKey && (e.key === 'F3' || e.key === 'f3')) {
+        e.preventDefault()
+        e.stopPropagation()
+        toggleCaseRef.current?.()
+        return
+      }
+
+      // Audio Hotkeys: only fire when no Shift/Ctrl/Alt/Meta modifiers are pressed
+      const isPlainHotkey = !e.shiftKey && !e.ctrlKey && !e.altKey && !e.metaKey
+
       // 1. Separate Play Hotkey
-      if (keyName === hk.play.toUpperCase()) {
+      if (isPlainHotkey && keyName === hk.play.toUpperCase()) {
         e.preventDefault()
         playAudio()
         return
       }
 
       // 2. Separate Pause Hotkey
-      if (keyName === hk.pause.toUpperCase()) {
+      if (isPlainHotkey && keyName === hk.pause.toUpperCase()) {
         e.preventDefault()
         pauseAudio()
         return
       }
 
       // 3. Rewind Hotkey
-      if (keyName === hk.rewind.toUpperCase()) {
+      if (isPlainHotkey && keyName === hk.rewind.toUpperCase()) {
         e.preventDefault()
         rewindAudio(hk.rewindSeconds || 2)
         return
       }
 
       // 4. Fast Forward / Speed Hotkey
-      if (keyName === hk.fastForward.toUpperCase()) {
+      if (isPlainHotkey && keyName === hk.fastForward.toUpperCase()) {
         e.preventDefault()
         toggleFastSpeed()
         return
       }
 
       // 5. Timestamp Copy / Insert Hotkey
-      if (keyName === hk.copyTimestamp.toUpperCase()) {
+      if (isPlainHotkey && keyName === hk.copyTimestamp.toUpperCase()) {
         e.preventDefault()
         copyOrInsertTimestamp(true)
         return
@@ -1049,8 +1062,16 @@ export default function TranscriptEditor({
     return () => window.removeEventListener('keydown', handleGlobalKeyDown, true)
   }, [playAudio, pauseAudio, rewindAudio, toggleFastSpeed, copyOrInsertTimestamp, showHotkeysModal])
 
-  // Handle hotkeys inside contenteditable (Ctrl+B, Ctrl+I, Ctrl+U, Ctrl+S, Ctrl+F, Ctrl+H, Ctrl+Z, Ctrl+Y, Space for Text Expander)
+  // Handle hotkeys inside contenteditable (Ctrl+B, Ctrl+I, Ctrl+U, Ctrl+S, Ctrl+F, Ctrl+H, Ctrl+Z, Ctrl+Y, Shift+F3, Space for Text Expander)
   const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    // Shift+F3: Change Case (MS Word Style: UPPERCASE -> lowercase -> Capitalize Each Word)
+    if (e.shiftKey && (e.key === 'F3' || e.key === 'f3')) {
+      e.preventDefault()
+      e.stopPropagation()
+      toggleCaseRef.current?.()
+      return
+    }
+
     // Check text expansion trigger on Space, Enter, or Tab
     if (e.key === ' ' || e.key === 'Enter' || e.key === 'Tab' || e.key === ':') {
       setTimeout(() => checkTextExpansion(), 0)
@@ -1162,6 +1183,88 @@ export default function TranscriptEditor({
     syncSelectionState()
     handleEditorInput()
   }
+
+  // ── CHANGE CASE / SHIFT+F3 (MS Word Style: UPPERCASE -> lowercase -> Capitalize Each Word) ──
+  const toTitleCase = useCallback((str: string) => {
+    return str
+      .toLowerCase()
+      .replace(/(^|[^a-zA-Z0-9'])([a-z])/g, (_, boundary, letter) => boundary + letter.toUpperCase())
+  }, [])
+
+  const getNextCase = useCallback((str: string) => {
+    const hasLetters = /[a-zA-Z]/.test(str)
+    if (!hasLetters) return str
+
+    const isUpper = str === str.toUpperCase() && str !== str.toLowerCase()
+    const isLower = str === str.toLowerCase() && str !== str.toUpperCase()
+    const title = toTitleCase(str)
+    const isTitle = str === title && str !== str.toUpperCase() && str !== str.toLowerCase()
+
+    if (isUpper) {
+      // UPPERCASE -> lowercase
+      return str.toLowerCase()
+    } else if (isLower) {
+      // lowercase -> Capitalize Each Word (Title Case)
+      return title
+    } else if (isTitle) {
+      // Title Case -> UPPERCASE
+      return str.toUpperCase()
+    } else {
+      // Mixed case (sentence case, partial caps, etc.) -> UPPERCASE
+      return str.toUpperCase()
+    }
+  }, [toTitleCase])
+
+  const toggleCase = useCallback(() => {
+    if (!editorRef.current) return
+    const sel = window.getSelection()
+    if (!sel || sel.rangeCount === 0) return
+
+    // Ensure editor maintains focus
+    editorRef.current.focus()
+
+    // If caret is placed in/adjacent to a word without selection, automatically select that word (Word behavior)
+    if (sel.isCollapsed && sel.anchorNode && sel.anchorNode.nodeType === Node.TEXT_NODE) {
+      const text = sel.anchorNode.textContent || ''
+      const offset = sel.anchorOffset
+      let start = offset
+      while (start > 0 && /[\w']/.test(text[start - 1])) start--
+      let end = offset
+      while (end < text.length && /[\w']/.test(text[end])) end++
+      if (start < end) {
+        const r = document.createRange()
+        r.setStart(sel.anchorNode, start)
+        r.setEnd(sel.anchorNode, end)
+        sel.removeAllRanges()
+        sel.addRange(r)
+      }
+    }
+
+    const selectedText = sel.toString()
+    if (!selectedText || !/[a-zA-Z]/.test(selectedText)) return
+
+    const nextText = getNextCase(selectedText)
+    document.execCommand('insertText', false, nextText)
+
+    // Re-select the transformed text so consecutive Shift+F3 presses continue cycling
+    const endNode = sel.focusNode
+    const endOffset = sel.focusOffset
+    if (endNode && endNode.nodeType === Node.TEXT_NODE) {
+      const startOffset = Math.max(0, endOffset - nextText.length)
+      const newRange = document.createRange()
+      newRange.setStart(endNode, startOffset)
+      newRange.setEnd(endNode, endOffset)
+      sel.removeAllRanges()
+      sel.addRange(newRange)
+    }
+
+    syncSelectionState()
+    handleEditorInput()
+  }, [getNextCase, syncSelectionState])
+
+  useEffect(() => {
+    toggleCaseRef.current = toggleCase
+  }, [toggleCase])
 
   const applyUndo = () => {
     document.execCommand('undo', false)
@@ -2271,6 +2374,17 @@ export default function TranscriptEditor({
                   type="button"
                   onMouseDown={(e) => {
                     e.preventDefault()
+                    toggleCase()
+                  }}
+                  className="h-full px-2 text-xs font-extrabold tracking-tight text-zinc-700 hover:bg-purple-50 hover:text-purple-700 transition-colors border-l border-slate-200 cursor-pointer flex items-center justify-center font-sans"
+                  title="Change Case (Shift+F3) - Cycle UPPERCASE, lowercase, Capitalize Each Word"
+                >
+                  Aa
+                </button>
+                <button
+                  type="button"
+                  onMouseDown={(e) => {
+                    e.preventDefault()
                     clearFormatting()
                   }}
                   className="h-full px-2.5 text-xs text-zinc-600 hover:text-red-600 hover:bg-red-50 transition-colors border-l border-slate-200 cursor-pointer"
@@ -2584,6 +2698,16 @@ export default function TranscriptEditor({
               <Underline className="w-3.5 h-3.5" />
             </button>
 
+            {/* Change Case (Shift+F3) */}
+            <button
+              type="button"
+              onMouseDown={(e) => { e.preventDefault(); toggleCase() }}
+              className="flex items-center justify-center h-7 px-1.5 rounded-lg text-xs font-extrabold tracking-tight text-zinc-300 hover:bg-slate-700 hover:text-white transition-colors cursor-pointer font-sans"
+              title="Change Case (Shift+F3) - Cycle UPPERCASE, lowercase, Capitalize Each Word"
+            >
+              Aa
+            </button>
+
             <div className="w-px h-4 bg-slate-600 mx-0.5" />
 
             {/* Highlight Palette Toggle */}
@@ -2887,6 +3011,32 @@ export default function TranscriptEditor({
                   }}
                   className="w-20 text-center font-bold text-purple-700 bg-white border border-purple-200 rounded-lg py-1 uppercase outline-none focus:ring-2 focus:ring-purple-400"
                 />
+              </div>
+
+              {/* Formatting & Word Editing Shortcuts Reference */}
+              <div className="p-2.5 rounded-xl bg-purple-50/70 border border-purple-200/80 text-xs">
+                <div className="font-bold text-purple-900 mb-1.5 flex items-center justify-between">
+                  <span>Text & Word Formatting Shortcuts</span>
+                  <span className="text-[10px] text-purple-600 font-semibold uppercase tracking-wider">MS Word Standard</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-[11px] text-zinc-700">
+                  <div className="flex items-center justify-between p-1 rounded bg-white border border-purple-100">
+                    <span className="font-medium">Change Case:</span>
+                    <kbd className="px-1.5 py-0.5 rounded bg-purple-100 font-mono font-bold text-purple-700 text-[10px]">Shift+F3</kbd>
+                  </div>
+                  <div className="flex items-center justify-between p-1 rounded bg-white border border-purple-100">
+                    <span className="font-medium">Bold / Italic / Underline:</span>
+                    <span className="font-mono font-bold text-purple-700 text-[10px]">Ctrl+B / I / U</span>
+                  </div>
+                  <div className="flex items-center justify-between p-1 rounded bg-white border border-purple-100">
+                    <span className="font-medium">Find & Replace:</span>
+                    <span className="font-mono font-bold text-purple-700 text-[10px]">Ctrl+F / Ctrl+H</span>
+                  </div>
+                  <div className="flex items-center justify-between p-1 rounded bg-white border border-purple-100">
+                    <span className="font-medium">Paragraph Jump:</span>
+                    <span className="font-mono font-bold text-purple-700 text-[10px]">Ctrl+↑ / Ctrl+↓</span>
+                  </div>
+                </div>
               </div>
             </div>
 
