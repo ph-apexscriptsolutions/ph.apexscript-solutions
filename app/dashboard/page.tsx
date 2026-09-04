@@ -1387,6 +1387,16 @@ export default function DashboardPage() {
         // Skip fetching if a record was just added manually (to preserve the single record view)
         if (justAddedRecordRef.current) return
 
+        if (payload.eventType === 'INSERT' && payload.new) {
+          // For INSERTs, prepend the new record directly without fetching all records.
+          // This prevents showing all records when submitting via Transcript Editor or any other path.
+          setRecords(prev => {
+            if (prev.some((r: any) => r.id === (payload.new as any).id)) return prev
+            return [payload.new as any, ...prev]
+          })
+          return
+        }
+
         if (filterApplied) {
           setFilterTrigger(prev => prev + 1)
         } else {
