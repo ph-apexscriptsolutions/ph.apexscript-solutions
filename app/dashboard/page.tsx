@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic'
 import { useEffect, useState, FormEvent, useMemo, useCallback, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/utils/supabase/client"
-import { FileText, HardDrive, LogOut, Calendar, X, Pencil, Save, User, ArrowLeft, Upload, UserPlus, CreditCard, Trash2, Check, Bell, AlertCircle, Tv, Mic, Headphones, FileEdit, Newspaper, Radio, Video, BookOpen, Gavel, TrendingUp, Activity, Search, Loader2, Copy, ChevronDown, ChevronUp, ChevronRight, Building2, Eye, MessageSquare, Zap, MoreVertical, Maximize2, Minimize2, ExternalLink, Laptop, Download, Monitor } from "lucide-react"
+import { FileText, HardDrive, LogOut, Calendar, X, Pencil, Save, User, ArrowLeft, Upload, UserPlus, CreditCard, Trash2, Check, Bell, AlertCircle, Tv, Mic, Headphones, FileEdit, Newspaper, Radio, Video, BookOpen, Gavel, TrendingUp, Activity, Search, Loader2, Copy, ChevronDown, ChevronUp, ChevronRight, Building2, Eye, MessageSquare, Zap, MoreVertical, Maximize2, Minimize2, ExternalLink, Laptop, Download, Monitor, Clock } from "lucide-react"
 import { FlagIcon } from "@/components/flag-icon"
 import TranscriptCleanup from '@/components/TranscriptCleanup'
 import { validateTranscript, replaceInTranscript, getHighlightClass, validationHighlightStyles, ValidationIssue, ValidationRule, Participant, extractParticipants, getValidUncommonWords, detectFillerWords, extractSenateSpeakers, detectTranscriptFormat } from '@/utils/transcript-validation'
@@ -105,46 +105,52 @@ const getAssignmentDueMinutes = (a: any): number | null => {
 }
 
 const getAssignmentUrgency = (a: any) => {
-  const dueMinutes = getAssignmentDueMinutes(a)
-  if (dueMinutes === null) return null
+  try {
+    if (!a) return null
+    const dueMinutes = getAssignmentDueMinutes(a)
+    if (dueMinutes === null || isNaN(dueMinutes)) return null
 
-  const now = new Date()
-  const currentMinutes = now.getHours() * 60 + now.getMinutes()
-  let diff = dueMinutes - currentMinutes
+    const now = new Date()
+    const currentMinutes = now.getHours() * 60 + now.getMinutes()
+    let diff = dueMinutes - currentMinutes
 
-  // Handle midnight wrap-around (e.g. current 23:30, due 01:00)
-  if (diff < -720) diff += 1440
+    // Handle midnight wrap-around (e.g. current 23:30, due 01:00)
+    if (diff < -720) diff += 1440
 
-  if (diff < 0) {
-    return {
-      urgency: 'overdue',
-      label: `Overdue by ${Math.abs(diff)}m`,
-      colorClass: 'bg-red-500 text-white border-red-600 animate-pulse',
+    if (diff < 0) {
+      return {
+        urgency: 'overdue',
+        label: `Overdue by ${Math.abs(diff)}m`,
+        colorClass: 'bg-red-500 text-white border-red-600 animate-pulse',
+      }
     }
-  }
-  if (diff <= 60) {
-    return {
-      urgency: 'urgent',
-      label: `Due in ${diff}m`,
-      colorClass: 'bg-rose-100 border-rose-300 text-rose-800 font-bold animate-pulse',
+    if (diff <= 60) {
+      return {
+        urgency: 'urgent',
+        label: `Due in ${diff}m`,
+        colorClass: 'bg-rose-100 border-rose-300 text-rose-800 font-bold animate-pulse',
+      }
     }
-  }
-  if (diff <= 120) {
+    if (diff <= 120) {
+      const hrs = Math.floor(diff / 60)
+      const mins = diff % 60
+      return {
+        urgency: 'soon',
+        label: `Due in ${hrs}h ${mins > 0 ? `${mins}m` : ''}`,
+        colorClass: 'bg-amber-100 border-amber-300 text-amber-800 font-semibold',
+      }
+    }
+
     const hrs = Math.floor(diff / 60)
     const mins = diff % 60
     return {
-      urgency: 'soon',
+      urgency: 'normal',
       label: `Due in ${hrs}h ${mins > 0 ? `${mins}m` : ''}`,
-      colorClass: 'bg-amber-100 border-amber-300 text-amber-800 font-semibold',
+      colorClass: 'bg-slate-100 border-slate-200 text-slate-700',
     }
-  }
-
-  const hrs = Math.floor(diff / 60)
-  const mins = diff % 60
-  return {
-    urgency: 'normal',
-    label: `Due in ${hrs}h ${mins > 0 ? `${mins}m` : ''}`,
-    colorClass: 'bg-slate-100 border-slate-200 text-slate-700',
+  } catch (err) {
+    console.error('Error computing assignment urgency:', err)
+    return null
   }
 }
 
