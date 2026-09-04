@@ -41,6 +41,7 @@ import {
   Trash2,
   Volume2,
   Zap,
+  Upload,
 } from 'lucide-react'
 import {
   saveAudioToDB,
@@ -175,6 +176,12 @@ export default function TranscriptEditor({
   const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error' | 'info'; text: string } | null>(null)
   const [copied, setCopied] = useState(false)
   const [workerClientType, setWorkerClientType] = useState<'desktop' | 'browser'>('browser')
+  const [workerDisplayName, setWorkerDisplayName] = useState<string>('')
+
+  // Submit/Upload modal state
+  const [showSubmitModal, setShowSubmitModal] = useState(false)
+  const [submitFileName, setSubmitFileName] = useState('')
+  const [submitting, setSubmitting] = useState(false)
 
   // Auto-dismiss success and info banners after 4 seconds; errors stay until manually closed
   useEffect(() => {
@@ -314,6 +321,24 @@ export default function TranscriptEditor({
     }
     fetchPreferences()
   }, [userId])
+
+  // Fetch current user's display name for the submit modal
+  useEffect(() => {
+    if (!userId) return
+    // Try to get name from allWorkers first (for admin-viewed workers)
+    const workerObj = allWorkers.find((w) => w.id === userId)
+    if (workerObj?.full_name) {
+      setWorkerDisplayName(workerObj.full_name)
+      return
+    }
+    // Otherwise fetch from worker-profiles API
+    fetch(`/api/worker-profiles?id=${encodeURIComponent(userId)}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.profile?.full_name) setWorkerDisplayName(data.profile.full_name)
+      })
+      .catch(() => {})
+  }, [userId, allWorkers])
 
   // Save Worker Editor Preferences to Supabase
   const savePreferences = async (newHotkeys = hotkeys, newShortcuts = shortcuts, newFont = font, newFontSize = fontSize) => {
@@ -1617,6 +1642,60 @@ export default function TranscriptEditor({
     URL.revokeObjectURL(url)
   }
 
+  // Submit transcript to admin (mimics dashboard Upload button behaviour)
+  const handleSubmitTranscript = async () => {
+    const plainText = getCleanPlainText()
+    if (!plainText.trim()) {
+      setStatusMessage({ type: 'error', text: 'Transcript is empty. Nothing to submit.' })
+      return
+    }
+    if (!submitFileName.trim()) {
+      setStatusMessage({ type: 'error', text: 'Please enter a file name before submitting.' })
+      return
+    }
+
+    const cleanName = submitFileName.trim().replace(/\.txt$/i, '')
+    const fileName = `${cleanName}.txt`
+
+    const blob = new Blob([plainText], { type: 'text/plain;charset=utf-8' })
+    // Deduct 2.1 KB to match dashboard upload behaviour (overhead / header size)
+    const rawKb = blob.size / 1024
+    const adjustedKb = Math.max(0, rawKb - 2.1)
+    const byteSize = `${adjustedKb.toFixed(1)} KB`
+
+    const workerIdToUse = effectiveUserId
+    const workerNameToUse = workerDisplayName || workerIdToUse
+
+    const formData = new FormData()
+    formData.append('file', blob, fileName)
+    formData.append('workerId', workerIdToUse)
+    formData.append('workerName', workerNameToUse)
+    formData.append('fileName', fileName)
+    formData.append('byteSize', byteSize)
+
+    setSubmitting(true)
+    setStatusMessage(null)
+    try {
+      const res = await fetch('/api/send-file', { method: 'POST', body: formData })
+      const data = await res.json()
+      if (!res.ok || data.error) {
+        setStatusMessage({ type: 'error', text: data.error || 'Failed to submit transcript.' })
+      } else {
+        setShowSubmitModal(false)
+        setSubmitFileName('')
+        const base = data.isRevisionResubmission
+          ? '✅ Revision resubmitted successfully!'
+          : '✅ Transcript submitted successfully!'
+        const warning = data.emailWarning ? ` (Note: ${data.emailWarning})` : ''
+        setStatusMessage({ type: 'success', text: base + warning })
+      }
+    } catch (err: any) {
+      setStatusMessage({ type: 'error', text: `Unexpected error: ${err.message}` })
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
   // Copy with rich HTML clipboard support (clean 1-space format for Word and plain text)
   const handleCopy = async () => {
     if (!editorRef.current) return
@@ -2478,16 +2557,19 @@ export default function TranscriptEditor({
                 <span className="hidden sm:inline">{copied ? 'Copied' : 'Copy'}</span>
               </button>
 
-              {/* Export */}
+              {/* Submit / Upload */}
               <button
                 type="button"
-                onClick={handleManualDownload}
+                onClick={() => {
+                  setSubmitFileName('')
+                  setShowSubmitModal(true)
+                }}
                 disabled={wordCount === 0}
-                className="flex items-center gap-1 h-8 px-2.5 text-xs font-semibold rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-zinc-700 disabled:opacity-40 transition-all shadow-xs cursor-pointer"
-                title="Download .txt"
+                className="flex items-center gap-1 h-8 px-2.5 text-xs font-semibold rounded-xl border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 disabled:opacity-40 transition-all shadow-xs cursor-pointer"
+                title="Submit transcript to admin"
               >
-                <Download className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Export</span>
+                <Upload className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Submit</span>
               </button>
 
               {/* Save */}
@@ -2872,6 +2954,88 @@ export default function TranscriptEditor({
           <span className="font-semibold uppercase text-zinc-600">{effectiveRole}</span>
         </div>
       </div>
+
+      {/* ── SUBMIT / UPLOAD TRANSCRIPT MODAL ── */}
+      {showSubmitModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-fade-in">
+          <div className="bg-white rounded-3xl border border-zinc-200 shadow-2xl p-6 max-w-md w-full flex flex-col space-y-4">
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-xl bg-emerald-100 text-emerald-700">
+                  <Upload className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="text-sm font-bold text-zinc-800">Submit Transcript</h2>
+                  <p className="text-[11px] text-zinc-500">This will send the transcript to admin</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowSubmitModal(false)}
+                className="p-1.5 rounded-xl hover:bg-zinc-100 text-zinc-400 hover:text-zinc-600 transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Worker info */}
+            <div className="bg-slate-50 rounded-2xl px-4 py-3 text-xs space-y-1">
+              <div className="flex justify-between">
+                <span className="text-zinc-500">Worker</span>
+                <span className="font-semibold text-zinc-800">{workerDisplayName || effectiveUserId}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-zinc-500">Words</span>
+                <span className="font-semibold text-zinc-800">{wordCount.toLocaleString()}</span>
+              </div>
+            </div>
+
+            {/* File name input */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-zinc-700">
+                File name <span className="text-zinc-400 font-normal">(must match your assigned file)</span>
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={submitFileName}
+                  onChange={(e) => setSubmitFileName(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' && !submitting) handleSubmitTranscript() }}
+                  placeholder="e.g. client_interview_2024"
+                  className="flex-1 text-xs px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-zinc-900 placeholder-zinc-400 outline-none focus:ring-2 focus:ring-emerald-400/40 focus:border-emerald-300"
+                  autoFocus
+                />
+                <span className="text-xs text-zinc-400 font-medium shrink-0">.txt</span>
+              </div>
+              <p className="text-[11px] text-zinc-400">
+                The file name must match the assignment given by the admin. Do not include the <code className="bg-slate-100 px-1 rounded">.txt</code> extension.
+              </p>
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => setShowSubmitModal(false)}
+                disabled={submitting}
+                className="flex-1 h-9 text-xs font-semibold rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-zinc-600 transition-colors cursor-pointer disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSubmitTranscript}
+                disabled={submitting || !submitFileName.trim()}
+                className="flex-1 h-9 text-xs font-bold rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white shadow-md shadow-emerald-500/20 disabled:opacity-50 transition-all cursor-pointer flex items-center justify-center gap-1.5"
+              >
+                {submitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+                {submitting ? 'Submitting…' : 'Submit to Admin'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── HOTKEYS CONFIGURATION MODAL (Express Scribe Style) ── */}
       {showHotkeysModal && (
