@@ -441,9 +441,19 @@ export default function TranscriptEditor({
 
     const isHtml = /<[a-z][\s\S]*>/i.test(rawContent)
     if (isHtml) {
-      editorRef.current.innerHTML = rawContent
+      // Normalize multiple consecutive empty divs/paragraphs to single standalone space
+      const normalizedHtml = rawContent
+        .replace(/(?:<div[^>]*>\s*<br\s*\/?>\s*<\/div>\s*){2,}/gi, '<div><br></div>')
+        .replace(/(?:<p[^>]*>\s*<br\s*\/?>\s*<\/p>\s*){2,}/gi, '<p><br></p>')
+      editorRef.current.innerHTML = normalizedHtml
     } else {
-      editorRef.current.innerText = rawContent
+      // Normalize plain text blank lines
+      const normalizedText = rawContent
+        .replace(/\r\n/g, '\n')
+        .replace(/\r/g, '\n')
+        .replace(/[ \t]+\n/g, '\n')
+        .replace(/\n{3,}/g, '\n\n')
+      editorRef.current.innerText = normalizedText
     }
     const text = editorRef.current.innerText || ''
     const trimmed = text.trim()
@@ -1183,7 +1193,7 @@ export default function TranscriptEditor({
     handleEditorInput()
   }
 
-  // Clean / fix all double or multiple consecutive spaces into a single space
+  // Clean / fix all double or multiple consecutive spaces into a single space, and collapse extra blank lines
   const fixAllDoubleSpaces = useCallback(() => {
     if (!editorRef.current) return
     const currentHtml = editorRef.current.innerHTML
@@ -1197,12 +1207,18 @@ export default function TranscriptEditor({
       .replace(/(&nbsp; )|( &nbsp;)/g, ' ')
       .replace(/\u00A0{2,}/g, ' ')
 
+    // 3. Collapse multiple consecutive empty divs/paragraphs (2+ blank lines -> 1 standalone space)
+    cleaned = cleaned
+      .replace(/(?:<div[^>]*>\s*<br\s*\/?>\s*<\/div>\s*){2,}/gi, '<div><br></div>')
+      .replace(/(?:<p[^>]*>\s*<br\s*\/?>\s*<\/p>\s*){2,}/gi, '<p><br></p>')
+      .replace(/(?:<br\s*\/?>\s*){3,}/gi, '<br><br>')
+
     editorRef.current.innerHTML = cleaned
     updateStats()
     triggerAutoSave(cleaned)
     setStatusMessage({
       type: 'success',
-      text: 'All double spaces have been cleaned! Standard 1-space format restored.',
+      text: 'All double spaces and extra blank lines have been cleaned! Standard 1-space format restored.',
     })
   }, [updateStats, triggerAutoSave])
 
@@ -1468,10 +1484,22 @@ export default function TranscriptEditor({
     }
   }
 
+  // Helper to get normalized plain text with strictly 1 standalone space (1 blank line) between paragraphs
+  const getCleanPlainText = useCallback(() => {
+    if (!editorRef.current) return ''
+    const raw = editorRef.current.innerText || ''
+    return raw
+      .replace(/\r\n/g, '\n')
+      .replace(/\r/g, '\n')
+      .replace(/[ \t]+\n/g, '\n')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim()
+  }, [])
+
   // Manual export as clean plain-text .txt file
   const handleManualDownload = () => {
     if (!editorRef.current) return
-    const plainText = editorRef.current.innerText || ''
+    const plainText = getCleanPlainText()
     if (!plainText.trim()) return
 
     const blob = new Blob([plainText], { type: 'text/plain;charset=utf-8' })
@@ -1486,16 +1514,28 @@ export default function TranscriptEditor({
     URL.revokeObjectURL(url)
   }
 
-  // Copy with rich HTML clipboard support
+  // Copy with rich HTML clipboard support (clean 1-space format for Word and plain text)
   const handleCopy = async () => {
     if (!editorRef.current) return
-    const plainText = editorRef.current.innerText || ''
+    const plainText = getCleanPlainText()
     const htmlContent = editorRef.current.innerHTML
 
     if (!plainText.trim()) return
 
+    // Clean and normalize HTML for clipboard export (Word and rich editors)
+    // 1. Remove double-space-flag wrappers if any exist
+    // 2. Collapse multiple consecutive empty blocks (<div><br></div><div><br></div> -> <div><br></div>)
+    let cleanHtml = htmlContent
+      .replace(/<span class="double-space-flag"[^>]*>([\s\S]*?)<\/span>/gi, '$1')
+      .replace(/(?:<div[^>]*>\s*<br\s*\/?>\s*<\/div>\s*){2,}/gi, '<div><br></div>')
+      .replace(/(?:<p[^>]*>\s*<br\s*\/?>\s*<\/p>\s*){2,}/gi, '<p><br></p>')
+      .replace(/(?:<br\s*\/?>\s*){3,}/gi, '<br><br>')
+
+    // Wrap in standard Word-compatible HTML format with margin:0 to prevent Word's default 8-12pt paragraph margins doubling the blank line space
+    const formattedHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>p, div { margin: 0; padding: 0; line-height: 1.15; }</style></head><body>${cleanHtml}</body></html>`
+
     try {
-      const blobHtml = new Blob([htmlContent], { type: 'text/html' })
+      const blobHtml = new Blob([formattedHtml], { type: 'text/html' })
       const blobText = new Blob([plainText], { type: 'text/plain' })
       const item = new ClipboardItem({
         'text/html': blobHtml,
@@ -1510,12 +1550,17 @@ export default function TranscriptEditor({
     setTimeout(() => setCopied(false), 2000)
   }
 
-  // Clean paste interceptor (strips Word margin bloat)
+  // Clean paste interceptor (strips Word margin bloat and normalizes paragraph breaks to 1 standalone space)
   const handlePaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
     e.preventDefault()
     const text = e.clipboardData.getData('text/plain')
     if (text) {
-      document.execCommand('insertText', false, text)
+      const normalized = text
+        .replace(/\r\n/g, '\n')
+        .replace(/\r/g, '\n')
+        .replace(/[ \t]+\n/g, '\n')
+        .replace(/\n{3,}/g, '\n\n')
+      document.execCommand('insertText', false, normalized)
       handleEditorInput()
     }
   }

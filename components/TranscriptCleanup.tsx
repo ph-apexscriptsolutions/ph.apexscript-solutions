@@ -81,7 +81,7 @@ export default function TranscriptCleanup({ transcript, onTranscriptChange, depa
   const removeTimestamps = useCallback((text: string): { cleaned: string, count: number, removed: RemovedItem[] } => {
     let count = 0
     const removed: RemovedItem[] = []
-    const lines = text.split('\n')
+    const lines = text.split(/\r?\n/)
 
     // Match various timestamp formats:
     // 00:00:01 - 00:00:05
@@ -134,7 +134,7 @@ export default function TranscriptCleanup({ transcript, onTranscriptChange, depa
 
     // Process lines to preserve paragraph structure
     // Remove lines that became empty due to timestamp removal
-    // Keep original empty lines as paragraph separators
+    // Keep original empty lines as single paragraph separators (strictly avoid consecutive empty lines)
     const resultLines: string[] = []
     for (let i = 0; i < cleanedLines.length; i++) {
       const line = cleanedLines[i]
@@ -145,13 +145,18 @@ export default function TranscriptCleanup({ transcript, onTranscriptChange, depa
         // Content line - add it
         resultLines.push(line)
       } else if (!lineBecameEmpty) {
-        // Original empty line - preserve as paragraph separator
-        // Only add if previous line wasn't empty (avoid consecutive empty lines)
-        if (!prevLine || prevLine.length > 0) {
-          resultLines.push(line)
+        // Original empty line - preserve as single paragraph separator
+        // Only add if previous line was content (avoid consecutive empty lines / leading empty line)
+        if (prevLine !== null && prevLine.length > 0) {
+          resultLines.push('')
         }
       }
       // Skip lines that became empty due to timestamp removal
+    }
+
+    // Trim any trailing empty lines
+    while (resultLines.length > 0 && resultLines[resultLines.length - 1] === '') {
+      resultLines.pop()
     }
 
     const cleaned = resultLines.join('\n')
@@ -164,7 +169,7 @@ export default function TranscriptCleanup({ transcript, onTranscriptChange, depa
     const removed: RemovedItem[] = []
 
     // Process line by line to preserve paragraph structure
-    const lines = text.split('\n')
+    const lines = text.split(/\r?\n/)
     const cleanedLines = lines
       .map(line => {
         let result = line
@@ -310,7 +315,7 @@ export default function TranscriptCleanup({ transcript, onTranscriptChange, depa
     const removed: RemovedItem[] = []
 
     // Process line by line to preserve paragraph structure
-    const lines = text.split('\n')
+    const lines = text.split(/\r?\n/)
     const cleanedLines = lines
       .map(line => {
         let cleanedLine = line
@@ -590,6 +595,14 @@ export default function TranscriptCleanup({ transcript, onTranscriptChange, depa
         allRemovedItems.push(...result.removed)
       }
 
+      // Normalize paragraph spacing: collapse multiple consecutive blank lines to exactly 1 blank line
+      currentText = currentText
+        .replace(/\r\n/g, '\n')
+        .replace(/\r/g, '\n')
+        .replace(/[ \t]+\n/g, '\n')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim()
+
       setSummary(newSummary)
       setRemovedItems(allRemovedItems)
       setIsProcessing(false)
@@ -602,7 +615,13 @@ export default function TranscriptCleanup({ transcript, onTranscriptChange, depa
   const hasChanges = summary.timestampsRemoved > 0 || summary.fillerWordsRemoved > 0 || summary.repetitionsRemoved > 0
 
   const handleCopyTranscript = useCallback(() => {
-    navigator.clipboard.writeText(transcript)
+    const cleaned = transcript
+      .replace(/\r\n/g, '\n')
+      .replace(/\r/g, '\n')
+      .replace(/[ \t]+\n/g, '\n')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim()
+    navigator.clipboard.writeText(cleaned)
     setCopySuccess(true)
     setTimeout(() => setCopySuccess(false), 2000)
   }, [transcript])
