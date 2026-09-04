@@ -104,6 +104,50 @@ const getAssignmentDueMinutes = (a: any): number | null => {
   return null
 }
 
+const getAssignmentUrgency = (a: any) => {
+  const dueMinutes = getAssignmentDueMinutes(a)
+  if (dueMinutes === null) return null
+
+  const now = new Date()
+  const currentMinutes = now.getHours() * 60 + now.getMinutes()
+  let diff = dueMinutes - currentMinutes
+
+  // Handle midnight wrap-around (e.g. current 23:30, due 01:00)
+  if (diff < -720) diff += 1440
+
+  if (diff < 0) {
+    return {
+      urgency: 'overdue',
+      label: `Overdue by ${Math.abs(diff)}m`,
+      colorClass: 'bg-red-500 text-white border-red-600 animate-pulse',
+    }
+  }
+  if (diff <= 60) {
+    return {
+      urgency: 'urgent',
+      label: `Due in ${diff}m`,
+      colorClass: 'bg-rose-100 border-rose-300 text-rose-800 font-bold animate-pulse',
+    }
+  }
+  if (diff <= 120) {
+    const hrs = Math.floor(diff / 60)
+    const mins = diff % 60
+    return {
+      urgency: 'soon',
+      label: `Due in ${hrs}h ${mins > 0 ? `${mins}m` : ''}`,
+      colorClass: 'bg-amber-100 border-amber-300 text-amber-800 font-semibold',
+    }
+  }
+
+  const hrs = Math.floor(diff / 60)
+  const mins = diff % 60
+  return {
+    urgency: 'normal',
+    label: `Due in ${hrs}h ${mins > 0 ? `${mins}m` : ''}`,
+    colorClass: 'bg-slate-100 border-slate-200 text-slate-700',
+  }
+}
+
 const getCurrencyConfig = (location?: string) => {
   switch (location) {
     case 'United States':
@@ -386,6 +430,9 @@ export default function DashboardPage() {
   const [editingAnnouncementId, setEditingAnnouncementId] = useState<string | null>(null)
   const [announcementSchemaHint, setAnnouncementSchemaHint] = useState<string | null>(null)
   const [announcementErrorMessage, setAnnouncementErrorMessage] = useState<string | null>(null)
+  const [selectedRecordIds, setSelectedRecordIds] = useState<Set<string | number>>(new Set())
+  const [isBulkDeletingRecords, setIsBulkDeletingRecords] = useState(false)
+  const [teamMemberFilter, setTeamMemberFilter] = useState<'all' | 'online' | 'available' | 'offline'>('all')
 
   // Priority / Rush Announcement states
   const [activePriorityAnnouncement, setActivePriorityAnnouncement] = useState<any | null>(null)
@@ -1662,6 +1709,63 @@ export default function DashboardPage() {
     }
   }
 
+  const handleBulkDeleteRecords = async () => {
+    if (!isAdmin) return
+    if (selectedRecordIds.size === 0) return
+    if (!confirm(`Are you sure you want to delete ${selectedRecordIds.size} selected record(s)?`)) return
+
+    setIsBulkDeletingRecords(true)
+    try {
+      for (const recId of Array.from(selectedRecordIds)) {
+        await fetch('/api/delete-production-record', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ recordId: recId }),
+        })
+      }
+
+      let q: any = supabase.from('production_records').select('*').eq('worker_id', activeWorker.id)
+      if (startDate) q = q.gte('date_completed', startDate)
+      if (endDate) q = q.lte('date_completed', endDate)
+      const { data } = await q.order('date_completed', { ascending: false })
+      if (data) setRecords(data)
+      setSelectedRecordIds(new Set())
+      alert(`✅ Successfully deleted records.`)
+    } catch (err: any) {
+      console.error('Bulk delete error:', err)
+      alert(`Failed to bulk delete: ${err.message}`)
+    } finally {
+      setIsBulkDeletingRecords(false)
+    }
+  }
+
+  const handleExportRecordsCSV = () => {
+    if (!records || records.length === 0) {
+      alert('No records available to export.')
+      return
+    }
+
+    const headers = ['File Name', 'Worker', 'Date Completed', 'Size (KB)']
+    const rows = records.map((r: any) => [
+      `"${(getDisplayFileName(r.file_name) || '').replace(/"/g, '""')}"`,
+      `"${(activeWorker?.full_name || activeWorker?.id || '').replace(/"/g, '""')}"`,
+      `"${r.date_completed || ''}"`,
+      `"${formatKB(r.byte_size)}"`,
+    ])
+
+    const csvContent = [headers.join(','), ...rows.map((row) => row.join(','))].join('\n')
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    const dateStr = new Date().toISOString().slice(0, 10)
+    link.href = url
+    link.setAttribute('download', `production_records_${activeWorker?.full_name || 'worker'}_${dateStr}.csv`)
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+  }
+
   const handleDeleteWorker = async (workerId: string, workerName: string) => {
     if (workerId === user?.id) {
       alert('You cannot delete your own account while logged in.')
@@ -2306,11 +2410,27 @@ export default function DashboardPage() {
   const filteredTotalFiles = records.length
   const filteredTotalKB = calculateTotalKB(records)
 
+  // Helper to test if a worker matches the current workload / availability filter
+  const matchesTeamFilter = (w: any) => {
+    if (teamMemberFilter === 'all') return true
+    const lastSeen = w.last_seen ? new Date(w.last_seen) : null
+    const diffMins = lastSeen ? (Date.now() - lastSeen.getTime()) / (1000 * 60) : 99999
+    const isOnline = diffMins < 5
+
+    if (teamMemberFilter === 'online') return isOnline
+    if (teamMemberFilter === 'offline') return !isOnline
+    if (teamMemberFilter === 'available') {
+      // Worker is marked available or has capacity (status === 'available' or availability flag is true or online without busy tag)
+      return (w.availability_status === 'available' || w.is_available === true || w.available === true || isOnline) && w.availability_status !== 'busy'
+    }
+    return true
+  }
+
   // Group workers by role for the Team Members view
-  const admins = allWorkers.filter((w: any) => w.role === 'admin')
-  const moderators = allWorkers.filter((w: any) => w.role === 'moderator')
-  const hrProjectManagers = allWorkers.filter((w: any) => ['project_manager', 'human_resource', 'project_manager_human_resource'].includes(w.role))
-  const workersList = allWorkers.filter((w: any) => !['admin', 'moderator', 'project_manager', 'human_resource', 'project_manager_human_resource'].includes(w.role))
+  const admins = allWorkers.filter((w: any) => w.role === 'admin' && matchesTeamFilter(w))
+  const moderators = allWorkers.filter((w: any) => w.role === 'moderator' && matchesTeamFilter(w))
+  const hrProjectManagers = allWorkers.filter((w: any) => ['project_manager', 'human_resource', 'project_manager_human_resource'].includes(w.role) && matchesTeamFilter(w))
+  const workersList = allWorkers.filter((w: any) => !['admin', 'moderator', 'project_manager', 'human_resource', 'project_manager_human_resource'].includes(w.role) && matchesTeamFilter(w))
 
   const computeTotalEarnings = () => {
     const kbValue = parseFloat(filteredTotalKB.replace(/[^\d.]/g, '')) || 0
@@ -3407,6 +3527,18 @@ export default function DashboardPage() {
           </div>
         </div>
         <div className="flex items-center gap-3">
+          {/* Admin Pending Action Center Badge */}
+          {isAdmin && adminPayslipRequests.filter((p: any) => p.status === 'pending').length > 0 && (
+            <button
+              onClick={() => setIsPayslipAdminModalOpen(true)}
+              className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-800 text-xs font-bold animate-pulse hover:bg-amber-500/25 transition cursor-pointer"
+              title="Click to review pending worker payslip requests"
+            >
+              <AlertCircle className="w-3.5 h-3.5 text-amber-600" />
+              <span>{adminPayslipRequests.filter((p: any) => p.status === 'pending').length} Payslip Request{adminPayslipRequests.filter((p: any) => p.status === 'pending').length > 1 ? 's' : ''}</span>
+            </button>
+          )}
+
           {/* Bell notification icon */}
           <div className="relative">
             <button
@@ -3569,10 +3701,60 @@ export default function DashboardPage() {
 
         {isAdmin && view === "list" ? (
           <div>
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
               <div>
-                <h2 className="text-2xl font-semibold text-zinc-900">Team Members</h2>
-                <p className="text-zinc-500">Select a worker to view their production records and information.</p>
+                <h2 className="text-2xl font-semibold text-zinc-900">Team Members & Availability</h2>
+                <p className="text-zinc-500 text-xs mt-0.5">Select a worker to view production records or filter by real-time workload status.</p>
+              </div>
+
+              {/* Real-time Workload & Availability Filter Pills */}
+              <div className="flex items-center gap-1.5 p-1 bg-zinc-100 rounded-xl border border-zinc-200 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setTeamMemberFilter('all')}
+                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    teamMemberFilter === 'all'
+                      ? 'bg-white text-zinc-900 shadow-sm border border-zinc-200'
+                      : 'text-zinc-600 hover:text-zinc-900'
+                  }`}
+                >
+                  All ({allWorkers.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTeamMemberFilter('online')}
+                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                    teamMemberFilter === 'online'
+                      ? 'bg-white text-emerald-700 shadow-sm border border-emerald-200'
+                      : 'text-zinc-600 hover:text-emerald-700'
+                  }`}
+                >
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  Online
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTeamMemberFilter('available')}
+                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                    teamMemberFilter === 'available'
+                      ? 'bg-white text-cyan-700 shadow-sm border border-cyan-200'
+                      : 'text-zinc-600 hover:text-cyan-700'
+                  }`}
+                >
+                  <span className="w-2 h-2 rounded-full bg-cyan-500" />
+                  Available
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTeamMemberFilter('offline')}
+                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    teamMemberFilter === 'offline'
+                      ? 'bg-white text-zinc-800 shadow-sm border border-zinc-300'
+                      : 'text-zinc-500 hover:text-zinc-800'
+                  }`}
+                >
+                  Offline
+                </button>
               </div>
             </div>
             
@@ -4299,21 +4481,76 @@ export default function DashboardPage() {
                           <X className="h-3 w-3" /> Clear
                         </button>
                       )}
+                      <button
+                        onClick={handleExportRecordsCSV}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-600/40 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 px-3 py-1.5 text-xs font-semibold transition-all shadow-sm"
+                        title="Export current filtered production records to CSV"
+                      >
+                        <Download className="h-3.5 w-3.5 text-emerald-600" />
+                        Export CSV
+                      </button>
+                      {isAdmin && selectedRecordIds.size > 0 && (
+                        <button
+                          onClick={handleBulkDeleteRecords}
+                          disabled={isBulkDeletingRecords}
+                          className="inline-flex items-center gap-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 text-xs font-bold transition-all shadow-md animate-pulse disabled:opacity-50"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                          Delete Selected ({selectedRecordIds.size})
+                        </button>
+                      )}
                     </div>
                   </div>
                   <div className="overflow-x-auto rounded-xl border border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/5">
                     <table className="w-full text-xs text-left">
                       <thead className={`bg-black/10 dark:bg-white/10 uppercase text-[10px] font-bold tracking-wider ${productionStyle.headerColor || productionStyle.textColor}`}>
                         <tr>
-                          <th className="px-3 py-2 text-left rounded-tl-lg">File Name</th>
+                          {isAdmin && (
+                            <th className="px-3 py-2 text-center w-8 rounded-tl-lg">
+                              <input
+                                type="checkbox"
+                                checked={records.length > 0 && selectedRecordIds.size === records.length}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setSelectedRecordIds(new Set(records.map((r: any) => r.id)))
+                                  } else {
+                                    setSelectedRecordIds(new Set())
+                                  }
+                                }}
+                                className="rounded border-zinc-300 text-cyan-600 focus:ring-cyan-500 cursor-pointer"
+                                title="Select / Deselect all records"
+                              />
+                            </th>
+                          )}
+                          <th className={`px-3 py-2 text-left ${!isAdmin ? 'rounded-tl-lg' : ''}`}>File Name</th>
                           <th className="px-3 py-2 text-left">Date Completed</th>
                           <th className="px-3 py-2 text-left">Size (KB)</th>
                           {canEditRecord && <th className="px-3 py-2 text-left rounded-tr-lg">Actions</th>}
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-black/10 dark:divide-white/10">
-                        {records.length > 0 ? records.map((r: any) => (
-                          <tr key={r.id} className="hover:bg-black/10 dark:hover:bg-white/10 transition-colors">
+                        {records.length > 0 ? records.map((r: any) => {
+                          const isSelected = selectedRecordIds.has(r.id)
+                          return (
+                          <tr key={r.id} className={`transition-colors ${isSelected ? 'bg-cyan-500/15' : 'hover:bg-black/10 dark:hover:bg-white/10'}`}>
+                            {isAdmin && (
+                              <td className="px-3 py-2 text-center">
+                                <input
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  onChange={(e) => {
+                                    const nextSet = new Set(selectedRecordIds)
+                                    if (e.target.checked) {
+                                      nextSet.add(r.id)
+                                    } else {
+                                      nextSet.delete(r.id)
+                                    }
+                                    setSelectedRecordIds(nextSet)
+                                  }}
+                                  className="rounded border-zinc-300 text-cyan-600 focus:ring-cyan-500 cursor-pointer"
+                                />
+                              </td>
+                            )}
                             <td className={`px-3 py-2 font-semibold ${productionStyle.textColor || 'text-zinc-900'}`}>{getDisplayFileName(r.file_name)}</td>
                             <td className={`px-3 py-2 ${productionStyle.textColor || 'text-zinc-700'} opacity-90`}>{formatDateDMY(r.date_completed)}</td>
                             <td className={`px-3 py-2 font-bold ${productionStyle.valueColor || 'text-cyan-600'}`}>{formatKB(r.byte_size)}</td>
@@ -4330,9 +4567,9 @@ export default function DashboardPage() {
                               </td>
                             )}
                           </tr>
-                        )) : (
+                        )}) : (
                           <tr>
-                            <td colSpan={canEditRecord ? 4 : 3} className={`px-3 py-6 text-center font-medium ${productionStyle.labelColor || productionStyle.textColor}`}>No production records found.</td>
+                            <td colSpan={canEditRecord ? (isAdmin ? 5 : 4) : (isAdmin ? 4 : 3)} className={`px-3 py-6 text-center font-medium ${productionStyle.labelColor || productionStyle.textColor}`}>No production records found.</td>
                           </tr>
                         )}
                       </tbody>
@@ -7059,6 +7296,16 @@ export default function DashboardPage() {
                                 Priority
                               </span>
                             )}
+                            {(() => {
+                              const urgencyInfo = a.status !== 'done' && a.status !== 'cancelled' ? getAssignmentUrgency(a) : null
+                              if (!urgencyInfo) return null
+                              return (
+                                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] border whitespace-nowrap ${urgencyInfo.colorClass}`}>
+                                  <Clock className="w-2.5 h-2.5 shrink-0" />
+                                  {urgencyInfo.label}
+                                </span>
+                              )
+                            })()}
                           </div>
 
                           {/* Mobile Action Buttons (Visible and easy to tap) */}
@@ -7107,6 +7354,16 @@ export default function DashboardPage() {
                                 Priority
                               </span>
                             )}
+                            {(() => {
+                              const urgencyInfo = a.status !== 'done' && a.status !== 'cancelled' ? getAssignmentUrgency(a) : null
+                              if (!urgencyInfo) return null
+                              return (
+                                <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[8px] border shrink-0 ${urgencyInfo.colorClass}`}>
+                                  <Clock className="w-2.5 h-2.5 shrink-0" />
+                                  {urgencyInfo.label}
+                                </span>
+                              )
+                            })()}
                           </div>
 
                           {/* Col 2: Status */}
