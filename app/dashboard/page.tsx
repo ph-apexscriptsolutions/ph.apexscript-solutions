@@ -110,12 +110,27 @@ const getAssignmentUrgency = (a: any) => {
     const dueMinutes = getAssignmentDueMinutes(a)
     if (dueMinutes === null || isNaN(dueMinutes)) return null
 
+    // All transcript assignments are scheduled in U.S. Eastern Time (ET/EDT/EST)
+    // Calculate current time in America/New_York (US Eastern Time)
     const now = new Date()
-    const currentMinutes = now.getHours() * 60 + now.getMinutes()
-    let diff = dueMinutes - currentMinutes
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/New_York',
+      hour: 'numeric',
+      minute: 'numeric',
+      hour12: false,
+    })
+    const parts = formatter.formatToParts(now)
+    let currentHours = parseInt(parts.find((p) => p.type === 'hour')?.value || '0', 10)
+    // In hour12: false, 24 can sometimes appear as 24 or 0
+    if (currentHours === 24) currentHours = 0
+    const currentMinutesPart = parseInt(parts.find((p) => p.type === 'minute')?.value || '0', 10)
+    const currentMinutesET = currentHours * 60 + currentMinutesPart
 
-    // Handle midnight wrap-around (e.g. current 23:30, due 01:00)
+    let diff = dueMinutes - currentMinutesET
+
+    // Handle day wrap-around (e.g. current 23:30 ET, due 01:00 ET)
     if (diff < -720) diff += 1440
+    if (diff > 720) diff -= 1440
 
     if (diff < 0) {
       return {
