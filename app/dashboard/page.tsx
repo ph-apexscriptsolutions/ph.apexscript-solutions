@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic'
 import { useEffect, useState, FormEvent, useMemo, useCallback, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/utils/supabase/client"
-import { FileText, HardDrive, LogOut, Calendar, X, Pencil, Save, User, ArrowLeft, Upload, UserPlus, CreditCard, Trash2, Check, Bell, AlertCircle, Tv, Mic, Headphones, FileEdit, Newspaper, Radio, Video, BookOpen, Gavel, TrendingUp, Activity, Search, Loader2, Copy, ChevronDown, ChevronUp, ChevronRight, Building2, Eye, MessageSquare, Zap, MoreVertical, Maximize2, Minimize2, ExternalLink, Laptop, Download, Monitor, Clock } from "lucide-react"
+import { FileText, HardDrive, LogOut, Calendar, X, Pencil, Save, User, ArrowLeft, Upload, UserPlus, CreditCard, Trash2, Check, Bell, AlertCircle, Tv, Mic, Headphones, FileEdit, Newspaper, Radio, Video, BookOpen, Gavel, TrendingUp, Activity, Search, Loader2, Copy, ChevronDown, ChevronUp, ChevronRight, Building2, Eye, MessageSquare, Zap, MoreVertical, Maximize2, Minimize2, ExternalLink, Laptop, Monitor, Clock } from "lucide-react"
 import { FlagIcon } from "@/components/flag-icon"
 import TranscriptCleanup from '@/components/TranscriptCleanup'
 import { validateTranscript, replaceInTranscript, getHighlightClass, validationHighlightStyles, ValidationIssue, ValidationRule, Participant, extractParticipants, getValidUncommonWords, detectFillerWords, extractSenateSpeakers, detectTranscriptFormat } from '@/utils/transcript-validation'
@@ -1758,33 +1758,6 @@ export default function DashboardPage() {
     } finally {
       setIsBulkDeletingRecords(false)
     }
-  }
-
-  const handleExportRecordsCSV = () => {
-    if (!records || records.length === 0) {
-      alert('No records available to export.')
-      return
-    }
-
-    const headers = ['File Name', 'Worker', 'Date Completed', 'Size (KB)']
-    const rows = records.map((r: any) => [
-      `"${(getDisplayFileName(r.file_name) || '').replace(/"/g, '""')}"`,
-      `"${(activeWorker?.full_name || activeWorker?.id || '').replace(/"/g, '""')}"`,
-      `"${r.date_completed || ''}"`,
-      `"${formatKB(r.byte_size)}"`,
-    ])
-
-    const csvContent = [headers.join(','), ...rows.map((row) => row.join(','))].join('\n')
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    const dateStr = new Date().toISOString().slice(0, 10)
-    link.href = url
-    link.setAttribute('download', `production_records_${activeWorker?.full_name || 'worker'}_${dateStr}.csv`)
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    URL.revokeObjectURL(url)
   }
 
   const handleDeleteWorker = async (workerId: string, workerName: string) => {
@@ -4502,14 +4475,6 @@ export default function DashboardPage() {
                           <X className="h-3 w-3" /> Clear
                         </button>
                       )}
-                      <button
-                        onClick={handleExportRecordsCSV}
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-600/40 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 px-3 py-1.5 text-xs font-semibold transition-all shadow-sm"
-                        title="Export current filtered production records to CSV"
-                      >
-                        <Download className="h-3.5 w-3.5 text-emerald-600" />
-                        Export CSV
-                      </button>
                       {isAdmin && selectedRecordIds.size > 0 && (
                         <button
                           onClick={handleBulkDeleteRecords}
