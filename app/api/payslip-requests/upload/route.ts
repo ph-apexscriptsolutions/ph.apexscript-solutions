@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import nodemailer from 'nodemailer'
+import { buildPayslipUploadedEmailHtml, formatCutoffDetails } from '@/lib/payslip-emails'
 
 const supabaseUrl = process.env.SUPABASE_URL
 const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -14,37 +15,6 @@ const transporter = process.env.EMAIL_USER && process.env.EMAIL_PASS
       },
     })
   : null
-
-function buildWorkerPayslipEmailHtml(workerName: string, cutoffLabel: string): string {
-  return `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #111827;">
-      <div style="background: linear-gradient(135deg, #2563eb, #1d4ed8); padding: 28px 32px; border-radius: 12px 12px 0 0;">
-        <h2 style="margin: 0; color: #ffffff; font-size: 20px;">&#128196; Payslip Ready for Download</h2>
-        <p style="margin: 6px 0 0; color: #eff6ff; font-size: 13px;">Your requested payslip is now available</p>
-      </div>
-      <div style="background: #ffffff; padding: 28px 32px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 12px 12px;">
-        <p style="margin: 0 0 16px; font-size: 15px; color: #111827;">Hi <strong>${workerName}</strong>,</p>
-        
-        <p style="margin: 0 0 16px; font-size: 14px; color: #374151; line-height: 1.6;">
-          Your requested payslip for the period <strong>${cutoffLabel}</strong> has been uploaded by the administrator.
-        </p>
-
-        <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 16px; margin: 20px 0;">
-          <h4 style="margin: 0 0 8px; font-size: 14px; color: #1e3a8a;">&#128229; How to download:</h4>
-          <ol style="margin: 0; padding-left: 20px; font-size: 13px; color: #1d4ed8; line-height: 1.6;">
-            <li>Log in to the <strong>ApexScript Worker Portal</strong>.</li>
-            <li>In the Worker Hub, click on the <strong>"Request Payslip"</strong> action card.</li>
-            <li>Inside the modal, switch to the <strong>"View Status"</strong> tab.</li>
-            <li>Find your request for <strong>${cutoffLabel}</strong> and click the <strong>"Download payslip"</strong> button.</li>
-          </ol>
-        </div>
-
-        <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0 20px;" />
-        <p style="margin: 0; font-size: 12px; color: #9ca3af;">This is an automated confirmation from the ApexScript Worker Portal. Do not reply to this email.</p>
-      </div>
-    </div>
-  `
-}
 
 export async function POST(request: Request) {
   try {
@@ -67,7 +37,7 @@ export async function POST(request: Request) {
 
     const { data: existing, error: fetchErr } = await supabase
       .from('payslip_requests')
-      .select('id,worker_id,status,cutoff_start')
+      .select('id, worker_id, status, cutoff_start, cutoff_end')
       .eq('id', requestId)
       .single()
 
@@ -129,17 +99,23 @@ export async function POST(request: Request) {
           .single()
 
         if (workerData?.email) {
-          const [y, m, day] = existing.cutoff_start.split('-').map(Number)
-          const monthName = new Date(y, m - 1, 1).toLocaleString('default', { month: 'long' })
-          const cutoffLabel = `${monthName} ${y} — ${day <= 14 ? 'First Cutoff' : 'Second Cutoff'}`
+          const { cutoffLabel, dateRange } = formatCutoffDetails(existing.cutoff_start, existing.cutoff_end)
           const workerName = workerData.full_name || 'Worker'
-          
+
           await transporter.sendMail({
             from: `"ApexScript Worker Portal" <${process.env.EMAIL_USER}>`,
             to: workerData.email,
             subject: `[PAYSLIP AVAILABLE] Your payslip for ${cutoffLabel} is ready`,
-            html: buildWorkerPayslipEmailHtml(workerName, cutoffLabel),
+            html: buildPayslipUploadedEmailHtml({
+              workerName,
+              cutoffLabel,
+              dateRange,
+              payslipUrl: urlData.publicUrl,
+            }),
           })
+          console.log(`Payslip ready email successfully sent to ${workerData.email} for request #${requestId}`)
+        } else {
+          console.warn(`No email found for worker ID ${existing.worker_id}, skipping payslip ready notification`)
         }
       } catch (emailErr) {
         console.error('Failed to send email notification to worker:', emailErr)
