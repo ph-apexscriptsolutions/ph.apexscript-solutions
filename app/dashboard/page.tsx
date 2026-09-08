@@ -53,7 +53,95 @@ const getDisplayFileName = (fileName: string) => {
   return fileName.replace(/\.txt$/i, '')
 }
 
-const getAssignmentDueMinutes = (a: any): number | null => {
+// Helper to extract Eastern Time (America/New_York) components from a Date
+const getETParts = (date: Date) => {
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York',
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: 'numeric',
+    second: 'numeric',
+    hour12: false,
+  })
+  const parts = formatter.formatToParts(date)
+  const get = (type: string) => {
+    const p = parts.find((x) => x.type === type)
+    return p ? parseInt(p.value, 10) : 0
+  }
+  let hour = get('hour')
+  if (hour === 24) hour = 0
+  return {
+    year: get('year'),
+    month: get('month'),
+    day: get('day'),
+    hour,
+    minute: get('minute'),
+    second: get('second'),
+  }
+}
+
+// Convert a specific Eastern Time (America/New_York) calendar moment to a UTC Date
+const etToUTC = (year: number, month: number, day: number, hour: number, minute: number): Date => {
+  const approx = new Date(Date.UTC(year, month - 1, day, 12, 0, 0))
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York',
+    timeZoneName: 'longOffset',
+    year: 'numeric',
+  }).formatToParts(approx)
+  const tzPart = parts.find((p) => p.type === 'timeZoneName')
+  let offsetMinutes = -300 // default EST (UTC-5)
+  if (tzPart && tzPart.value) {
+    const match = tzPart.value.match(/GMT([+-])(\d{1,2})(?::(\d{2}))?/)
+    if (match) {
+      const sign = match[1] === '+' ? 1 : -1
+      const h = parseInt(match[2], 10)
+      const m = match[3] ? parseInt(match[3], 10) : 0
+      offsetMinutes = sign * (h * 60 + m)
+    }
+  }
+  const utcMillis = Date.UTC(year, month - 1, day, hour, minute, 0) - offsetMinutes * 60000
+  return new Date(utcMillis)
+}
+
+// Parse explicit calendar dates from assignment description/filename if present
+const parseExplicitDate = (text: string, refYear: number) => {
+  if (!text) return null
+  // 1. ISO date: YYYY-MM-DD or YYYY/MM/DD
+  const isoMatch = text.match(/\b(\d{4})[-/](\d{1,2})[-/](\d{1,2})\b/)
+  if (isoMatch) {
+    const y = parseInt(isoMatch[1], 10)
+    const m = parseInt(isoMatch[2], 10)
+    const d = parseInt(isoMatch[3], 10)
+    if (m >= 1 && m <= 12 && d >= 1 && d <= 31) return { year: y, month: m, day: d }
+  }
+  // 2. Month name + day: e.g. 'Sep 9', 'September 10', 'Sep 9, 2026'
+  const monthMap: Record<string, number> = {
+    jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6,
+    jul: 7, aug: 8, sep: 9, sept: 9, oct: 10, nov: 11, dec: 12,
+  }
+  const monthNameMatch = text.match(/\b(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t|tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\.?\s+(\d{1,2})(?:st|nd|rd|th)?(?:\s*,?\s*(\d{4}))?\b/i)
+  if (monthNameMatch) {
+    const monthKey = monthNameMatch[1].toLowerCase().slice(0, 3)
+    const m = monthMap[monthKey]
+    const d = parseInt(monthNameMatch[2], 10)
+    const y = monthNameMatch[3] ? parseInt(monthNameMatch[3], 10) : refYear
+    if (m && d >= 1 && d <= 31) return { year: y, month: m, day: d }
+  }
+  // 3. US date MM/DD or MM/DD/YYYY
+  const usDateMatch = text.match(/\b(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\b/)
+  if (usDateMatch) {
+    const m = parseInt(usDateMatch[1], 10)
+    const d = parseInt(usDateMatch[2], 10)
+    let y = usDateMatch[3] ? parseInt(usDateMatch[3], 10) : refYear
+    if (y < 100) y += 2000
+    if (m >= 1 && m <= 12 && d >= 1 && d <= 31) return { year: y, month: m, day: d }
+  }
+  return null
+}
+
+const getAssignmentDueTargetDate = (a: any): Date | null => {
   if (!a) return null
 
   const sources: string[] = []
@@ -64,78 +152,133 @@ const getAssignmentDueMinutes = (a: any): number | null => {
   }
   if (a.filename) sources.push(String(a.filename))
 
+  let extractedTime: { hours: number; minutes: number } | null = null
+  let explicitDate: { year: number; month: number; day: number } | null = null
+  let isTomorrow = false
+
   for (const text of sources) {
+    if (!explicitDate) {
+      explicitDate = parseExplicitDate(text, new Date().getFullYear())
+    }
+    if (!isTomorrow && /\btomorrow\b/i.test(text)) {
+      isTomorrow = true
+    }
     // 1. Match "Due: 1800ET", "Due: 0600ET", "Due: 1800", "Due: 0600 UST"
-    const militaryDueMatch = text.match(/due\s*:\s*(\d{2})(\d{2})\s*(?:et|ust|est|edt|ct|pt|utc|gmt)?/i)
-    if (militaryDueMatch) {
-      const hours = parseInt(militaryDueMatch[1], 10)
-      const minutes = parseInt(militaryDueMatch[2], 10)
-      if (hours >= 0 && hours < 24 && minutes >= 0 && minutes < 60) return hours * 60 + minutes
+    if (!extractedTime) {
+      const militaryDueMatch = text.match(/due\s*:\s*(\d{2})(\d{2})\s*(?:et|ust|est|edt|ct|pt|utc|gmt)?/i)
+      if (militaryDueMatch) {
+        const hours = parseInt(militaryDueMatch[1], 10)
+        const minutes = parseInt(militaryDueMatch[2], 10)
+        if (hours >= 0 && hours < 24 && minutes >= 0 && minutes < 60) {
+          extractedTime = { hours, minutes }
+        }
+      }
     }
     // 2. Match "Due: 18:00ET", "Due: 06:00 ET", "Due: 6:00 PM"
-    const colonDueMatch = text.match(/due\s*:\s*([01]?\d|2[0-3]):([0-5]\d)\s*(am|pm)?/i)
-    if (colonDueMatch) {
-      let hours = parseInt(colonDueMatch[1], 10)
-      const minutes = parseInt(colonDueMatch[2], 10)
-      const ampm = colonDueMatch[3] ? colonDueMatch[3].toLowerCase() : null
-      if (ampm === 'pm' && hours < 12) hours += 12
-      if (ampm === 'am' && hours === 12) hours = 0
-      return hours * 60 + minutes
+    if (!extractedTime) {
+      const colonDueMatch = text.match(/due\s*:\s*([01]?\d|2[0-3]):([0-5]\d)\s*(am|pm)?/i)
+      if (colonDueMatch) {
+        let hours = parseInt(colonDueMatch[1], 10)
+        const minutes = parseInt(colonDueMatch[2], 10)
+        const ampm = colonDueMatch[3] ? colonDueMatch[3].toLowerCase() : null
+        if (ampm === 'pm' && hours < 12) hours += 12
+        if (ampm === 'am' && hours === 12) hours = 0
+        extractedTime = { hours, minutes }
+      }
     }
     // 3. Match 4-digit military with timezone e.g. "1800ET", "0600ET"
-    const militaryTzMatch = text.match(/\b(\d{2})(\d{2})\s*(?:et|ust|est|edt|ct|pt|utc|gmt)\b/i)
-    if (militaryTzMatch) {
-      const hours = parseInt(militaryTzMatch[1], 10)
-      const minutes = parseInt(militaryTzMatch[2], 10)
-      if (hours >= 0 && hours < 24 && minutes >= 0 && minutes < 60) return hours * 60 + minutes
+    if (!extractedTime) {
+      const militaryTzMatch = text.match(/\b(\d{2})(\d{2})\s*(?:et|ust|est|edt|ct|pt|utc|gmt)\b/i)
+      if (militaryTzMatch) {
+        const hours = parseInt(militaryTzMatch[1], 10)
+        const minutes = parseInt(militaryTzMatch[2], 10)
+        if (hours >= 0 && hours < 24 && minutes >= 0 && minutes < 60) {
+          extractedTime = { hours, minutes }
+        }
+      }
     }
     // 4. Match general time format e.g. "03:00 AM", "15:30"
-    const generalMatch = text.match(/\b([01]?\d|2[0-3]):([0-5]\d)\s*(am|pm)?\b/i)
-    if (generalMatch) {
-      let hours = parseInt(generalMatch[1], 10)
-      const minutes = parseInt(generalMatch[2], 10)
-      const ampm = generalMatch[3] ? generalMatch[3].toLowerCase() : null
-      if (ampm === 'pm' && hours < 12) hours += 12
-      if (ampm === 'am' && hours === 12) hours = 0
-      return hours * 60 + minutes
+    if (!extractedTime) {
+      const generalMatch = text.match(/\b([01]?\d|2[0-3]):([0-5]\d)\s*(am|pm)?\b/i)
+      if (generalMatch) {
+        let hours = parseInt(generalMatch[1], 10)
+        const minutes = parseInt(generalMatch[2], 10)
+        const ampm = generalMatch[3] ? generalMatch[3].toLowerCase() : null
+        if (ampm === 'pm' && hours < 12) hours += 12
+        if (ampm === 'am' && hours === 12) hours = 0
+        extractedTime = { hours, minutes }
+      }
     }
   }
 
-  return null
+  if (!extractedTime) return null
+
+  const now = new Date()
+  const created = a.created_at ? new Date(a.created_at) : now
+  const createdET = getETParts(!isNaN(created.getTime()) ? created : now)
+
+  let targetYear = createdET.year
+  let targetMonth = createdET.month
+  let targetDay = createdET.day
+
+  if (explicitDate) {
+    targetYear = explicitDate.year
+    targetMonth = explicitDate.month
+    targetDay = explicitDate.day
+  } else if (isTomorrow) {
+    const nextDay = new Date(Date.UTC(targetYear, targetMonth - 1, targetDay + 1))
+    targetYear = nextDay.getUTCFullYear()
+    targetMonth = nextDay.getUTCMonth() + 1
+    targetDay = nextDay.getUTCDate()
+  } else {
+    // If due time is earlier in the day than when assigned (allowing 30 min buffer),
+    // it was scheduled for overnight / next morning
+    const dueTotalMin = extractedTime.hours * 60 + extractedTime.minutes
+    const createdTotalMin = createdET.hour * 60 + createdET.minute
+    if (dueTotalMin < createdTotalMin - 30) {
+      const nextDay = new Date(Date.UTC(targetYear, targetMonth - 1, targetDay + 1))
+      targetYear = nextDay.getUTCFullYear()
+      targetMonth = nextDay.getUTCMonth() + 1
+      targetDay = nextDay.getUTCDate()
+    }
+  }
+
+  return etToUTC(targetYear, targetMonth, targetDay, extractedTime.hours, extractedTime.minutes)
+}
+
+const getAssignmentDueMinutes = (a: any): number | null => {
+  const targetDate = getAssignmentDueTargetDate(a)
+  if (!targetDate) return null
+  const et = getETParts(targetDate)
+  return et.hour * 60 + et.minute
 }
 
 const getAssignmentUrgency = (a: any) => {
   try {
     if (!a) return null
-    const dueMinutes = getAssignmentDueMinutes(a)
-    if (dueMinutes === null || isNaN(dueMinutes)) return null
+    const targetDate = getAssignmentDueTargetDate(a)
+    if (!targetDate) return null
 
-    // All transcript assignments are scheduled in U.S. Eastern Time (ET/EDT/EST)
-    // Calculate current time in America/New_York (US Eastern Time)
     const now = new Date()
-    const formatter = new Intl.DateTimeFormat('en-US', {
-      timeZone: 'America/New_York',
-      hour: 'numeric',
-      minute: 'numeric',
-      hour12: false,
-    })
-    const parts = formatter.formatToParts(now)
-    let currentHours = parseInt(parts.find((p) => p.type === 'hour')?.value || '0', 10)
-    // In hour12: false, 24 can sometimes appear as 24 or 0
-    if (currentHours === 24) currentHours = 0
-    const currentMinutesPart = parseInt(parts.find((p) => p.type === 'minute')?.value || '0', 10)
-    const currentMinutesET = currentHours * 60 + currentMinutesPart
+    const diff = Math.round((targetDate.getTime() - now.getTime()) / 60000)
 
-    let diff = dueMinutes - currentMinutesET
-
-    // Handle day wrap-around (e.g. current 23:30 ET, due 01:00 ET)
-    if (diff < -720) diff += 1440
-    if (diff > 720) diff -= 1440
+    const formatDiff = (minsTotal: number) => {
+      const absM = Math.abs(minsTotal)
+      if (absM < 60) return `${absM}m`
+      const days = Math.floor(absM / 1440)
+      const remainingMins = absM % 1440
+      const hrs = Math.floor(remainingMins / 60)
+      const mins = remainingMins % 60
+      if (days > 0) {
+        return `${days}d${hrs > 0 ? ` ${hrs}h` : ''}`
+      }
+      return `${hrs}h${mins > 0 ? ` ${mins}m` : ''}`
+    }
 
     if (diff < 0) {
       return {
         urgency: 'overdue',
-        label: `Overdue by ${Math.abs(diff)}m`,
+        label: `Overdue by ${formatDiff(diff)}`,
         colorClass: 'bg-red-500 text-white border-red-600 animate-pulse',
       }
     }
@@ -147,20 +290,16 @@ const getAssignmentUrgency = (a: any) => {
       }
     }
     if (diff <= 120) {
-      const hrs = Math.floor(diff / 60)
-      const mins = diff % 60
       return {
         urgency: 'soon',
-        label: `Due in ${hrs}h ${mins > 0 ? `${mins}m` : ''}`,
+        label: `Due in ${formatDiff(diff)}`,
         colorClass: 'bg-amber-100 border-amber-300 text-amber-800 font-semibold',
       }
     }
 
-    const hrs = Math.floor(diff / 60)
-    const mins = diff % 60
     return {
       urgency: 'normal',
-      label: `Due in ${hrs}h ${mins > 0 ? `${mins}m` : ''}`,
+      label: `Due in ${formatDiff(diff)}`,
       colorClass: 'bg-slate-100 border-slate-200 text-slate-700',
     }
   } catch (err) {
@@ -498,6 +637,13 @@ export default function DashboardPage() {
   const [isUpdatingWorkerDetails, setIsUpdatingWorkerDetails] = useState(false)
 
   const [assignments, setAssignments] = useState<any[]>([])
+  const [, setAssignmentClockTick] = useState(0)
+  useEffect(() => {
+    const tickInterval = setInterval(() => {
+      setAssignmentClockTick((prev) => prev + 1)
+    }, 30000)
+    return () => clearInterval(tickInterval)
+  }, [])
   const [showAllSubmittedMessage, setShowAllSubmittedMessage] = useState(false)
   const [isAddAssignmentModalOpen, setIsAddAssignmentModalOpen] = useState(false)
   const [newAssignmentFilename, setNewAssignmentFilename] = useState("")
@@ -881,13 +1027,16 @@ export default function DashboardPage() {
     if (activeAssignments.length <= 1) return null
 
     let earliestId: number | null = null
-    let minDueMinutes = Infinity
+    let minDueTimestamp = Infinity
 
     activeAssignments.forEach((a: any) => {
-      const dueMin = getAssignmentDueMinutes(a)
-      if (dueMin !== null && dueMin < minDueMinutes) {
-        minDueMinutes = dueMin
-        earliestId = a.id
+      const targetDate = getAssignmentDueTargetDate(a)
+      if (targetDate !== null) {
+        const timestamp = targetDate.getTime()
+        if (timestamp < minDueTimestamp) {
+          minDueTimestamp = timestamp
+          earliestId = a.id
+        }
       }
     })
 
