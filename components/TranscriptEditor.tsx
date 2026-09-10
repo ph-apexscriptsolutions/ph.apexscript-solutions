@@ -2961,23 +2961,6 @@ export default function TranscriptEditor({
               </span>
             )}
           </div>
-          {localDraftSavedAt && (
-            <span className="flex items-center gap-0.5 text-zinc-600 font-medium" title="Safe locally in your browser storage">
-              <Check className="w-3 h-3 text-cyan-600" />
-              Draft saved locally ({localDraftSavedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })})
-            </span>
-          )}
-          {autoSaveStatus === 'saving' ? (
-            <span className="flex items-center gap-1 text-purple-600 animate-pulse">
-              <Loader2 className="w-3 h-3 animate-spin" />
-              Syncing cloud...
-            </span>
-          ) : autoSaveTime ? (
-            <span className="flex items-center gap-0.5 text-emerald-600" title="Ongoing work auto-saved to cloud">
-              <CheckCircle2 className="w-3 h-3" />
-              Cloud synced ({autoSaveTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})
-            </span>
-          ) : null}
           {lastSavedTime && (
             <span className="flex items-center gap-0.5 text-purple-700 font-medium" title="Manual save to slot completed">
               <Check className="w-3 h-3 text-purple-600" />
