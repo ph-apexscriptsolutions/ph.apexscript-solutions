@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic'
 import { useEffect, useState, FormEvent, useMemo, useCallback, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/utils/supabase/client"
-import { FileText, HardDrive, LogOut, Calendar, X, Pencil, Save, User, ArrowLeft, Upload, UserPlus, CreditCard, Trash2, Check, Bell, AlertCircle, Tv, Mic, Headphones, FileEdit, Newspaper, Radio, Video, BookOpen, Gavel, TrendingUp, Activity, Search, Loader2, Copy, ChevronDown, ChevronUp, ChevronRight, Building2, Eye, MessageSquare, Zap, MoreVertical, Maximize2, Minimize2, ExternalLink, Laptop, Monitor, Clock } from "lucide-react"
+import { FileText, HardDrive, LogOut, Calendar, X, Pencil, Save, User, ArrowLeft, Upload, UserPlus, CreditCard, Trash2, Check, Bell, AlertCircle, Tv, Mic, Headphones, FileEdit, Newspaper, Radio, Video, BookOpen, Gavel, TrendingUp, Activity, Search, Loader2, Copy, ChevronDown, ChevronUp, ChevronRight, Building2, Eye, MessageSquare, Zap, MoreVertical, Maximize2, Minimize2, ExternalLink, Laptop, Monitor, Clock, Sparkles, ClipboardPaste } from "lucide-react"
 import { FlagIcon } from "@/components/flag-icon"
 import TranscriptCleanup from '@/components/TranscriptCleanup'
 import { validateTranscript, replaceInTranscript, getHighlightClass, validationHighlightStyles, ValidationIssue, ValidationRule, Participant, extractParticipants, getValidUncommonWords, detectFillerWords, extractSenateSpeakers, detectTranscriptFormat } from '@/utils/transcript-validation'
@@ -11,6 +11,7 @@ import PriorityBroadcastModal from '@/components/priority-broadcast-modal'
 import AdminPriorityAnnouncementModal from '@/components/admin-priority-announcement-modal'
 import RevisionRequestModal from '@/components/revision-request-modal'
 import { DashboardCardStyleModal } from '@/components/dashboard-card-style-modal'
+import { parseAndFormatAssignment, isRawAssignmentSequence } from '@/utils/assignment-formatter'
 
 const getDepartmentIcon = (department: string) => {
   const dept = department.toLowerCase()
@@ -3420,8 +3421,64 @@ export default function DashboardPage() {
     }
   }, [isAssignmentCommentModalOpen, isAdmin])
 
+  const applyFormattedAssignmentText = useCallback((rawText: string) => {
+    const parsed = parseAndFormatAssignment(rawText)
+    if (parsed.isAssignment) {
+      if (parsed.code && (!newAssignmentFilename.trim() || !editAssignmentId)) {
+        setNewAssignmentFilename(parsed.code)
+      }
+      if (assignmentEditorRef) {
+        assignmentEditorRef.innerHTML = parsed.formattedHtml
+      }
+      setNewAssignmentDescription(parsed.formattedHtml)
+      setToastMessage('✨ Formatted assignment with bold labels!')
+      setShowToast(true)
+      setTimeout(() => { setShowToast(false); setToastMessage(null) }, 2500)
+    }
+  }, [newAssignmentFilename, editAssignmentId, assignmentEditorRef])
+
+  const handleAutoFormatClipboard = async () => {
+    try {
+      if (!navigator?.clipboard?.readText) {
+        const pasted = prompt('Paste client format (Code, Company, Duration, Audio, Topic, Due):')
+        if (pasted) {
+          applyFormattedAssignmentText(pasted)
+        }
+        return
+      }
+      const text = await navigator.clipboard.readText()
+      if (!text || !text.trim()) {
+        const pasted = prompt('Clipboard was empty. Paste your client format here:')
+        if (pasted) {
+          applyFormattedAssignmentText(pasted)
+        }
+        return
+      }
+      applyFormattedAssignmentText(text)
+    } catch (err) {
+      const pasted = prompt('Paste client format (Code, Company, Duration, Audio, Topic, Due):')
+      if (pasted) {
+        applyFormattedAssignmentText(pasted)
+      }
+    }
+  }
+
   const addAssignment = async (workerId: string, filename: string) => {
-    if (!filename.trim()) {
+    let effectiveFilename = filename.trim()
+    let descriptionContent = assignmentEditorRef?.innerHTML || newAssignmentDescription || ''
+
+    if (descriptionContent && isRawAssignmentSequence(descriptionContent)) {
+      const parsed = parseAndFormatAssignment(descriptionContent)
+      if (parsed.isAssignment) {
+        descriptionContent = parsed.formattedHtml
+        if (!effectiveFilename && parsed.code) {
+          effectiveFilename = parsed.code
+          setNewAssignmentFilename(parsed.code)
+        }
+      }
+    }
+
+    if (!effectiveFilename) {
       alert('Please enter a filename')
       return
     }
@@ -3444,14 +3501,13 @@ export default function DashboardPage() {
         attachmentUrl = uploadData.attachmentUrl
       }
 
-      const descriptionContent = assignmentEditorRef?.innerHTML || ''
       const requestUrl = new URL('/api/production-assignments', window.location.origin).toString()
       const res = await fetch(requestUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           workerId,
-          filename: filename.trim(),
+          filename: effectiveFilename,
           description: descriptionContent || null,
           attachmentUrl,
           isPriority: isPriorityAssignment,
@@ -3484,7 +3540,20 @@ export default function DashboardPage() {
   }
 
   const saveAssignment = async (workerId: string) => {
-    const descriptionContent = assignmentEditorRef?.innerHTML || ''
+    let descriptionContent = assignmentEditorRef?.innerHTML || newAssignmentDescription || ''
+    let effectiveFilename = newAssignmentFilename.trim()
+
+    if (descriptionContent && isRawAssignmentSequence(descriptionContent)) {
+      const parsed = parseAndFormatAssignment(descriptionContent)
+      if (parsed.isAssignment) {
+        descriptionContent = parsed.formattedHtml
+        if (!effectiveFilename && parsed.code) {
+          effectiveFilename = parsed.code
+          setNewAssignmentFilename(parsed.code)
+        }
+      }
+    }
+
     if (editAssignmentId) {
       try {
         const res = await fetch('/api/production-assignments/update', {
@@ -3492,7 +3561,7 @@ export default function DashboardPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             assignmentId: editAssignmentId,
-            filename: newAssignmentFilename.trim(),
+            filename: effectiveFilename,
             description: descriptionContent || null,
             isPriority: isPriorityAssignment,
           }),
@@ -3519,7 +3588,7 @@ export default function DashboardPage() {
       return
     }
     // fallback to add
-    await addAssignment(workerId, newAssignmentFilename)
+    await addAssignment(workerId, effectiveFilename)
   }
 
   const deleteAssignment = async (assignmentId: number) => {
@@ -5018,9 +5087,47 @@ export default function DashboardPage() {
                   <button onClick={() => { setIsAddAssignmentModalOpen(false); setNewAssignmentFilename(""); setNewAssignmentDescription(""); setNewAssignmentAttachment(null); if (assignmentEditorRef) assignmentEditorRef.innerHTML = '' }} className="absolute right-4 top-4 text-zinc-400 hover:text-zinc-900"><X className="h-5 w-5" /></button>
                   <h3 className="text-lg font-semibold text-zinc-900 mb-4">{editAssignmentId ? 'Edit Assignment' : 'Add New Assignment'}</h3>
                   <form onSubmit={(e) => { e.preventDefault(); saveAssignment(activeWorker.id) }} className="space-y-4">
+                    {/* Auto-format client assignment banner */}
+                    <div className="rounded-xl border border-cyan-200 bg-gradient-to-r from-cyan-50 to-sky-50 p-3 shadow-2xs">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5 text-xs font-bold text-cyan-950">
+                            <Sparkles className="h-3.5 w-3.5 text-cyan-600 shrink-0" />
+                            <span>Client Format Auto-Detection</span>
+                          </div>
+                          <p className="text-[11px] text-cyan-800 mt-0.5 leading-relaxed">
+                            Paste raw 6-line client text (Code, Company, Duration, Audio, Topic, Due) directly into Description or click Auto-Fill:
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleAutoFormatClipboard}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-cyan-700 hover:bg-cyan-800 text-white shadow-2xs transition shrink-0 cursor-pointer"
+                          title="Paste from clipboard and format with bold labels"
+                        >
+                          <ClipboardPaste className="h-3.5 w-3.5" />
+                          Auto-Fill from Clipboard
+                        </button>
+                      </div>
+                    </div>
+
                     <div>
                       <label className="block text-sm font-medium text-zinc-700 mb-1">Filename</label>
-                      <input type="text" value={newAssignmentFilename} onChange={(e) => setNewAssignmentFilename(e.target.value)} placeholder="e.g., 771241201" className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900" required />
+                      <input
+                        type="text"
+                        value={newAssignmentFilename}
+                        onChange={(e) => setNewAssignmentFilename(e.target.value)}
+                        onPaste={(e) => {
+                          const pasteText = e.clipboardData?.getData('text/plain')
+                          if (pasteText && isRawAssignmentSequence(pasteText)) {
+                            e.preventDefault()
+                            applyFormattedAssignmentText(pasteText)
+                          }
+                        }}
+                        placeholder="e.g., 782084601"
+                        className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900"
+                        required
+                      />
                     </div>
 
                     <div className="flex items-center gap-3 bg-red-50/60 p-2.5 rounded-xl border border-red-200/80">
@@ -5040,10 +5147,26 @@ export default function DashboardPage() {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-zinc-700 mb-1">Description</label>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="block text-sm font-medium text-zinc-700">Description</label>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const current = assignmentEditorRef?.innerHTML || newAssignmentDescription || ''
+                            if (current.trim()) {
+                              applyFormattedAssignmentText(current)
+                            }
+                          }}
+                          className="inline-flex items-center gap-1 text-[11px] font-bold text-cyan-700 hover:text-cyan-900 bg-cyan-50 hover:bg-cyan-100 border border-cyan-300 px-2 py-0.5 rounded-md transition cursor-pointer"
+                          title="Auto-format lines into Code, Company, Duration, Audio Availability, Topic, Due (bold labels)"
+                        >
+                          <Sparkles className="h-3 w-3 text-cyan-600" />
+                          Auto-Format Sequence
+                        </button>
+                      </div>
                       {/* Formatting Toolbar */}
                       <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-2 mb-2">
-                        <div className="flex flex-wrap gap-2">
+                        <div className="flex flex-wrap gap-2 items-center">
                           <button
                             type="button"
                             onClick={() => document.execCommand('bold', false, undefined)}
@@ -5101,6 +5224,21 @@ export default function DashboardPage() {
                             className="h-8 w-10 rounded-md border border-zinc-300 cursor-pointer"
                             title="Highlight Color"
                           />
+                          <div className="w-px bg-zinc-300 mx-1"></div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const current = assignmentEditorRef?.innerHTML || newAssignmentDescription || ''
+                              if (current.trim()) {
+                                applyFormattedAssignmentText(current)
+                              }
+                            }}
+                            className="px-2.5 py-1.5 rounded-md text-xs font-bold bg-cyan-100 hover:bg-cyan-200 text-cyan-800 border border-cyan-300 transition flex items-center gap-1 cursor-pointer"
+                            title="Auto-format lines into Code, Company, Duration, Audio Availability, Topic, Due (bold labels)"
+                          >
+                            <Sparkles className="h-3 w-3 text-cyan-700" />
+                            <span>Auto-Format</span>
+                          </button>
                         </div>
                       </div>
                       <div
@@ -5108,6 +5246,13 @@ export default function DashboardPage() {
                         contentEditable={true}
                         className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm text-zinc-800 outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 min-h-[100px] max-h-[200px] overflow-y-auto"
                         style={{ fontFamily: 'Arial', fontSize: '14px' }}
+                        onPaste={(e) => {
+                          const pasteText = e.clipboardData?.getData('text/plain')
+                          if (pasteText && isRawAssignmentSequence(pasteText)) {
+                            e.preventDefault()
+                            applyFormattedAssignmentText(pasteText)
+                          }
+                        }}
                         onInput={(e) => {
                           const content = (e.target as HTMLElement).innerHTML
                           setNewAssignmentDescription(content)
@@ -5312,7 +5457,7 @@ export default function DashboardPage() {
         description="Customize colors, gradients, and typography for Bank Details."
         cardType="bank"
         styleData={bankStyle}
-        onStyleChange={setBankStyle}
+        onStyleChange={(s: any) => setBankStyle(s)}
         onSave={() => saveDashboardStyles({ bankStyle })}
         onReset={() => setBankStyle({
           bgGradient: 'from-cyan-50 to-blue-50/80',
@@ -5339,7 +5484,7 @@ export default function DashboardPage() {
         description="Customize colors, gradients, and title for Worker Profile."
         cardType="worker"
         styleData={workerStyle}
-        onStyleChange={setWorkerStyle}
+        onStyleChange={(s: any) => setWorkerStyle(s)}
         extraHeaderField={{
           label: "Worker Badge Title",
           value: workerTitle,
@@ -5372,7 +5517,7 @@ export default function DashboardPage() {
         description="Customize styling for Total Kilobytes, Total Files, and Total Earnings cards."
         cardType="stats"
         styleData={statsStyle}
-        onStyleChange={setStatsStyle}
+        onStyleChange={(s: any) => setStatsStyle(s)}
         onSave={() => saveDashboardStyles({ statsStyle })}
         onReset={() => setStatsStyle({
           bgGradient: 'from-slate-800 to-slate-900',
@@ -5399,7 +5544,7 @@ export default function DashboardPage() {
         description="Customize colors, themes, and tables for the Production Records section."
         cardType="production"
         styleData={productionStyle}
-        onStyleChange={setProductionStyle}
+        onStyleChange={(s: any) => setProductionStyle(s)}
         helperNote={
           <div className="p-3 rounded-xl bg-cyan-50 border border-cyan-200 text-xs text-cyan-900 space-y-1">
             <div className="font-bold flex items-center gap-1.5 text-cyan-900">

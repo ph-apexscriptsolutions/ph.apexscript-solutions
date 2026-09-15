@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { parseAndFormatAssignment, isRawAssignmentSequence } from '@/utils/assignment-formatter'
 
 const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -30,7 +31,21 @@ export async function POST(request: Request) {
     if (status) updates.status = status
     if (typeof filename !== 'undefined' && filename !== null) updates.filename = filename.trim()
     if (typeof dueTime !== 'undefined') updates.due_time = dueTime
-    if (typeof description !== 'undefined') updates.description = description
+    if (typeof description !== 'undefined') {
+      if (description && isRawAssignmentSequence(description)) {
+        const parsed = parseAndFormatAssignment(description)
+        if (parsed.isAssignment) {
+          updates.description = parsed.formattedHtml
+          if (typeof dueTime === 'undefined' && parsed.due) {
+            updates.due_time = parsed.due
+          }
+        } else {
+          updates.description = description
+        }
+      } else {
+        updates.description = description
+      }
+    }
     if (typeof isPriority !== 'undefined') updates.is_priority = Boolean(isPriority)
 
     // Always update description_updated_at timestamp whenever assignment details are edited

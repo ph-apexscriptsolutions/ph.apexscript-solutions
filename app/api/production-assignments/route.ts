@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getSupabaseServerClient } from '@/utils/supabase/server'
 import nodemailer from 'nodemailer'
+import { parseAndFormatAssignment, isRawAssignmentSequence } from '@/utils/assignment-formatter'
 
 // Initialize Nodemailer transporter with Gmail
 const transporter = process.env.EMAIL_USER && process.env.EMAIL_PASS 
@@ -53,7 +54,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing workerId or filename' }, { status: 400 })
     }
 
-    const formattedDueTime = dueTime || null
+    let finalDescription = description || null
+    let formattedDueTime = dueTime || null
+
+    if (finalDescription && isRawAssignmentSequence(finalDescription)) {
+      const parsed = parseAndFormatAssignment(finalDescription)
+      if (parsed.isAssignment) {
+        finalDescription = parsed.formattedHtml
+        if (!formattedDueTime && parsed.due) {
+          formattedDueTime = parsed.due
+        }
+      }
+    }
 
     const supabase = getSupabaseServerClient(true)
 
@@ -64,7 +76,7 @@ export async function POST(request: Request) {
         filename,
         status: 'pending',
         due_time: formattedDueTime,
-        description: description || null,
+        description: finalDescription,
         attachment_url: attachmentUrl || null,
         is_priority: isPriority || false,
       }])
