@@ -4054,68 +4054,70 @@ export default function DashboardPage() {
                 <h3 className="text-sm font-semibold text-zinc-600 mb-2">Admins</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                   {admins.length > 0 ? admins.map((w: any) => (
-                    <div key={w.id} role="button" tabIndex={0} onClick={() => handleViewWorker(w)} onKeyDown={(e) => { if (e.key === 'Enter') handleViewWorker(w) }} className="group relative flex items-center gap-4 p-4 bg-white rounded-xl border border-zinc-200 shadow-sm hover:shadow-md transition-all text-left cursor-pointer">
-                      <div className="relative flex h-12 w-12 shrink-0 overflow-hidden rounded-full bg-zinc-200 text-zinc-500">
-                        <div className="flex h-full w-full items-center justify-center"><User className="h-6 w-6" /></div>
-                        {w.last_seen && (() => {
-                          const lastSeen = new Date(w.last_seen)
-                          const now = new Date()
-                          const diffMinutes = (now.getTime() - lastSeen.getTime()) / (1000 * 60)
-                          if (diffMinutes < 5) {
-                            return <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white bg-green-500" />
-                          }
-                          return null
-                        })()}
-                      </div>
-                      <div className="overflow-hidden">
-                        <p className="font-semibold text-zinc-900 truncate">{w.full_name}</p>
-                        <p className="text-zinc-500 text-sm mt-1 truncate flex items-center gap-1">
-                          <span>{w.job_title || "Transcriber"} · {w.department || "General"}</span>
-                          {w.location ? (
-                            <span className="inline-flex items-center gap-1">
-                              · {w.location}
-                              <FlagIcon country={w.location} size={14} />
-                            </span>
-                          ) : null}
-                        </p>
-                        <div className="flex items-center gap-2 mt-2">
-                          {w.role && (
-                            <span className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${ROLE_BADGE_STYLES[w.role] || 'bg-zinc-100 text-zinc-700'}`}>
-                              {formatRoleLabel(w.role)}
-                            </span>
-                          )}
+                    <div key={w.id} role="button" tabIndex={0} onClick={() => handleViewWorker(w)} onKeyDown={(e) => { if (e.key === 'Enter') handleViewWorker(w) }} className="group relative flex items-center justify-between gap-3 p-4 bg-white rounded-xl border border-zinc-200 shadow-sm hover:shadow-md transition-all text-left cursor-pointer">
+                      <div className="flex items-center gap-3.5 min-w-0 flex-1">
+                        <div className="relative flex h-12 w-12 shrink-0 overflow-hidden rounded-full bg-zinc-200 text-zinc-500">
+                          <div className="flex h-full w-full items-center justify-center"><User className="h-6 w-6" /></div>
                           {w.last_seen && (() => {
                             const lastSeen = new Date(w.last_seen)
                             const now = new Date()
                             const diffMinutes = (now.getTime() - lastSeen.getTime()) / (1000 * 60)
-                            // Hide last seen if offline for more than 12 hours
-                            if (diffMinutes > 720) return null
                             if (diffMinutes < 5) {
-                              return <span className="text-green-600 text-xs font-medium">Online</span>
-                            } else {
-                              const minutesAgo = Math.floor(diffMinutes)
-                              if (minutesAgo < 60) {
-                                return <span className="text-zinc-400 text-xs">{minutesAgo}m ago</span>
+                              return <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white bg-green-500" />
+                            }
+                            return null
+                          })()}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="font-semibold text-zinc-900 truncate" title={w.full_name}>{w.full_name}</p>
+                          <p className="text-zinc-500 text-sm mt-1 truncate flex items-center gap-1">
+                            <span>{w.job_title || "Transcriber"} · {w.department || "General"}</span>
+                            {w.location ? (
+                              <span className="inline-flex items-center gap-1">
+                                · {w.location}
+                                <FlagIcon country={w.location} size={14} />
+                              </span>
+                            ) : null}
+                          </p>
+                          <div className="flex items-center gap-2 mt-2">
+                            {w.role && (
+                              <span className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${ROLE_BADGE_STYLES[w.role] || 'bg-zinc-100 text-zinc-700'}`}>
+                                {formatRoleLabel(w.role)}
+                              </span>
+                            )}
+                            {w.last_seen && (() => {
+                              const lastSeen = new Date(w.last_seen)
+                              const now = new Date()
+                              const diffMinutes = (now.getTime() - lastSeen.getTime()) / (1000 * 60)
+                              // Hide last seen if offline for more than 12 hours
+                              if (diffMinutes > 720) return null
+                              if (diffMinutes < 5) {
+                                return <span className="text-green-600 text-xs font-medium">Online</span>
                               } else {
-                                const hoursAgo = Math.floor(minutesAgo / 60)
-                                if (hoursAgo < 24) {
-                                  return <span className="text-zinc-400 text-xs">{hoursAgo}h ago</span>
+                                const minutesAgo = Math.floor(diffMinutes)
+                                if (minutesAgo < 60) {
+                                  return <span className="text-zinc-400 text-xs">{minutesAgo}m ago</span>
                                 } else {
-                                  return <span className="text-zinc-400 text-xs">{Math.floor(hoursAgo / 24)}d ago</span>
+                                  const hoursAgo = Math.floor(minutesAgo / 60)
+                                  if (hoursAgo < 24) {
+                                    return <span className="text-zinc-400 text-xs">{hoursAgo}h ago</span>
+                                  } else {
+                                    return <span className="text-zinc-400 text-xs">{Math.floor(hoursAgo / 24)}d ago</span>
+                                  }
                                 }
                               }
-                            }
-                          })()}
+                            })()}
+                          </div>
                         </div>
                       </div>
                       {isAdmin && w.id !== user?.id && (
-                        <div className="absolute right-3 top-3 flex gap-1">
-                          <button type="button" onClick={(e) => { e.stopPropagation(); setEditingRoleWorker(w); setNewRole(w.role || 'worker'); setIsRoleEditModalOpen(true) }} className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-r from-cyan-600 to-sky-600 text-white shadow-sm shadow-cyan-600/20 hover:from-cyan-700 hover:to-sky-700 transition" aria-label="Edit role">
+                        <div className="shrink-0 flex items-center gap-1 self-center">
+                          <button type="button" title="Edit role" onClick={(e) => { e.stopPropagation(); setEditingRoleWorker(w); setNewRole(w.role || 'worker'); setIsRoleEditModalOpen(true) }} className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-r from-cyan-600 to-sky-600 text-white shadow-sm shadow-cyan-600/20 hover:from-cyan-700 hover:to-sky-700 transition" aria-label="Edit role">
                             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                             </svg>
                           </button>
-                          <button type="button" onClick={(e) => { e.stopPropagation(); handleDeleteWorker(w.id, w.full_name) }} className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-red-700 text-white shadow-sm shadow-red-600/20 hover:bg-red-800 transition" aria-label="Delete worker">
+                          <button type="button" title="Delete worker" onClick={(e) => { e.stopPropagation(); handleDeleteWorker(w.id, w.full_name) }} className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-red-700 text-white shadow-sm shadow-red-600/20 hover:bg-red-800 transition" aria-label="Delete worker">
                             <X className="h-4 w-4" />
                           </button>
                         </div>
@@ -4129,68 +4131,70 @@ export default function DashboardPage() {
                 <h3 className="text-sm font-semibold text-zinc-600 mb-2">Project Manager & Human Resource</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                   {hrProjectManagers.length > 0 ? hrProjectManagers.map((w: any) => (
-                    <div key={w.id} role="button" tabIndex={0} onClick={() => handleViewWorker(w)} onKeyDown={(e) => { if (e.key === 'Enter') handleViewWorker(w) }} className="group relative flex items-center gap-4 p-4 bg-white rounded-xl border border-zinc-200 shadow-sm hover:shadow-md transition-all text-left cursor-pointer">
-                      <div className="relative flex h-12 w-12 shrink-0 overflow-hidden rounded-full bg-zinc-200 text-zinc-500">
-                        <div className="flex h-full w-full items-center justify-center"><User className="h-6 w-6" /></div>
-                        {w.last_seen && (() => {
-                          const lastSeen = new Date(w.last_seen)
-                          const now = new Date()
-                          const diffMinutes = (now.getTime() - lastSeen.getTime()) / (1000 * 60)
-                          if (diffMinutes < 5) {
-                            return <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white bg-green-500" />
-                          }
-                          return null
-                        })()}
-                      </div>
-                      <div className="overflow-hidden">
-                        <p className="font-semibold text-zinc-900 truncate">{w.full_name}</p>
-                        <p className="text-zinc-500 text-sm mt-1 truncate flex items-center gap-1">
-                          <span>{w.job_title || "Transcriber"} · {w.department || "General"}</span>
-                          {w.location ? (
-                            <span className="inline-flex items-center gap-1">
-                              · {w.location}
-                              <FlagIcon country={w.location} size={14} />
-                            </span>
-                          ) : null}
-                        </p>
-                        <div className="flex items-center gap-2 mt-2">
-                          {w.role && (
-                            <span className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${ROLE_BADGE_STYLES[w.role] || 'bg-zinc-100 text-zinc-700'}`}>
-                              {formatRoleLabel(w.role)}
-                            </span>
-                          )}
+                    <div key={w.id} role="button" tabIndex={0} onClick={() => handleViewWorker(w)} onKeyDown={(e) => { if (e.key === 'Enter') handleViewWorker(w) }} className="group relative flex items-center justify-between gap-3 p-4 bg-white rounded-xl border border-zinc-200 shadow-sm hover:shadow-md transition-all text-left cursor-pointer">
+                      <div className="flex items-center gap-3.5 min-w-0 flex-1">
+                        <div className="relative flex h-12 w-12 shrink-0 overflow-hidden rounded-full bg-zinc-200 text-zinc-500">
+                          <div className="flex h-full w-full items-center justify-center"><User className="h-6 w-6" /></div>
                           {w.last_seen && (() => {
                             const lastSeen = new Date(w.last_seen)
                             const now = new Date()
                             const diffMinutes = (now.getTime() - lastSeen.getTime()) / (1000 * 60)
-                            // Hide last seen if offline for more than 12 hours
-                            if (diffMinutes > 720) return null
                             if (diffMinutes < 5) {
-                              return <span className="text-green-600 text-xs font-medium">Online</span>
-                            } else {
-                              const minutesAgo = Math.floor(diffMinutes)
-                              if (minutesAgo < 60) {
-                                return <span className="text-zinc-400 text-xs">{minutesAgo}m ago</span>
+                              return <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white bg-green-500" />
+                            }
+                            return null
+                          })()}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="font-semibold text-zinc-900 truncate" title={w.full_name}>{w.full_name}</p>
+                          <p className="text-zinc-500 text-sm mt-1 truncate flex items-center gap-1">
+                            <span>{w.job_title || "Transcriber"} · {w.department || "General"}</span>
+                            {w.location ? (
+                              <span className="inline-flex items-center gap-1">
+                                · {w.location}
+                                <FlagIcon country={w.location} size={14} />
+                              </span>
+                            ) : null}
+                          </p>
+                          <div className="flex items-center gap-2 mt-2">
+                            {w.role && (
+                              <span className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${ROLE_BADGE_STYLES[w.role] || 'bg-zinc-100 text-zinc-700'}`}>
+                                {formatRoleLabel(w.role)}
+                              </span>
+                            )}
+                            {w.last_seen && (() => {
+                              const lastSeen = new Date(w.last_seen)
+                              const now = new Date()
+                              const diffMinutes = (now.getTime() - lastSeen.getTime()) / (1000 * 60)
+                              // Hide last seen if offline for more than 12 hours
+                              if (diffMinutes > 720) return null
+                              if (diffMinutes < 5) {
+                                return <span className="text-green-600 text-xs font-medium">Online</span>
                               } else {
-                                const hoursAgo = Math.floor(minutesAgo / 60)
-                                if (hoursAgo < 24) {
-                                  return <span className="text-zinc-400 text-xs">{hoursAgo}h ago</span>
+                                const minutesAgo = Math.floor(diffMinutes)
+                                if (minutesAgo < 60) {
+                                  return <span className="text-zinc-400 text-xs">{minutesAgo}m ago</span>
                                 } else {
-                                  return <span className="text-zinc-400 text-xs">{Math.floor(hoursAgo / 24)}d ago</span>
+                                  const hoursAgo = Math.floor(minutesAgo / 60)
+                                  if (hoursAgo < 24) {
+                                    return <span className="text-zinc-400 text-xs">{hoursAgo}h ago</span>
+                                  } else {
+                                    return <span className="text-zinc-400 text-xs">{Math.floor(hoursAgo / 24)}d ago</span>
+                                  }
                                 }
                               }
-                            }
-                          })()}
+                            })()}
+                          </div>
                         </div>
                       </div>
                       {isAdmin && w.id !== user?.id && (
-                        <div className="absolute right-3 top-3 flex gap-1">
-                          <button type="button" onClick={(e) => { e.stopPropagation(); setEditingRoleWorker(w); setNewRole(w.role || 'worker'); setIsRoleEditModalOpen(true) }} className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-r from-cyan-600 to-sky-600 text-white shadow-sm shadow-cyan-600/20 hover:from-cyan-700 hover:to-sky-700 transition" aria-label="Edit role">
+                        <div className="shrink-0 flex items-center gap-1 self-center">
+                          <button type="button" title="Edit role" onClick={(e) => { e.stopPropagation(); setEditingRoleWorker(w); setNewRole(w.role || 'worker'); setIsRoleEditModalOpen(true) }} className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-r from-cyan-600 to-sky-600 text-white shadow-sm shadow-cyan-600/20 hover:from-cyan-700 hover:to-sky-700 transition" aria-label="Edit role">
                             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                             </svg>
                           </button>
-                          <button type="button" onClick={(e) => { e.stopPropagation(); handleDeleteWorker(w.id, w.full_name) }} className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-red-700 text-white shadow-sm shadow-red-600/20 hover:bg-red-800 transition" aria-label="Delete worker">
+                          <button type="button" title="Delete worker" onClick={(e) => { e.stopPropagation(); handleDeleteWorker(w.id, w.full_name) }} className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-red-700 text-white shadow-sm shadow-red-600/20 hover:bg-red-800 transition" aria-label="Delete worker">
                             <X className="h-4 w-4" />
                           </button>
                         </div>
@@ -4204,68 +4208,70 @@ export default function DashboardPage() {
                 <h3 className="text-sm font-semibold text-zinc-600 mb-2">Moderators</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                   {moderators.length > 0 ? moderators.map((w: any) => (
-                    <div key={w.id} role="button" tabIndex={0} onClick={() => handleViewWorker(w)} onKeyDown={(e) => { if (e.key === 'Enter') handleViewWorker(w) }} className="group relative flex items-center gap-4 p-4 bg-white rounded-xl border border-zinc-200 shadow-sm hover:shadow-md transition-all text-left cursor-pointer">
-                      <div className="relative flex h-12 w-12 shrink-0 overflow-hidden rounded-full bg-zinc-200 text-zinc-500">
-                        <div className="flex h-full w-full items-center justify-center"><User className="h-6 w-6" /></div>
-                        {w.last_seen && (() => {
-                          const lastSeen = new Date(w.last_seen)
-                          const now = new Date()
-                          const diffMinutes = (now.getTime() - lastSeen.getTime()) / (1000 * 60)
-                          if (diffMinutes < 5) {
-                            return <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white bg-green-500" />
-                          }
-                          return null
-                        })()}
-                      </div>
-                      <div className="overflow-hidden">
-                        <p className="font-semibold text-zinc-900 truncate">{w.full_name}</p>
-                        <p className="text-zinc-500 text-sm mt-1 truncate flex items-center gap-1">
-                          <span>{w.job_title || "Transcriber"} · {w.department || "General"}</span>
-                          {w.location ? (
-                            <span className="inline-flex items-center gap-1">
-                              · {w.location}
-                              <FlagIcon country={w.location} size={14} />
-                            </span>
-                          ) : null}
-                        </p>
-                        <div className="flex items-center gap-2 mt-2">
-                          {w.role && (
-                            <span className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${ROLE_BADGE_STYLES[w.role] || 'bg-zinc-100 text-zinc-700'}`}>
-                              {formatRoleLabel(w.role)}
-                            </span>
-                          )}
+                    <div key={w.id} role="button" tabIndex={0} onClick={() => handleViewWorker(w)} onKeyDown={(e) => { if (e.key === 'Enter') handleViewWorker(w) }} className="group relative flex items-center justify-between gap-3 p-4 bg-white rounded-xl border border-zinc-200 shadow-sm hover:shadow-md transition-all text-left cursor-pointer">
+                      <div className="flex items-center gap-3.5 min-w-0 flex-1">
+                        <div className="relative flex h-12 w-12 shrink-0 overflow-hidden rounded-full bg-zinc-200 text-zinc-500">
+                          <div className="flex h-full w-full items-center justify-center"><User className="h-6 w-6" /></div>
                           {w.last_seen && (() => {
                             const lastSeen = new Date(w.last_seen)
                             const now = new Date()
                             const diffMinutes = (now.getTime() - lastSeen.getTime()) / (1000 * 60)
-                            // Hide last seen if offline for more than 12 hours
-                            if (diffMinutes > 720) return null
                             if (diffMinutes < 5) {
-                              return <span className="text-green-600 text-xs font-medium">Online</span>
-                            } else {
-                              const minutesAgo = Math.floor(diffMinutes)
-                              if (minutesAgo < 60) {
-                                return <span className="text-zinc-400 text-xs">{minutesAgo}m ago</span>
+                              return <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white bg-green-500" />
+                            }
+                            return null
+                          })()}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="font-semibold text-zinc-900 truncate" title={w.full_name}>{w.full_name}</p>
+                          <p className="text-zinc-500 text-sm mt-1 truncate flex items-center gap-1">
+                            <span>{w.job_title || "Transcriber"} · {w.department || "General"}</span>
+                            {w.location ? (
+                              <span className="inline-flex items-center gap-1">
+                                · {w.location}
+                                <FlagIcon country={w.location} size={14} />
+                              </span>
+                            ) : null}
+                          </p>
+                          <div className="flex items-center gap-2 mt-2">
+                            {w.role && (
+                              <span className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${ROLE_BADGE_STYLES[w.role] || 'bg-zinc-100 text-zinc-700'}`}>
+                                {formatRoleLabel(w.role)}
+                              </span>
+                            )}
+                            {w.last_seen && (() => {
+                              const lastSeen = new Date(w.last_seen)
+                              const now = new Date()
+                              const diffMinutes = (now.getTime() - lastSeen.getTime()) / (1000 * 60)
+                              // Hide last seen if offline for more than 12 hours
+                              if (diffMinutes > 720) return null
+                              if (diffMinutes < 5) {
+                                return <span className="text-green-600 text-xs font-medium">Online</span>
                               } else {
-                                const hoursAgo = Math.floor(minutesAgo / 60)
-                                if (hoursAgo < 24) {
-                                  return <span className="text-zinc-400 text-xs">{hoursAgo}h ago</span>
+                                const minutesAgo = Math.floor(diffMinutes)
+                                if (minutesAgo < 60) {
+                                  return <span className="text-zinc-400 text-xs">{minutesAgo}m ago</span>
                                 } else {
-                                  return <span className="text-zinc-400 text-xs">{Math.floor(hoursAgo / 24)}d ago</span>
+                                  const hoursAgo = Math.floor(minutesAgo / 60)
+                                  if (hoursAgo < 24) {
+                                    return <span className="text-zinc-400 text-xs">{hoursAgo}h ago</span>
+                                  } else {
+                                    return <span className="text-zinc-400 text-xs">{Math.floor(hoursAgo / 24)}d ago</span>
+                                  }
                                 }
                               }
-                            }
-                          })()}
+                            })()}
+                          </div>
                         </div>
                       </div>
                       {isAdmin && w.id !== user?.id && (
-                        <div className="absolute right-3 top-3 flex gap-1">
-                          <button type="button" onClick={(e) => { e.stopPropagation(); setEditingRoleWorker(w); setNewRole(w.role || 'worker'); setIsRoleEditModalOpen(true) }} className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-r from-cyan-600 to-sky-600 text-white shadow-sm shadow-cyan-600/20 hover:from-cyan-700 hover:to-sky-700 transition" aria-label="Edit role">
+                        <div className="shrink-0 flex items-center gap-1 self-center">
+                          <button type="button" title="Edit role" onClick={(e) => { e.stopPropagation(); setEditingRoleWorker(w); setNewRole(w.role || 'worker'); setIsRoleEditModalOpen(true) }} className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-r from-cyan-600 to-sky-600 text-white shadow-sm shadow-cyan-600/20 hover:from-cyan-700 hover:to-sky-700 transition" aria-label="Edit role">
                             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                             </svg>
                           </button>
-                          <button type="button" onClick={(e) => { e.stopPropagation(); handleDeleteWorker(w.id, w.full_name) }} className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-red-700 text-white shadow-sm shadow-red-600/20 hover:bg-red-800 transition" aria-label="Delete worker">
+                          <button type="button" title="Delete worker" onClick={(e) => { e.stopPropagation(); handleDeleteWorker(w.id, w.full_name) }} className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-red-700 text-white shadow-sm shadow-red-600/20 hover:bg-red-800 transition" aria-label="Delete worker">
                             <X className="h-4 w-4" />
                           </button>
                         </div>
@@ -4279,68 +4285,70 @@ export default function DashboardPage() {
                 <h3 className="text-sm font-semibold text-zinc-600 mb-2">Workers</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                   {workersList.length > 0 ? workersList.map((w: any) => (
-                    <div key={w.id} role="button" tabIndex={0} onClick={() => handleViewWorker(w)} onKeyDown={(e) => { if (e.key === 'Enter') handleViewWorker(w) }} className="group relative flex items-center gap-4 p-4 bg-white rounded-xl border border-zinc-200 shadow-sm hover:shadow-md transition-all text-left cursor-pointer">
-                      <div className="relative flex h-12 w-12 shrink-0 overflow-hidden rounded-full bg-zinc-200 text-zinc-500">
-                        <div className="flex h-full w-full items-center justify-center"><User className="h-6 w-6" /></div>
-                        {w.last_seen && (() => {
-                          const lastSeen = new Date(w.last_seen)
-                          const now = new Date()
-                          const diffMinutes = (now.getTime() - lastSeen.getTime()) / (1000 * 60)
-                          if (diffMinutes < 5) {
-                            return <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white bg-green-500" />
-                          }
-                          return null
-                        })()}
-                      </div>
-                      <div className="overflow-hidden">
-                        <p className="font-semibold text-zinc-900 truncate">{w.full_name}</p>
-                        <p className="text-zinc-500 text-sm mt-1 truncate flex items-center gap-1">
-                          <span>{w.job_title || "Transcriber"} · {w.department || "General"}</span>
-                          {w.location ? (
-                            <span className="inline-flex items-center gap-1">
-                              · {w.location}
-                              <FlagIcon country={w.location} size={14} />
-                            </span>
-                          ) : null}
-                        </p>
-                        <div className="flex items-center gap-2 mt-2">
-                          {w.role && (
-                            <span className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${ROLE_BADGE_STYLES[w.role] || 'bg-zinc-100 text-zinc-700'}`}>
-                              {formatRoleLabel(w.role)}
-                            </span>
-                          )}
+                    <div key={w.id} role="button" tabIndex={0} onClick={() => handleViewWorker(w)} onKeyDown={(e) => { if (e.key === 'Enter') handleViewWorker(w) }} className="group relative flex items-center justify-between gap-3 p-4 bg-white rounded-xl border border-zinc-200 shadow-sm hover:shadow-md transition-all text-left cursor-pointer">
+                      <div className="flex items-center gap-3.5 min-w-0 flex-1">
+                        <div className="relative flex h-12 w-12 shrink-0 overflow-hidden rounded-full bg-zinc-200 text-zinc-500">
+                          <div className="flex h-full w-full items-center justify-center"><User className="h-6 w-6" /></div>
                           {w.last_seen && (() => {
                             const lastSeen = new Date(w.last_seen)
                             const now = new Date()
                             const diffMinutes = (now.getTime() - lastSeen.getTime()) / (1000 * 60)
-                            // Hide last seen if offline for more than 12 hours
-                            if (diffMinutes > 720) return null
                             if (diffMinutes < 5) {
-                              return <span className="text-green-600 text-xs font-medium">Online</span>
-                            } else {
-                              const minutesAgo = Math.floor(diffMinutes)
-                              if (minutesAgo < 60) {
-                                return <span className="text-zinc-400 text-xs">{minutesAgo}m ago</span>
+                              return <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white bg-green-500" />
+                            }
+                            return null
+                          })()}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="font-semibold text-zinc-900 truncate" title={w.full_name}>{w.full_name}</p>
+                          <p className="text-zinc-500 text-sm mt-1 truncate flex items-center gap-1">
+                            <span>{w.job_title || "Transcriber"} · {w.department || "General"}</span>
+                            {w.location ? (
+                              <span className="inline-flex items-center gap-1">
+                                · {w.location}
+                                <FlagIcon country={w.location} size={14} />
+                              </span>
+                            ) : null}
+                          </p>
+                          <div className="flex items-center gap-2 mt-2">
+                            {w.role && (
+                              <span className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${ROLE_BADGE_STYLES[w.role] || 'bg-zinc-100 text-zinc-700'}`}>
+                                {formatRoleLabel(w.role)}
+                              </span>
+                            )}
+                            {w.last_seen && (() => {
+                              const lastSeen = new Date(w.last_seen)
+                              const now = new Date()
+                              const diffMinutes = (now.getTime() - lastSeen.getTime()) / (1000 * 60)
+                              // Hide last seen if offline for more than 12 hours
+                              if (diffMinutes > 720) return null
+                              if (diffMinutes < 5) {
+                                return <span className="text-green-600 text-xs font-medium">Online</span>
                               } else {
-                                const hoursAgo = Math.floor(minutesAgo / 60)
-                                if (hoursAgo < 24) {
-                                  return <span className="text-zinc-400 text-xs">{hoursAgo}h ago</span>
+                                const minutesAgo = Math.floor(diffMinutes)
+                                if (minutesAgo < 60) {
+                                  return <span className="text-zinc-400 text-xs">{minutesAgo}m ago</span>
                                 } else {
-                                  return <span className="text-zinc-400 text-xs">{Math.floor(hoursAgo / 24)}d ago</span>
+                                  const hoursAgo = Math.floor(minutesAgo / 60)
+                                  if (hoursAgo < 24) {
+                                    return <span className="text-zinc-400 text-xs">{hoursAgo}h ago</span>
+                                  } else {
+                                    return <span className="text-zinc-400 text-xs">{Math.floor(hoursAgo / 24)}d ago</span>
+                                  }
                                 }
                               }
-                            }
-                          })()}
+                            })()}
+                          </div>
                         </div>
                       </div>
                       {isAdmin && w.id !== user?.id && (
-                        <div className="absolute right-3 top-3 flex gap-1">
-                          <button type="button" onClick={(e) => { e.stopPropagation(); setEditingRoleWorker(w); setNewRole(w.role || 'worker'); setIsRoleEditModalOpen(true) }} className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-r from-cyan-600 to-sky-600 text-white shadow-sm shadow-cyan-600/20 hover:from-cyan-700 hover:to-sky-700 transition" aria-label="Edit role">
+                        <div className="shrink-0 flex items-center gap-1 self-center">
+                          <button type="button" title="Edit role" onClick={(e) => { e.stopPropagation(); setEditingRoleWorker(w); setNewRole(w.role || 'worker'); setIsRoleEditModalOpen(true) }} className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-r from-cyan-600 to-sky-600 text-white shadow-sm shadow-cyan-600/20 hover:from-cyan-700 hover:to-sky-700 transition" aria-label="Edit role">
                             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                             </svg>
                           </button>
-                          <button type="button" onClick={(e) => { e.stopPropagation(); handleDeleteWorker(w.id, w.full_name) }} className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-red-700 text-white shadow-sm shadow-red-600/20 hover:bg-red-800 transition" aria-label="Delete worker">
+                          <button type="button" title="Delete worker" onClick={(e) => { e.stopPropagation(); handleDeleteWorker(w.id, w.full_name) }} className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-red-700 text-white shadow-sm shadow-red-600/20 hover:bg-red-800 transition" aria-label="Delete worker">
                             <X className="h-4 w-4" />
                           </button>
                         </div>
