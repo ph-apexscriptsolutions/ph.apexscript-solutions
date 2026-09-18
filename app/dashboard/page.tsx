@@ -54,6 +54,46 @@ const getDisplayFileName = (fileName: string) => {
   return fileName.replace(/\.txt$/i, '')
 }
 
+const PHILIPPINE_TRADITIONAL_BANKS = [
+  "Asia United Bank (AUB)",
+  "Bank of Commerce",
+  "BDO Unibank",
+  "BPI",
+  "Cebuana Lhuillier Bank",
+  "China Bank",
+  "DBP",
+  "EastWest Bank",
+  "Land Bank of the Philippines",
+  "Maybank Philippines",
+  "Metrobank",
+  "PBCOM",
+  "Philippine Veterans Bank",
+  "Philtrust Bank",
+  "PNB",
+  "PNB Savings",
+  "PSBank",
+  "RCBC",
+  "Robinsons Bank",
+  "Security Bank",
+  "UnionBank",
+] as const
+
+const PHILIPPINE_DIGITAL_BANKS = [
+  "CIMB Bank Philippines",
+  "DiskarTech (by RCBC)",
+  "GCash",
+  "GoTyme Bank",
+  "GrabPay",
+  "Komo (by EastWest)",
+  "Maya Bank",
+  "Maya Wallet",
+  "Netbank Mobile",
+  "OwnBank",
+  "SeaBank Philippines",
+  "Tonik Bank",
+  "Uno Digital Bank",
+] as const
+
 // Helper to extract Eastern Time (America/New_York) components from a Date
 const getETParts = (date: Date) => {
   const formatter = new Intl.DateTimeFormat('en-US', {
@@ -5462,29 +5502,29 @@ export default function DashboardPage() {
             <h3 className="text-lg font-semibold text-zinc-900 mb-4">Edit Bank Details</h3>
             <form onSubmit={handleSaveBankDetails} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-zinc-700 mb-1">Bank Name</label>
-                <select value={bankForm.bankName} onChange={(e) => setBankForm({ ...bankForm, bankName: e.target.value })} className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-700 outline-none" required>
-                  <option value="">Select your bank</option>
-                  <option value="BDO Unibank">BDO Unibank</option>
-                  <option value="BPI">BPI</option>
-                  <option value="Metrobank">Metrobank</option>
-                  <option value="Land Bank of the Philippines">Land Bank of the Philippines</option>
-                  <option value="PNB">PNB</option>
-                  <option value="Security Bank">Security Bank</option>
-                  <option value="UnionBank">UnionBank</option>
-                  <option value="China Bank">China Bank</option>
-                  <option value="RCBC">RCBC</option>
-                  <option value="EastWest Bank">EastWest Bank</option>
-                  <option value="Maybank Philippines">Maybank Philippines</option>
-                  <option value="Philippine Veterans Bank">Philippine Veterans Bank</option>
-                  <option value="Cebuana Lhuillier Bank">Cebuana Lhuillier Bank</option>
-                  <option value="DBP">DBP</option>
-                  <option value="PNB Savings">PNB Savings</option>
+                <label className="block text-sm font-medium text-zinc-700 mb-1">Bank or Digital Wallet</label>
+                <select value={bankForm.bankName} onChange={(e) => setBankForm({ ...bankForm, bankName: e.target.value })} className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-700 outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900" required>
+                  <option value="">Select your bank or digital wallet</option>
+                  {bankForm.bankName &&
+                    !PHILIPPINE_TRADITIONAL_BANKS.includes(bankForm.bankName as any) &&
+                    !PHILIPPINE_DIGITAL_BANKS.includes(bankForm.bankName as any) && (
+                      <option value={bankForm.bankName}>{bankForm.bankName} (Current)</option>
+                  )}
+                  <optgroup label="── Digital Banks & E-Wallets ──">
+                    {PHILIPPINE_DIGITAL_BANKS.map((wallet) => (
+                      <option key={wallet} value={wallet}>{wallet}</option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="── Traditional Banks ──">
+                    {PHILIPPINE_TRADITIONAL_BANKS.map((bank) => (
+                      <option key={bank} value={bank}>{bank}</option>
+                    ))}
+                  </optgroup>
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-zinc-700 mb-1">Account Number</label>
-                <input type="text" value={bankForm.accountNumber} onChange={(e) => setBankForm({ ...bankForm, accountNumber: e.target.value })} className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm" required />
+                <label className="block text-sm font-medium text-zinc-700 mb-1">Account / Mobile Number</label>
+                <input type="text" value={bankForm.accountNumber} onChange={(e) => setBankForm({ ...bankForm, accountNumber: e.target.value })} placeholder="Account or mobile number" className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm" required />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -5495,12 +5535,13 @@ export default function DashboardPage() {
                     <option value="Checking">Checking</option>
                     <option value="Current">Current</option>
                     <option value="Peso Savings">Peso Savings</option>
+                    <option value="E-Wallet / Digital Account">E-Wallet / Digital Account</option>
                     <option value="Foreign Currency">Foreign Currency</option>
                   </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-zinc-700 mb-1">Routing Number</label>
-                  <input type="text" value={bankForm.routingNumber} onChange={(e) => setBankForm({ ...bankForm, routingNumber: e.target.value })} className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm" required />
+                  <input type="text" value={bankForm.routingNumber} onChange={(e) => setBankForm({ ...bankForm, routingNumber: e.target.value })} placeholder="e.g., 010530667 or N/A" className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm" required />
                 </div>
               </div>
               <div>
