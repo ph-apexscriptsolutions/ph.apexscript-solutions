@@ -655,6 +655,9 @@ export default function DashboardPage() {
   const [editAssignmentId, setEditAssignmentId] = useState<number | null>(null)
   const [isPriorityAssignment, setIsPriorityAssignment] = useState(false)
   const [selectedAssignment, setSelectedAssignment] = useState<any | null>(null)
+  const [duplicateFilenameWarning, setDuplicateFilenameWarning] = useState<{ workerName: string; filename: string; status: string } | null>(null)
+  const [isCheckingDuplicate, setIsCheckingDuplicate] = useState(false)
+  const duplicateCheckTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [assignmentHeaderTemplate, setAssignmentHeaderTemplate] = useState('3fr 1fr 1fr')
   const [assignmentRowTemplate, setAssignmentRowTemplate] = useState('3fr 1fr 1fr')
   const [isSavingLayout, setIsSavingLayout] = useState(false)
@@ -3421,11 +3424,47 @@ export default function DashboardPage() {
     }
   }, [isAssignmentCommentModalOpen, isAdmin])
 
+  const checkDuplicateFilename = useCallback((filename: string, excludeId?: number | null) => {
+    const trimmed = filename.trim()
+    if (!trimmed) {
+      setDuplicateFilenameWarning(null)
+      setIsCheckingDuplicate(false)
+      return
+    }
+
+    if (duplicateCheckTimerRef.current) clearTimeout(duplicateCheckTimerRef.current)
+    setIsCheckingDuplicate(true)
+
+    duplicateCheckTimerRef.current = setTimeout(async () => {
+      try {
+        const params = new URLSearchParams({ filename: trimmed })
+        if (excludeId) params.set('excludeId', String(excludeId))
+        const res = await fetch(`/api/production-assignments/check-duplicate?${params.toString()}`)
+        if (!res.ok) { setIsCheckingDuplicate(false); return }
+        const data = await res.json()
+        if (data.isDuplicate) {
+          setDuplicateFilenameWarning({
+            workerName: data.duplicate.workerName,
+            filename: data.duplicate.filename,
+            status: data.duplicate.status,
+          })
+        } else {
+          setDuplicateFilenameWarning(null)
+        }
+      } catch {
+        // silently ignore network errors for duplicate check
+      } finally {
+        setIsCheckingDuplicate(false)
+      }
+    }, 500)
+  }, [])
+
   const applyFormattedAssignmentText = useCallback((rawText: string) => {
     const parsed = parseAndFormatAssignment(rawText)
     if (parsed.isAssignment) {
       if (parsed.code && (!newAssignmentFilename.trim() || !editAssignmentId)) {
         setNewAssignmentFilename(parsed.code)
+        checkDuplicateFilename(parsed.code, editAssignmentId)
       }
       if (assignmentEditorRef) {
         assignmentEditorRef.innerHTML = parsed.formattedHtml
@@ -3435,7 +3474,7 @@ export default function DashboardPage() {
       setShowToast(true)
       setTimeout(() => { setShowToast(false); setToastMessage(null) }, 2500)
     }
-  }, [newAssignmentFilename, editAssignmentId, assignmentEditorRef])
+  }, [newAssignmentFilename, editAssignmentId, assignmentEditorRef, checkDuplicateFilename])
 
   const handleAutoFormatClipboard = async () => {
     try {
@@ -5084,7 +5123,7 @@ export default function DashboardPage() {
             {isAddAssignmentModalOpen && activeWorker && (
               <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
                 <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl p-6 relative max-h-[90vh] overflow-y-auto">
-                  <button onClick={() => { setIsAddAssignmentModalOpen(false); setNewAssignmentFilename(""); setNewAssignmentDescription(""); setNewAssignmentAttachment(null); if (assignmentEditorRef) assignmentEditorRef.innerHTML = '' }} className="absolute right-4 top-4 text-zinc-400 hover:text-zinc-900"><X className="h-5 w-5" /></button>
+                  <button onClick={() => { setIsAddAssignmentModalOpen(false); setNewAssignmentFilename(""); setNewAssignmentDescription(""); setNewAssignmentAttachment(null); setDuplicateFilenameWarning(null); setIsCheckingDuplicate(false); if (assignmentEditorRef) assignmentEditorRef.innerHTML = '' }} className="absolute right-4 top-4 text-zinc-400 hover:text-zinc-900"><X className="h-5 w-5" /></button>
                   <h3 className="text-lg font-semibold text-zinc-900 mb-4">{editAssignmentId ? 'Edit Assignment' : 'Add New Assignment'}</h3>
                   <form onSubmit={(e) => { e.preventDefault(); saveAssignment(activeWorker.id) }} className="space-y-4">
                     {/* Auto-format client assignment banner */}
@@ -5113,21 +5152,60 @@ export default function DashboardPage() {
 
                     <div>
                       <label className="block text-sm font-medium text-zinc-700 mb-1">Filename</label>
-                      <input
-                        type="text"
-                        value={newAssignmentFilename}
-                        onChange={(e) => setNewAssignmentFilename(e.target.value)}
-                        onPaste={(e) => {
-                          const pasteText = e.clipboardData?.getData('text/plain')
-                          if (pasteText && isRawAssignmentSequence(pasteText)) {
-                            e.preventDefault()
-                            applyFormattedAssignmentText(pasteText)
-                          }
-                        }}
-                        placeholder="e.g., 782084601"
-                        className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900"
-                        required
-                      />
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={newAssignmentFilename}
+                          onChange={(e) => {
+                            const val = e.target.value
+                            setNewAssignmentFilename(val)
+                            checkDuplicateFilename(val, editAssignmentId)
+                          }}
+                          onPaste={(e) => {
+                            const pasteText = e.clipboardData?.getData('text/plain')
+                            if (pasteText && isRawAssignmentSequence(pasteText)) {
+                              e.preventDefault()
+                              applyFormattedAssignmentText(pasteText)
+                            }
+                          }}
+                          placeholder="e.g., 782084601"
+                          className={`w-full rounded-md border px-3 py-2 text-sm outline-none focus:ring-1 pr-8 ${
+                            duplicateFilenameWarning
+                              ? 'border-amber-400 focus:border-amber-500 focus:ring-amber-400 bg-amber-50'
+                              : 'border-zinc-300 focus:border-slate-900 focus:ring-slate-900'
+                          }`}
+                          required
+                        />
+                        {isCheckingDuplicate && (
+                          <span className="absolute right-2.5 top-1/2 -translate-y-1/2">
+                            <svg className="h-4 w-4 animate-spin text-zinc-400" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                            </svg>
+                          </span>
+                        )}
+                        {!isCheckingDuplicate && duplicateFilenameWarning && (
+                          <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-amber-500">
+                            <AlertCircle className="h-4 w-4" />
+                          </span>
+                        )}
+                        {!isCheckingDuplicate && !duplicateFilenameWarning && newAssignmentFilename.trim() && (
+                          <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-emerald-500">
+                            <Check className="h-4 w-4" />
+                          </span>
+                        )}
+                      </div>
+                      {duplicateFilenameWarning && (
+                        <div className="mt-1.5 flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2">
+                          <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
+                          <div>
+                            <p className="text-xs font-bold text-amber-800">Duplicate Filename Detected!</p>
+                            <p className="text-[11px] text-amber-700 mt-0.5">
+                              <span className="font-semibold">{duplicateFilenameWarning.filename}</span> is already assigned to <span className="font-semibold">{duplicateFilenameWarning.workerName}</span> (status: <span className="font-semibold capitalize">{duplicateFilenameWarning.status}</span>). Are you sure you want to add it again?
+                            </p>
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     <div className="flex items-center gap-3 bg-red-50/60 p-2.5 rounded-xl border border-red-200/80">
@@ -5292,7 +5370,7 @@ export default function DashboardPage() {
                     </div>
 
                     <div className="flex gap-3">
-                      <button type="button" onClick={() => { setIsAddAssignmentModalOpen(false); setNewAssignmentFilename(""); setNewAssignmentDescription(""); setNewAssignmentAttachment(null); if (assignmentEditorRef) assignmentEditorRef.innerHTML = '' }} className="flex-1 rounded-md border border-zinc-300 bg-white px-5 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-100 transition">Cancel</button>
+                      <button type="button" onClick={() => { setIsAddAssignmentModalOpen(false); setNewAssignmentFilename(""); setNewAssignmentDescription(""); setNewAssignmentAttachment(null); setDuplicateFilenameWarning(null); setIsCheckingDuplicate(false); if (assignmentEditorRef) assignmentEditorRef.innerHTML = '' }} className="flex-1 rounded-md border border-zinc-300 bg-white px-5 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-100 transition">Cancel</button>
                       <button type="submit" disabled={isAddingAssignment || isUploadingAttachment} className="flex-1 inline-flex items-center justify-center gap-2 rounded-md bg-gradient-to-r from-cyan-600 to-sky-600 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-cyan-600/20 hover:from-cyan-700 hover:to-sky-700 disabled:opacity-50">
                         {isUploadingAttachment ? 'Uploading...' : isAddingAssignment ? (editAssignmentId ? 'Updating...' : 'Adding...') : (editAssignmentId ? 'Update Assignment' : 'Add Assignment')}
                       </button>
