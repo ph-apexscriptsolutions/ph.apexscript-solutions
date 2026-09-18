@@ -4054,8 +4054,8 @@ export default function DashboardPage() {
                 <h3 className="text-sm font-semibold text-zinc-600 mb-2">Admins</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                   {admins.length > 0 ? admins.map((w: any) => (
-                    <div key={w.id} role="button" tabIndex={0} onClick={() => handleViewWorker(w)} onKeyDown={(e) => { if (e.key === 'Enter') handleViewWorker(w) }} className="group relative flex items-center justify-between gap-3 p-4 bg-white rounded-xl border border-zinc-200 shadow-sm hover:shadow-md transition-all text-left cursor-pointer">
-                      <div className="flex items-center gap-3.5 min-w-0 flex-1">
+                    <div key={w.id} role="button" tabIndex={0} onClick={() => handleViewWorker(w)} onKeyDown={(e) => { if (e.key === 'Enter') handleViewWorker(w) }} className="group relative flex flex-col justify-between p-4 bg-white rounded-xl border border-zinc-200 shadow-sm hover:shadow-md transition-all text-left cursor-pointer">
+                      <div className="flex items-start gap-3 w-full">
                         <div className="relative flex h-12 w-12 shrink-0 overflow-hidden rounded-full bg-zinc-200 text-zinc-500">
                           <div className="flex h-full w-full items-center justify-center"><User className="h-6 w-6" /></div>
                           {w.last_seen && (() => {
@@ -4069,19 +4069,19 @@ export default function DashboardPage() {
                           })()}
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="font-semibold text-zinc-900 truncate" title={w.full_name}>{w.full_name}</p>
-                          <p className="text-zinc-500 text-sm mt-1 truncate flex items-center gap-1">
+                          <p className="font-semibold text-zinc-900 text-sm leading-snug" title={w.full_name}>{w.full_name}</p>
+                          <p className="text-zinc-500 text-xs mt-0.5 truncate flex items-center gap-1">
                             <span>{w.job_title || "Transcriber"} · {w.department || "General"}</span>
                             {w.location ? (
                               <span className="inline-flex items-center gap-1">
                                 · {w.location}
-                                <FlagIcon country={w.location} size={14} />
+                                <FlagIcon country={w.location} size={13} />
                               </span>
                             ) : null}
                           </p>
-                          <div className="flex items-center gap-2 mt-2">
+                          <div className="flex flex-wrap items-center gap-1.5 mt-2">
                             {w.role && (
-                              <span className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${ROLE_BADGE_STYLES[w.role] || 'bg-zinc-100 text-zinc-700'}`}>
+                              <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${ROLE_BADGE_STYLES[w.role] || 'bg-zinc-100 text-zinc-700'}`}>
                                 {formatRoleLabel(w.role)}
                               </span>
                             )}
@@ -4111,14 +4111,28 @@ export default function DashboardPage() {
                         </div>
                       </div>
                       {isAdmin && w.id !== user?.id && (
-                        <div className="shrink-0 flex items-center gap-1 self-center">
-                          <button type="button" title="Edit role" onClick={(e) => { e.stopPropagation(); setEditingRoleWorker(w); setNewRole(w.role || 'worker'); setIsRoleEditModalOpen(true) }} className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-r from-cyan-600 to-sky-600 text-white shadow-sm shadow-cyan-600/20 hover:from-cyan-700 hover:to-sky-700 transition" aria-label="Edit role">
-                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <div className="mt-3 pt-2.5 border-t border-zinc-100 flex items-center justify-end gap-1.5 w-full">
+                          <button
+                            type="button"
+                            title="Edit role"
+                            onClick={(e) => { e.stopPropagation(); setEditingRoleWorker(w); setNewRole(w.role || 'worker'); setIsRoleEditModalOpen(true) }}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium bg-gradient-to-r from-cyan-600 to-sky-600 text-white shadow-sm shadow-cyan-600/20 hover:from-cyan-700 hover:to-sky-700 transition"
+                            aria-label="Edit role"
+                          >
+                            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                             </svg>
+                            <span>Edit Role</span>
                           </button>
-                          <button type="button" title="Delete worker" onClick={(e) => { e.stopPropagation(); handleDeleteWorker(w.id, w.full_name) }} className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-red-700 text-white shadow-sm shadow-red-600/20 hover:bg-red-800 transition" aria-label="Delete worker">
-                            <X className="h-4 w-4" />
+                          <button
+                            type="button"
+                            title="Delete worker"
+                            onClick={(e) => { e.stopPropagation(); handleDeleteWorker(w.id, w.full_name) }}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium bg-red-700 text-white shadow-sm shadow-red-600/20 hover:bg-red-800 transition"
+                            aria-label="Delete worker"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                            <span>Delete</span>
                           </button>
                         </div>
                       )}
@@ -4131,8 +4145,8 @@ export default function DashboardPage() {
                 <h3 className="text-sm font-semibold text-zinc-600 mb-2">Project Manager & Human Resource</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                   {hrProjectManagers.length > 0 ? hrProjectManagers.map((w: any) => (
-                    <div key={w.id} role="button" tabIndex={0} onClick={() => handleViewWorker(w)} onKeyDown={(e) => { if (e.key === 'Enter') handleViewWorker(w) }} className="group relative flex items-center justify-between gap-3 p-4 bg-white rounded-xl border border-zinc-200 shadow-sm hover:shadow-md transition-all text-left cursor-pointer">
-                      <div className="flex items-center gap-3.5 min-w-0 flex-1">
+                    <div key={w.id} role="button" tabIndex={0} onClick={() => handleViewWorker(w)} onKeyDown={(e) => { if (e.key === 'Enter') handleViewWorker(w) }} className="group relative flex flex-col justify-between p-4 bg-white rounded-xl border border-zinc-200 shadow-sm hover:shadow-md transition-all text-left cursor-pointer">
+                      <div className="flex items-start gap-3 w-full">
                         <div className="relative flex h-12 w-12 shrink-0 overflow-hidden rounded-full bg-zinc-200 text-zinc-500">
                           <div className="flex h-full w-full items-center justify-center"><User className="h-6 w-6" /></div>
                           {w.last_seen && (() => {
@@ -4146,19 +4160,19 @@ export default function DashboardPage() {
                           })()}
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="font-semibold text-zinc-900 truncate" title={w.full_name}>{w.full_name}</p>
-                          <p className="text-zinc-500 text-sm mt-1 truncate flex items-center gap-1">
+                          <p className="font-semibold text-zinc-900 text-sm leading-snug" title={w.full_name}>{w.full_name}</p>
+                          <p className="text-zinc-500 text-xs mt-0.5 truncate flex items-center gap-1">
                             <span>{w.job_title || "Transcriber"} · {w.department || "General"}</span>
                             {w.location ? (
                               <span className="inline-flex items-center gap-1">
                                 · {w.location}
-                                <FlagIcon country={w.location} size={14} />
+                                <FlagIcon country={w.location} size={13} />
                               </span>
                             ) : null}
                           </p>
-                          <div className="flex items-center gap-2 mt-2">
+                          <div className="flex flex-wrap items-center gap-1.5 mt-2">
                             {w.role && (
-                              <span className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${ROLE_BADGE_STYLES[w.role] || 'bg-zinc-100 text-zinc-700'}`}>
+                              <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${ROLE_BADGE_STYLES[w.role] || 'bg-zinc-100 text-zinc-700'}`}>
                                 {formatRoleLabel(w.role)}
                               </span>
                             )}
@@ -4188,14 +4202,28 @@ export default function DashboardPage() {
                         </div>
                       </div>
                       {isAdmin && w.id !== user?.id && (
-                        <div className="shrink-0 flex items-center gap-1 self-center">
-                          <button type="button" title="Edit role" onClick={(e) => { e.stopPropagation(); setEditingRoleWorker(w); setNewRole(w.role || 'worker'); setIsRoleEditModalOpen(true) }} className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-r from-cyan-600 to-sky-600 text-white shadow-sm shadow-cyan-600/20 hover:from-cyan-700 hover:to-sky-700 transition" aria-label="Edit role">
-                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <div className="mt-3 pt-2.5 border-t border-zinc-100 flex items-center justify-end gap-1.5 w-full">
+                          <button
+                            type="button"
+                            title="Edit role"
+                            onClick={(e) => { e.stopPropagation(); setEditingRoleWorker(w); setNewRole(w.role || 'worker'); setIsRoleEditModalOpen(true) }}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium bg-gradient-to-r from-cyan-600 to-sky-600 text-white shadow-sm shadow-cyan-600/20 hover:from-cyan-700 hover:to-sky-700 transition"
+                            aria-label="Edit role"
+                          >
+                            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                             </svg>
+                            <span>Edit Role</span>
                           </button>
-                          <button type="button" title="Delete worker" onClick={(e) => { e.stopPropagation(); handleDeleteWorker(w.id, w.full_name) }} className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-red-700 text-white shadow-sm shadow-red-600/20 hover:bg-red-800 transition" aria-label="Delete worker">
-                            <X className="h-4 w-4" />
+                          <button
+                            type="button"
+                            title="Delete worker"
+                            onClick={(e) => { e.stopPropagation(); handleDeleteWorker(w.id, w.full_name) }}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium bg-red-700 text-white shadow-sm shadow-red-600/20 hover:bg-red-800 transition"
+                            aria-label="Delete worker"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                            <span>Delete</span>
                           </button>
                         </div>
                       )}
@@ -4208,8 +4236,8 @@ export default function DashboardPage() {
                 <h3 className="text-sm font-semibold text-zinc-600 mb-2">Moderators</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                   {moderators.length > 0 ? moderators.map((w: any) => (
-                    <div key={w.id} role="button" tabIndex={0} onClick={() => handleViewWorker(w)} onKeyDown={(e) => { if (e.key === 'Enter') handleViewWorker(w) }} className="group relative flex items-center justify-between gap-3 p-4 bg-white rounded-xl border border-zinc-200 shadow-sm hover:shadow-md transition-all text-left cursor-pointer">
-                      <div className="flex items-center gap-3.5 min-w-0 flex-1">
+                    <div key={w.id} role="button" tabIndex={0} onClick={() => handleViewWorker(w)} onKeyDown={(e) => { if (e.key === 'Enter') handleViewWorker(w) }} className="group relative flex flex-col justify-between p-4 bg-white rounded-xl border border-zinc-200 shadow-sm hover:shadow-md transition-all text-left cursor-pointer">
+                      <div className="flex items-start gap-3 w-full">
                         <div className="relative flex h-12 w-12 shrink-0 overflow-hidden rounded-full bg-zinc-200 text-zinc-500">
                           <div className="flex h-full w-full items-center justify-center"><User className="h-6 w-6" /></div>
                           {w.last_seen && (() => {
@@ -4223,19 +4251,19 @@ export default function DashboardPage() {
                           })()}
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="font-semibold text-zinc-900 truncate" title={w.full_name}>{w.full_name}</p>
-                          <p className="text-zinc-500 text-sm mt-1 truncate flex items-center gap-1">
+                          <p className="font-semibold text-zinc-900 text-sm leading-snug" title={w.full_name}>{w.full_name}</p>
+                          <p className="text-zinc-500 text-xs mt-0.5 truncate flex items-center gap-1">
                             <span>{w.job_title || "Transcriber"} · {w.department || "General"}</span>
                             {w.location ? (
                               <span className="inline-flex items-center gap-1">
                                 · {w.location}
-                                <FlagIcon country={w.location} size={14} />
+                                <FlagIcon country={w.location} size={13} />
                               </span>
                             ) : null}
                           </p>
-                          <div className="flex items-center gap-2 mt-2">
+                          <div className="flex flex-wrap items-center gap-1.5 mt-2">
                             {w.role && (
-                              <span className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${ROLE_BADGE_STYLES[w.role] || 'bg-zinc-100 text-zinc-700'}`}>
+                              <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${ROLE_BADGE_STYLES[w.role] || 'bg-zinc-100 text-zinc-700'}`}>
                                 {formatRoleLabel(w.role)}
                               </span>
                             )}
@@ -4265,14 +4293,28 @@ export default function DashboardPage() {
                         </div>
                       </div>
                       {isAdmin && w.id !== user?.id && (
-                        <div className="shrink-0 flex items-center gap-1 self-center">
-                          <button type="button" title="Edit role" onClick={(e) => { e.stopPropagation(); setEditingRoleWorker(w); setNewRole(w.role || 'worker'); setIsRoleEditModalOpen(true) }} className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-r from-cyan-600 to-sky-600 text-white shadow-sm shadow-cyan-600/20 hover:from-cyan-700 hover:to-sky-700 transition" aria-label="Edit role">
-                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <div className="mt-3 pt-2.5 border-t border-zinc-100 flex items-center justify-end gap-1.5 w-full">
+                          <button
+                            type="button"
+                            title="Edit role"
+                            onClick={(e) => { e.stopPropagation(); setEditingRoleWorker(w); setNewRole(w.role || 'worker'); setIsRoleEditModalOpen(true) }}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium bg-gradient-to-r from-cyan-600 to-sky-600 text-white shadow-sm shadow-cyan-600/20 hover:from-cyan-700 hover:to-sky-700 transition"
+                            aria-label="Edit role"
+                          >
+                            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                             </svg>
+                            <span>Edit Role</span>
                           </button>
-                          <button type="button" title="Delete worker" onClick={(e) => { e.stopPropagation(); handleDeleteWorker(w.id, w.full_name) }} className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-red-700 text-white shadow-sm shadow-red-600/20 hover:bg-red-800 transition" aria-label="Delete worker">
-                            <X className="h-4 w-4" />
+                          <button
+                            type="button"
+                            title="Delete worker"
+                            onClick={(e) => { e.stopPropagation(); handleDeleteWorker(w.id, w.full_name) }}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium bg-red-700 text-white shadow-sm shadow-red-600/20 hover:bg-red-800 transition"
+                            aria-label="Delete worker"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                            <span>Delete</span>
                           </button>
                         </div>
                       )}
@@ -4285,8 +4327,8 @@ export default function DashboardPage() {
                 <h3 className="text-sm font-semibold text-zinc-600 mb-2">Workers</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                   {workersList.length > 0 ? workersList.map((w: any) => (
-                    <div key={w.id} role="button" tabIndex={0} onClick={() => handleViewWorker(w)} onKeyDown={(e) => { if (e.key === 'Enter') handleViewWorker(w) }} className="group relative flex items-center justify-between gap-3 p-4 bg-white rounded-xl border border-zinc-200 shadow-sm hover:shadow-md transition-all text-left cursor-pointer">
-                      <div className="flex items-center gap-3.5 min-w-0 flex-1">
+                    <div key={w.id} role="button" tabIndex={0} onClick={() => handleViewWorker(w)} onKeyDown={(e) => { if (e.key === 'Enter') handleViewWorker(w) }} className="group relative flex flex-col justify-between p-4 bg-white rounded-xl border border-zinc-200 shadow-sm hover:shadow-md transition-all text-left cursor-pointer">
+                      <div className="flex items-start gap-3 w-full">
                         <div className="relative flex h-12 w-12 shrink-0 overflow-hidden rounded-full bg-zinc-200 text-zinc-500">
                           <div className="flex h-full w-full items-center justify-center"><User className="h-6 w-6" /></div>
                           {w.last_seen && (() => {
@@ -4300,19 +4342,19 @@ export default function DashboardPage() {
                           })()}
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="font-semibold text-zinc-900 truncate" title={w.full_name}>{w.full_name}</p>
-                          <p className="text-zinc-500 text-sm mt-1 truncate flex items-center gap-1">
+                          <p className="font-semibold text-zinc-900 text-sm leading-snug" title={w.full_name}>{w.full_name}</p>
+                          <p className="text-zinc-500 text-xs mt-0.5 truncate flex items-center gap-1">
                             <span>{w.job_title || "Transcriber"} · {w.department || "General"}</span>
                             {w.location ? (
                               <span className="inline-flex items-center gap-1">
                                 · {w.location}
-                                <FlagIcon country={w.location} size={14} />
+                                <FlagIcon country={w.location} size={13} />
                               </span>
                             ) : null}
                           </p>
-                          <div className="flex items-center gap-2 mt-2">
+                          <div className="flex flex-wrap items-center gap-1.5 mt-2">
                             {w.role && (
-                              <span className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${ROLE_BADGE_STYLES[w.role] || 'bg-zinc-100 text-zinc-700'}`}>
+                              <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${ROLE_BADGE_STYLES[w.role] || 'bg-zinc-100 text-zinc-700'}`}>
                                 {formatRoleLabel(w.role)}
                               </span>
                             )}
@@ -4342,14 +4384,28 @@ export default function DashboardPage() {
                         </div>
                       </div>
                       {isAdmin && w.id !== user?.id && (
-                        <div className="shrink-0 flex items-center gap-1 self-center">
-                          <button type="button" title="Edit role" onClick={(e) => { e.stopPropagation(); setEditingRoleWorker(w); setNewRole(w.role || 'worker'); setIsRoleEditModalOpen(true) }} className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-r from-cyan-600 to-sky-600 text-white shadow-sm shadow-cyan-600/20 hover:from-cyan-700 hover:to-sky-700 transition" aria-label="Edit role">
-                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                        <div className="mt-3 pt-2.5 border-t border-zinc-100 flex items-center justify-end gap-1.5 w-full">
+                          <button
+                            type="button"
+                            title="Edit role"
+                            onClick={(e) => { e.stopPropagation(); setEditingRoleWorker(w); setNewRole(w.role || 'worker'); setIsRoleEditModalOpen(true) }}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium bg-gradient-to-r from-cyan-600 to-sky-600 text-white shadow-sm shadow-cyan-600/20 hover:from-cyan-700 hover:to-sky-700 transition"
+                            aria-label="Edit role"
+                          >
+                            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                             </svg>
+                            <span>Edit Role</span>
                           </button>
-                          <button type="button" title="Delete worker" onClick={(e) => { e.stopPropagation(); handleDeleteWorker(w.id, w.full_name) }} className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-red-700 text-white shadow-sm shadow-red-600/20 hover:bg-red-800 transition" aria-label="Delete worker">
-                            <X className="h-4 w-4" />
+                          <button
+                            type="button"
+                            title="Delete worker"
+                            onClick={(e) => { e.stopPropagation(); handleDeleteWorker(w.id, w.full_name) }}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium bg-red-700 text-white shadow-sm shadow-red-600/20 hover:bg-red-800 transition"
+                            aria-label="Delete worker"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                            <span>Delete</span>
                           </button>
                         </div>
                       )}
