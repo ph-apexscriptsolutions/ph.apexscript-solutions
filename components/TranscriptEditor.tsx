@@ -1787,7 +1787,7 @@ export default function TranscriptEditor({
   const selectedWorkerObj = allWorkers.find((w) => w.id === selectedWorkerId)
 
   return (
-    <div className="flex flex-col h-full space-y-2.5 relative">
+    <div className="flex flex-col h-full min-h-0 space-y-2.5 relative overflow-hidden">
       {/* Hidden Audio Element for Background Playback */}
       <audio
         ref={audioRef}
@@ -1837,7 +1837,7 @@ export default function TranscriptEditor({
       {/* ── FOCUS / DISTRACTION-FREE HEADER BAR (When tools are hidden) ── */}
 
       {hideTools ? (
-        <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 bg-slate-900 text-white rounded-2xl shadow-md border border-slate-800">
+        <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 bg-slate-900 text-white rounded-2xl shadow-md border border-slate-800 flex-shrink-0">
           <div className="flex flex-wrap items-center gap-2">
             {/* Show Tools Toggle */}
             <button
@@ -2021,7 +2021,7 @@ export default function TranscriptEditor({
           </div>
         </div>
       ) : (
-        <div className="flex flex-col rounded-2xl border border-slate-200/90 bg-white shadow-xs overflow-hidden divide-y divide-slate-100">
+        <div className="flex flex-col rounded-2xl border border-slate-200/90 bg-white shadow-xs overflow-hidden divide-y divide-slate-100 flex-shrink-0">
           {/* ── ROW 1: ADMIN WORKER LIVE MONITOR (Admin only) ── */}
           {role === 'admin' && (
             <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white">
@@ -2740,7 +2740,7 @@ export default function TranscriptEditor({
       {/* Status Messages */}
       {statusMessage && (
         <div
-          className={`text-xs px-3 py-1.5 rounded-xl border flex items-center justify-between ${
+          className={`text-xs px-3 py-1.5 rounded-xl border flex items-center justify-between flex-shrink-0 ${
             statusMessage.type === 'success'
               ? 'bg-green-50 border-green-200 text-green-800'
               : statusMessage.type === 'error'
@@ -2760,7 +2760,7 @@ export default function TranscriptEditor({
       )}
 
       {/* ── HIGH-PERFORMANCE WYSIWYG RICH TEXT EDITOR ── */}
-      <div className="relative flex-1 min-h-[300px] flex flex-col rounded-2xl border border-zinc-200 bg-white shadow-inner focus-within:border-purple-500 focus-within:ring-2 focus-within:ring-purple-500/20 transition-all overflow-visible">
+      <div className="relative flex-1 min-h-0 flex flex-col rounded-2xl border border-zinc-200 bg-white shadow-inner focus-within:border-purple-500 focus-within:ring-2 focus-within:ring-purple-500/20 transition-all overflow-visible">
         {loading && (
           <div className="absolute inset-0 bg-white/70 backdrop-blur-xs flex items-center justify-center z-20">
             <Loader2 className="w-6 h-6 animate-spin text-purple-600" />
