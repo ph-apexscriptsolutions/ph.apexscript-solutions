@@ -42,8 +42,10 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} light bg-background`}
+      style={{ colorScheme: 'light' }}
+      suppressHydrationWarning
     >
-      <body className="font-sans antialiased bg-white">
+      <body className="font-sans antialiased bg-white" style={{ colorScheme: 'light' }}>
         {children}
         {process.env.NODE_ENV === 'production' && <Analytics />}
         <script
