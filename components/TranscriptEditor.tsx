@@ -3106,8 +3106,8 @@ export default function TranscriptEditor({
       {/* ── HOTKEYS CONFIGURATION MODAL (Express Scribe Style) ── */}
       {showHotkeysModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-fade-in">
-          <div className="bg-white rounded-3xl border border-zinc-200 shadow-2xl p-6 max-w-md w-full flex flex-col space-y-4">
-            <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
+          <div className="bg-white rounded-3xl border border-zinc-200 shadow-2xl p-6 max-w-md w-full flex flex-col space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-zinc-100 pb-3 flex-shrink-0">
               <div className="flex items-center gap-2">
                 <div className="p-2 rounded-xl bg-purple-100 text-purple-700">
                   <Settings className="w-5 h-5" />
