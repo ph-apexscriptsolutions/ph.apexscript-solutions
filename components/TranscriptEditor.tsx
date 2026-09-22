@@ -53,6 +53,84 @@ import {
   getAudioPosition,
   clearAudioPosition,
 } from '@/lib/transcript-audio-storage'
+import { supabase } from '@/utils/supabase/client'
+
+// ── SILENT CARET & WORD TRACKING HELPERS ──
+function getCaretInfo(element: HTMLElement): { caretOffset: number; activeWord: string; wordRange: [number, number] } {
+  let caretOffset = 0
+  const sel = typeof window !== 'undefined' ? window.getSelection() : null
+  if (sel && sel.rangeCount > 0) {
+    const range = sel.getRangeAt(0)
+    if (element.contains(range.startContainer)) {
+      try {
+        const preCaretRange = range.cloneRange()
+        preCaretRange.selectNodeContents(element)
+        preCaretRange.setEnd(range.startContainer, range.startOffset)
+        caretOffset = preCaretRange.toString().length
+      } catch {}
+    }
+  }
+
+  const fullText = element.innerText || ''
+  let start = Math.min(caretOffset, fullText.length)
+  while (start > 0 && /\S/.test(fullText[start - 1])) {
+    start--
+  }
+  let end = Math.min(caretOffset, fullText.length)
+  while (end < fullText.length && /\S/.test(fullText[end])) {
+    end++
+  }
+  const activeWord = fullText.slice(start, end).trim()
+  return {
+    caretOffset,
+    activeWord,
+    wordRange: [start, end],
+  }
+}
+
+function getRangeRectAtOffset(container: HTMLElement, startOffset: number, endOffset: number) {
+  if (typeof window === 'undefined') return null
+  try {
+    const treeWalker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null)
+    let currentOffset = 0
+    let startNode: Node | null = null
+    let startNodeOffset = 0
+    let endNode: Node | null = null
+    let endNodeOffset = 0
+
+    while (treeWalker.nextNode()) {
+      const node = treeWalker.currentNode
+      const nodeLength = node.textContent?.length || 0
+      if (!startNode && currentOffset + nodeLength >= startOffset) {
+        startNode = node
+        startNodeOffset = Math.max(0, startOffset - currentOffset)
+      }
+      if (!endNode && currentOffset + nodeLength >= endOffset) {
+        endNode = node
+        endNodeOffset = Math.max(0, endOffset - currentOffset)
+        break
+      }
+      currentOffset += nodeLength
+    }
+
+    if (startNode && endNode) {
+      const range = document.createRange()
+      range.setStart(startNode, Math.min(startNodeOffset, startNode.textContent?.length || 0))
+      range.setEnd(endNode, Math.min(endNodeOffset, endNode.textContent?.length || 0))
+      const rect = range.getBoundingClientRect()
+      const parentRect = container.parentElement?.getBoundingClientRect() || container.getBoundingClientRect()
+      if (rect.width > 0 || rect.height > 0) {
+        return {
+          top: rect.top - parentRect.top,
+          left: rect.left - parentRect.left,
+          width: rect.width,
+          height: rect.height,
+        }
+      }
+    }
+  } catch {}
+  return null
+}
 
 interface WorkerOption {
   id: string
@@ -130,6 +208,7 @@ export default function TranscriptEditor({
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null)
   const statsDebounceTimerRef = useRef<NodeJS.Timeout | null>(null)
   const autoSaveStatusRef = useRef<'saved' | 'saving' | 'unsaved' | 'idle'>('idle')
+  const broadcastWorkerActivityRef = useRef<() => void>(() => {})
 
   // Hide tools / distraction-free focus mode
   const [hideTools, setHideTools] = useState(false)
@@ -205,6 +284,19 @@ export default function TranscriptEditor({
   const [showSubmitModal, setShowSubmitModal] = useState(false)
   const [submitFileName, setSubmitFileName] = useState('')
   const [submitting, setSubmitting] = useState(false)
+
+  // ── ADMIN LIVE CURSOR / WORD TRACKING STATE ──
+  // Workers broadcast their caret position; admins subscribe to see it live (100% silent to workers)
+  const [liveWorkerCursor, setLiveWorkerCursor] = useState<{
+    activeWord: string
+    wordRange: [number, number]
+    caretOffset: number
+    liveHtml: string
+    isTyping: boolean
+    ts: number
+  } | null>(null)
+  const liveWorkerChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
+  const liveWorkerBroadcastThrottleRef = useRef<NodeJS.Timeout | null>(null)
 
   // Auto-dismiss success and info banners after 4 seconds; errors stay until manually closed
   useEffect(() => {
@@ -511,6 +603,9 @@ export default function TranscriptEditor({
       setFloatToolbar(null)
       setShowFloatHighlightPalette(false)
     }
+
+    // Silently broadcast caret position when worker clicks or moves cursor with arrow keys
+    broadcastWorkerActivityRef.current()
   }, [])
 
 
@@ -774,6 +869,9 @@ export default function TranscriptEditor({
         triggerAutoSave(editorRef.current.innerHTML)
       }
     }, 2000)
+
+    // Silently broadcast caret position on every input (worker side only, no UI feedback)
+    broadcastWorkerActivityRef.current()
   }
 
   // Auto-save flush on tab hide / visibility change / unmount to ensure 0 lost keystrokes on quick exit
@@ -810,6 +908,113 @@ export default function TranscriptEditor({
       if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current)
     }
   }, [effectiveRole, effectiveUserId, triggerAutoSave])
+
+  // ── SILENT REAL-TIME LIVE CURSOR: Worker broadcasts, Admin subscribes invisibly ──
+  useEffect(() => {
+    const CHANNEL_NAME = `transcript_live:${userId}` // always worker's own userId
+
+    // ── WORKER SIDE: silently broadcast caret + live text at most every 120ms ──
+    if (role === 'worker') {
+      const broadcastActivity = () => {
+        if (!editorRef.current || !userId) return
+        if (liveWorkerBroadcastThrottleRef.current) return // throttle to 120ms max
+        liveWorkerBroadcastThrottleRef.current = setTimeout(() => {
+          liveWorkerBroadcastThrottleRef.current = null
+        }, 120)
+
+        try {
+          const { caretOffset, activeWord, wordRange } = getCaretInfo(editorRef.current)
+          const liveHtml = editorRef.current.innerHTML || ''
+          // Fire-and-forget — worker never sees a response
+          supabase
+            .channel(CHANNEL_NAME)
+            .send({
+              type: 'broadcast',
+              event: 'cursor',
+              payload: {
+                caretOffset,
+                activeWord,
+                wordRange,
+                liveHtml,
+                wordCount: editorRef.current.innerText?.trim().split(/\s+/).filter(Boolean).length || 0,
+                ts: Date.now(),
+              },
+            })
+            .catch(() => {})
+        } catch {}
+      }
+
+      // Store in stable ref so syncSelectionState and handleEditorInput can call it without closure issues
+      broadcastWorkerActivityRef.current = broadcastActivity
+
+      // Subscribe to the channel (needed to be able to .send() from worker side)
+      const channel = supabase.channel(CHANNEL_NAME, { config: { broadcast: { self: false } } })
+      channel.subscribe()
+      liveWorkerChannelRef.current = channel
+
+      return () => {
+        broadcastWorkerActivityRef.current = () => {}
+        if (liveWorkerBroadcastThrottleRef.current) clearTimeout(liveWorkerBroadcastThrottleRef.current)
+        channel.unsubscribe()
+        liveWorkerChannelRef.current = null
+      }
+    }
+
+    // ── ADMIN SIDE: subscribe to the selected worker's channel silently ──
+    if (role === 'admin' && selectedWorkerId && selectedWorkerId !== userId) {
+      const workerChannel = `transcript_live:${selectedWorkerId}`
+
+      // Reset cursor when switching workers
+      setLiveWorkerCursor(null)
+
+      const channel = supabase
+        .channel(workerChannel, { config: { broadcast: { self: false } } })
+        .on('broadcast', { event: 'cursor' }, ({ payload }) => {
+          if (!payload) return
+          setLiveWorkerCursor({
+            activeWord: payload.activeWord || '',
+            wordRange: payload.wordRange || [0, 0],
+            caretOffset: payload.caretOffset || 0,
+            liveHtml: payload.liveHtml || '',
+            isTyping: true,
+            ts: payload.ts || Date.now(),
+          })
+          // Mark worker as no longer "actively typing" after 2s of no broadcast
+          // (so highlight fades rather than freezing on a stale word)
+        })
+        .subscribe()
+
+      liveWorkerChannelRef.current = channel
+
+      return () => {
+        setLiveWorkerCursor(null)
+        channel.unsubscribe()
+        liveWorkerChannelRef.current = null
+      }
+    }
+
+    return () => {}
+  }, [role, userId, selectedWorkerId])
+
+  // Fade the live cursor highlight 2.5s after the last broadcast (worker stopped typing)
+  useEffect(() => {
+    if (!liveWorkerCursor?.isTyping) return
+    const timer = setTimeout(() => {
+      setLiveWorkerCursor(prev => prev ? { ...prev, isTyping: false } : null)
+    }, 2500)
+    return () => clearTimeout(timer)
+  }, [liveWorkerCursor?.ts])
+
+  // Admin live view: sync worker's live HTML into the editor display in real time
+  // Uses innerHTML assignment (bypasses React) so the editor content mirrors the worker instantly
+  useEffect(() => {
+    if (role !== 'admin' || selectedWorkerId === userId) return
+    if (!liveWorkerCursor?.liveHtml || !editorRef.current) return
+    // Only update if the content actually changed to avoid cursor flicker
+    if (editorRef.current.innerHTML !== liveWorkerCursor.liveHtml) {
+      editorRef.current.innerHTML = liveWorkerCursor.liveHtml
+    }
+  }, [liveWorkerCursor?.liveHtml, role, selectedWorkerId, userId])
 
   // ── AUTO-REPLACE / TEXT EXPANDER ENGINE (MS Word Style) ──
   const checkTextExpansion = () => {
@@ -2117,6 +2322,13 @@ export default function TranscriptEditor({
                     </span>
                   )
                 })()}
+                {/* Live cursor pill – updates as the worker types */}
+                {liveWorkerCursor?.isTyping && (
+                  <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full font-bold bg-violet-600/30 text-violet-300 border border-violet-500/40 animate-pulse">
+                    <span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-ping" />
+                    <span className="hidden md:inline">⌨ {liveWorkerCursor.activeWord || 'typing…'}</span>
+                  </span>
+                )}
               </div>
             )}
           </div>
@@ -2203,6 +2415,13 @@ export default function TranscriptEditor({
                       </span>
                     )
                   })()}
+                  {/* Live cursor pill — shows the word the worker is currently on */}
+                  {liveWorkerCursor?.isTyping && (
+                    <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-bold bg-violet-600/30 text-violet-300 border border-violet-500/40 animate-pulse">
+                      <span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-ping" />
+                      ⌨ {liveWorkerCursor.activeWord || 'typing…'}
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -3031,7 +3250,7 @@ export default function TranscriptEditor({
 
         <div
           ref={editorRef}
-          contentEditable
+          contentEditable={role !== 'admin' || selectedWorkerId === userId}
           suppressContentEditableWarning
           onInput={handleEditorInput}
           onPaste={handlePaste}
@@ -3052,8 +3271,51 @@ export default function TranscriptEditor({
             wordBreak: 'break-word',
             overflowWrap: 'break-word',
           }}
-          className="transcript-rich-editor w-full flex-1 bg-transparent overflow-y-auto overflow-x-hidden relative z-10"
+          className={`transcript-rich-editor w-full flex-1 bg-transparent overflow-y-auto overflow-x-hidden relative z-10 ${
+            role === 'admin' && selectedWorkerId !== userId ? 'cursor-default select-text' : ''
+          }`}
         />
+
+        {/* ── ADMIN LIVE WORD HIGHLIGHT OVERLAY ── */}
+        {/* Silently shows which word the worker is currently at — invisible to the worker */}
+        {role === 'admin' && selectedWorkerId !== userId && liveWorkerCursor && liveWorkerCursor.activeWord && (() => {
+          if (!editorRef.current) return null
+          const rect = getRangeRectAtOffset(editorRef.current, liveWorkerCursor.wordRange[0], liveWorkerCursor.wordRange[1])
+          if (!rect) return null
+          return (
+            <div
+              key={liveWorkerCursor.ts}
+              className="pointer-events-none absolute z-20"
+              style={{
+                top: rect.top + 16,  // +16px for padding
+                left: rect.left + 16,
+                width: rect.width,
+                height: rect.height,
+              }}
+            >
+              {/* Pulsing violet underline highlight over the active word */}
+              <div
+                className={`absolute inset-0 rounded-sm transition-opacity duration-500 ${
+                  liveWorkerCursor.isTyping ? 'opacity-100' : 'opacity-0'
+                }`}
+                style={{
+                  background: 'rgba(139, 92, 246, 0.18)',
+                  borderBottom: '2px solid rgba(139, 92, 246, 0.8)',
+                }}
+              />
+              {/* Floating label above the word */}
+              {liveWorkerCursor.isTyping && rect.width > 0 && (
+                <div
+                  className="absolute -top-5 left-0 flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9px] font-bold text-white whitespace-nowrap shadow-lg animate-pulse"
+                  style={{ background: 'rgba(109, 40, 217, 0.9)' }}
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-violet-300 animate-ping" />
+                  ⌨ {liveWorkerCursor.activeWord}
+                </div>
+              )}
+            </div>
+          )
+        })()}
       </div>
 
       {/* ── CSS for Instant Paragraph Spacing Normalization & Double Space Highlighting ── */}
