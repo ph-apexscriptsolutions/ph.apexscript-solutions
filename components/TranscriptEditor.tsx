@@ -142,8 +142,29 @@ export default function TranscriptEditor({
   const effectiveRole = role === 'admin' && selectedWorkerId !== userId ? 'worker' : role
 
   // Slot state: 1 = Save Slot (manual), 2 = Auto-Save
-  const [activeSlot, setActiveSlot] = useState<number>(initialSlot === 2 || initialSlot === 5 ? 2 : 1)
+  const [activeSlot, setActiveSlot] = useState<number>(() => {
+    if (initialSlot === 2 || initialSlot === 5) return 2
+    if (typeof window !== 'undefined') {
+      try {
+        const savedSlot = localStorage.getItem(`transcript_active_slot_${effectiveRole}_${effectiveUserId}`)
+        if (savedSlot) {
+          const parsed = parseInt(savedSlot, 10)
+          if (parsed === 1 || parsed === 2) return parsed
+        }
+      } catch {}
+    }
+    return 1
+  })
   const [slotsMeta, setSlotsMeta] = useState<SlotInfo[]>([])
+
+  // Persist active slot choice so workers remain on their chosen slot across exits/refreshes
+  useEffect(() => {
+    if (typeof window !== 'undefined' && effectiveUserId) {
+      try {
+        localStorage.setItem(`transcript_active_slot_${effectiveRole}_${effectiveUserId}`, String(activeSlot))
+      } catch {}
+    }
+  }, [activeSlot, effectiveRole, effectiveUserId])
 
   // Editor styling & active selection format state
   const [font, setFont] = useState('Calibri')
@@ -561,7 +582,7 @@ export default function TranscriptEditor({
     } catch {}
   }, [])
 
-  // Dedicated Auto-Save Function: automatically backs up ongoing text into Auto-Save (Slot 2)
+  // Dedicated Auto-Save Function: automatically backs up ongoing text into active slot, Auto-Save (Slot 2), and local emergency backup
   const triggerAutoSave = useCallback(
     async (htmlContent: string) => {
       // Do NOT auto-save when admin is inspecting a worker
@@ -575,15 +596,16 @@ export default function TranscriptEditor({
         setAutoSaveStatus('saving')
       }
 
+      const nowStr = Date.now().toString()
       try {
         localStorage.setItem(`transcript_autosave_slot2_${effectiveRole}_${effectiveUserId}`, htmlContent)
-        localStorage.setItem(
-          `transcript_autosave_time_slot2_${effectiveRole}_${effectiveUserId}`,
-          Date.now().toString()
-        )
+        localStorage.setItem(`transcript_draft_current_${effectiveRole}_${effectiveUserId}`, htmlContent)
+        localStorage.setItem(`transcript_autosave_time_slot2_${effectiveRole}_${effectiveUserId}`, nowStr)
+        localStorage.setItem(`transcript_draft_time_${effectiveRole}_${effectiveUserId}`, nowStr)
       } catch {}
 
       try {
+        const targetSlot = activeSlot || 1
         const res = await fetch('/api/transcripts', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -591,7 +613,7 @@ export default function TranscriptEditor({
             role: effectiveRole,
             userId: effectiveUserId,
             content: htmlContent,
-            slot: 2,
+            slot: targetSlot,
             clientType: getMyClientType(),
             actorRole: role,
             actorUserId: userId,
@@ -599,6 +621,22 @@ export default function TranscriptEditor({
         })
         const data = await res.json()
         if (res.ok && !data.error) {
+          // If active slot is 1, mirror to slot 2 so the dedicated Auto-Save slot is always synchronized in cloud
+          if (targetSlot === 1) {
+            fetch('/api/transcripts', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                role: effectiveRole,
+                userId: effectiveUserId,
+                content: htmlContent,
+                slot: 2,
+                clientType: getMyClientType(),
+                actorRole: role,
+                actorUserId: userId,
+              }),
+            }).catch(() => {})
+          }
           autoSaveStatusRef.current = 'saved'
           setAutoSaveStatus('saved')
           setAutoSaveTime(new Date())
@@ -613,7 +651,7 @@ export default function TranscriptEditor({
         setAutoSaveStatus('idle')
       }
     },
-    [effectiveUserId, effectiveRole, fetchSlotsList, getMyClientType, role, selectedWorkerId, userId]
+    [activeSlot, effectiveUserId, effectiveRole, fetchSlotsList, getMyClientType, role, selectedWorkerId, userId]
   )
 
   // Load active slot content from cloud storage (with crash recovery for Auto-Save / Slot 2)
@@ -630,18 +668,20 @@ export default function TranscriptEditor({
         )
         const data = await res.json()
 
-        if (res.ok && data.content) {
+        if (res.ok && data.content && data.content.trim()) {
           setEditorContent(data.content)
-        } else if (slotNum === 2) {
+        } else {
+          // Fallback to local draft if cloud slot is empty
           try {
             const emergencyDraft =
               localStorage.getItem(`transcript_autosave_slot2_${targetRole}_${targetId}`) ||
+              localStorage.getItem(`transcript_draft_current_${targetRole}_${targetId}`) ||
               localStorage.getItem(`transcript_autosave_slot5_${targetRole}_${targetId}`)
             if (emergencyDraft && emergencyDraft.trim()) {
               setEditorContent(emergencyDraft)
               setStatusMessage({
                 type: 'info',
-                text: 'Recovered ongoing auto-saved draft from local emergency backup.',
+                text: 'Recovered ongoing draft from local emergency backup.',
               })
             } else {
               setEditorContent('')
@@ -649,47 +689,41 @@ export default function TranscriptEditor({
           } catch {
             setEditorContent('')
           }
-        } else {
-          setEditorContent('')
         }
 
         // After cloud/slot load, check if the per-keystroke local draft is newer.
         // transcript_draft_current is written on EVERY keystroke (no debounce), so it fills
         // the gap between the last keystroke and the 2-second auto-save timer firing before a crash.
-        if (slotNum === 2) {
-          try {
-            const currentDraft = localStorage.getItem(`transcript_draft_current_${targetRole}_${targetId}`)
-            const currentDraftTime = parseInt(localStorage.getItem(`transcript_draft_time_${targetRole}_${targetId}`) || '0', 10)
-            const savedAutoSaveTime = parseInt(localStorage.getItem(`transcript_autosave_time_slot2_${targetRole}_${targetId}`) || '0', 10)
-            // Use per-keystroke draft only if it's newer than the last cloud auto-save
-            if (currentDraft && currentDraft.trim() && currentDraftTime > savedAutoSaveTime) {
-              setEditorContent(currentDraft)
-              setStatusMessage({
-                type: 'info',
-                text: 'Recovered the most recent draft including changes not yet cloud-saved at the time of your last exit.',
-              })
-            }
-          } catch {}
-        }
+        try {
+          const currentDraft = localStorage.getItem(`transcript_draft_current_${targetRole}_${targetId}`)
+          const currentDraftTime = parseInt(localStorage.getItem(`transcript_draft_time_${targetRole}_${targetId}`) || '0', 10)
+          const savedAutoSaveTime = parseInt(localStorage.getItem(`transcript_autosave_time_slot2_${targetRole}_${targetId}`) || '0', 10)
+          if (currentDraft && currentDraft.trim() && currentDraftTime > savedAutoSaveTime) {
+            setEditorContent(currentDraft)
+            setStatusMessage({
+              type: 'info',
+              text: 'Recovered the most recent draft including changes not yet cloud-saved at the time of your last exit.',
+            })
+          }
+        } catch {}
       } catch (err) {
         console.error('Failed to load slot content', err)
-        if (slotNum === 2) {
-          try {
-            // On network failure, prefer the per-keystroke draft (most current), then fall back
-            const currentDraft = localStorage.getItem(`transcript_draft_current_${targetRole}_${targetId}`)
-            const emergencyDraft =
-              localStorage.getItem(`transcript_autosave_slot2_${targetRole}_${targetId}`) ||
-              localStorage.getItem(`transcript_autosave_slot5_${targetRole}_${targetId}`)
-            const draft = currentDraft?.trim() ? currentDraft : emergencyDraft
-            if (draft && draft.trim()) {
-              setEditorContent(draft)
-            } else {
-              setEditorContent('')
-            }
-          } catch {
+        try {
+          const currentDraft = localStorage.getItem(`transcript_draft_current_${targetRole}_${targetId}`)
+          const emergencyDraft =
+            localStorage.getItem(`transcript_autosave_slot2_${targetRole}_${targetId}`) ||
+            localStorage.getItem(`transcript_autosave_slot5_${targetRole}_${targetId}`)
+          const draft = currentDraft?.trim() ? currentDraft : emergencyDraft
+          if (draft && draft.trim()) {
+            setEditorContent(draft)
+            setStatusMessage({
+              type: 'info',
+              text: 'Recovered ongoing draft from local emergency backup.',
+            })
+          } else {
             setEditorContent('')
           }
-        } else {
+        } catch {
           setEditorContent('')
         }
       } finally {
@@ -741,6 +775,41 @@ export default function TranscriptEditor({
       }
     }, 2000)
   }
+
+  // Auto-save flush on tab hide / visibility change / unmount to ensure 0 lost keystrokes on quick exit
+  useEffect(() => {
+    const flushAutoSave = () => {
+      if (editorRef.current && autoSaveStatusRef.current === 'unsaved') {
+        const html = editorRef.current.innerHTML
+        const text = editorRef.current.innerText?.trim() || ''
+        if (html && text && effectiveUserId) {
+          const nowStr = Date.now().toString()
+          try {
+            localStorage.setItem(`transcript_autosave_slot2_${effectiveRole}_${effectiveUserId}`, html)
+            localStorage.setItem(`transcript_draft_current_${effectiveRole}_${effectiveUserId}`, html)
+            localStorage.setItem(`transcript_draft_time_${effectiveRole}_${effectiveUserId}`, nowStr)
+          } catch {}
+          triggerAutoSave(html)
+        }
+      }
+    }
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        flushAutoSave()
+      }
+    }
+
+    window.addEventListener('visibilitychange', handleVisibilityChange)
+    window.addEventListener('beforeunload', flushAutoSave)
+
+    return () => {
+      flushAutoSave()
+      window.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('beforeunload', flushAutoSave)
+      if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current)
+    }
+  }, [effectiveRole, effectiveUserId, triggerAutoSave])
 
   // ── AUTO-REPLACE / TEXT EXPANDER ENGINE (MS Word Style) ──
   const checkTextExpansion = () => {
@@ -3043,10 +3112,27 @@ export default function TranscriptEditor({
               </span>
             )}
           </div>
+          {autoSaveStatus === 'saving' ? (
+            <span className="flex items-center gap-1 text-purple-600 font-semibold animate-pulse" title="Auto-saving to cloud and local storage...">
+              <Loader2 className="w-3 h-3 animate-spin text-purple-600" />
+              Auto-saving…
+            </span>
+          ) : autoSaveTime ? (
+            <span className="flex items-center gap-1 text-emerald-600 font-medium" title="Auto-saved to cloud and local emergency backup">
+              <Check className="w-3 h-3 text-emerald-600" />
+              Auto-saved ({autoSaveTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})
+            </span>
+          ) : autoSaveStatus === 'unsaved' ? (
+            <span className="flex items-center gap-1 text-amber-600 font-medium" title="Unsaved changes (will auto-save shortly)">
+              <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+              Unsaved changes
+            </span>
+          ) : null}
+
           {lastSavedTime && (
             <span className="flex items-center gap-0.5 text-purple-700 font-medium" title="Manual save to slot completed">
               <Check className="w-3 h-3 text-purple-600" />
-              Saved ({lastSavedTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})
+              Manual Saved ({lastSavedTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})
             </span>
           )}
         </div>
