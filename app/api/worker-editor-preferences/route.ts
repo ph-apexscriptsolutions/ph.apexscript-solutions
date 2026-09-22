@@ -57,6 +57,8 @@ export async function GET(request: Request) {
       preferences: {
         hotkeys: { ...DEFAULT_PREFERENCES.hotkeys, ...(parsed.hotkeys || {}) },
         shortcuts: parsed.shortcuts || DEFAULT_PREFERENCES.shortcuts,
+        ...(parsed.font ? { font: parsed.font } : {}),
+        ...(parsed.fontSize ? { fontSize: parsed.fontSize } : {}),
       },
     }, { status: 200 })
   } catch (err: any) {

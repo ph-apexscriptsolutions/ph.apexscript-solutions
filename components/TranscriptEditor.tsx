@@ -277,6 +277,8 @@ export default function TranscriptEditor({
   const [newShortcutTrigger, setNewShortcutTrigger] = useState('')
   const [newShortcutReplacement, setNewShortcutReplacement] = useState('')
   const [isCapturingKey, setIsCapturingKey] = useState<keyof HotkeySettings | null>(null)
+  // Guard: prevents font/size auto-save from firing before preferences are loaded from the server
+  const preferencesLoadedRef = useRef(false)
 
   // Keep refs in sync with state (no dependency array churn in hotkey effect)
   useEffect(() => { hotkeysRef.current = hotkeys }, [hotkeys])
@@ -295,22 +297,61 @@ export default function TranscriptEditor({
       : 'browser'
   }, [])
 
-  // Load Worker Editor Preferences from API
+  // Load Worker Editor Preferences from API & localStorage
   useEffect(() => {
+    // 1. Immediately restore from localStorage if available (fastest, prevents any reset on page exit/refresh)
+    if (typeof window !== 'undefined') {
+      try {
+        const local = (userId && localStorage.getItem(`transcript_preferences_${userId}`)) || localStorage.getItem('transcript_hotkeys')
+        if (local) {
+          const parsed = JSON.parse(local)
+          const localHk = parsed.hotkeys || parsed
+          if (localHk && typeof localHk === 'object') {
+            setHotkeys({
+              ...DEFAULT_HOTKEYS,
+              ...localHk,
+              play: localHk.play || localHk.playPause || DEFAULT_HOTKEYS.play,
+              pause: localHk.pause || (localHk.playPause === 'F1' ? 'F2' : DEFAULT_HOTKEYS.pause),
+            })
+          }
+          if (Array.isArray(parsed.shortcuts)) {
+            setShortcuts(parsed.shortcuts)
+          }
+          if (parsed.font) setFont(parsed.font)
+          if (parsed.fontSize) setFontSize(parsed.fontSize)
+        }
+      } catch {}
+    }
+
     const fetchPreferences = async () => {
-      if (!userId) return
+      if (!userId) {
+        preferencesLoadedRef.current = true
+        return
+      }
       try {
         const res = await fetch(`/api/worker-editor-preferences?userId=${encodeURIComponent(userId)}`)
         const data = await res.json()
         if (data?.preferences) {
           if (data.preferences.hotkeys) {
             const hk = data.preferences.hotkeys
-            setHotkeys({
+            const mergedHotkeys = {
               ...DEFAULT_HOTKEYS,
               ...hk,
               play: hk.play || hk.playPause || DEFAULT_HOTKEYS.play,
               pause: hk.pause || (hk.playPause === 'F1' ? 'F2' : DEFAULT_HOTKEYS.pause),
-            })
+            }
+            setHotkeys(mergedHotkeys)
+            if (typeof window !== 'undefined') {
+              try {
+                localStorage.setItem(`transcript_preferences_${userId}`, JSON.stringify({
+                  hotkeys: mergedHotkeys,
+                  shortcuts: data.preferences.shortcuts || DEFAULT_SHORTCUTS,
+                  font: data.preferences.font,
+                  fontSize: data.preferences.fontSize,
+                }))
+                localStorage.setItem('transcript_hotkeys', JSON.stringify(mergedHotkeys))
+              } catch {}
+            }
           }
           if (Array.isArray(data.preferences.shortcuts)) {
             setShortcuts(data.preferences.shortcuts)
@@ -321,6 +362,9 @@ export default function TranscriptEditor({
         }
       } catch (err) {
         console.error('Failed to load worker preferences:', err)
+      } finally {
+        // Mark preferences as loaded so font/size auto-save doesn't fire prematurely
+        preferencesLoadedRef.current = true
       }
     }
     fetchPreferences()
@@ -344,8 +388,23 @@ export default function TranscriptEditor({
       .catch(() => {})
   }, [userId, allWorkers])
 
-  // Save Worker Editor Preferences to Supabase
+  // Save Worker Editor Preferences to Supabase and LocalStorage
   const savePreferences = async (newHotkeys = hotkeys, newShortcuts = shortcuts, newFont = font, newFontSize = fontSize) => {
+    // 1. Immediately cache in localStorage for instant persistence across exits and refreshes
+    if (typeof window !== 'undefined') {
+      try {
+        if (userId) {
+          localStorage.setItem(`transcript_preferences_${userId}`, JSON.stringify({
+            hotkeys: newHotkeys,
+            shortcuts: newShortcuts,
+            font: newFont,
+            fontSize: newFontSize,
+          }))
+        }
+        localStorage.setItem('transcript_hotkeys', JSON.stringify(newHotkeys))
+      } catch {}
+    }
+
     if (!userId) return
     try {
       await fetch('/api/worker-editor-preferences', {
@@ -366,12 +425,13 @@ export default function TranscriptEditor({
     }
   }
 
-  // Auto-save font & size preferences whenever they change (debounced)
+  // Auto-save font & size preferences whenever they change (debounced, only after preferences are loaded)
   const fontPrefTimerRef = useRef<NodeJS.Timeout | null>(null)
   useEffect(() => {
+    if (!preferencesLoadedRef.current) return
     if (fontPrefTimerRef.current) clearTimeout(fontPrefTimerRef.current)
     fontPrefTimerRef.current = setTimeout(() => {
-      savePreferences(hotkeys, shortcuts, font, fontSize)
+      savePreferences(hotkeysRef.current, shortcutsRef.current, font, fontSize)
     }, 1000)
     return () => { if (fontPrefTimerRef.current) clearTimeout(fontPrefTimerRef.current) }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -3120,6 +3180,7 @@ export default function TranscriptEditor({
               <button
                 type="button"
                 onClick={() => {
+                  savePreferences(hotkeys, shortcuts)
                   setShowHotkeysModal(false)
                   setIsCapturingKey(null)
                 }}
@@ -3310,7 +3371,10 @@ export default function TranscriptEditor({
               </div>
               <button
                 type="button"
-                onClick={() => setShowShortcutsModal(false)}
+                onClick={() => {
+                  savePreferences(hotkeys, shortcuts)
+                  setShowShortcutsModal(false)
+                }}
                 className="p-1 text-zinc-400 hover:text-zinc-700 rounded-lg"
               >
                 <X className="w-5 h-5" />
