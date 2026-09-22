@@ -11,7 +11,7 @@ import PriorityBroadcastModal from '@/components/priority-broadcast-modal'
 import AdminPriorityAnnouncementModal from '@/components/admin-priority-announcement-modal'
 import RevisionRequestModal from '@/components/revision-request-modal'
 import { DashboardCardStyleModal } from '@/components/dashboard-card-style-modal'
-import { parseAndFormatAssignment, isRawAssignmentSequence } from '@/utils/assignment-formatter'
+import { parseAndFormatAssignment, isRawAssignmentSequence, extractAssignmentFields } from '@/utils/assignment-formatter'
 
 const getDepartmentIcon = (department: string) => {
   const dept = department.toLowerCase()
@@ -1156,6 +1156,8 @@ export default function DashboardPage() {
       const assignment = assignments.find((a: any) => a.id === editAssignmentId)
       if (assignment && assignment.description) {
         assignmentEditorRef.innerHTML = assignment.description
+      } else if (newAssignmentDescription) {
+        assignmentEditorRef.innerHTML = newAssignmentDescription
       }
     }
   }, [isAddAssignmentModalOpen, editAssignmentId, assignmentEditorRef, assignments])
@@ -3555,6 +3557,12 @@ export default function DashboardPage() {
           setNewAssignmentFilename(parsed.code)
         }
       }
+    } else if (descriptionContent && !effectiveFilename) {
+      const extracted = extractAssignmentFields(descriptionContent)
+      if (extracted.code) {
+        effectiveFilename = extracted.code
+        setNewAssignmentFilename(extracted.code)
+      }
     }
 
     if (!effectiveFilename) {
@@ -3630,6 +3638,12 @@ export default function DashboardPage() {
           effectiveFilename = parsed.code
           setNewAssignmentFilename(parsed.code)
         }
+      }
+    } else if (descriptionContent && !effectiveFilename) {
+      const extracted = extractAssignmentFields(descriptionContent)
+      if (extracted.code) {
+        effectiveFilename = extracted.code
+        setNewAssignmentFilename(extracted.code)
       }
     }
 

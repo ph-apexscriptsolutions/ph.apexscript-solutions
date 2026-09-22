@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getSupabaseServerClient } from '@/utils/supabase/server'
 import nodemailer from 'nodemailer'
-import { parseAndFormatAssignment, isRawAssignmentSequence } from '@/utils/assignment-formatter'
+import { parseAndFormatAssignment, isRawAssignmentSequence, extractAssignmentFields } from '@/utils/assignment-formatter'
 
 // Initialize Nodemailer transporter with Gmail
 const transporter = process.env.EMAIL_USER && process.env.EMAIL_PASS 
@@ -64,6 +64,11 @@ export async function POST(request: Request) {
         if (!formattedDueTime && parsed.due) {
           formattedDueTime = parsed.due
         }
+      }
+    } else if (finalDescription && !formattedDueTime) {
+      const extracted = extractAssignmentFields(finalDescription)
+      if (extracted.due) {
+        formattedDueTime = extracted.due
       }
     }
 

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { parseAndFormatAssignment, isRawAssignmentSequence } from '@/utils/assignment-formatter'
+import { parseAndFormatAssignment, isRawAssignmentSequence, extractAssignmentFields } from '@/utils/assignment-formatter'
 
 const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -44,6 +44,12 @@ export async function POST(request: Request) {
         }
       } else {
         updates.description = description
+        if (typeof dueTime === 'undefined' && description) {
+          const extracted = extractAssignmentFields(description)
+          if (extracted.due) {
+            updates.due_time = extracted.due
+          }
+        }
       }
     }
     if (typeof isPriority !== 'undefined') updates.is_priority = Boolean(isPriority)
