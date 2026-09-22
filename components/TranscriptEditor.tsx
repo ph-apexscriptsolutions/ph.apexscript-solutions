@@ -652,15 +652,37 @@ export default function TranscriptEditor({
         } else {
           setEditorContent('')
         }
+
+        // After cloud/slot load, check if the per-keystroke local draft is newer.
+        // transcript_draft_current is written on EVERY keystroke (no debounce), so it fills
+        // the gap between the last keystroke and the 2-second auto-save timer firing before a crash.
+        if (slotNum === 2) {
+          try {
+            const currentDraft = localStorage.getItem(`transcript_draft_current_${targetRole}_${targetId}`)
+            const currentDraftTime = parseInt(localStorage.getItem(`transcript_draft_time_${targetRole}_${targetId}`) || '0', 10)
+            const savedAutoSaveTime = parseInt(localStorage.getItem(`transcript_autosave_time_slot2_${targetRole}_${targetId}`) || '0', 10)
+            // Use per-keystroke draft only if it's newer than the last cloud auto-save
+            if (currentDraft && currentDraft.trim() && currentDraftTime > savedAutoSaveTime) {
+              setEditorContent(currentDraft)
+              setStatusMessage({
+                type: 'info',
+                text: 'Recovered the most recent draft including changes not yet cloud-saved at the time of your last exit.',
+              })
+            }
+          } catch {}
+        }
       } catch (err) {
         console.error('Failed to load slot content', err)
         if (slotNum === 2) {
           try {
+            // On network failure, prefer the per-keystroke draft (most current), then fall back
+            const currentDraft = localStorage.getItem(`transcript_draft_current_${targetRole}_${targetId}`)
             const emergencyDraft =
               localStorage.getItem(`transcript_autosave_slot2_${targetRole}_${targetId}`) ||
               localStorage.getItem(`transcript_autosave_slot5_${targetRole}_${targetId}`)
-            if (emergencyDraft && emergencyDraft.trim()) {
-              setEditorContent(emergencyDraft)
+            const draft = currentDraft?.trim() ? currentDraft : emergencyDraft
+            if (draft && draft.trim()) {
+              setEditorContent(draft)
             } else {
               setEditorContent('')
             }
@@ -674,7 +696,7 @@ export default function TranscriptEditor({
         setLoading(false)
       }
     },
-    [setEditorContent]
+    [setEditorContent, setStatusMessage]
   )
 
   // Load when worker or slot changes
