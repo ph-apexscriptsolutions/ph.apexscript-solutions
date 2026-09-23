@@ -44,6 +44,11 @@ import {
   Upload,
   HelpCircle,
   AlertTriangle,
+  LifeBuoy,
+  Edit3,
+  Radio,
+  Sparkles,
+  Send,
 } from 'lucide-react'
 import {
   saveAudioToDB,
@@ -130,6 +135,38 @@ function getRangeRectAtOffset(container: HTMLElement, startOffset: number, endOf
     }
   } catch {}
   return null
+}
+
+function restoreCaretOffset(element: HTMLElement, offset: number) {
+  if (typeof window === 'undefined' || !element) return
+  try {
+    const treeWalker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT, null)
+    let currentOffset = 0
+    let targetNode: Node | null = null
+    let targetOffset = 0
+
+    while (treeWalker.nextNode()) {
+      const node = treeWalker.currentNode
+      const len = node.textContent?.length || 0
+      if (currentOffset + len >= offset) {
+        targetNode = node
+        targetOffset = Math.max(0, offset - currentOffset)
+        break
+      }
+      currentOffset += len
+    }
+
+    if (targetNode) {
+      const sel = window.getSelection()
+      if (sel) {
+        const range = document.createRange()
+        range.setStart(targetNode, Math.min(targetOffset, targetNode.textContent?.length || 0))
+        range.collapse(true)
+        sel.removeAllRanges()
+        sel.addRange(range)
+      }
+    }
+  } catch {}
 }
 
 interface WorkerOption {
@@ -297,6 +334,44 @@ export default function TranscriptEditor({
   } | null>(null)
   const liveWorkerChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
   const liveWorkerBroadcastThrottleRef = useRef<NodeJS.Timeout | null>(null)
+
+  // ── TRANSCRIBER HELP REQUEST STATE ──
+  const [helpRequested, setHelpRequested] = useState(false)
+  const [helpRequestData, setHelpRequestData] = useState<{
+    message?: string
+    timestamp?: string
+    slot?: number
+    requestedAt?: string
+    workerName?: string
+  } | null>(null)
+  const [showHelpModal, setShowHelpModal] = useState(false)
+  const [helpNote, setHelpNote] = useState('')
+  const [submittingHelp, setSubmittingHelp] = useState(false)
+
+  // ── ADMIN REAL-TIME EDITING STATE ──
+  const [isAdminLiveEditing, setIsAdminLiveEditing] = useState(false)
+  const isAdminLiveEditingRef = useRef(false)
+  useEffect(() => {
+    isAdminLiveEditingRef.current = isAdminLiveEditing
+  }, [isAdminLiveEditing])
+  const [activeHelpRequests, setActiveHelpRequests] = useState<Record<string, any>>({})
+  const broadcastAdminActivityRef = useRef<() => void>(() => {})
+  const liveAdminBroadcastThrottleRef = useRef<NodeJS.Timeout | null>(null)
+
+  // ── WORKER-SIDE ADMIN PRESENCE & CURSOR (Seen when Admin is live editing) ──
+  const [adminLivePresence, setAdminLivePresence] = useState<{
+    isLiveEditing: boolean
+    adminName: string
+    adminId?: string
+    ts?: number
+  } | null>(null)
+  const [liveAdminCursor, setLiveAdminCursor] = useState<{
+    activeWord: string
+    wordRange: [number, number]
+    caretOffset: number
+    adminName: string
+    ts: number
+  } | null>(null)
 
   // Auto-dismiss success and info banners after 4 seconds; errors stay until manually closed
   useEffect(() => {
@@ -627,6 +702,13 @@ export default function TranscriptEditor({
         } else if (data.worker?.client_type) {
           setWorkerClientType(data.worker.client_type)
         }
+        if (data.helpRequest) {
+          setHelpRequested(true)
+          setHelpRequestData(data.helpRequest)
+        } else {
+          setHelpRequested(false)
+          setHelpRequestData(null)
+        }
       }
     } catch (err) {
       console.error('Failed to fetch slots list', err)
@@ -634,6 +716,24 @@ export default function TranscriptEditor({
       setLoadingSlots(false)
     }
   }, [])
+
+  // Admin: Fetch all workers who currently requested real-time assistance
+  const fetchAllActiveHelpRequests = useCallback(async () => {
+    if (role !== 'admin') return
+    try {
+      const res = await fetch(`/api/transcripts?action=active_help_requests&role=admin&userId=${encodeURIComponent(userId)}`)
+      const data = await res.json()
+      if (res.ok && data.activeRequests) {
+        setActiveHelpRequests(data.activeRequests)
+      }
+    } catch (e) {}
+  }, [role, userId])
+
+  useEffect(() => {
+    if (role === 'admin') {
+      fetchAllActiveHelpRequests()
+    }
+  }, [role, fetchAllActiveHelpRequests])
 
   // Helper to set editor HTML safely with exact original line spacing
   const setEditorContent = useCallback((rawContent: string) => {
@@ -680,8 +780,8 @@ export default function TranscriptEditor({
   // Dedicated Auto-Save Function: automatically backs up ongoing text into active slot, Auto-Save (Slot 2), and local emergency backup
   const triggerAutoSave = useCallback(
     async (htmlContent: string) => {
-      // Do NOT auto-save when admin is inspecting a worker
-      if (role === 'admin' && selectedWorkerId !== userId) return
+      // Do NOT auto-save when admin is inspecting a worker unless admin is live editing
+      if (role === 'admin' && selectedWorkerId !== userId && !isAdminLiveEditingRef.current) return
       // Guard: check actual visible text (not raw HTML) to avoid saving blank <br> content
       const visibleText = editorRef.current?.innerText?.trim() || ''
       if (!effectiveUserId || !visibleText) return
@@ -870,8 +970,12 @@ export default function TranscriptEditor({
       }
     }, 2000)
 
-    // Silently broadcast caret position on every input (worker side only, no UI feedback)
-    broadcastWorkerActivityRef.current()
+    // Broadcast activity: worker broadcasts to admin, or admin broadcasts to worker if live editing
+    if (role === 'worker') {
+      broadcastWorkerActivityRef.current()
+    } else if (role === 'admin' && selectedWorkerId !== userId && isAdminLiveEditingRef.current) {
+      broadcastAdminActivityRef.current()
+    }
   }
 
   // Auto-save flush on tab hide / visibility change / unmount to ensure 0 lost keystrokes on quick exit
@@ -909,12 +1013,37 @@ export default function TranscriptEditor({
     }
   }, [effectiveRole, effectiveUserId, triggerAutoSave])
 
-  // ── SILENT REAL-TIME LIVE CURSOR: Worker broadcasts, Admin subscribes invisibly ──
+  // ── GLOBAL HELP ALERTS LISTENER (For Admins) ──
   useEffect(() => {
-    const CHANNEL_NAME = `transcript_live:${userId}` // always worker's own userId
+    if (role !== 'admin') return
 
-    // ── WORKER SIDE: silently broadcast caret + live text at most every 120ms ──
+    const alertsChannel = supabase
+      .channel('transcript_help_alerts', { config: { broadcast: { self: true } } })
+      .on('broadcast', { event: 'help_alert' }, ({ payload }) => {
+        if (!payload) return
+        if (payload.requested) {
+          setActiveHelpRequests((prev) => ({ ...prev, [payload.workerId]: payload }))
+        } else {
+          setActiveHelpRequests((prev) => {
+            const next = { ...prev }
+            delete next[payload.workerId]
+            return next
+          })
+        }
+      })
+      .subscribe()
+
+    return () => {
+      alertsChannel.unsubscribe()
+    }
+  }, [role])
+
+  // ── BIDIRECTIONAL REAL-TIME LIVE CHANNEL: Worker <-> Admin ──
+  useEffect(() => {
+    // ── WORKER SIDE: broadcast caret & text to admin, listen for live admin edits ──
     if (role === 'worker') {
+      const CHANNEL_NAME = `transcript_live:${userId}` // always worker's own userId
+
       const broadcastActivity = () => {
         if (!editorRef.current || !userId) return
         if (liveWorkerBroadcastThrottleRef.current) return // throttle to 120ms max
@@ -925,7 +1054,6 @@ export default function TranscriptEditor({
         try {
           const { caretOffset, activeWord, wordRange } = getCaretInfo(editorRef.current)
           const liveHtml = editorRef.current.innerHTML || ''
-          // Fire-and-forget — worker never sees a response
           supabase
             .channel(CHANNEL_NAME)
             .send({
@@ -944,12 +1072,56 @@ export default function TranscriptEditor({
         } catch {}
       }
 
-      // Store in stable ref so syncSelectionState and handleEditorInput can call it without closure issues
       broadcastWorkerActivityRef.current = broadcastActivity
 
-      // Subscribe to the channel (needed to be able to .send() from worker side)
-      const channel = supabase.channel(CHANNEL_NAME, { config: { broadcast: { self: false } } })
-      channel.subscribe()
+      const channel = supabase
+        .channel(CHANNEL_NAME, { config: { broadcast: { self: false } } })
+        .on('broadcast', { event: 'admin_presence' }, ({ payload }) => {
+          if (!payload) return
+          setAdminLivePresence(payload.isLiveEditing ? payload : null)
+        })
+        .on('broadcast', { event: 'admin_edit' }, ({ payload }) => {
+          if (!payload || !editorRef.current) return
+
+          // Sync admin's edits into the worker's editor
+          if (payload.html && editorRef.current.innerHTML !== payload.html) {
+            const isEditorFocused = document.activeElement === editorRef.current
+            const currentCaret = isEditorFocused ? getCaretInfo(editorRef.current).caretOffset : 0
+
+            editorRef.current.innerHTML = payload.html
+            try {
+              localStorage.setItem(`transcript_draft_current_${effectiveRole}_${effectiveUserId}`, payload.html)
+              localStorage.setItem(`transcript_draft_time_${effectiveRole}_${effectiveUserId}`, Date.now().toString())
+            } catch {}
+            updateStats()
+
+            if (isEditorFocused) {
+              restoreCaretOffset(editorRef.current, currentCaret)
+            }
+          }
+
+          // Track admin caret / active word highlight
+          if (payload.activeWord) {
+            setLiveAdminCursor({
+              activeWord: payload.activeWord,
+              wordRange: payload.wordRange || [0, 0],
+              caretOffset: payload.caretOffset || 0,
+              adminName: payload.adminName || 'Admin',
+              ts: Date.now(),
+            })
+          }
+        })
+        .on('broadcast', { event: 'help_status' }, ({ payload }) => {
+          if (!payload) return
+          setHelpRequested(!!payload.requested)
+          if (payload.requested) {
+            setHelpRequestData(payload)
+          } else {
+            setHelpRequestData(null)
+          }
+        })
+        .subscribe()
+
       liveWorkerChannelRef.current = channel
 
       return () => {
@@ -960,12 +1132,45 @@ export default function TranscriptEditor({
       }
     }
 
-    // ── ADMIN SIDE: subscribe to the selected worker's channel silently ──
+    // ── ADMIN SIDE: listen to worker caret & broadcast live edits when live editing ──
     if (role === 'admin' && selectedWorkerId && selectedWorkerId !== userId) {
       const workerChannel = `transcript_live:${selectedWorkerId}`
 
-      // Reset cursor when switching workers
+      // Reset states when switching workers
       setLiveWorkerCursor(null)
+      setIsAdminLiveEditing(false)
+      isAdminLiveEditingRef.current = false
+
+      const broadcastAdminActivity = () => {
+        if (!editorRef.current || !selectedWorkerId) return
+        if (liveAdminBroadcastThrottleRef.current) return // throttle to 100ms
+        liveAdminBroadcastThrottleRef.current = setTimeout(() => {
+          liveAdminBroadcastThrottleRef.current = null
+        }, 100)
+
+        try {
+          const { caretOffset, activeWord, wordRange } = getCaretInfo(editorRef.current)
+          const liveHtml = editorRef.current.innerHTML || ''
+
+          liveWorkerChannelRef.current
+            ?.send({
+              type: 'broadcast',
+              event: 'admin_edit',
+              payload: {
+                caretOffset,
+                activeWord,
+                wordRange,
+                html: liveHtml,
+                adminName: workerDisplayName || 'Admin',
+                adminId: userId,
+                ts: Date.now(),
+              },
+            })
+            .catch(() => {})
+        } catch {}
+      }
+
+      broadcastAdminActivityRef.current = broadcastAdminActivity
 
       const channel = supabase
         .channel(workerChannel, { config: { broadcast: { self: false } } })
@@ -979,14 +1184,33 @@ export default function TranscriptEditor({
             isTyping: true,
             ts: payload.ts || Date.now(),
           })
-          // Mark worker as no longer "actively typing" after 2s of no broadcast
-          // (so highlight fades rather than freezing on a stale word)
+
+          // When admin is NOT live editing, automatically mirror worker's typing into admin's view
+          if (!isAdminLiveEditingRef.current && payload.liveHtml && editorRef.current) {
+            if (editorRef.current.innerHTML !== payload.liveHtml) {
+              editorRef.current.innerHTML = payload.liveHtml
+              updateStats()
+            }
+          }
+        })
+        .on('broadcast', { event: 'help_status' }, ({ payload }) => {
+          if (!payload) return
+          if (payload.workerId === selectedWorkerId) {
+            setHelpRequested(!!payload.requested)
+            if (payload.requested) {
+              setHelpRequestData(payload)
+            } else {
+              setHelpRequestData(null)
+            }
+          }
         })
         .subscribe()
 
       liveWorkerChannelRef.current = channel
 
       return () => {
+        broadcastAdminActivityRef.current = () => {}
+        if (liveAdminBroadcastThrottleRef.current) clearTimeout(liveAdminBroadcastThrottleRef.current)
         setLiveWorkerCursor(null)
         channel.unsubscribe()
         liveWorkerChannelRef.current = null
@@ -994,27 +1218,143 @@ export default function TranscriptEditor({
     }
 
     return () => {}
-  }, [role, userId, selectedWorkerId])
+  }, [role, userId, selectedWorkerId, effectiveRole, effectiveUserId, updateStats, workerDisplayName])
 
   // Fade the live cursor highlight 2.5s after the last broadcast (worker stopped typing)
   useEffect(() => {
     if (!liveWorkerCursor?.isTyping) return
     const timer = setTimeout(() => {
-      setLiveWorkerCursor(prev => prev ? { ...prev, isTyping: false } : null)
+      setLiveWorkerCursor((prev) => (prev ? { ...prev, isTyping: false } : null))
     }, 2500)
     return () => clearTimeout(timer)
   }, [liveWorkerCursor?.ts])
 
-  // Admin live view: sync worker's live HTML into the editor display in real time
-  // Uses innerHTML assignment (bypasses React) so the editor content mirrors the worker instantly
+  // Fade the admin live cursor highlight on worker's screen 3s after last edit
   useEffect(() => {
-    if (role !== 'admin' || selectedWorkerId === userId) return
-    if (!liveWorkerCursor?.liveHtml || !editorRef.current) return
-    // Only update if the content actually changed to avoid cursor flicker
-    if (editorRef.current.innerHTML !== liveWorkerCursor.liveHtml) {
-      editorRef.current.innerHTML = liveWorkerCursor.liveHtml
+    if (!liveAdminCursor) return
+    const timer = setTimeout(() => {
+      setLiveAdminCursor(null)
+    }, 3000)
+    return () => clearTimeout(timer)
+  }, [liveAdminCursor?.ts])
+
+  // Worker: Submit Help Request
+  const handleSubmitHelpRequest = async (customNote?: string) => {
+    if (!userId) return
+    const noteToSend = customNote !== undefined ? customNote : helpNote
+    const currentAudioPos = audioSrc ? formatTime(audioCurrentTime) : ''
+    setSubmittingHelp(true)
+    try {
+      const res = await fetch('/api/transcripts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'help_request',
+          role: 'worker',
+          userId,
+          workerName: workerDisplayName || 'Worker',
+          requested: true,
+          message: noteToSend,
+          timestamp: currentAudioPos,
+          slot: activeSlot,
+        }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        setHelpRequested(true)
+        const reqObj = {
+          message: noteToSend,
+          timestamp: currentAudioPos,
+          slot: activeSlot,
+          workerName: workerDisplayName || 'Worker',
+          requestedAt: new Date().toISOString(),
+        }
+        setHelpRequestData(reqObj)
+        liveWorkerChannelRef.current?.send({
+          type: 'broadcast',
+          event: 'help_status',
+          payload: { ...reqObj, requested: true, workerId: userId },
+        }).catch(() => {})
+        setShowHelpModal(false)
+        setHelpNote('')
+        setStatusMessage({ type: 'success', text: 'Admin help request sent. An admin will be notified!' })
+      }
+    } catch (err: any) {
+      setStatusMessage({ type: 'error', text: 'Failed to submit help request' })
+    } finally {
+      setSubmittingHelp(false)
     }
-  }, [liveWorkerCursor?.liveHtml, role, selectedWorkerId, userId])
+  }
+
+  // Worker or Admin: Cancel / Resolve Help Request
+  const handleResolveHelpRequest = async (targetWorkerId: string = effectiveUserId) => {
+    if (!targetWorkerId) return
+    try {
+      await fetch('/api/transcripts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'help_request',
+          role: 'worker',
+          userId: targetWorkerId,
+          requested: false,
+        }),
+      })
+      setHelpRequested(false)
+      setHelpRequestData(null)
+      setActiveHelpRequests((prev) => {
+        const next = { ...prev }
+        delete next[targetWorkerId]
+        return next
+      })
+      liveWorkerChannelRef.current?.send({
+        type: 'broadcast',
+        event: 'help_status',
+        payload: { requested: false, workerId: targetWorkerId },
+      }).catch(() => {})
+      setStatusMessage({ type: 'success', text: 'Help request marked as resolved.' })
+    } catch (err: any) {
+      console.error('Failed to resolve help request:', err)
+    }
+  }
+
+  // Admin: Toggle Live Edit Mode
+  const toggleAdminLiveEdit = () => {
+    if (role !== 'admin' || selectedWorkerId === userId) return
+    const nextState = !isAdminLiveEditing
+    setIsAdminLiveEditing(nextState)
+    isAdminLiveEditingRef.current = nextState
+
+    // Broadcast presence update to the worker
+    liveWorkerChannelRef.current?.send({
+      type: 'broadcast',
+      event: 'admin_presence',
+      payload: {
+        isLiveEditing: nextState,
+        adminName: workerDisplayName || 'Admin',
+        adminId: userId,
+        ts: Date.now(),
+      },
+    }).catch(() => {})
+
+    if (nextState) {
+      setStatusMessage({
+        type: 'info',
+        text: '⚡ Real-time live edit enabled. You can now edit this transcript directly.',
+      })
+      setTimeout(() => {
+        editorRef.current?.focus()
+      }, 50)
+    } else {
+      setStatusMessage({
+        type: 'success',
+        text: 'Live edit mode finished. Edits are synced with worker.',
+      })
+      if (editorRef.current) {
+        triggerAutoSave(editorRef.current.innerHTML)
+      }
+    }
+  }
 
   // ── AUTO-REPLACE / TEXT EXPANDER ENGINE (MS Word Style) ──
   const checkTextExpansion = () => {
@@ -2362,6 +2702,40 @@ export default function TranscriptEditor({
               <span className="hidden sm:inline">Find</span>
             </button>
 
+            {/* Admin Live Edit in Focus Bar */}
+            {role === 'admin' && selectedWorkerId !== userId && (
+              <button
+                type="button"
+                onClick={toggleAdminLiveEdit}
+                className={`flex items-center gap-1.5 h-8 px-2.5 text-xs font-bold rounded-xl transition-all cursor-pointer shadow-xs ${
+                  isAdminLiveEditing
+                    ? 'bg-emerald-500 hover:bg-emerald-400 text-white shadow-emerald-500/30 ring-2 ring-emerald-300 animate-pulse'
+                    : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-500/20'
+                }`}
+                title={isAdminLiveEditing ? 'Exit Live Edit Mode' : 'Enable Real-Time Edit'}
+              >
+                <Edit3 className="w-3.5 h-3.5" />
+                <span className="hidden md:inline">{isAdminLiveEditing ? 'Live Editing' : 'Live Edit'}</span>
+              </button>
+            )}
+
+            {/* Worker Ask Admin Help in Focus Bar */}
+            {role === 'worker' && (
+              <button
+                type="button"
+                onClick={() => setShowHelpModal(true)}
+                className={`flex items-center gap-1 h-8 px-2.5 text-xs font-bold rounded-xl transition-all shadow-xs cursor-pointer ${
+                  helpRequested
+                    ? 'bg-rose-500/30 hover:bg-rose-500/40 text-rose-200 border border-rose-400 animate-pulse'
+                    : 'bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/30'
+                }`}
+                title="Request real-time help from an admin"
+              >
+                <LifeBuoy className="w-3.5 h-3.5 text-rose-400" />
+                <span className="hidden sm:inline">{helpRequested ? 'Help Active' : 'Ask Admin'}</span>
+              </button>
+            )}
+
             <button
               type="button"
               onClick={handleCopy}
@@ -2387,64 +2761,152 @@ export default function TranscriptEditor({
         <div className="flex flex-col rounded-2xl border border-slate-200/90 bg-white shadow-xs overflow-hidden divide-y divide-slate-100 flex-shrink-0">
           {/* ── ROW 1: ADMIN WORKER LIVE MONITOR (Admin only) ── */}
           {role === 'admin' && (
-            <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white">
-              <div className="flex items-center gap-2.5">
-                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-purple-500/20 border border-purple-400/40 text-purple-300">
-                  <Users className="h-3.5 w-3.5" />
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold uppercase tracking-wider text-purple-300">
-                    Live Monitor:
-                  </span>
-                  <strong className="text-xs text-white font-bold">
-                    {selectedWorkerObj?.full_name || selectedWorkerId}
-                  </strong>
-                  {selectedWorkerObj?.last_seen && (() => {
-                    const diffMins = (Date.now() - new Date(selectedWorkerObj.last_seen).getTime()) / 60000
-                    const isOnline = diffMins < 5
-                    return (
-                      <span
-                        className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
-                          isOnline
-                            ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                            : 'bg-zinc-700/50 text-zinc-400 border border-zinc-600/30'
-                        }`}
-                      >
-                        <span className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-emerald-400 animate-pulse' : 'bg-zinc-500'}`} />
-                        {isOnline ? 'Online' : 'Offline'}
-                      </span>
-                    )
-                  })()}
-                  {/* Live cursor pill — shows the word the worker is currently on */}
-                  {liveWorkerCursor?.isTyping && (
-                    <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-bold bg-violet-600/30 text-violet-300 border border-violet-500/40 animate-pulse">
-                      <span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-ping" />
-                      ⌨ {liveWorkerCursor.activeWord || 'typing…'}
+            <>
+              <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white">
+                <div className="flex items-center gap-2.5 flex-wrap">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-purple-500/20 border border-purple-400/40 text-purple-300">
+                    <Users className="h-3.5 w-3.5" />
+                  </div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs font-bold uppercase tracking-wider text-purple-300">
+                      Live Monitor:
                     </span>
+                    <strong className="text-xs text-white font-bold">
+                      {selectedWorkerObj?.full_name || selectedWorkerId}
+                    </strong>
+                    {selectedWorkerObj?.last_seen && (() => {
+                      const diffMins = (Date.now() - new Date(selectedWorkerObj.last_seen).getTime()) / 60000
+                      const isOnline = diffMins < 5
+                      return (
+                        <span
+                          className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
+                            isOnline
+                              ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                              : 'bg-zinc-700/50 text-zinc-400 border border-zinc-600/30'
+                          }`}
+                        >
+                          <span className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-emerald-400 animate-pulse' : 'bg-zinc-500'}`} />
+                          {isOnline ? 'Online' : 'Offline'}
+                        </span>
+                      )
+                    })()}
+                    {/* Live cursor pill — shows the word the worker is currently on */}
+                    {liveWorkerCursor?.isTyping && (
+                      <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-bold bg-violet-600/30 text-violet-300 border border-violet-500/40 animate-pulse">
+                        <span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-ping" />
+                        ⌨ {liveWorkerCursor.activeWord || 'typing…'}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Active Help Requests across workers badge */}
+                  {Object.keys(activeHelpRequests).length > 0 && (
+                    <div className="flex items-center gap-1.5 ml-1">
+                      {Object.entries(activeHelpRequests).map(([wId, req]) => (
+                        <button
+                          key={wId}
+                          type="button"
+                          onClick={() => {
+                            setSelectedWorkerId(wId)
+                            setActiveSlot(req.slot || 1)
+                          }}
+                          className={`flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold transition-all animate-pulse cursor-pointer border ${
+                            selectedWorkerId === wId
+                              ? 'bg-rose-500 text-white border-rose-400 shadow-rose-500/30'
+                              : 'bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border-rose-500/40'
+                          }`}
+                          title={`Worker ${req.workerName} requested help: "${req.message || 'Needs help'}" at [${req.timestamp || 'current audio'}]. Click to inspect!`}
+                        >
+                          <LifeBuoy className="w-3 h-3 text-rose-400 shrink-0" />
+                          <span>{req.workerName || 'Worker'} Needs Help</span>
+                        </button>
+                      ))}
+                    </div>
                   )}
+                </div>
+
+                {/* Right Admin Controls: Worker Selector & Live Edit Button */}
+                <div className="flex items-center gap-2">
+                  {selectedWorkerId !== userId && (
+                    <button
+                      type="button"
+                      onClick={toggleAdminLiveEdit}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs ${
+                        isAdminLiveEditing
+                          ? 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-emerald-500/30 ring-2 ring-emerald-400 animate-pulse'
+                          : 'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white shadow-purple-500/20'
+                      }`}
+                      title={isAdminLiveEditing ? 'Click to stop live editing' : 'Click to enable real-time editing on this worker’s transcript'}
+                    >
+                      <Edit3 className="w-3.5 h-3.5" />
+                      <span>{isAdminLiveEditing ? 'Live Editing Active (Exit)' : '⚡ Enable Real-Time Edit'}</span>
+                    </button>
+                  )}
+
+                  <span className="text-xs text-zinc-300 font-medium hidden sm:inline">Inspect:</span>
+                  <select
+                    value={selectedWorkerId}
+                    onChange={(e) => {
+                      if (isAdminLiveEditing) {
+                        setIsAdminLiveEditing(false)
+                        isAdminLiveEditingRef.current = false
+                      }
+                      setSelectedWorkerId(e.target.value)
+                      setActiveSlot(1)
+                    }}
+                    className="rounded-xl border border-indigo-400/40 bg-slate-800 px-3 py-1 text-xs font-semibold text-white outline-none focus:ring-2 focus:ring-purple-400 cursor-pointer max-w-[170px] truncate"
+                  >
+                    <option value={userId}>My Admin Transcripts</option>
+                    {allWorkers.map((w) => {
+                      const hasHelp = !!activeHelpRequests[w.id]
+                      return (
+                        <option key={w.id} value={w.id}>
+                          {hasHelp ? '🆘 ' : ''}{w.full_name || w.id} {w.department ? `(${w.department})` : ''} {hasHelp ? '[HELP]' : ''}
+                        </option>
+                      )
+                    })}
+                  </select>
                 </div>
               </div>
 
-              {/* Worker Selector Dropdown */}
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-zinc-300 font-medium hidden sm:inline">Inspect Worker:</span>
-                <select
-                  value={selectedWorkerId}
-                  onChange={(e) => {
-                    setSelectedWorkerId(e.target.value)
-                    setActiveSlot(1)
-                  }}
-                  className="rounded-xl border border-indigo-400/40 bg-slate-800 px-3 py-1 text-xs font-semibold text-white outline-none focus:ring-2 focus:ring-purple-400 cursor-pointer"
-                >
-                  <option value={userId}>My Admin Transcripts</option>
-                  {allWorkers.map((w) => (
-                    <option key={w.id} value={w.id}>
-                      {w.full_name || w.id} {w.department ? `(${w.department})` : ''}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
+              {/* Worker Help Request Details Banner (shown when inspecting worker who asked for help) */}
+              {selectedWorkerId !== userId && (helpRequested || !!activeHelpRequests[selectedWorkerId]) && (
+                <div className="flex flex-wrap items-center justify-between gap-2 px-3.5 py-1.5 bg-rose-950/90 border-t border-rose-500/40 text-rose-200 text-xs">
+                  <div className="flex items-center gap-2">
+                    <LifeBuoy className="w-3.5 h-3.5 text-rose-400 shrink-0 animate-spin" />
+                    <span>
+                      <strong className="text-white">Help Requested</strong>
+                      {(helpRequestData?.timestamp || activeHelpRequests[selectedWorkerId]?.timestamp)
+                        ? ` at timestamp [${helpRequestData?.timestamp || activeHelpRequests[selectedWorkerId]?.timestamp}]`
+                        : ''}
+                      {(helpRequestData?.message || activeHelpRequests[selectedWorkerId]?.message)
+                        ? `: "${helpRequestData?.message || activeHelpRequests[selectedWorkerId]?.message}"`
+                        : ''}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {!isAdminLiveEditing && (
+                      <button
+                        type="button"
+                        onClick={toggleAdminLiveEdit}
+                        className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold transition-all shadow-xs cursor-pointer flex items-center gap-1"
+                      >
+                        <Edit3 className="w-3 h-3" />
+                        <span>Start Live Edit</span>
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => handleResolveHelpRequest(selectedWorkerId)}
+                      className="px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-[11px] font-bold transition-all shadow-xs cursor-pointer"
+                      title="Mark this help request as resolved"
+                    >
+                      Mark Resolved ✓
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
           )}
 
           {/* ── ROW 2: INTEGRATED EXPRESS SCRIBE AUDIO PLAYER BAR ── */}
@@ -2972,6 +3434,42 @@ export default function TranscriptEditor({
                 <span className="hidden sm:inline">Submit</span>
               </button>
 
+              {/* Ask Admin Help Button (Worker) */}
+              {role === 'worker' && (
+                <button
+                  type="button"
+                  onClick={() => setShowHelpModal(true)}
+                  className={`flex items-center gap-1.5 h-8 px-2.5 text-xs font-bold rounded-xl transition-all shadow-xs cursor-pointer ${
+                    helpRequested
+                      ? 'border border-rose-400 bg-rose-50 text-rose-700 animate-pulse ring-2 ring-rose-200'
+                      : 'border border-amber-300 bg-gradient-to-r from-amber-50 to-orange-50 hover:from-amber-100 hover:to-orange-100 text-amber-900'
+                  }`}
+                  title="Request real-time assistance from an admin for this transcript"
+                >
+                  <LifeBuoy className="w-3.5 h-3.5 text-rose-500" />
+                  <span className="hidden sm:inline">{helpRequested ? 'Help Active' : 'Ask Admin'}</span>
+                  <span className="sm:hidden">{helpRequested ? 'Help' : 'Ask'}</span>
+                </button>
+              )}
+
+              {/* Admin Live Edit Mode Button in Ribbon (When Admin is inspecting worker) */}
+              {role === 'admin' && selectedWorkerId !== userId && (
+                <button
+                  type="button"
+                  onClick={toggleAdminLiveEdit}
+                  className={`flex items-center gap-1.5 h-8 px-3 text-xs font-bold rounded-xl transition-all shadow-xs cursor-pointer ${
+                    isAdminLiveEditing
+                      ? 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-emerald-500/30 ring-2 ring-emerald-300 animate-pulse'
+                      : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-500/20'
+                  }`}
+                  title={isAdminLiveEditing ? 'Exit Live Edit Mode' : 'Take control and edit this transcript in real-time'}
+                >
+                  <Edit3 className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">{isAdminLiveEditing ? 'Live Editing Active' : '⚡ Live Edit'}</span>
+                  <span className="sm:hidden">{isAdminLiveEditing ? 'Editing' : 'Live'}</span>
+                </button>
+              )}
+
               {/* Save */}
               <button
                 type="button"
@@ -3248,9 +3746,63 @@ export default function TranscriptEditor({
           </div>
         )}
 
+        {/* Worker Active Help Request Banner */}
+        {role === 'worker' && helpRequested && (
+          <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-1.5 bg-gradient-to-r from-rose-50 to-amber-50 border-b border-rose-200 text-xs text-rose-900 shrink-0">
+            <div className="flex items-center gap-2">
+              <LifeBuoy className="w-3.5 h-3.5 text-rose-500 animate-spin" />
+              <span>
+                <strong>Admin Help Requested</strong>
+                {helpRequestData?.timestamp ? ` at audio [${helpRequestData.timestamp}]` : ''}
+                {helpRequestData?.message ? `: "${helpRequestData.message}"` : ': Waiting for an admin to join...'}
+              </span>
+              {adminLivePresence?.isLiveEditing && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold border border-emerald-300 animate-pulse">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                  👑 {adminLivePresence.adminName || 'Admin'} is live editing now!
+                </span>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => handleResolveHelpRequest(userId)}
+              className="px-2 py-0.5 text-[11px] font-semibold text-rose-700 bg-white border border-rose-300 rounded-lg hover:bg-rose-50 cursor-pointer shadow-xs"
+            >
+              Cancel Request
+            </button>
+          </div>
+        )}
+
+        {/* Worker Notification when Admin joins without prior help request */}
+        {role === 'worker' && !helpRequested && adminLivePresence?.isLiveEditing && (
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-purple-50 border-b border-purple-200 text-xs text-purple-900 shrink-0">
+            <span className="w-2 h-2 rounded-full bg-purple-600 animate-ping" />
+            <span>👑 <strong>{adminLivePresence.adminName || 'Admin'}</strong> joined and is editing your transcript in real-time.</span>
+          </div>
+        )}
+
+        {/* Admin Live Editing Header Notification */}
+        {role === 'admin' && selectedWorkerId !== userId && isAdminLiveEditing && (
+          <div className="flex items-center justify-between px-3 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-700 text-white text-xs font-medium shrink-0 shadow-xs">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-white animate-ping" />
+              <span>
+                <strong>Live Editing Active</strong>: Changes are broadcasting in real-time to {selectedWorkerObj?.full_name || 'Worker'}’s editor.
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={toggleAdminLiveEdit}
+              className="px-2.5 py-0.5 text-[11px] font-bold bg-white text-emerald-900 rounded-lg hover:bg-emerald-50 cursor-pointer shadow-xs"
+            >
+              Exit Live Edit
+            </button>
+          </div>
+        )}
+
         <div
           ref={editorRef}
-          contentEditable={role !== 'admin' || selectedWorkerId === userId}
+          contentEditable={role !== 'admin' || selectedWorkerId === userId || isAdminLiveEditing}
           suppressContentEditableWarning
           onInput={handleEditorInput}
           onPaste={handlePaste}
@@ -3272,9 +3824,34 @@ export default function TranscriptEditor({
             overflowWrap: 'break-word',
           }}
           className={`transcript-rich-editor w-full flex-1 bg-transparent overflow-y-auto overflow-x-hidden relative z-10 ${
-            role === 'admin' && selectedWorkerId !== userId ? 'cursor-default select-text' : ''
+            role === 'admin' && selectedWorkerId !== userId && !isAdminLiveEditing ? 'cursor-default select-text' : ''
           }`}
         />
+
+        {/* ── ADMIN LIVE WORD HIGHLIGHT OVERLAY (Visible to worker when Admin is editing) ── */}
+        {role === 'worker' && liveAdminCursor && liveAdminCursor.activeWord && (() => {
+          if (!editorRef.current) return null
+          const rect = getRangeRectAtOffset(editorRef.current, liveAdminCursor.wordRange[0], liveAdminCursor.wordRange[1])
+          if (!rect) return null
+          return (
+            <div
+              key={liveAdminCursor.ts}
+              className="pointer-events-none absolute z-20"
+              style={{
+                top: rect.top + 16,
+                left: rect.left + 16,
+                width: rect.width,
+                height: rect.height,
+              }}
+            >
+              <div className="absolute inset-0 rounded-sm ring-2 ring-purple-500 bg-purple-500/20 animate-pulse" />
+              <div className="absolute -top-5 left-0 px-1.5 py-0.5 rounded text-[9px] font-bold bg-purple-600 text-white shadow-xs whitespace-nowrap pointer-events-none flex items-center gap-1">
+                <span>👑</span>
+                <span>{liveAdminCursor.adminName} (Editing)</span>
+              </div>
+            </div>
+          )
+        })()}
 
         {/* ── ADMIN LIVE WORD HIGHLIGHT OVERLAY ── */}
         {/* Silently shows which word the worker is currently at — invisible to the worker */}
@@ -3403,6 +3980,127 @@ export default function TranscriptEditor({
           <span className="font-semibold uppercase text-zinc-600">{effectiveRole}</span>
         </div>
       </div>
+
+      {/* ── TRANSCRIBER HELP REQUEST MODAL ── */}
+      {showHelpModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-fade-in">
+          <div className="bg-white rounded-3xl border border-zinc-200 shadow-2xl p-6 max-w-md w-full flex flex-col space-y-4">
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-rose-100 text-rose-600">
+                  <LifeBuoy className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="text-sm font-bold text-zinc-900">Request Admin Assistance</h2>
+                  <p className="text-[11px] text-zinc-500">
+                    Ask an admin to join and edit this part with you in real-time
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowHelpModal(false)}
+                className="p-1.5 rounded-xl hover:bg-zinc-100 text-zinc-400 hover:text-zinc-600 transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Current Position Info */}
+            <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-3 text-xs space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-zinc-500 font-medium">Audio Timestamp</span>
+                <span className="font-mono font-bold text-purple-700 bg-purple-50 border border-purple-200 px-2 py-0.5 rounded-lg">
+                  {audioSrc ? formatTime(audioCurrentTime) : 'N/A (No audio loaded)'}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-zinc-500 font-medium">Active Slot</span>
+                <span className="font-semibold text-zinc-800">
+                  {activeSlot === 2 ? 'Slot 2 (Auto-Save)' : 'Slot 1 (Save Slot)'}
+                </span>
+              </div>
+            </div>
+
+            {/* Quick Reason Chips */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-zinc-700">Quick Reason:</label>
+              <div className="flex flex-wrap gap-1.5">
+                {[
+                  'Crosstalk / Multiple speakers',
+                  'Inaudible phrase / mumbling',
+                  'Difficult terminology / spelling',
+                  'Heavy background noise',
+                  'Unclear accent / pronunciation',
+                ].map((reason) => (
+                  <button
+                    key={reason}
+                    type="button"
+                    onClick={() => {
+                      const prefix = audioSrc ? `[${formatTime(audioCurrentTime)}] ` : ''
+                      setHelpNote(prefix + reason)
+                    }}
+                    className="text-[11px] px-2.5 py-1 rounded-xl bg-slate-100 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-300 border border-slate-200 text-zinc-700 transition-colors cursor-pointer"
+                  >
+                    {reason}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Note input */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-zinc-700">
+                Details or Question for Admin <span className="text-zinc-400 font-normal">(optional)</span>
+              </label>
+              <textarea
+                value={helpNote}
+                onChange={(e) => setHelpNote(e.target.value)}
+                placeholder="e.g. Can you listen to 03:45 and verify the doctor's name mentioned after speaker 1?"
+                rows={3}
+                className="w-full text-xs p-3 rounded-2xl border border-slate-200 bg-slate-50 text-zinc-900 placeholder-zinc-400 outline-none focus:ring-2 focus:ring-rose-400/40 focus:border-rose-300 resize-none font-sans"
+              />
+            </div>
+
+            {/* Footer Buttons */}
+            <div className="flex items-center justify-between pt-2 border-t border-zinc-100">
+              {helpRequested ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleResolveHelpRequest(userId)
+                    setShowHelpModal(false)
+                  }}
+                  className="px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-50 border border-rose-200 rounded-xl transition-colors cursor-pointer"
+                >
+                  Cancel Help Request
+                </button>
+              ) : (
+                <div />
+              )}
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowHelpModal(false)}
+                  className="px-3.5 py-2 text-xs font-semibold text-zinc-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+                >
+                  Close
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSubmitHelpRequest()}
+                  disabled={submittingHelp}
+                  className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-gradient-to-r from-rose-500 to-amber-600 hover:from-rose-600 hover:to-amber-700 rounded-xl shadow-md shadow-rose-500/20 transition-all cursor-pointer disabled:opacity-50"
+                >
+                  {submittingHelp ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                  <span>{helpRequested ? 'Update Request' : 'Send Help Request'}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── SUBMIT / UPLOAD TRANSCRIPT MODAL ── */}
       {showSubmitModal && (

@@ -89,6 +89,16 @@ export async function GET(request: Request) {
         })
       }
 
+      // Check for active help request for this worker
+      let helpRequest = null
+      try {
+        const helpPath = `${role}/${userId}/help_request.json`
+        const { data: hData, error: hErr } = await supabase.storage.from(BUCKET).download(helpPath)
+        if (!hErr && hData) {
+          helpRequest = JSON.parse(await hData.text())
+        }
+      } catch (e) {}
+
       // Check client platform info (desktop vs browser)
       let clientInfo = { clientType: 'browser', lastActive: null }
       try {
@@ -115,7 +125,19 @@ export async function GET(request: Request) {
         }
       } catch (e) {}
 
-      return NextResponse.json({ slots: slotsData, worker: workerInfo, clientInfo }, { status: 200 })
+      return NextResponse.json({ slots: slotsData, worker: workerInfo, clientInfo, helpRequest }, { status: 200 })
+    }
+
+    // Action: Get all active worker help requests across all workers (for admins)
+    if (action === 'active_help_requests') {
+      try {
+        const { data: hData, error: hErr } = await supabase.storage.from(BUCKET).download('admin/active_help_requests.json')
+        if (!hErr && hData) {
+          const parsed = JSON.parse(await hData.text())
+          return NextResponse.json({ activeRequests: parsed || {} }, { status: 200 })
+        }
+      } catch (e) {}
+      return NextResponse.json({ activeRequests: {} }, { status: 200 })
     }
 
     // Default action: Get specific slot content (1 = Save Slot, 2 = Auto-Save)
@@ -156,6 +178,7 @@ export async function POST(request: Request) {
   try {
     const body = await request.json()
     const {
+      action,
       role = 'worker',
       userId,
       content,
@@ -164,16 +187,98 @@ export async function POST(request: Request) {
       clientType = 'browser',
       actorRole = role,
       actorUserId = userId,
+      requested,
+      workerName = 'Worker',
+      message = '',
+      timestamp = '',
     } = body
 
     if (!userId) {
       return NextResponse.json({ error: 'Missing userId' }, { status: 400 })
     }
 
-    const slotNum = isNaN(parseInt(slot, 10)) || parseInt(slot, 10) < 1 || parseInt(slot, 10) > 2 ? 1 : parseInt(slot, 10)
-
     const supabase = getSupabaseClient()
     await ensureBucket(supabase)
+
+    // Handle Help Request from transcriber or Admin resolving it
+    if (action === 'help_request') {
+      const isRequesting = requested !== false
+      const helpPath = `${role}/${userId}/help_request.json`
+      const activeMasterPath = 'admin/active_help_requests.json'
+
+      // Load master list of active help requests
+      let activeMap: Record<string, any> = {}
+      try {
+        const { data: mData } = await supabase.storage.from(BUCKET).download(activeMasterPath)
+        if (mData) {
+          activeMap = JSON.parse(await mData.text()) || {}
+        }
+      } catch (e) {}
+
+      if (isRequesting) {
+        const requestData = {
+          workerId: userId,
+          workerName: workerName || 'Worker',
+          message: message || '',
+          timestamp: timestamp || '',
+          slot: slot || 1,
+          requestedAt: new Date().toISOString(),
+        }
+
+        // 1. Save worker's specific help request
+        await supabase.storage.from(BUCKET).upload(
+          helpPath,
+          Buffer.from(JSON.stringify(requestData), 'utf-8'),
+          { contentType: 'application/json', upsert: true }
+        )
+
+        // 2. Update master list
+        activeMap[userId] = requestData
+        await supabase.storage.from(BUCKET).upload(
+          activeMasterPath,
+          Buffer.from(JSON.stringify(activeMap), 'utf-8'),
+          { contentType: 'application/json', upsert: true }
+        )
+
+        // 3. Broadcast to realtime alerts channel
+        try {
+          await supabase.channel('transcript_help_alerts').send({
+            type: 'broadcast',
+            event: 'help_alert',
+            payload: { ...requestData, requested: true },
+          })
+        } catch (e) {}
+
+        return NextResponse.json({ success: true, requested: true, data: requestData }, { status: 200 })
+      } else {
+        // Clear/resolve the help request
+        try {
+          await supabase.storage.from(BUCKET).remove([helpPath])
+        } catch (e) {}
+
+        delete activeMap[userId]
+        try {
+          await supabase.storage.from(BUCKET).upload(
+            activeMasterPath,
+            Buffer.from(JSON.stringify(activeMap), 'utf-8'),
+            { contentType: 'application/json', upsert: true }
+          )
+        } catch (e) {}
+
+        // Broadcast resolution
+        try {
+          await supabase.channel('transcript_help_alerts').send({
+            type: 'broadcast',
+            event: 'help_alert',
+            payload: { workerId: userId, requested: false },
+          })
+        } catch (e) {}
+
+        return NextResponse.json({ success: true, requested: false }, { status: 200 })
+      }
+    }
+
+    const slotNum = isNaN(parseInt(slot, 10)) || parseInt(slot, 10) < 1 || parseInt(slot, 10) > 2 ? 1 : parseInt(slot, 10)
 
     const slotPath = `${role}/${userId}/slot_${slotNum}.txt`
     const buffer = Buffer.from(content || '', 'utf-8')
