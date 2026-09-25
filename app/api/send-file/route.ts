@@ -18,6 +18,9 @@ export async function POST(request: Request) {
     const fileName = formData.get('fileName') as string
     const byteSize = formData.get('byteSize') as string
 
+    const assignmentId = formData.get('assignmentId') as string | null
+    const isAdminParam = formData.get('isAdmin') === 'true'
+
     if (!file) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 })
     }
@@ -30,11 +33,51 @@ export async function POST(request: Request) {
 
     const supabase = createClient(supabaseUrl, supabaseServiceRoleKey)
 
+    // Helper to normalize file base names (strip known extension, punctuation, trim, lowercase)
+    const cleanFileBase = (name: string): string => {
+      if (!name) return ''
+      return name
+        .trim()
+        .replace(/\.(txt|docx?|pdf|mp3|wav|m4a|aac|flac|ogg|wma)$/i, '') // strip real file extension
+        .replace(/[.,;:!]+$/, '') // strip trailing dots or punctuation
+        .trim()
+        .toLowerCase()
+    }
+
+    // Helper to extract alternative filenames from assignment description (e.g. "Filename: 0924.2012-2028.8494.")
+    const extractAlternativeNames = (description?: string | null): string[] => {
+      if (!description) return []
+      const names: string[] = []
+      const fnMatch = description.match(/(?:Filename|File\s*Name)\s*:\s*([^\s<]+)/i)
+      if (fnMatch && fnMatch[1]) {
+        names.push(cleanFileBase(fnMatch[1]))
+      }
+      const codeMatch = description.match(/Code\s*:\s*([^\s<]+)/i)
+      if (codeMatch && codeMatch[1]) {
+        names.push(cleanFileBase(codeMatch[1]))
+      }
+      return names
+    }
+
+    // Check if the caller is an admin (can bypass worker assignment restriction)
+    let isCallerAdmin = isAdminParam
+    if (!isCallerAdmin) {
+      const { data: callerProfile } = await supabase
+        .from('worker_profiles')
+        .select('role')
+        .eq('id', workerId)
+        .single()
+      const role = callerProfile?.role
+      if (role === 'admin' || role === 'project_manager' || role === 'project_manager_human_resource') {
+        isCallerAdmin = true
+      }
+    }
+
     // Check if the filename matches any of the worker's assigned assignments
     // Include both 'pending' and 'needs_revision' statuses so workers can resubmit revisions
     const { data: assignments, error: assignmentsError } = await supabase
       .from('production_assignments')
-      .select('id, filename, status, revision_reason, revision_note')
+      .select('id, filename, status, description, revision_reason, revision_note')
       .eq('worker_id', workerId)
       .in('status', ['pending', 'needs_revision'])
 
@@ -43,38 +86,90 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: assignmentsError.message || 'Failed to validate assignment' }, { status: 500 })
     }
 
-    console.log('=== SEND-FILE VALIDATION DEBUG ===')
-    console.log('workerId:', workerId)
-    console.log('uploaded fileName:', fileName)
-    console.log('assignments found:', assignments)
-    console.log('assignments count:', assignments?.length || 0)
-    if (assignments && assignments.length > 0) {
-      console.log('assignment filenames:', assignments.map((a: any) => a.filename))
+    const uploadedFileNameWithoutExt = fileName.replace(/\.[^/.]+$/, '')
+    const normalizedUploadedBase = cleanFileBase(fileName)
+
+    // Match assignment by:
+    // 1. Explicit assignmentId if provided from Transcript Editor or Dashboard
+    // 2. Exact or normalized assignment.filename
+    // 3. Alternative filenames specified in description (e.g. "Filename: 0924.2012-2028.8494.")
+    let matchedAssignment: any = null
+
+    if (assignmentId) {
+      matchedAssignment = assignments?.find((a: any) => String(a.id) === String(assignmentId))
     }
 
-    // Strip file extension from uploaded filename for comparison
-    const uploadedFileNameWithoutExt = fileName.replace(/\.[^/.]+$/, '')
+    if (!matchedAssignment && assignments && assignments.length > 0) {
+      matchedAssignment = assignments.find((assignment: any) => {
+        // Direct exact match
+        if (assignment.filename === uploadedFileNameWithoutExt || assignment.filename === fileName) {
+          return true
+        }
+        // Normalized base comparison
+        const assignedBase = cleanFileBase(assignment.filename || '')
+        if (assignedBase && assignedBase === normalizedUploadedBase) {
+          return true
+        }
+        // Check alternative filenames from description
+        const altNames = extractAlternativeNames(assignment.description)
+        if (altNames.some((alt) => alt === normalizedUploadedBase || alt === cleanFileBase(fileName))) {
+          return true
+        }
+        return false
+      })
+    }
 
-    // Check if the uploaded filename (without extension) matches any assigned filename
-    const matchedAssignment = assignments?.find((assignment: any) => assignment.filename === uploadedFileNameWithoutExt)
-    const isAssigned = !!matchedAssignment
-
-    console.log('uploadedFileNameWithoutExt:', uploadedFileNameWithoutExt)
-    console.log('isAssigned:', isAssigned)
-    console.log('matchedAssignment:', matchedAssignment)
-    console.log('=== END DEBUG ===')
+    const isAssigned = !!matchedAssignment || isCallerAdmin
 
     if (!isAssigned) {
+      // Find out why for a helpful, clear error message
+      const { data: allWorkerAssignments } = await supabase
+        .from('production_assignments')
+        .select('id, filename, status, description')
+        .eq('worker_id', workerId)
+        .order('created_at', { ascending: false })
+        .limit(20)
+
+      const completedMatch = allWorkerAssignments?.find((a: any) => {
+        const assignedBase = cleanFileBase(a.filename || '')
+        const altNames = extractAlternativeNames(a.description)
+        return (
+          assignedBase === normalizedUploadedBase ||
+          altNames.includes(normalizedUploadedBase) ||
+          a.filename === uploadedFileNameWithoutExt
+        )
+      })
+
+      if (completedMatch?.status === 'done') {
+        return NextResponse.json({
+          error: `This file ("${fileName}") has already been submitted and marked as completed on your account.`,
+        }, { status: 409 })
+      }
+
+      if (completedMatch?.status === 'cancelled') {
+        return NextResponse.json({
+          error: `This assignment ("${fileName}") was cancelled by the admin and cannot be submitted.`,
+        }, { status: 403 })
+      }
+
+      const activeList = assignments && assignments.length > 0
+        ? assignments.map((a: any) => a.filename).join(', ')
+        : 'None'
+
       const debugInfo = {
         workerId,
         uploadedFileName: fileName,
         uploadedFileNameWithoutExt,
+        normalizedUploadedBase,
         assignmentsFound: assignments,
         assignmentsCount: assignments?.length || 0,
         assignmentFilenames: assignments?.map((a: any) => a.filename) || [],
       }
+
       return NextResponse.json({
-        error: 'This file is not assigned to you. Please only upload files that have been assigned by the admin.',
+        error: assignments && assignments.length > 0
+          ? `File "${fileName}" does not match your active assignments (${activeList}). Please check the assignment code or select it from your assignments.`
+          : 'You currently have no pending assignments assigned by the admin.',
         debug: debugInfo
       }, { status: 403 })
     }

@@ -25,20 +25,41 @@ export async function POST(request: Request) {
 
     // Only check assignment validation if not an admin
     if (!isAdmin) {
+      // Helper to clean file base
+      const cleanFileBase = (name: string): string => {
+        if (!name) return ''
+        return name
+          .trim()
+          .replace(/\.(txt|docx?|pdf|mp3|wav|m4a|aac|flac|ogg|wma)$/i, '')
+          .replace(/[.,;:!]+$/, '')
+          .trim()
+          .toLowerCase()
+      }
+
+      const normalizedUpload = cleanFileBase(fileName)
+
       // Check if the filename matches any of the worker's assigned assignments
       const { data: assignments, error: assignmentsError } = await supabase
         .from('production_assignments')
-        .select('filename')
+        .select('id, filename, description, status')
         .eq('worker_id', workerId)
-        .eq('status', 'pending')
+        .in('status', ['pending', 'needs_revision'])
 
       if (assignmentsError) {
         console.error('Assignments lookup error:', assignmentsError)
         return NextResponse.json({ error: assignmentsError.message || 'Failed to validate assignment' }, { status: 500 })
       }
 
-      // Check if the uploaded filename exactly matches any assigned filename
-      const isAssigned = assignments?.some((assignment: any) => assignment.filename === fileName)
+      // Check if the filename matches assigned filename or description alternative
+      const isAssigned = assignments?.some((assignment: any) => {
+        if (assignment.filename === fileName) return true
+        if (cleanFileBase(assignment.filename || '') === normalizedUpload) return true
+        const fnMatch = assignment.description?.match(/(?:Filename|File\s*Name)\s*:\s*([^\s<]+)/i)
+        if (fnMatch && fnMatch[1]) {
+          if (cleanFileBase(fnMatch[1]) === normalizedUpload) return true
+        }
+        return false
+      })
 
       if (!isAssigned) {
         return NextResponse.json({ error: 'This file is not assigned to this worker. Please only add records for files that have been assigned by the admin.' }, { status: 403 })

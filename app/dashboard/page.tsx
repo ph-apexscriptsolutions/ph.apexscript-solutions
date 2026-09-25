@@ -389,7 +389,12 @@ const formatDateDMY = (dateInput: string | null | undefined) => {
 }
 
 const normalizeFileName = (fileName: string) => {
-  return fileName.trim().toLowerCase().replace(/\.txt$/i, '')
+  return fileName
+    .trim()
+    .replace(/\.(txt|docx?|pdf|mp3|wav|m4a|aac|flac|ogg|wma)$/i, '')
+    .replace(/[.,;:!]+$/, '')
+    .trim()
+    .toLowerCase()
 }
 
 const hasDuplicateFileName = (fileName: string, records: any[]) => {
@@ -2074,7 +2079,15 @@ export default function DashboardPage() {
       
       // Check if uploaded file matches any assignment
       const normalizedUploadName = normalizeFileName(selectedFile.name)
-      const existingAssignment = assignments.find((a: any) => normalizeFileName(a.filename || '') === normalizedUploadName)
+      const existingAssignment = assignments.find((a: any) => {
+        if (uploadData?.assignmentId && String(a.id) === String(uploadData.assignmentId)) return true
+        if (normalizeFileName(a.filename || '') === normalizedUploadName) return true
+        const fnMatch = a.description?.match(/(?:Filename|File\s*Name)\s*:\s*([^\s<]+)/i)
+        if (fnMatch && fnMatch[1]) {
+          if (normalizeFileName(fnMatch[1]) === normalizedUploadName) return true
+        }
+        return false
+      })
       
       // Reject if assignment doesn't exist
       if (!existingAssignment) {

@@ -320,6 +320,9 @@ export default function TranscriptEditor({
   // Submit/Upload modal state
   const [showSubmitModal, setShowSubmitModal] = useState(false)
   const [submitFileName, setSubmitFileName] = useState('')
+  const [selectedAssignmentId, setSelectedAssignmentId] = useState<string>('')
+  const [workerAssignments, setWorkerAssignments] = useState<any[]>([])
+  const [loadingAssignments, setLoadingAssignments] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
   // ── ADMIN LIVE CURSOR / WORD TRACKING STATE ──
@@ -560,21 +563,52 @@ export default function TranscriptEditor({
 
   // Fetch current user's display name for the submit modal
   useEffect(() => {
-    if (!userId) return
+    const targetId = effectiveUserId || userId
+    if (!targetId) return
     // Try to get name from allWorkers first (for admin-viewed workers)
-    const workerObj = allWorkers.find((w) => w.id === userId)
+    const workerObj = allWorkers.find((w) => w.id === targetId)
     if (workerObj?.full_name) {
       setWorkerDisplayName(workerObj.full_name)
       return
     }
     // Otherwise fetch from worker-profiles API
-    fetch(`/api/worker-profiles?id=${encodeURIComponent(userId)}`)
+    fetch(`/api/worker-profiles?id=${encodeURIComponent(targetId)}`)
       .then((res) => res.json())
       .then((data) => {
         if (data?.profile?.full_name) setWorkerDisplayName(data.profile.full_name)
       })
       .catch(() => {})
-  }, [userId, allWorkers])
+  }, [effectiveUserId, userId, allWorkers])
+
+  // Fetch worker's active assignments for the submit modal dropdown
+  const fetchWorkerAssignmentsForSubmit = async () => {
+    const targetId = effectiveUserId || userId
+    if (!targetId) return
+    setLoadingAssignments(true)
+    try {
+      const res = await fetch(`/api/production-assignments?workerId=${encodeURIComponent(targetId)}`)
+      const data = await res.json()
+      if (res.ok && Array.isArray(data.assignments)) {
+        // Filter to pending or needs_revision
+        const active = data.assignments.filter(
+          (a: any) => a.status === 'pending' || a.status === 'needs_revision'
+        )
+        setWorkerAssignments(active)
+        if (active.length > 0) {
+          const first = active[0]
+          setSelectedAssignmentId(String(first.id))
+          // Check if description has "Filename: ..."
+          const fnMatch = first.description?.match(/(?:Filename|File\s*Name)\s*:\s*([^\s<]+)/i)
+          const extractedName = fnMatch && fnMatch[1] ? fnMatch[1].replace(/[.,;:!]+$/, '').trim() : ''
+          setSubmitFileName(extractedName || first.filename || '')
+        }
+      }
+    } catch (e) {
+      console.error('Failed to fetch worker assignments:', e)
+    } finally {
+      setLoadingAssignments(false)
+    }
+  }
 
   // Save Worker Editor Preferences to Supabase and LocalStorage
   const savePreferences = async (newHotkeys = hotkeys, newShortcuts = shortcuts, newFont = font, newFontSize = fontSize) => {
@@ -2387,6 +2421,12 @@ export default function TranscriptEditor({
     formData.append('workerName', workerNameToUse)
     formData.append('fileName', fileName)
     formData.append('byteSize', byteSize)
+    if (selectedAssignmentId) {
+      formData.append('assignmentId', selectedAssignmentId)
+    }
+    if (role === 'admin') {
+      formData.append('isAdmin', 'true')
+    }
 
     setSubmitting(true)
     setStatusMessage(null)
@@ -2398,6 +2438,7 @@ export default function TranscriptEditor({
       } else {
         setShowSubmitModal(false)
         setSubmitFileName('')
+        setSelectedAssignmentId('')
         const base = data.isRevisionResubmission
           ? '✅ Revision resubmitted successfully!'
           : '✅ Transcript submitted successfully!'
@@ -3424,7 +3465,9 @@ export default function TranscriptEditor({
                 type="button"
                 onClick={() => {
                   setSubmitFileName('')
+                  setSelectedAssignmentId('')
                   setShowSubmitModal(true)
+                  fetchWorkerAssignmentsForSubmit()
                 }}
                 disabled={wordCount === 0}
                 className="flex items-center gap-1 h-8 px-2.5 text-xs font-semibold rounded-xl border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 disabled:opacity-40 transition-all shadow-xs cursor-pointer"
@@ -4138,10 +4181,62 @@ export default function TranscriptEditor({
               </div>
             </div>
 
+            {/* Assignment Selector Dropdown */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-semibold text-zinc-700">
+                  Select Assigned Task
+                </label>
+                {loadingAssignments && (
+                  <span className="text-[10px] text-zinc-400 flex items-center gap-1">
+                    <Loader2 className="w-3 h-3 animate-spin" /> Loading tasks...
+                  </span>
+                )}
+              </div>
+              {workerAssignments.length > 0 ? (
+                <select
+                  value={selectedAssignmentId}
+                  onChange={(e) => {
+                    const id = e.target.value
+                    setSelectedAssignmentId(id)
+                    const found = workerAssignments.find((a) => String(a.id) === id)
+                    if (found) {
+                      const fnMatch = found.description?.match(/(?:Filename|File\s*Name)\s*:\s*([^\s<]+)/i)
+                      const extractedName = fnMatch && fnMatch[1] ? fnMatch[1].replace(/[.,;:!]+$/, '').trim() : ''
+                      setSubmitFileName(extractedName || found.filename || '')
+                    }
+                  }}
+                  className="w-full text-xs px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-zinc-900 outline-none focus:ring-2 focus:ring-emerald-400/40 focus:border-emerald-300 font-medium"
+                >
+                  <option value="">-- Choose from your active assignments --</option>
+                  {workerAssignments.map((a) => {
+                    const fnMatch = a.description?.match(/(?:Filename|File\s*Name)\s*:\s*([^\s<]+)/i)
+                    const altName = fnMatch && fnMatch[1] ? fnMatch[1].replace(/[.,;:!]+$/, '').trim() : ''
+                    const displayLabel = altName && altName !== a.filename
+                      ? `${a.filename} (Filename: ${altName})`
+                      : a.filename
+                    const dueLabel = a.due_time ? ` • Due: ${a.due_time}` : ''
+                    const statusLabel = a.status === 'needs_revision' ? ' [Revision]' : ''
+                    return (
+                      <option key={a.id} value={String(a.id)}>
+                        {displayLabel}{statusLabel}{dueLabel}
+                      </option>
+                    )
+                  })}
+                </select>
+              ) : (
+                <div className="text-[11px] px-3 py-2 rounded-xl bg-amber-50 border border-amber-200 text-amber-800">
+                  {role === 'admin'
+                    ? 'ℹ️ Logged in as Admin. You can submit without a pre-assigned task.'
+                    : 'ℹ️ No active assignments found in queue. You may enter a filename manually below.'}
+                </div>
+              )}
+            </div>
+
             {/* File name input */}
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-zinc-700">
-                File name <span className="text-zinc-400 font-normal">(must match your assigned file)</span>
+                File name <span className="text-zinc-400 font-normal">(auto-filled or type manually)</span>
               </label>
               <div className="flex items-center gap-2">
                 <input
