@@ -78,10 +78,11 @@ function buildAvailabilityEmailHtml(workerName: string, now: string, availabilit
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { workerId, workerName, availability } = body as {
+    const { workerId, workerName, availability, isAdmin } = body as {
       workerId: string
       workerName: string
       availability: WeeklyAvailability
+      isAdmin?: boolean
     }
 
     if (!workerId || !workerName || !availability) {
@@ -90,20 +91,30 @@ export async function POST(request: Request) {
 
     const supabase = getSupabaseServerClient()
 
-    // Fetch worker email for confirmation copy
+    // Fetch worker email and current availability for confirmation copy and lock check
     const { data: workerData } = await supabase
       .from('worker_profiles')
-      .select('email')
+      .select('email, weekly_availability')
       .eq('id', workerId)
       .single()
 
+    const isLocked = !!workerData?.weekly_availability?.is_locked
+    if (isLocked && !isAdmin) {
+      return NextResponse.json({ error: 'Weekly availability is locked by the administrator.' }, { status: 403 })
+    }
+
     const workerEmail: string | null = workerData?.email ?? null
+
+    const updatedAvailability = {
+      ...availability,
+      is_locked: isLocked,
+    }
 
     // Save to DB with submitted timestamp
     const { error } = await supabase
       .from('worker_profiles')
       .update({
-        weekly_availability: availability,
+        weekly_availability: updatedAvailability,
         availability_submitted_at: new Date().toISOString(),
       })
       .eq('id', workerId)

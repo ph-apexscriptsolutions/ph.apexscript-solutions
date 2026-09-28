@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic'
 import { useEffect, useState, FormEvent, useMemo, useCallback, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/utils/supabase/client"
-import { FileText, HardDrive, LogOut, Calendar, X, Pencil, Save, User, ArrowLeft, Upload, UserPlus, CreditCard, Trash2, Check, Bell, AlertCircle, Tv, Mic, Headphones, FileEdit, Newspaper, Radio, Video, BookOpen, Gavel, TrendingUp, Activity, Search, Loader2, Copy, ChevronDown, ChevronUp, ChevronRight, Building2, Eye, MessageSquare, Zap, MoreVertical, Maximize2, Minimize2, ExternalLink, Laptop, Monitor, Clock, Sparkles, ClipboardPaste } from "lucide-react"
+import { FileText, HardDrive, LogOut, Calendar, X, Pencil, Save, User, ArrowLeft, Upload, UserPlus, CreditCard, Trash2, Check, Bell, AlertCircle, Tv, Mic, Headphones, FileEdit, Newspaper, Radio, Video, BookOpen, Gavel, TrendingUp, Activity, Search, Loader2, Copy, ChevronDown, ChevronUp, ChevronRight, Building2, Eye, MessageSquare, Zap, MoreVertical, Maximize2, Minimize2, ExternalLink, Laptop, Monitor, Clock, Sparkles, ClipboardPaste, Lock, Unlock } from "lucide-react"
 import { FlagIcon } from "@/components/flag-icon"
 import TranscriptCleanup from '@/components/TranscriptCleanup'
 import { validateTranscript, replaceInTranscript, getHighlightClass, validationHighlightStyles, ValidationIssue, ValidationRule, Participant, extractParticipants, getValidUncommonWords, detectFillerWords, extractSenateSpeakers, detectTranscriptFormat } from '@/utils/transcript-validation'
@@ -741,6 +741,8 @@ export default function DashboardPage() {
   const [availabilityForm, setAvailabilityForm] = useState<Record<string, { sameday: boolean; overnight: boolean }>>(defaultAvailability)
   const [isSavingAvailability, setIsSavingAvailability] = useState(false)
   const [availabilitySubmittedAt, setAvailabilitySubmittedAt] = useState<string | null>(null)
+  const [isAvailabilityLockedByAdmin, setIsAvailabilityLockedByAdmin] = useState<boolean | null>(null)
+  const [isTogglingAvailabilityLock, setIsTogglingAvailabilityLock] = useState(false)
 
   // Style Guides
   const [isStyleGuidesModalOpen, setIsStyleGuidesModalOpen] = useState(false)
@@ -1784,10 +1786,21 @@ export default function DashboardPage() {
   const handleLogout = () => { setIsLogoutModalOpen(true) }
   const performLogout = async () => { await supabase.auth.signOut(); router.push("/") }
 
+  useEffect(() => {
+    if (activeWorker?.id) {
+      fetchAvailability(activeWorker.id)
+    }
+  }, [activeWorker?.id])
+
   const fetchAvailability = async (workerId: string) => {
     const { data } = await supabase.from('worker_profiles').select('weekly_availability, availability_submitted_at').eq('id', workerId).single()
     const avail = data?.weekly_availability
     setAvailabilitySubmittedAt(data?.availability_submitted_at ?? null)
+
+    const explicitLock = (avail && typeof avail === 'object' && 'is_locked' in avail)
+      ? !!(avail as any).is_locked
+      : null
+    setIsAvailabilityLockedByAdmin(explicitLock)
 
     if (avail && typeof avail === 'object') {
       if ('monday' in avail && typeof (avail as any).monday === 'object') {
@@ -1815,6 +1828,49 @@ export default function DashboardPage() {
     }
   }
 
+  const toggleAvailabilityLock = async () => {
+    if (!activeWorker?.id) return
+    const newLockState = !isEffectiveAvailabilityLocked
+    const workerName = activeWorker.full_name || activeWorker.name || activeWorker.email || 'this worker'
+
+    setIsTogglingAvailabilityLock(true)
+    try {
+      const res = await fetch('/api/lock-availability', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ workerId: activeWorker.id, locked: newLockState }),
+      })
+
+      if (res.ok) {
+        setIsAvailabilityLockedByAdmin(newLockState)
+        setActiveWorker((prev: any) => prev ? {
+          ...prev,
+          weekly_availability: {
+            ...(prev.weekly_availability && typeof prev.weekly_availability === 'object' ? prev.weekly_availability : {}),
+            is_locked: newLockState,
+          }
+        } : prev)
+        setAllWorkers((prev: any[]) => prev.map(w => w.id === activeWorker.id ? {
+          ...w,
+          weekly_availability: {
+            ...(w.weekly_availability && typeof w.weekly_availability === 'object' ? w.weekly_availability : {}),
+            is_locked: newLockState,
+          }
+        } : w))
+        setToastMessage(newLockState ? `🔒 Weekly availability locked for ${workerName}!` : `🔓 Weekly availability unlocked for ${workerName}!`)
+        setShowToast(true)
+        setTimeout(() => { setShowToast(false); setToastMessage(null) }, 3000)
+      } else {
+        const err = await res.json()
+        alert('Failed to update availability lock: ' + (err.error || 'Unknown error'))
+      }
+    } catch (err: any) {
+      alert('Failed to update availability lock: ' + (err.message || 'Unknown error'))
+    } finally {
+      setIsTogglingAvailabilityLock(false)
+    }
+  }
+
   const toggleDayAvailability = (day: string, type: 'sameday' | 'overnight') => {
     setAvailabilityForm(f => ({
       ...f,
@@ -1833,7 +1889,7 @@ export default function DashboardPage() {
       const res = await fetch('/api/update-availability', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ workerId: activeWorker.id, workerName, availability: availabilityForm }),
+        body: JSON.stringify({ workerId: activeWorker.id, workerName, availability: availabilityForm, isAdmin }),
       })
       if (res.ok) {
         setAvailabilitySubmittedAt(new Date().toISOString())
@@ -1865,6 +1921,7 @@ export default function DashboardPage() {
       if (res.ok) {
         setAvailabilitySubmittedAt(null)
         setAvailabilityForm(defaultAvailability)
+        setIsAvailabilityLockedByAdmin(null)
         setToastMessage('✅ Weekly availability reset!')
         setShowToast(true)
         setTimeout(() => { setShowToast(false); setToastMessage(null) }, 3000)
@@ -2437,9 +2494,8 @@ export default function DashboardPage() {
 
   const isAdmin = profile?.role === "admin"
 
-  // Returns true if a non-admin worker already submitted availability this ISO week (locks the form)
-  const isAvailabilityLockedThisWeek = (() => {
-    if (isAdmin) return false
+  // Returns true if availability was already submitted this ISO week
+  const isAvailabilitySubmittedThisWeek = (() => {
     if (!availabilitySubmittedAt) return false
     const getISOWeek = (d: Date) => {
       const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()))
@@ -2455,6 +2511,19 @@ export default function DashboardPage() {
       getISOWeek(submittedDate) === getISOWeek(now)
     )
   })()
+
+  // Overall effective locked status for this worker:
+  // 1. Explicit admin lock: true => locked
+  // 2. Explicit admin unlock: false => unlocked
+  // 3. Fallback: locked if submitted this week
+  const isEffectiveAvailabilityLocked = useMemo(() => {
+    if (isAvailabilityLockedByAdmin === true) return true
+    if (isAvailabilityLockedByAdmin === false) return false
+    return isAvailabilitySubmittedThisWeek
+  }, [isAvailabilityLockedByAdmin, isAvailabilitySubmittedThisWeek])
+
+  // Returns true if a non-admin worker's schedule form is locked
+  const isAvailabilityLockedThisWeek = !isAdmin && isEffectiveAvailabilityLocked
 
   // Real-time subscription for worker_profiles changes (for admins to see online status updates)
   useEffect(() => {
@@ -5119,22 +5188,65 @@ export default function DashboardPage() {
                       </button>
 
                       {/* Weekly Availability */}
-                      <button
-                        type="button"
+                      <div
+                        role="button"
+                        tabIndex={0}
                         onClick={() => { if (activeWorker?.id) fetchAvailability(activeWorker.id); setIsAvailabilityModalOpen(true) }}
-                        className="group relative flex flex-col items-start gap-1 rounded-md border border-white/10 bg-white/5 p-2 text-left backdrop-blur-sm hover:bg-white/10 hover:border-emerald-400/40 transition-all duration-200 hover:shadow-xl hover:shadow-emerald-600/20"
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { if (activeWorker?.id) fetchAvailability(activeWorker.id); setIsAvailabilityModalOpen(true); } }}
+                        className="group relative flex flex-col items-start justify-between gap-1.5 rounded-md border border-white/10 bg-white/5 p-2 text-left backdrop-blur-sm hover:bg-white/10 hover:border-emerald-400/40 transition-all duration-200 hover:shadow-xl hover:shadow-emerald-600/20 cursor-pointer"
                       >
-                        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br from-emerald-500 to-teal-600 shadow-lg shadow-emerald-500/30 group-hover:scale-110 transition-transform duration-200">
-                          <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                        <div className="flex items-center justify-between w-full">
+                          <div className="flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br from-emerald-500 to-teal-600 shadow-lg shadow-emerald-500/30 group-hover:scale-110 transition-transform duration-200">
+                            <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                          </div>
+                          {isEffectiveAvailabilityLocked ? (
+                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                              <Lock className="h-2.5 w-2.5" /> Locked
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                              <Unlock className="h-2.5 w-2.5" /> Open
+                            </span>
+                          )}
                         </div>
-                        <div>
+                        <div className="w-full">
                           <p className="text-[11px] font-semibold text-white">Weekly Availability</p>
                           <p className="mt-0.5 text-[8px] leading-relaxed text-zinc-400">Set your sameday, overnight &amp; daily schedule</p>
                         </div>
-                        <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        {isAdmin && (
+                          <div className="mt-1 pt-1.5 border-t border-white/10 w-full flex items-center justify-between">
+                            <span className="text-[9px] font-medium text-zinc-400">Admin Lock</span>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                toggleAvailabilityLock()
+                              }}
+                              disabled={isTogglingAvailabilityLock}
+                              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-bold text-white transition-all shadow-sm ${
+                                isEffectiveAvailabilityLocked
+                                  ? 'bg-emerald-600 hover:bg-emerald-500'
+                                  : 'bg-rose-600 hover:bg-rose-500'
+                              } disabled:opacity-50`}
+                            >
+                              {isTogglingAvailabilityLock ? (
+                                '...'
+                              ) : isEffectiveAvailabilityLocked ? (
+                                <>
+                                  <Unlock className="h-2.5 w-2.5" /> Unlock
+                                </>
+                              ) : (
+                                <>
+                                  <Lock className="h-2.5 w-2.5" /> Lock
+                                </>
+                              )}
+                            </button>
+                          </div>
+                        )}
+                        <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
                           <svg className="h-2.5 w-2.5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
                         </div>
-                      </button>
+                      </div>
 
                       {/* Style Guides & Formatting Rules */}
                       <button
@@ -7991,50 +8103,108 @@ export default function DashboardPage() {
             <button onClick={() => setIsAvailabilityModalOpen(false)} className="absolute right-4 top-4 text-zinc-400 hover:text-zinc-700 transition-colors"><X className="h-5 w-5" /></button>
 
             {/* Header */}
-            <div className="flex items-center gap-3 mb-4 flex-shrink-0">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-xl shadow-emerald-500/30 flex-shrink-0">
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-              </div>
-              <div>
-                <h3 className="text-lg font-bold text-zinc-900">Weekly Availability</h3>
-                <p className="text-xs text-zinc-600">Submit your weekly availability schedule.</p>
+            <div className="flex items-center justify-between mb-4 flex-shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-xl shadow-emerald-500/30 flex-shrink-0">
+                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-lg font-bold text-zinc-900">Weekly Availability</h3>
+                    {isEffectiveAvailabilityLocked ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-200">
+                        <Lock className="h-2.5 w-2.5" /> Locked
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                        <Unlock className="h-2.5 w-2.5" /> Open
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-zinc-600">Submit your weekly availability schedule.</p>
+                </div>
               </div>
             </div>
 
-
-            {/* Locked badge (workers who already submitted this week) */}
-            {isAvailabilityLockedThisWeek && (
-              <div className="flex-shrink-0 mb-3 rounded-xl bg-emerald-50 border border-emerald-200 p-2.5 flex items-center gap-2">
-                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500 text-white text-xs flex-shrink-0">✓</span>
-                <div>
-                  <p className="text-xs font-bold text-emerald-800">Availability submitted for this week</p>
-                  <p className="text-[10px] text-emerald-700 mt-0.5">Your schedule has been recorded. You may update it again next week.</p>
+            {/* Admin Schedule Controls Bar */}
+            {isAdmin && (
+              <div className="flex-shrink-0 mb-4 rounded-2xl bg-gradient-to-r from-slate-900 via-zinc-900 to-slate-800 border border-zinc-700/70 p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-lg">
+                <div className="flex items-center gap-2.5">
+                  <div className={`flex h-9 w-9 items-center justify-center rounded-xl text-white ${isEffectiveAvailabilityLocked ? 'bg-rose-600' : 'bg-emerald-600'} shadow-md flex-shrink-0`}>
+                    {isEffectiveAvailabilityLocked ? <Lock className="h-4 w-4" /> : <Unlock className="h-4 w-4" />}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <p className="text-xs font-bold text-white">Admin Lock Control</p>
+                      <span className={`px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase ${isEffectiveAvailabilityLocked ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40' : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'}`}>
+                        {isEffectiveAvailabilityLocked ? 'Locked' : 'Unlocked'}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-zinc-300 mt-0.5">
+                      {isEffectiveAvailabilityLocked
+                        ? "Worker cannot select or edit their schedule."
+                        : "Worker can freely select and change their schedule."}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <button
+                    type="button"
+                    onClick={toggleAvailabilityLock}
+                    disabled={isTogglingAvailabilityLock}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-white text-xs font-bold transition-all shadow-md disabled:opacity-50 ${
+                      isEffectiveAvailabilityLocked
+                        ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/30'
+                        : 'bg-rose-600 hover:bg-rose-700 shadow-rose-600/30'
+                    }`}
+                  >
+                    {isTogglingAvailabilityLock ? (
+                      'Updating...'
+                    ) : isEffectiveAvailabilityLocked ? (
+                      <>
+                        <Unlock className="h-3.5 w-3.5" />
+                        <span>Unlock Availability</span>
+                      </>
+                    ) : (
+                      <>
+                        <Lock className="h-3.5 w-3.5" />
+                        <span>Lock Availability</span>
+                      </>
+                    )}
+                  </button>
+                  {availabilitySubmittedAt && (
+                    <button
+                      type="button"
+                      onClick={resetAvailability}
+                      disabled={isResettingAvailability}
+                      className="px-3 py-1.5 rounded-lg bg-zinc-700 hover:bg-zinc-600 text-white text-xs font-semibold transition-all shadow-sm disabled:opacity-50 flex-shrink-0"
+                    >
+                      {isResettingAvailability ? 'Resetting...' : 'Reset'}
+                    </button>
+                  )}
                 </div>
               </div>
             )}
 
-            {/* Admin override notice */}
-            {isAdmin && availabilitySubmittedAt && (
-              <div className="flex-shrink-0 mb-4 rounded-2xl bg-sky-50 border border-sky-200 p-3.5 flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2">
-                  <span className="text-sky-500 text-sm">🔓</span>
-                  <p className="text-xs text-sky-850 font-medium">Admin override — you can edit or reset this worker's availability.</p>
+            {/* Locked badge for workers */}
+            {!isAdmin && isEffectiveAvailabilityLocked && (
+              <div className="flex-shrink-0 mb-3 rounded-xl bg-amber-50 border border-amber-200 p-3 flex items-center gap-2.5">
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-amber-500 text-white text-xs flex-shrink-0">🔒</span>
+                <div>
+                  <p className="text-xs font-bold text-amber-900">Weekly Availability is Locked</p>
+                  <p className="text-[11px] text-amber-700 mt-0.5">
+                    {isAvailabilityLockedByAdmin === true
+                      ? "The administrator has locked weekly availability. You cannot change or choose your schedule at this time."
+                      : "Availability submitted for this week. Your schedule has been recorded. You may update it again next week."}
+                  </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={resetAvailability}
-                  disabled={isResettingAvailability}
-                  className="px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-700 text-white text-xs font-semibold transition-all shadow-sm disabled:opacity-50 flex-shrink-0"
-                >
-                  {isResettingAvailability ? 'Resetting...' : 'Reset'}
-                </button>
               </div>
             )}
 
             {/* Day-by-Day Availability Grid */}
             <div className="flex-1 overflow-y-auto min-h-0 space-y-2 mb-5 pr-1">
               {(['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] as const).map(day => (
-                <div key={day} className={`flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-2.5 rounded-xl border transition-all duration-150 ${isAvailabilityLockedThisWeek ? 'bg-zinc-50 border-zinc-100 opacity-80' : 'bg-zinc-50/50 border-zinc-100 hover:bg-zinc-50'}`}>
+                <div key={day} className={`flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-2.5 rounded-xl border transition-all duration-150 ${(!isAdmin && isEffectiveAvailabilityLocked) ? 'bg-zinc-50 border-zinc-100 opacity-80' : 'bg-zinc-50/50 border-zinc-100 hover:bg-zinc-50'}`}>
                   <span className="text-xs font-bold text-zinc-800 capitalize flex items-center gap-2">
                     <span className={`h-1.5 w-1.5 rounded-full ${(availabilityForm[day]?.sameday || availabilityForm[day]?.overnight) ? 'bg-emerald-500' : 'bg-zinc-300'}`} />
                     {day}
@@ -8042,7 +8212,7 @@ export default function DashboardPage() {
                   <div className="flex items-center gap-1.5">
                     <button
                       type="button"
-                      disabled={isAvailabilityLockedThisWeek}
+                      disabled={!isAdmin && isEffectiveAvailabilityLocked}
                       onClick={() => toggleDayAvailability(day, 'sameday')}
                       className={`flex-1 sm:flex-initial inline-flex items-center justify-center gap-1 rounded-lg px-3 py-1.5 text-[10px] font-semibold border transition-all duration-200 disabled:cursor-not-allowed ${
                         availabilityForm[day]?.sameday
@@ -8054,7 +8224,7 @@ export default function DashboardPage() {
                     </button>
                     <button
                       type="button"
-                      disabled={isAvailabilityLockedThisWeek}
+                      disabled={!isAdmin && isEffectiveAvailabilityLocked}
                       onClick={() => toggleDayAvailability(day, 'overnight')}
                       className={`flex-1 sm:flex-initial inline-flex items-center justify-center gap-1 rounded-lg px-3 py-1.5 text-[10px] font-semibold border transition-all duration-200 disabled:cursor-not-allowed ${
                         availabilityForm[day]?.overnight
@@ -8072,9 +8242,9 @@ export default function DashboardPage() {
             {/* Actions */}
             <div className="flex gap-3 flex-shrink-0">
               <button type="button" onClick={() => setIsAvailabilityModalOpen(false)} className="flex-1 rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-xs font-bold text-zinc-700 hover:bg-zinc-50 transition-all shadow-sm">
-                {isAvailabilityLockedThisWeek ? 'Close' : 'Cancel'}
+                {!isAdmin && isEffectiveAvailabilityLocked ? 'Close' : 'Cancel'}
               </button>
-              {!isAvailabilityLockedThisWeek && (
+              {(isAdmin || !isEffectiveAvailabilityLocked) && (
                 <button type="button" onClick={saveAvailability} disabled={isSavingAvailability} className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-4 py-2.5 text-xs font-bold text-white shadow-lg shadow-emerald-500/30 hover:from-emerald-700 hover:to-teal-700 hover:shadow-emerald-500/50 hover:shadow-xl disabled:opacity-50 transition-all">
                   {isSavingAvailability ? 'Saving...' : 'Save Availability'}
                 </button>
