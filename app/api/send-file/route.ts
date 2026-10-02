@@ -203,6 +203,35 @@ export async function POST(request: Request) {
       }
     }
 
+    // ── STEP 1: Insert production record FIRST ──
+    // Email is only sent after the DB write is confirmed, so the worker's
+    // success/error feedback is always consistent with what the admin receives.
+    const { error: insertError } = await supabase.from('production_records').insert({
+      worker_id: workerId,
+      file_name: fileName,
+      byte_size: byteSize,
+      date_completed: new Date().toISOString().split('T')[0],
+      status: 'Completed',
+    })
+
+    if (insertError) {
+      console.error('Production record insert error:', insertError)
+      return NextResponse.json({ error: insertError.message || 'Failed to save production record' }, { status: 500 })
+    }
+
+    // ── STEP 2: Mark the matched assignment as 'done' ──
+    if (matchedAssignment?.id) {
+      const { error: updateAssignmentError } = await supabase
+        .from('production_assignments')
+        .update({ status: 'done' })
+        .eq('id', matchedAssignment.id)
+
+      if (updateAssignmentError) {
+        console.error('Failed to update assignment status to done:', updateAssignmentError)
+      }
+    }
+
+    // ── STEP 3: Send email notification AFTER successful DB write ──
     let emailWarning: string | null = null
     if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
       try {
@@ -238,31 +267,6 @@ export async function POST(request: Request) {
     } else {
       console.warn('Email credentials are not configured; skipping email notification.')
       emailWarning = 'Email notification skipped because email credentials are not configured.'
-    }
-
-    const { error: insertError } = await supabase.from('production_records').insert({
-      worker_id: workerId,
-      file_name: fileName,
-      byte_size: byteSize,
-      date_completed: new Date().toISOString().split('T')[0],
-      status: 'Completed',
-    })
-
-    if (insertError) {
-      console.error('Production record insert error:', insertError)
-      return NextResponse.json({ error: insertError.message || 'Failed to save production record' }, { status: 500 })
-    }
-
-    // Mark the matched assignment as 'done'
-    if (matchedAssignment?.id) {
-      const { error: updateAssignmentError } = await supabase
-        .from('production_assignments')
-        .update({ status: 'done' })
-        .eq('id', matchedAssignment.id)
-
-      if (updateAssignmentError) {
-        console.error('Failed to update assignment status to done:', updateAssignmentError)
-      }
     }
 
     return NextResponse.json({ success: true, emailWarning, isRevisionResubmission, assignmentId: matchedAssignment?.id })
