@@ -228,6 +228,7 @@ const DEFAULT_SHORTCUTS: TextShortcut[] = [
   { trigger: 'ct:', replacement: '[crosstalk]' },
   { trigger: 'lt:', replacement: '[laughter]' },
   { trigger: 'ap:', replacement: '[applause]' },
+  { trigger: '(a', replacement: '(APPLAUSE)' },
 ]
 
 export default function TranscriptEditor({
@@ -479,6 +480,11 @@ export default function TranscriptEditor({
   const openFindBarRef = useRef<(mode?: 'find' | 'replace') => void>(() => {})
   // Stable ref for toggleCase (Shift+F3)
   const toggleCaseRef = useRef<() => void>(() => {})
+  // Stable refs for Text Expander engine
+  const checkTextExpansionRef = useRef<() => void>(() => {})
+  const isExpandingRef = useRef(false)
+  const justExpandedRef = useRef(false)
+  const justExpandedTimerRef = useRef<NodeJS.Timeout | null>(null)
 
   // Helper to detect if the current session is running inside the Desktop App
   const getMyClientType = useCallback(() => {
@@ -506,6 +512,7 @@ export default function TranscriptEditor({
             })
           }
           if (Array.isArray(parsed.shortcuts)) {
+            shortcutsRef.current = parsed.shortcuts
             setShortcuts(parsed.shortcuts)
           }
           if (parsed.font) setFont(parsed.font)
@@ -545,6 +552,7 @@ export default function TranscriptEditor({
             }
           }
           if (Array.isArray(data.preferences.shortcuts)) {
+            shortcutsRef.current = data.preferences.shortcuts
             setShortcuts(data.preferences.shortcuts)
           }
           // Restore saved font & size
@@ -978,6 +986,11 @@ export default function TranscriptEditor({
       setAutoSaveStatus('unsaved')
     }
 
+    // Check text expansion as user types (supports immediate triggers like (a, s1:, ia:, etc.)
+    if (!isExpandingRef.current) {
+      checkTextExpansionRef.current?.()
+    }
+
     // Save immediate local draft to localStorage so workers never lose even 1 second of typing
     if (effectiveUserId && editorRef.current) {
       try {
@@ -1390,38 +1403,144 @@ export default function TranscriptEditor({
     }
   }
 
-  // ── AUTO-REPLACE / TEXT EXPANDER ENGINE (MS Word Style) ──
+  // ── AUTO-REPLACE / TEXT EXPANDER ENGINE (MS Word Style & Immediate Shortcuts) ──
   const checkTextExpansion = () => {
+    if (isExpandingRef.current) return
     const sel = window.getSelection()
     if (!sel || !sel.isCollapsed || !sel.anchorNode) return
 
-    const node = sel.anchorNode
-    if (node.nodeType !== Node.TEXT_NODE) return
+    let node: Node = sel.anchorNode
+    let offset = sel.anchorOffset
 
-    const textBeforeCursor = node.textContent?.substring(0, sel.anchorOffset) || ''
+    // If anchorNode is an element rather than a text node, find the text node at caret
+    if (node.nodeType !== Node.TEXT_NODE) {
+      if (node.childNodes && offset > 0) {
+        const prevChild = node.childNodes[offset - 1]
+        if (prevChild && prevChild.nodeType === Node.TEXT_NODE) {
+          node = prevChild
+          offset = prevChild.textContent?.length || 0
+        } else {
+          return
+        }
+      } else {
+        return
+      }
+    }
+
+    const textBeforeCursor = node.textContent?.substring(0, offset) || ''
     if (!textBeforeCursor) return
 
-    // Find if the end of textBeforeCursor matches any shortcut trigger
-    for (const item of shortcuts) {
-      if (!item.trigger || !item.replacement) continue
+    const currentShortcuts = shortcutsRef.current || shortcuts
+    if (!currentShortcuts || currentShortcuts.length === 0) return
+
+    // Sort shortcuts by trigger length descending so longest triggers match first
+    const sortedShortcuts = [...currentShortcuts]
+      .filter((s) => s.trigger && s.replacement)
+      .sort((a, b) => b.trigger.length - a.trigger.length)
+
+    for (const item of sortedShortcuts) {
       const trigger = item.trigger
+      if (!trigger) continue
 
-      if (textBeforeCursor.endsWith(trigger)) {
-        const startIndex = textBeforeCursor.length - trigger.length
-        const range = document.createRange()
-        range.setStart(node, startIndex)
-        range.setEnd(node, sel.anchorOffset)
+      let matchedLength = 0
 
-        sel.removeAllRanges()
-        sel.addRange(range)
+      // Case 1: Trailing whitespace delimiter match (Space, \u00A0 &nbsp;, Tab, newline)
+      const lastChar = textBeforeCursor[textBeforeCursor.length - 1]
+      const isWhitespace = lastChar === ' ' || lastChar === '\u00A0' || lastChar === '\t' || lastChar === '\n'
+      if (isWhitespace && textBeforeCursor.slice(0, -1).endsWith(trigger)) {
+        matchedLength = trigger.length + 1
+      }
+      // Case 2: Immediate match as user types the trigger (e.g. "(a", "(a:", "s1:", "ia:", "[applause]", etc.)
+      else if (textBeforeCursor.endsWith(trigger)) {
+        // Expand immediately if trigger contains non-letter characters (e.g. "(a", "ia:", "s1:", "[app]", "/sig", "(a:")
+        const hasNonLetter = /[^a-zA-Z]/.test(trigger)
+        if (hasNonLetter) {
+          matchedLength = trigger.length
+        }
+      }
 
-        // Replace range with expansion text cleanly
-        document.execCommand('insertText', false, item.replacement + ' ')
+      if (matchedLength > 0) {
+        const startIndex = offset - matchedLength
+        if (startIndex < 0) continue
+
+        isExpandingRef.current = true
+        try {
+          const range = document.createRange()
+          range.setStart(node, startIndex)
+          range.setEnd(node, offset)
+
+          sel.removeAllRanges()
+          sel.addRange(range)
+
+          // Replace range with expansion text cleanly
+          // If the replacement is a speaker label (ends with ':') AND audio is loaded,
+          // format it as "Speaker Name (HH:MM:SS)" — strip the trailing ':' and append the timestamp.
+          if (audioSrcRef.current && item.replacement.trimEnd().endsWith(':')) {
+            const speakerName = item.replacement.trimEnd().slice(0, -1).trimEnd() // strip trailing ':'
+            const _h = Math.floor(audioCurrentTimeRef.current / 3600)
+            const _m = Math.floor((audioCurrentTimeRef.current % 3600) / 60)
+            const _s = Math.floor(audioCurrentTimeRef.current % 60)
+            const autoTs = [
+              _h.toString().padStart(2, '0'),
+              _m.toString().padStart(2, '0'),
+              _s.toString().padStart(2, '0'),
+            ].join(':')
+            document.execCommand('insertText', false, `${speakerName} (${autoTs}) `)
+          } else {
+            document.execCommand('insertText', false, item.replacement + ' ')
+          }
+
+          justExpandedRef.current = true
+          if (justExpandedTimerRef.current) clearTimeout(justExpandedTimerRef.current)
+          justExpandedTimerRef.current = setTimeout(() => {
+            justExpandedRef.current = false
+          }, 800)
+        } finally {
+          isExpandingRef.current = false
+        }
+
         handleEditorInput()
         break
       }
     }
   }
+  checkTextExpansionRef.current = checkTextExpansion
+
+
+  // ── SPEAKER TIMESTAMP: detect manually-typed speaker labels on Space ──
+  // Called when user presses Space after typing something ending with ':'.
+  // Matches lines like "Speaker 1:", "Doctor:", "Interviewer:", "John Smith:", etc.
+  // Only fires when audio is loaded so it never inserts garbage timestamps.
+  const SPEAKER_LABEL_PATTERN = /(?:^|[\n\r])[ \t]*[A-Za-z][A-Za-z0-9 '\-.]{0,40}:\s*$/
+  // Guard: if a timestamp bracket already follows the colon, skip (shortcut expansion already stamped it)
+  const ALREADY_STAMPED_PATTERN = /(?:^|[\n\r])[ \t]*[A-Za-z][A-Za-z0-9 '\-.]{0,40}:\s*\[\d/
+  const checkSpeakerTimestamp = () => {
+    if (!audioSrcRef.current) return
+    const sel = window.getSelection()
+    if (!sel || !sel.isCollapsed || !sel.anchorNode) return
+    if (sel.anchorNode.nodeType !== Node.TEXT_NODE) return
+
+    const fullNodeText = sel.anchorNode.textContent || ''
+    const textBeforeCursor = fullNodeText.substring(0, sel.anchorOffset)
+
+    // Bail if a timestamp was already inserted by shortcut expansion
+    if (ALREADY_STAMPED_PATTERN.test(textBeforeCursor)) return
+
+    // Only stamp if cursor is right after a speaker label (colon + space) at start of line
+    if (SPEAKER_LABEL_PATTERN.test(textBeforeCursor)) {
+      const _h = Math.floor(audioCurrentTimeRef.current / 3600)
+      const _m = Math.floor((audioCurrentTimeRef.current % 3600) / 60)
+      const _s = Math.floor(audioCurrentTimeRef.current % 60)
+      const autoTs = [
+        _h.toString().padStart(2, '0'),
+        _m.toString().padStart(2, '0'),
+        _s.toString().padStart(2, '0'),
+      ].join(':')
+      document.execCommand('insertText', false, `[${autoTs}] `)
+      handleEditorInput()
+    }
+  }
+
 
   // ── AUDIO PLAYER CONTROLS (Express Scribe Style) ──
   const formatTime = (secs: number) => {
@@ -1846,10 +1965,27 @@ export default function TranscriptEditor({
       return
     }
 
-    // Check text expansion trigger on Space, Enter, or Tab
-    if (e.key === ' ' || e.key === 'Enter' || e.key === 'Tab' || e.key === ':') {
+    // If user just expanded a shortcut and immediately presses Space, swallow the duplicate space
+    if (e.key === ' ' && justExpandedRef.current) {
+      e.preventDefault()
+      justExpandedRef.current = false
+      return
+    }
+    if (e.key !== 'Shift' && e.key !== 'Control' && e.key !== 'Alt') {
+      justExpandedRef.current = false
+    }
+
+    // Check text expansion trigger on Space, Enter, or Tab (MS Word AutoCorrect delimiter expansion)
+    if (e.key === ' ' || e.key === 'Enter' || e.key === 'Tab') {
       setTimeout(() => checkTextExpansion(), 0)
     }
+
+    // Auto-timestamp on Space after a manually-typed speaker label (e.g. "Speaker 1: ")
+    // Runs slightly after the expansion check (150ms) so shortcut expansions win priority.
+    if (e.key === ' ') {
+      setTimeout(() => checkSpeakerTimestamp(), 150)
+    }
+
 
     // Handle CTRL+Arrow keys for precise paragraph & word navigation
     if (e.ctrlKey || e.metaKey) {
@@ -4529,7 +4665,7 @@ export default function TranscriptEditor({
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-zinc-900">Auto-Replace Text Shortcuts</h3>
-                  <p className="text-[11px] text-zinc-500">Expands words automatically as you type (like MS Word AutoCorrect)</p>
+                  <p className="text-[11px] text-zinc-500">Expands shortcuts automatically as you type (e.g. (a → (APPLAUSE), s1: → Speaker 1:)</p>
                 </div>
               </div>
               <button
@@ -4550,7 +4686,7 @@ export default function TranscriptEditor({
                 <label className="text-[10px] font-bold text-amber-900 block mb-0.5">When you type:</label>
                 <input
                   type="text"
-                  placeholder="e.g. s1: or ct:"
+                  placeholder="e.g. (a or s1: or ct:"
                   value={newShortcutTrigger}
                   onChange={(e) => setNewShortcutTrigger(e.target.value)}
                   className="w-full px-2.5 py-1 text-xs rounded-lg border border-amber-300 bg-white font-medium outline-none focus:ring-2 focus:ring-amber-400"
@@ -4560,7 +4696,7 @@ export default function TranscriptEditor({
                 <label className="text-[10px] font-bold text-amber-900 block mb-0.5">Replace with:</label>
                 <input
                   type="text"
-                  placeholder="e.g. Dr. John Doe: or [crosstalk]"
+                  placeholder="e.g. (APPLAUSE) or Speaker 1: or [crosstalk]"
                   value={newShortcutReplacement}
                   onChange={(e) => setNewShortcutReplacement(e.target.value)}
                   className="w-full px-2.5 py-1 text-xs rounded-lg border border-amber-300 bg-white font-medium outline-none focus:ring-2 focus:ring-amber-400"
@@ -4574,6 +4710,7 @@ export default function TranscriptEditor({
                     ...shortcuts.filter((s) => s.trigger !== newShortcutTrigger.trim()),
                     { trigger: newShortcutTrigger.trim(), replacement: newShortcutReplacement.trim() },
                   ]
+                  shortcutsRef.current = updated
                   setShortcuts(updated)
                   setNewShortcutTrigger('')
                   setNewShortcutReplacement('')
@@ -4605,7 +4742,9 @@ export default function TranscriptEditor({
                   <button
                     type="button"
                     onClick={() => {
-                      setShortcuts(shortcuts.filter((_, i) => i !== idx))
+                      const updated = shortcuts.filter((_, i) => i !== idx)
+                      shortcutsRef.current = updated
+                      setShortcuts(updated)
                     }}
                     className="text-zinc-400 hover:text-red-600 p-1 transition-colors"
                     title="Delete shortcut"
@@ -4620,7 +4759,10 @@ export default function TranscriptEditor({
             <div className="flex items-center justify-between pt-3 border-t border-zinc-100 flex-shrink-0">
               <button
                 type="button"
-                onClick={() => setShortcuts(DEFAULT_SHORTCUTS)}
+                onClick={() => {
+                  shortcutsRef.current = DEFAULT_SHORTCUTS
+                  setShortcuts(DEFAULT_SHORTCUTS)
+                }}
                 className="text-xs text-zinc-500 hover:text-zinc-800 transition-colors"
               >
                 Reset Default Shortcuts
