@@ -147,8 +147,10 @@ const etToUTC = (year: number, month: number, day: number, hour: number, minute:
 }
 
 // Parse explicit calendar dates from assignment description/filename if present
-const parseExplicitDate = (text: string, refYear: number) => {
+// Parse explicit calendar dates from assignment description/filename if present
+const parseExplicitDate = (text: string, refYear: number, refMonth: number = 10) => {
   if (!text) return null
+
   // 1. ISO date: YYYY-MM-DD or YYYY/MM/DD
   const isoMatch = text.match(/\b(\d{4})[-/](\d{1,2})[-/](\d{1,2})\b/)
   if (isoMatch) {
@@ -157,28 +159,70 @@ const parseExplicitDate = (text: string, refYear: number) => {
     const d = parseInt(isoMatch[3], 10)
     if (m >= 1 && m <= 12 && d >= 1 && d <= 31) return { year: y, month: m, day: d }
   }
-  // 2. Month name + day: e.g. 'Sep 9', 'September 10', 'Sep 9, 2026'
+
+  // 2. Month name + day: e.g. 'Oct 26', 'October 26, 2026', 'Oct. 26th'
   const monthMap: Record<string, number> = {
     jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6,
     jul: 7, aug: 8, sep: 9, sept: 9, oct: 10, nov: 11, dec: 12,
   }
-  const monthNameMatch = text.match(/\b(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t|tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\.?\s+(\d{1,2})(?:st|nd|rd|th)?(?:\s*,?\s*(\d{4}))?\b/i)
-  if (monthNameMatch) {
-    const monthKey = monthNameMatch[1].toLowerCase().slice(0, 3)
+  const monthDayMatch = text.match(/\b(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t|tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\.?\s+(\d{1,2})(?:st|nd|rd|th)?(?:\s*,?\s*(\d{4}))?\b/i)
+  if (monthDayMatch) {
+    const monthKey = monthDayMatch[1].toLowerCase().slice(0, 3)
     const m = monthMap[monthKey]
-    const d = parseInt(monthNameMatch[2], 10)
-    const y = monthNameMatch[3] ? parseInt(monthNameMatch[3], 10) : refYear
+    const d = parseInt(monthDayMatch[2], 10)
+    const y = monthDayMatch[3] ? parseInt(monthDayMatch[3], 10) : refYear
     if (m && d >= 1 && d <= 31) return { year: y, month: m, day: d }
   }
-  // 3. US date MM/DD or MM/DD/YYYY
-  const usDateMatch = text.match(/\b(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\b/)
-  if (usDateMatch) {
-    const m = parseInt(usDateMatch[1], 10)
-    const d = parseInt(usDateMatch[2], 10)
-    let y = usDateMatch[3] ? parseInt(usDateMatch[3], 10) : refYear
-    if (y < 100) y += 2000
-    if (m >= 1 && m <= 12 && d >= 1 && d <= 31) return { year: y, month: m, day: d }
+
+  // 3. Day + Month name: e.g. '26 Oct', '26th October 2026', '26th of Oct'
+  const dayMonthMatch = text.match(/\b(\d{1,2})(?:st|nd|rd|th)?(?:\s+of)?\s+(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t|tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\.?(?:\s*,?\s*(\d{4}))?\b/i)
+  if (dayMonthMatch) {
+    const d = parseInt(dayMonthMatch[1], 10)
+    const monthKey = dayMonthMatch[2].toLowerCase().slice(0, 3)
+    const m = monthMap[monthKey]
+    const y = dayMonthMatch[3] ? parseInt(dayMonthMatch[3], 10) : refYear
+    if (m && d >= 1 && d <= 31) return { year: y, month: m, day: d }
   }
+
+  // 4. Numeric date: DD/MM/YYYY, MM/DD/YYYY, DD-MM-YYYY, MM-DD-YYYY, DD/MM, etc.
+  const numMatch = text.match(/\b(\d{1,2})[-/](\d{1,2})(?:[-/](\d{2,4}))?\b/)
+  if (numMatch) {
+    const n1 = parseInt(numMatch[1], 10)
+    const n2 = parseInt(numMatch[2], 10)
+    let y = numMatch[3] ? parseInt(numMatch[3], 10) : refYear
+    if (y < 100) y += 2000
+
+    let m = 0
+    let d = 0
+
+    if (n1 > 12 && n1 <= 31 && n2 >= 1 && n2 <= 12) {
+      // Day/Month (e.g. 26/10/2026)
+      d = n1
+      m = n2
+    } else if (n2 > 12 && n2 <= 31 && n1 >= 1 && n1 <= 12) {
+      // Month/Day (e.g. 10/26/2026)
+      m = n1
+      d = n2
+    } else if (n1 >= 1 && n1 <= 31 && n2 >= 1 && n2 <= 12) {
+      // Ambiguous (both <= 12): check reference month (ET)
+      if (n2 === refMonth && n1 !== refMonth) {
+        d = n1
+        m = n2
+      } else if (n1 === refMonth && n2 !== refMonth) {
+        m = n1
+        d = n2
+      } else {
+        // Standard in PH & international is DD/MM/YYYY
+        d = n1
+        m = n2
+      }
+    }
+
+    if (m >= 1 && m <= 12 && d >= 1 && d <= 31) {
+      return { year: y, month: m, day: d }
+    }
+  }
+
   return null
 }
 
@@ -187,8 +231,14 @@ const getAssignmentDueTargetDate = (a: any): Date | null => {
 
   const sources: string[] = []
   if (a.due_time) sources.push(String(a.due_time))
+
+  // Extract explicit 'Due:' section from description if present so we don't accidentally grab 'Audio Availability' date
   if (a.description) {
     const cleanDesc = a.description.replace(/<[^>]*>/g, ' ')
+    const dueMatch = cleanDesc.match(/\bdue\s*:\s*([^\r\n]+?)(?=\s+(?:code|company|duration|audio|topic|note):|$)/i)
+    if (dueMatch && dueMatch[1]) {
+      sources.push(dueMatch[1].trim())
+    }
     sources.push(cleanDesc)
   }
   if (a.filename) sources.push(String(a.filename))
@@ -197,9 +247,13 @@ const getAssignmentDueTargetDate = (a: any): Date | null => {
   let explicitDate: { year: number; month: number; day: number } | null = null
   let isTomorrow = false
 
+  const now = new Date()
+  const created = a.created_at ? new Date(a.created_at) : now
+  const createdET = getETParts(!isNaN(created.getTime()) ? created : now)
+
   for (const text of sources) {
     if (!explicitDate) {
-      explicitDate = parseExplicitDate(text, new Date().getFullYear())
+      explicitDate = parseExplicitDate(text, createdET.year, createdET.month)
     }
     if (!isTomorrow && /\btomorrow\b/i.test(text)) {
       isTomorrow = true
@@ -254,10 +308,6 @@ const getAssignmentDueTargetDate = (a: any): Date | null => {
 
   if (!extractedTime) return null
 
-  const now = new Date()
-  const created = a.created_at ? new Date(a.created_at) : now
-  const createdET = getETParts(!isNaN(created.getTime()) ? created : now)
-
   let targetYear = createdET.year
   let targetMonth = createdET.month
   let targetDay = createdET.day
@@ -273,7 +323,7 @@ const getAssignmentDueTargetDate = (a: any): Date | null => {
     targetDay = nextDay.getUTCDate()
   } else {
     // If due time is earlier in the day than when assigned (allowing 30 min buffer),
-    // it was scheduled for overnight / next morning
+    // it was scheduled for overnight / next morning in US Eastern Time
     const dueTotalMin = extractedTime.hours * 60 + extractedTime.minutes
     const createdTotalMin = createdET.hour * 60 + createdET.minute
     if (dueTotalMin < createdTotalMin - 30) {
@@ -292,6 +342,47 @@ const getAssignmentDueMinutes = (a: any): number | null => {
   if (!targetDate) return null
   const et = getETParts(targetDate)
   return et.hour * 60 + et.minute
+}
+
+const getAssignmentDueDetails = (a: any) => {
+  const targetDate = getAssignmentDueTargetDate(a)
+  if (!targetDate) return null
+  const et = getETParts(targetDate)
+  const pad = (n: number) => String(n).padStart(2, '0')
+
+  const formattedET = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York',
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(targetDate) + ' ET'
+
+  let localTz = 'Local'
+  try {
+    localTz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Local'
+  } catch (e) {}
+
+  const formattedLocal = new Intl.DateTimeFormat('en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  }).format(targetDate) + ` (${localTz})`
+
+  return {
+    targetDate,
+    formattedET,
+    formattedLocal,
+    shortBadge: `${pad(et.day)}/${pad(et.month)} ${pad(et.hour)}${pad(et.minute)} ET`,
+    rawDue: a.due_time || null,
+  }
 }
 
 const getAssignmentUrgency = (a: any) => {
@@ -7737,7 +7828,7 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between mb-3 flex-shrink-0">
               <div>
                 <h3 className="text-lg font-bold text-cyan-900 mb-0.5 flex-shrink-0">Current Assignments</h3>
-                <p className="text-[10px] text-cyan-600">View your active work assignments</p>
+                <p className="text-[10px] text-cyan-600">View your active work assignments &bull; Deadlines based in US Eastern Time (ET)</p>
               </div>
               <div className="flex items-center gap-2">
                 {isAdmin && (
@@ -7899,6 +7990,19 @@ export default function DashboardPage() {
                               </span>
                             )}
                             {(() => {
+                              const dueInfo = getAssignmentDueDetails(a)
+                              if (!dueInfo) return null
+                              return (
+                                <span
+                                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-cyan-50 border border-cyan-200 text-cyan-800 text-[8px] font-semibold shrink-0"
+                                  title={`Due (ET): ${dueInfo.formattedET} | Local: ${dueInfo.formattedLocal}`}
+                                >
+                                  <Calendar className="w-2.5 h-2.5 text-cyan-600 shrink-0" />
+                                  {dueInfo.shortBadge}
+                                </span>
+                              )
+                            })()}
+                            {(() => {
                               const urgencyInfo = a.status !== 'done' && a.status !== 'cancelled' ? getAssignmentUrgency(a) : null
                               if (!urgencyInfo) return null
                               return (
@@ -7956,6 +8060,19 @@ export default function DashboardPage() {
                                 Priority
                               </span>
                             )}
+                            {(() => {
+                              const dueInfo = getAssignmentDueDetails(a)
+                              if (!dueInfo) return null
+                              return (
+                                <span
+                                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-cyan-50 border border-cyan-200 text-cyan-800 text-[8px] font-semibold shrink-0"
+                                  title={`Due (ET): ${dueInfo.formattedET} | Local: ${dueInfo.formattedLocal}`}
+                                >
+                                  <Calendar className="w-2.5 h-2.5 text-cyan-600 shrink-0" />
+                                  {dueInfo.shortBadge}
+                                </span>
+                              )
+                            })()}
                             {(() => {
                               const urgencyInfo = a.status !== 'done' && a.status !== 'cancelled' ? getAssignmentUrgency(a) : null
                               if (!urgencyInfo) return null
@@ -8989,52 +9106,108 @@ export default function DashboardPage() {
         </div>
       )}
       {/* ── Assignment Details Modal (global, works from any view) ── */}
-      {selectedAssignment && (
-        <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="w-full max-w-md overflow-hidden rounded-xl bg-gradient-to-br from-white to-cyan-50 shadow-2xl shadow-cyan-500/20 max-h-[90vh] overflow-y-auto border border-cyan-200">
-            <div className="flex items-start justify-between gap-4 border-b border-cyan-200 p-5">
-              <div>
-                <h3 className="text-lg font-semibold text-cyan-900">Assignment details</h3>
-                <p className="text-sm text-cyan-600">Assignment description and attachments</p>
+      {selectedAssignment && (() => {
+        const dueInfo = getAssignmentDueDetails(selectedAssignment)
+        const urgencyInfo = selectedAssignment.status !== 'done' && selectedAssignment.status !== 'cancelled'
+          ? getAssignmentUrgency(selectedAssignment)
+          : null
+
+        return (
+          <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+            <div className="w-full max-w-md overflow-hidden rounded-xl bg-gradient-to-br from-white to-cyan-50 shadow-2xl shadow-cyan-500/20 max-h-[90vh] overflow-y-auto border border-cyan-200">
+              <div className="flex items-start justify-between gap-4 border-b border-cyan-200 p-5">
+                <div>
+                  <h3 className="text-lg font-bold text-cyan-900">{getDisplayFileName(selectedAssignment.filename)}</h3>
+                  <p className="text-xs text-cyan-600">Assignment details &bull; Deadlines based in US Eastern Time (ET)</p>
+                </div>
+                <button type="button" onClick={() => setSelectedAssignment(null)} className="text-cyan-400 hover:text-cyan-700">
+                  <X className="h-5 w-5" />
+                </button>
               </div>
-              <button type="button" onClick={() => setSelectedAssignment(null)} className="text-cyan-400 hover:text-cyan-700">
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            <div className="space-y-4 p-5">
-              {selectedAssignment.description && (
-                <div>
-                  <div className="text-xs font-semibold text-cyan-500 uppercase">Description</div>
-                  <div className="mt-1 text-sm text-black whitespace-pre-wrap break-words" dangerouslySetInnerHTML={{ __html: selectedAssignment.description }} />
+              <div className="space-y-4 p-5">
+                {/* Badges row */}
+                <div className="flex flex-wrap gap-1.5 items-center">
+                  {selectedAssignment.status === 'done' ? (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[9px] font-bold text-emerald-700 whitespace-nowrap">✓ Done</span>
+                  ) : selectedAssignment.status === 'needs_revision' ? (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-rose-50 border border-rose-300 px-2 py-0.5 text-[9px] font-bold text-rose-700 whitespace-nowrap">↩ Revision</span>
+                  ) : selectedAssignment.status === 'cancelled' ? (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 border border-slate-200 px-2 py-0.5 text-[9px] font-bold text-slate-600 whitespace-nowrap">✕ Cancelled</span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-sky-50 border border-sky-200 px-2 py-0.5 text-[9px] font-bold text-sky-700 whitespace-nowrap">In Progress</span>
+                  )}
+                  {selectedAssignment.is_priority && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-600 text-white text-[9px] font-black uppercase whitespace-nowrap">RUSH</span>
+                  )}
+                  {urgencyInfo && (
+                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] border whitespace-nowrap ${urgencyInfo.colorClass}`}>
+                      <Clock className="w-2.5 h-2.5 shrink-0" />
+                      {urgencyInfo.label}
+                    </span>
+                  )}
                 </div>
-              )}
-              {selectedAssignment.attachment_url && (
-                <div>
-                  <div className="text-xs font-semibold text-cyan-500 uppercase">Attachment</div>
-                  <a
-                    href={selectedAssignment.attachment_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-1 inline-flex items-center gap-1.5 rounded border border-cyan-200 bg-cyan-50 px-2 py-1 text-xs font-medium text-cyan-700 hover:bg-cyan-100 transition max-w-full"
-                    title={decodeURIComponent(selectedAssignment.attachment_url.split('/').pop()?.replace(/^attachment-\d+-/, '') ?? 'attachment')}
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" /></svg>
-                    <span className="truncate">{decodeURIComponent(selectedAssignment.attachment_url.split('/').pop()?.replace(/^attachment-\d+-/, '') ?? 'attachment')}</span>
-                  </a>
-                </div>
-              )}
-            </div>
-            <div className="border-t border-cyan-200 p-5 flex gap-3 justify-end flex-wrap">
-              <button type="button" onClick={() => { setSelectedAssignment(null); setIsCurrentAssignmentsModalOpen(true) }} className="inline-flex items-center justify-center rounded-md bg-gradient-to-r from-cyan-600 to-sky-600 px-4 py-2 text-sm font-semibold text-white hover:from-cyan-700 hover:to-sky-700 transition">
-                Back
-              </button>
-              <button type="button" onClick={() => { setIsAssignmentReportIssueModalOpen(true); setReportIssueAssignment(selectedAssignment); setSelectedAssignment(null) }} className="inline-flex items-center justify-center gap-1.5 rounded-md bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800 transition">
-                <AlertCircle className="h-4 w-4" /> Report Issue
-              </button>
+
+                {/* Due Schedule Card (US Eastern Time & Local) */}
+                {dueInfo && (
+                  <div className="rounded-xl border border-cyan-200/90 bg-white/95 p-3.5 shadow-xs space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold tracking-wider uppercase text-cyan-800 flex items-center gap-1.5">
+                        <Clock className="w-3.5 h-3.5 text-cyan-600" />
+                        Due Schedule (US Eastern Time)
+                      </span>
+                      {dueInfo.rawDue && (
+                        <span className="text-[9px] font-mono text-cyan-700 bg-cyan-50 px-1.5 py-0.5 rounded border border-cyan-200">
+                          {dueInfo.rawDue}
+                        </span>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                      <div className="bg-cyan-50/70 rounded-lg p-2.5 border border-cyan-100">
+                        <p className="text-[9px] font-bold text-cyan-800 uppercase tracking-wide">US Eastern Time (ET)</p>
+                        <p className="font-bold text-slate-900 mt-1">{dueInfo.formattedET}</p>
+                      </div>
+                      <div className="bg-slate-50 rounded-lg p-2.5 border border-slate-200">
+                        <p className="text-[9px] font-bold text-slate-600 uppercase tracking-wide">Your Local Time</p>
+                        <p className="font-semibold text-slate-800 mt-1">{dueInfo.formattedLocal}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {selectedAssignment.description && (
+                  <div>
+                    <div className="text-xs font-semibold text-cyan-500 uppercase">Description</div>
+                    <div className="mt-1 text-sm text-black whitespace-pre-wrap break-words" dangerouslySetInnerHTML={{ __html: selectedAssignment.description }} />
+                  </div>
+                )}
+                {selectedAssignment.attachment_url && (
+                  <div>
+                    <div className="text-xs font-semibold text-cyan-500 uppercase">Attachment</div>
+                    <a
+                      href={selectedAssignment.attachment_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-1 inline-flex items-center gap-1.5 rounded border border-cyan-200 bg-cyan-50 px-2 py-1 text-xs font-medium text-cyan-700 hover:bg-cyan-100 transition max-w-full"
+                      title={decodeURIComponent(selectedAssignment.attachment_url.split('/').pop()?.replace(/^attachment-\d+-/, '') ?? 'attachment')}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" /></svg>
+                      <span className="truncate">{decodeURIComponent(selectedAssignment.attachment_url.split('/').pop()?.replace(/^attachment-\d+-/, '') ?? 'attachment')}</span>
+                    </a>
+                  </div>
+                )}
+              </div>
+              <div className="border-t border-cyan-200 p-5 flex gap-3 justify-end flex-wrap">
+                <button type="button" onClick={() => { setSelectedAssignment(null); setIsCurrentAssignmentsModalOpen(true) }} className="inline-flex items-center justify-center rounded-md bg-gradient-to-r from-cyan-600 to-sky-600 px-4 py-2 text-sm font-semibold text-white hover:from-cyan-700 hover:to-sky-700 transition">
+                  Back
+                </button>
+                <button type="button" onClick={() => { setIsAssignmentReportIssueModalOpen(true); setReportIssueAssignment(selectedAssignment); setSelectedAssignment(null) }} className="inline-flex items-center justify-center gap-1.5 rounded-md bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800 transition">
+                  <AlertCircle className="h-4 w-4" /> Report Issue
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      })()}
 
       {isAssignmentReportIssueModalOpen && reportIssueAssignment && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
