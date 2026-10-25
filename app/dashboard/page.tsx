@@ -7999,19 +7999,6 @@ export default function DashboardPage() {
                               </span>
                             )}
                             {(() => {
-                              const dueInfo = getAssignmentDueDetails(a)
-                              if (!dueInfo) return null
-                              return (
-                                <span
-                                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-cyan-50 border border-cyan-200 text-cyan-800 text-[8px] font-semibold shrink-0"
-                                  title={`Due (ET): ${dueInfo.formattedET} | Local: ${dueInfo.formattedLocal}`}
-                                >
-                                  <Clock className="w-2.5 h-2.5 text-cyan-600 shrink-0" />
-                                  {dueInfo.shortBadge}
-                                </span>
-                              )
-                            })()}
-                            {(() => {
                               const urgencyInfo = a.status !== 'done' && a.status !== 'cancelled' ? getAssignmentUrgency(a) : null
                               if (!urgencyInfo) return null
                               return (
@@ -8069,19 +8056,6 @@ export default function DashboardPage() {
                                 Priority
                               </span>
                             )}
-                            {(() => {
-                              const dueInfo = getAssignmentDueDetails(a)
-                              if (!dueInfo) return null
-                              return (
-                                <span
-                                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-cyan-50 border border-cyan-200 text-cyan-800 text-[8px] font-semibold shrink-0"
-                                  title={`Due (ET): ${dueInfo.formattedET} | Local: ${dueInfo.formattedLocal}`}
-                                >
-                                  <Clock className="w-2.5 h-2.5 text-cyan-600 shrink-0" />
-                                  {dueInfo.shortBadge}
-                                </span>
-                              )
-                            })()}
                             {(() => {
                               const urgencyInfo = a.status !== 'done' && a.status !== 'cancelled' ? getAssignmentUrgency(a) : null
                               if (!urgencyInfo) return null
