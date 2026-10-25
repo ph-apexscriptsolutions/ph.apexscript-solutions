@@ -376,11 +376,20 @@ const getAssignmentDueDetails = (a: any) => {
     hour12: true,
   }).format(targetDate) + ` (${localTz})`
 
+  // Time-only badge for Current Assignments (no date)
+  let timeOnly = `${pad(et.hour)}${pad(et.minute)} ET`
+  if (a.due_time) {
+    const tzMatch = String(a.due_time).match(/(\b\d{2}:?\d{2}\s*(?:et|ust|est|edt|ct|pt|utc|gmt|am|pm)\b)/i)
+    if (tzMatch) {
+      timeOnly = tzMatch[1].trim().toUpperCase()
+    }
+  }
+
   return {
     targetDate,
     formattedET,
     formattedLocal,
-    shortBadge: `${pad(et.day)}/${pad(et.month)} ${pad(et.hour)}${pad(et.minute)} ET`,
+    shortBadge: `Due: ${timeOnly}`,
     rawDue: a.due_time || null,
   }
 }
@@ -7997,7 +8006,7 @@ export default function DashboardPage() {
                                   className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-cyan-50 border border-cyan-200 text-cyan-800 text-[8px] font-semibold shrink-0"
                                   title={`Due (ET): ${dueInfo.formattedET} | Local: ${dueInfo.formattedLocal}`}
                                 >
-                                  <Calendar className="w-2.5 h-2.5 text-cyan-600 shrink-0" />
+                                  <Clock className="w-2.5 h-2.5 text-cyan-600 shrink-0" />
                                   {dueInfo.shortBadge}
                                 </span>
                               )
@@ -8068,7 +8077,7 @@ export default function DashboardPage() {
                                   className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-cyan-50 border border-cyan-200 text-cyan-800 text-[8px] font-semibold shrink-0"
                                   title={`Due (ET): ${dueInfo.formattedET} | Local: ${dueInfo.formattedLocal}`}
                                 >
-                                  <Calendar className="w-2.5 h-2.5 text-cyan-600 shrink-0" />
+                                  <Clock className="w-2.5 h-2.5 text-cyan-600 shrink-0" />
                                   {dueInfo.shortBadge}
                                 </span>
                               )
