@@ -11,7 +11,7 @@ import PriorityBroadcastModal from '@/components/priority-broadcast-modal'
 import AdminPriorityAnnouncementModal from '@/components/admin-priority-announcement-modal'
 import RevisionRequestModal from '@/components/revision-request-modal'
 import { DashboardCardStyleModal } from '@/components/dashboard-card-style-modal'
-import { parseAndFormatAssignment, isRawAssignmentSequence, extractAssignmentFields } from '@/utils/assignment-formatter'
+import { parseAndFormatAssignment, isRawAssignmentSequence, extractAssignmentFields, ensureAssignmentTypeInDescription } from '@/utils/assignment-formatter'
 
 const getDepartmentIcon = (department: string) => {
   const dept = department.toLowerCase()
@@ -235,7 +235,7 @@ const getAssignmentDueTargetDate = (a: any): Date | null => {
   // Extract explicit 'Due:' section from description if present so we don't accidentally grab 'Audio Availability' date
   if (a.description) {
     const cleanDesc = a.description.replace(/<[^>]*>/g, ' ')
-    const dueMatch = cleanDesc.match(/\bdue\s*:\s*([^\r\n]+?)(?=\s+(?:code|company|duration|audio|topic|note):|$)/i)
+    const dueMatch = cleanDesc.match(/\bdue\s*:\s*([^\r\n]+?)(?=\s+(?:code|company|duration|audio|topic|note|assignment|shift):|$)/i)
     if (dueMatch && dueMatch[1]) {
       sources.push(dueMatch[1].trim())
     }
@@ -794,6 +794,7 @@ export default function DashboardPage() {
   const [isAddAssignmentModalOpen, setIsAddAssignmentModalOpen] = useState(false)
   const [newAssignmentFilename, setNewAssignmentFilename] = useState("")
   const [newAssignmentDescription, setNewAssignmentDescription] = useState("")
+  const [newAssignmentType, setNewAssignmentType] = useState<'Sameday Assignment' | 'Overnight Assignment'>('Sameday Assignment')
   const [isAddingAssignment, setIsAddingAssignment] = useState(false)
   const [newAssignmentAttachment, setNewAssignmentAttachment] = useState<File | null>(null)
   const [isUploadingAttachment, setIsUploadingAttachment] = useState(false)
@@ -1263,6 +1264,11 @@ export default function DashboardPage() {
       const assignment = assignments.find((a: any) => a.id === editAssignmentId)
       if (assignment && assignment.description) {
         assignmentEditorRef.innerHTML = assignment.description
+        if (/overnight\s*assignment/i.test(assignment.description)) {
+          setNewAssignmentType('Overnight Assignment')
+        } else if (/sameday\s*assignment|same\s*day\s*assignment/i.test(assignment.description)) {
+          setNewAssignmentType('Sameday Assignment')
+        }
       } else if (newAssignmentDescription) {
         assignmentEditorRef.innerHTML = newAssignmentDescription
       }
@@ -3683,8 +3689,26 @@ export default function DashboardPage() {
     }, 500)
   }, [])
 
+  const handleAssignmentTypeChange = (type: 'Sameday Assignment' | 'Overnight Assignment') => {
+    setNewAssignmentType(type)
+    const currentDesc = assignmentEditorRef?.innerHTML || newAssignmentDescription || ''
+    const updatedDesc = ensureAssignmentTypeInDescription(currentDesc, type)
+    if (assignmentEditorRef) {
+      assignmentEditorRef.innerHTML = updatedDesc
+    }
+    setNewAssignmentDescription(updatedDesc)
+  }
+
   const applyFormattedAssignmentText = useCallback((rawText: string) => {
-    const parsed = parseAndFormatAssignment(rawText)
+    let detectedType = newAssignmentType
+    if (/overnight\s*assignment/i.test(rawText)) {
+      detectedType = 'Overnight Assignment'
+    } else if (/sameday\s*assignment|same\s*day\s*assignment/i.test(rawText)) {
+      detectedType = 'Sameday Assignment'
+    }
+    setNewAssignmentType(detectedType)
+
+    const parsed = parseAndFormatAssignment(rawText, { defaultAssignmentType: detectedType })
     if (parsed.isAssignment) {
       if (parsed.code && (!newAssignmentFilename.trim() || !editAssignmentId)) {
         setNewAssignmentFilename(parsed.code)
@@ -3698,7 +3722,7 @@ export default function DashboardPage() {
       setShowToast(true)
       setTimeout(() => { setShowToast(false); setToastMessage(null) }, 2500)
     }
-  }, [newAssignmentFilename, editAssignmentId, assignmentEditorRef, checkDuplicateFilename])
+  }, [newAssignmentFilename, editAssignmentId, assignmentEditorRef, checkDuplicateFilename, newAssignmentType])
 
   const handleAutoFormatClipboard = async () => {
     try {
@@ -3731,7 +3755,7 @@ export default function DashboardPage() {
     let descriptionContent = assignmentEditorRef?.innerHTML || newAssignmentDescription || ''
 
     if (descriptionContent && isRawAssignmentSequence(descriptionContent)) {
-      const parsed = parseAndFormatAssignment(descriptionContent)
+      const parsed = parseAndFormatAssignment(descriptionContent, { defaultAssignmentType: newAssignmentType })
       if (parsed.isAssignment) {
         descriptionContent = parsed.formattedHtml
         if (!effectiveFilename && parsed.code) {
@@ -3751,6 +3775,10 @@ export default function DashboardPage() {
       alert('Please enter a filename')
       return
     }
+
+    // Ensure description contains the selected Assignment Type
+    descriptionContent = ensureAssignmentTypeInDescription(descriptionContent, newAssignmentType)
+
     setIsAddingAssignment(true)
     try {
       // Upload attachment first if one was selected
@@ -3780,6 +3808,7 @@ export default function DashboardPage() {
           description: descriptionContent || null,
           attachmentUrl,
           isPriority: isPriorityAssignment,
+          assignmentType: newAssignmentType,
         }),
       })
       let data: any = null
@@ -3792,6 +3821,7 @@ export default function DashboardPage() {
       await fetchAssignments(workerId)
       setNewAssignmentFilename("")
       setNewAssignmentDescription("")
+      setNewAssignmentType("Sameday Assignment")
       setNewAssignmentAttachment(null)
       setIsPriorityAssignment(false)
       if (assignmentEditorRef) assignmentEditorRef.innerHTML = ''
@@ -3813,7 +3843,7 @@ export default function DashboardPage() {
     let effectiveFilename = newAssignmentFilename.trim()
 
     if (descriptionContent && isRawAssignmentSequence(descriptionContent)) {
-      const parsed = parseAndFormatAssignment(descriptionContent)
+      const parsed = parseAndFormatAssignment(descriptionContent, { defaultAssignmentType: newAssignmentType })
       if (parsed.isAssignment) {
         descriptionContent = parsed.formattedHtml
         if (!effectiveFilename && parsed.code) {
@@ -3839,6 +3869,7 @@ export default function DashboardPage() {
             filename: effectiveFilename,
             description: descriptionContent || null,
             isPriority: isPriorityAssignment,
+            assignmentType: newAssignmentType,
           }),
         })
         const data = await res.json()
@@ -3855,6 +3886,7 @@ export default function DashboardPage() {
         setEditAssignmentId(null)
         setNewAssignmentFilename('')
         setNewAssignmentDescription('')
+        setNewAssignmentType('Sameday Assignment')
         if (assignmentEditorRef) assignmentEditorRef.innerHTML = ''
       } catch (err: any) {
         console.error('Update assignment error:', err)
@@ -5466,7 +5498,7 @@ export default function DashboardPage() {
             {isAddAssignmentModalOpen && activeWorker && (
               <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
                 <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl p-6 relative max-h-[90vh] overflow-y-auto">
-                  <button onClick={() => { setIsAddAssignmentModalOpen(false); setNewAssignmentFilename(""); setNewAssignmentDescription(""); setNewAssignmentAttachment(null); setDuplicateFilenameWarning(null); setIsCheckingDuplicate(false); if (assignmentEditorRef) assignmentEditorRef.innerHTML = '' }} className="absolute right-4 top-4 text-zinc-400 hover:text-zinc-900"><X className="h-5 w-5" /></button>
+                  <button onClick={() => { setIsAddAssignmentModalOpen(false); setNewAssignmentFilename(""); setNewAssignmentDescription(""); setNewAssignmentType("Sameday Assignment"); setNewAssignmentAttachment(null); setDuplicateFilenameWarning(null); setIsCheckingDuplicate(false); if (assignmentEditorRef) assignmentEditorRef.innerHTML = '' }} className="absolute right-4 top-4 text-zinc-400 hover:text-zinc-900"><X className="h-5 w-5" /></button>
                   <h3 className="text-lg font-semibold text-zinc-900 mb-4">{editAssignmentId ? 'Edit Assignment' : 'Add New Assignment'}</h3>
                   <form onSubmit={(e) => { e.preventDefault(); saveAssignment(activeWorker.id) }} className="space-y-4">
                     {/* Auto-format client assignment banner */}
@@ -5565,6 +5597,37 @@ export default function DashboardPage() {
                         </span>
                         <span className="text-xs text-zinc-600">Mark as Rush Assignment (Highest urgency for worker)</span>
                       </label>
+                    </div>
+
+                    {/* Assignment Type Selector: Sameday Assignment vs Overnight Assignment */}
+                    <div>
+                      <label className="block text-sm font-medium text-zinc-700 mb-1.5">Assignment Schedule / Type</label>
+                      <div className="grid grid-cols-2 gap-2.5">
+                        <button
+                          type="button"
+                          onClick={() => handleAssignmentTypeChange('Sameday Assignment')}
+                          className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
+                            newAssignmentType === 'Sameday Assignment'
+                              ? 'bg-sky-600 border-sky-600 text-white shadow-md shadow-sky-500/25 ring-2 ring-sky-300'
+                              : 'bg-white border-zinc-200 text-zinc-700 hover:bg-zinc-50'
+                          }`}
+                        >
+                          <span className="text-sm">☀️</span>
+                          <span>Sameday Assignment</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleAssignmentTypeChange('Overnight Assignment')}
+                          className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
+                            newAssignmentType === 'Overnight Assignment'
+                              ? 'bg-indigo-600 border-indigo-600 text-white shadow-md shadow-indigo-500/25 ring-2 ring-indigo-300'
+                              : 'bg-white border-zinc-200 text-zinc-700 hover:bg-zinc-50'
+                          }`}
+                        >
+                          <span className="text-sm">🌙</span>
+                          <span>Overnight Assignment</span>
+                        </button>
+                      </div>
                     </div>
 
                     <div>
@@ -5713,7 +5776,7 @@ export default function DashboardPage() {
                     </div>
 
                     <div className="flex gap-3">
-                      <button type="button" onClick={() => { setIsAddAssignmentModalOpen(false); setNewAssignmentFilename(""); setNewAssignmentDescription(""); setNewAssignmentAttachment(null); setDuplicateFilenameWarning(null); setIsCheckingDuplicate(false); if (assignmentEditorRef) assignmentEditorRef.innerHTML = '' }} className="flex-1 rounded-md border border-zinc-300 bg-white px-5 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-100 transition">Cancel</button>
+                      <button type="button" onClick={() => { setIsAddAssignmentModalOpen(false); setNewAssignmentFilename(""); setNewAssignmentDescription(""); setNewAssignmentType("Sameday Assignment"); setNewAssignmentAttachment(null); setDuplicateFilenameWarning(null); setIsCheckingDuplicate(false); if (assignmentEditorRef) assignmentEditorRef.innerHTML = '' }} className="flex-1 rounded-md border border-zinc-300 bg-white px-5 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-100 transition">Cancel</button>
                       <button type="submit" disabled={isAddingAssignment || isUploadingAttachment} className="flex-1 inline-flex items-center justify-center gap-2 rounded-md bg-gradient-to-r from-cyan-600 to-sky-600 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-cyan-600/20 hover:from-cyan-700 hover:to-sky-700 disabled:opacity-50">
                         {isUploadingAttachment ? 'Uploading...' : isAddingAssignment ? (editAssignmentId ? 'Updating...' : 'Adding...') : (editAssignmentId ? 'Update Assignment' : 'Add Assignment')}
                       </button>
@@ -7865,7 +7928,7 @@ export default function DashboardPage() {
                   </div>
                 )}
                 {isAdmin && (
-                  <button onClick={() => { setIsCurrentAssignmentsModalOpen(false); setEditAssignmentId(null); setNewAssignmentFilename(''); setNewAssignmentDescription(''); setIsAddAssignmentModalOpen(true) }} className="inline-flex items-center gap-1 rounded-lg border border-cyan-300 bg-white px-2 py-1 text-[10px] font-semibold text-cyan-800 hover:bg-cyan-100 hover:border-cyan-400 transition-all shadow-sm hover:shadow-md">
+                  <button onClick={() => { setIsCurrentAssignmentsModalOpen(false); setEditAssignmentId(null); setNewAssignmentFilename(''); setNewAssignmentDescription(''); setNewAssignmentType('Sameday Assignment'); setIsAddAssignmentModalOpen(true) }} className="inline-flex items-center gap-1 rounded-lg border border-cyan-300 bg-white px-2 py-1 text-[10px] font-semibold text-cyan-800 hover:bg-cyan-100 hover:border-cyan-400 transition-all shadow-sm hover:shadow-md">
                     <span>+</span> Add Assignment
                   </button>
                 )}
@@ -7941,7 +8004,7 @@ export default function DashboardPage() {
                                       </button>
                                     )}
                                     <button
-                                      onClick={() => { setEditAssignmentId(a.id); setNewAssignmentFilename(a.filename); setNewAssignmentDescription(a.description || ''); setIsCurrentAssignmentsModalOpen(false); setIsAddAssignmentModalOpen(true); setAssignmentActionDropdown(null) }}
+                                      onClick={() => { setEditAssignmentId(a.id); setNewAssignmentFilename(a.filename); setNewAssignmentDescription(a.description || ''); setNewAssignmentType(a.description && /overnight\s*assignment/i.test(a.description) ? 'Overnight Assignment' : 'Sameday Assignment'); setIsCurrentAssignmentsModalOpen(false); setIsAddAssignmentModalOpen(true); setAssignmentActionDropdown(null) }}
                                       className="w-full px-3 py-1.5 text-left text-[10px] font-semibold text-cyan-700 hover:bg-cyan-50 transition-colors flex items-center gap-1.5"
                                     >
                                       <FileEdit className="h-3 w-3" /> Edit
@@ -7998,6 +8061,15 @@ export default function DashboardPage() {
                                 Priority
                               </span>
                             )}
+                            {a.description && /overnight\s*assignment/i.test(a.description) ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 text-[9px] font-bold whitespace-nowrap">
+                                🌙 Overnight
+                              </span>
+                            ) : a.description && /sameday\s*assignment|same\s*day\s*assignment/i.test(a.description) ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-sky-50 border border-sky-200 text-sky-700 text-[9px] font-bold whitespace-nowrap">
+                                ☀️ Sameday
+                              </span>
+                            ) : null}
                             {(() => {
                               const urgencyInfo = a.status !== 'done' && a.status !== 'cancelled' ? getAssignmentUrgency(a) : null
                               if (!urgencyInfo) return null
@@ -8056,6 +8128,15 @@ export default function DashboardPage() {
                                 Priority
                               </span>
                             )}
+                            {a.description && /overnight\s*assignment/i.test(a.description) ? (
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 text-[8px] font-bold whitespace-nowrap shrink-0">
+                                🌙 Overnight
+                              </span>
+                            ) : a.description && /sameday\s*assignment|same\s*day\s*assignment/i.test(a.description) ? (
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-sky-50 border border-sky-200 text-sky-700 text-[8px] font-bold whitespace-nowrap shrink-0">
+                                ☀️ Sameday
+                              </span>
+                            ) : null}
                             {(() => {
                               const urgencyInfo = a.status !== 'done' && a.status !== 'cancelled' ? getAssignmentUrgency(a) : null
                               if (!urgencyInfo) return null
@@ -8135,7 +8216,7 @@ export default function DashboardPage() {
                                     </button>
                                   )}
                                   <button
-                                    onClick={() => { setEditAssignmentId(a.id); setNewAssignmentFilename(a.filename); setNewAssignmentDescription(a.description || ''); setIsCurrentAssignmentsModalOpen(false); setIsAddAssignmentModalOpen(true); setAssignmentActionDropdown(null) }}
+                                    onClick={() => { setEditAssignmentId(a.id); setNewAssignmentFilename(a.filename); setNewAssignmentDescription(a.description || ''); setNewAssignmentType(a.description && /overnight\s*assignment/i.test(a.description) ? 'Overnight Assignment' : 'Sameday Assignment'); setIsCurrentAssignmentsModalOpen(false); setIsAddAssignmentModalOpen(true); setAssignmentActionDropdown(null) }}
                                     className="w-full px-3 py-1.5 text-left text-[10px] font-semibold text-cyan-700 hover:bg-cyan-50 transition-colors flex items-center gap-1.5"
                                   >
                                     <FileEdit className="h-3 w-3" /> Edit
@@ -9122,6 +9203,15 @@ export default function DashboardPage() {
                   {selectedAssignment.is_priority && (
                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-600 text-white text-[9px] font-black uppercase whitespace-nowrap">RUSH</span>
                   )}
+                  {selectedAssignment.description && /overnight\s*assignment/i.test(selectedAssignment.description) ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 text-[9px] font-bold whitespace-nowrap">
+                      🌙 Overnight Assignment
+                    </span>
+                  ) : selectedAssignment.description && /sameday\s*assignment|same\s*day\s*assignment/i.test(selectedAssignment.description) ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-sky-50 border border-sky-200 text-sky-700 text-[9px] font-bold whitespace-nowrap">
+                      ☀️ Sameday Assignment
+                    </span>
+                  ) : null}
                   {urgencyInfo && (
                     <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] border whitespace-nowrap ${urgencyInfo.colorClass}`}>
                       <Clock className="w-2.5 h-2.5 shrink-0" />

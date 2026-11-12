@@ -21,6 +21,7 @@ export interface ParsedAssignment {
   audioAvailability?: string
   topic?: string
   due?: string
+  assignmentType?: 'Sameday Assignment' | 'Overnight Assignment' | string
   formattedHtml: string
   formattedText: string
   extraLines?: string[]
@@ -44,7 +45,7 @@ const CUSTOM_NOTE_PREFIX_REGEX =
  */
 export function isAlreadyFormattedAssignment(input: string): boolean {
   if (!input) return false
-  return /<(?:b|strong)>\s*(?:Code|Company|Duration|Audio\s*Availability|Audio\s*Avail|Audio|Topic|Due)\s*:\s*<\/(?:b|strong)>/i.test(
+  return /<(?:b|strong)>\s*(?:Code|Company|Duration|Audio\s*Availability|Audio\s*Avail|Audio|Topic|Due|Assignment\s*Type|Shift)\s*:\s*<\/(?:b|strong)>/i.test(
     input
   )
 }
@@ -125,7 +126,7 @@ export function matchExistingLabel(line: string): { labelKey: string; value: str
   const cleaned = line.replace(/^<(?:div|p)[^>]*>|<\/(?:div|p)>$/gi, '').trim()
 
   const match = cleaned.match(
-    /^(?:<[^>]+>)*\s*(?:<b>|<strong>)?\s*(code|company|duration|audio\s*availability|audio\s*avail|audio|topic|due)\s*:\s*(?:<\/b>|<\/strong>)?\s*(.*)$/i
+    /^(?:<[^>]+>)*\s*(?:<b>|<strong>)?\s*(code|company|duration|audio\s*availability|audio\s*avail|audio|topic|due|assignment\s*type|shift)\s*:\s*(?:<\/b>|<\/strong>)?\s*(.*)$/i
   )
   if (!match) return null
 
@@ -137,6 +138,7 @@ export function matchExistingLabel(line: string): { labelKey: string; value: str
   else if (rawKey.startsWith('audio')) normalizedKey = 'Audio Availability'
   else if (rawKey === 'topic') normalizedKey = 'Topic'
   else if (rawKey === 'due') normalizedKey = 'Due'
+  else if (rawKey === 'assignment type' || rawKey === 'shift') normalizedKey = 'Assignment Type'
 
   let val = match[2].trim()
   val = val
@@ -160,6 +162,7 @@ export function extractAssignmentFields(input: string): {
   audioAvailability?: string
   topic?: string
   due?: string
+  assignmentType?: string
 } {
   if (!input) return {}
   const lines = extractLines(input, true, false)
@@ -191,6 +194,15 @@ export function extractAssignmentFields(input: string): {
     }
   }
 
+  let assignmentType = values['Assignment Type']
+  if (!assignmentType) {
+    if (/overnight\s*assignment/i.test(input)) {
+      assignmentType = 'Overnight Assignment'
+    } else if (/sameday\s*assignment|same\s*day\s*assignment/i.test(input)) {
+      assignmentType = 'Sameday Assignment'
+    }
+  }
+
   return {
     code: values['Code'],
     company: values['Company'],
@@ -198,6 +210,7 @@ export function extractAssignmentFields(input: string): {
     audioAvailability: values['Audio Availability'],
     topic: values['Topic'],
     due: values['Due'],
+    assignmentType,
   }
 }
 
@@ -256,7 +269,10 @@ export function isRawAssignmentSequence(input: string): boolean {
  * Preserves user notes, bold tags on notes, blank lines/standalone spaces,
  * and maintains the exact line order without pushing notes to the bottom.
  */
-export function parseAndFormatAssignment(input: string): ParsedAssignment {
+export function parseAndFormatAssignment(
+  input: string,
+  options?: { defaultAssignmentType?: 'Sameday Assignment' | 'Overnight Assignment' | string }
+): ParsedAssignment {
   const lines = extractLines(input, true, true)
 
   if (lines.length === 0) {
@@ -275,6 +291,7 @@ export function parseAndFormatAssignment(input: string): ParsedAssignment {
     'Audio Availability': '',
     Topic: '',
     Due: '',
+    'Assignment Type': '',
   }
   const extraLines: string[] = []
 
@@ -302,6 +319,12 @@ export function parseAndFormatAssignment(input: string): ParsedAssignment {
         formattedHtmlParts.push(`<div>${line}</div>`)
         formattedTextParts.push(line.replace(/<[^>]*>/g, ''))
       }
+    }
+
+    if (options?.defaultAssignmentType && !values['Assignment Type']) {
+      values['Assignment Type'] = options.defaultAssignmentType
+      formattedHtmlParts.push(`<div><b>Assignment Type:</b> ${options.defaultAssignmentType}</div>`)
+      formattedTextParts.push(`Assignment Type: ${options.defaultAssignmentType}`)
     }
   } else {
     // Unlabeled sequence
@@ -336,10 +359,24 @@ export function parseAndFormatAssignment(input: string): ParsedAssignment {
         formattedTextParts.push(`${label}: ${values[label]}`)
         seqIdx++
       } else {
-        extraLines.push(line)
-        formattedHtmlParts.push(`<div>${line}</div>`)
-        formattedTextParts.push(line.replace(/<[^>]*>/g, ''))
+        const cleanLine = line.replace(/<[^>]*>/g, '').trim()
+        if (/^(?:sameday|overnight)\s*assignment$/i.test(cleanLine)) {
+          const val = /overnight/i.test(cleanLine) ? 'Overnight Assignment' : 'Sameday Assignment'
+          values['Assignment Type'] = val
+          formattedHtmlParts.push(`<div><b>Assignment Type:</b> ${val}</div>`)
+          formattedTextParts.push(`Assignment Type: ${val}`)
+        } else {
+          extraLines.push(line)
+          formattedHtmlParts.push(`<div>${line}</div>`)
+          formattedTextParts.push(line.replace(/<[^>]*>/g, ''))
+        }
       }
+    }
+
+    if (options?.defaultAssignmentType && !values['Assignment Type']) {
+      values['Assignment Type'] = options.defaultAssignmentType
+      formattedHtmlParts.push(`<div><b>Assignment Type:</b> ${options.defaultAssignmentType}</div>`)
+      formattedTextParts.push(`Assignment Type: ${options.defaultAssignmentType}`)
     }
   }
 
@@ -351,8 +388,53 @@ export function parseAndFormatAssignment(input: string): ParsedAssignment {
     audioAvailability: values['Audio Availability'],
     topic: values['Topic'],
     due: values['Due'],
+    assignmentType: values['Assignment Type'] || undefined,
     formattedHtml: formattedHtmlParts.join(''),
     formattedText: formattedTextParts.join('\n'),
     extraLines,
   }
+}
+
+/**
+ * Ensures the description HTML contains the specified assignment type.
+ * If an existing Assignment Type (or Sameday/Overnight Assignment) line exists, it replaces it.
+ * Otherwise, appends the Assignment Type line.
+ */
+export function ensureAssignmentTypeInDescription(
+  input: string,
+  assignmentType: 'Sameday Assignment' | 'Overnight Assignment' | string
+): string {
+  const safeType = assignmentType === 'Overnight Assignment' ? 'Overnight Assignment' : 'Sameday Assignment'
+  const replacementLine = `<div><b>Assignment Type:</b> ${safeType}</div>`
+
+  if (!input || !input.trim()) {
+    return replacementLine
+  }
+
+  // 1. Match <div><b>Assignment Type:</b> ...</div> or variations
+  const labeledDivRegex = /<div[^>]*>\s*(?:<b>|<strong>)?\s*(?:Assignment\s*Type|Shift)\s*:\s*(?:<\/b>|<\/strong>)?\s*(?:Sameday|Overnight)(?:\s*Assignment)?\s*<\/div>/gi
+  if (labeledDivRegex.test(input)) {
+    return input.replace(labeledDivRegex, replacementLine)
+  }
+
+  // 2. Match inline <b>Assignment Type:</b> ...
+  const inlineLabeledRegex = /(?:<b>|<strong>)\s*(?:Assignment\s*Type|Shift)\s*:\s*(?:<\/b>|<\/strong>)\s*(?:Sameday|Overnight)(?:\s*Assignment)?/gi
+  if (inlineLabeledRegex.test(input)) {
+    return input.replace(inlineLabeledRegex, `<b>Assignment Type:</b> ${safeType}`)
+  }
+
+  // 3. Match <div>(Sameday|Overnight) Assignment</div>
+  const standaloneDivRegex = /<div[^>]*>\s*(?:<b>|<strong>)?\s*(?:Sameday|Overnight)\s*Assignment\s*(?:<\/b>|<\/strong>)?\s*<\/div>/gi
+  if (standaloneDivRegex.test(input)) {
+    return input.replace(standaloneDivRegex, replacementLine)
+  }
+
+  // 4. Match bare string "(Sameday|Overnight) Assignment"
+  const bareRegex = /\b(?:Sameday|Overnight)\s*Assignment\b/gi
+  if (bareRegex.test(input)) {
+    return input.replace(bareRegex, safeType)
+  }
+
+  // 5. If none matched, append at the end
+  return `${input.trim()}<div><b>Assignment Type:</b> ${safeType}</div>`
 }

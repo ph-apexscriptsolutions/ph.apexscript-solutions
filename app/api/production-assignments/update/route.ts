@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { parseAndFormatAssignment, isRawAssignmentSequence, extractAssignmentFields } from '@/utils/assignment-formatter'
+import { parseAndFormatAssignment, isRawAssignmentSequence, extractAssignmentFields, ensureAssignmentTypeInDescription } from '@/utils/assignment-formatter'
 
 const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -12,7 +12,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    const { assignmentId, status, filename, dueTime, description, isPriority } = body
+    const { assignmentId, status, filename, dueTime, description, isPriority, assignmentType } = body
 
     if (!assignmentId) {
       return NextResponse.json({ error: 'Missing assignmentId' }, { status: 400 })
@@ -31,31 +31,51 @@ export async function POST(request: Request) {
     if (status) updates.status = status
     if (typeof filename !== 'undefined' && filename !== null) updates.filename = filename.trim()
     if (typeof dueTime !== 'undefined') updates.due_time = dueTime
-    if (typeof description !== 'undefined') {
-      if (description && isRawAssignmentSequence(description)) {
-        const parsed = parseAndFormatAssignment(description)
+
+    // Resolve assignment type if provided or present
+    let resolvedAssignmentType = assignmentType
+    if (!resolvedAssignmentType) {
+      const sourceDesc = (typeof description !== 'undefined' ? description : existingAssignment?.description) || ''
+      if (/overnight\s*assignment/i.test(sourceDesc)) {
+        resolvedAssignmentType = 'Overnight Assignment'
+      } else if (/sameday\s*assignment|same\s*day\s*assignment/i.test(sourceDesc)) {
+        resolvedAssignmentType = 'Sameday Assignment'
+      }
+    }
+
+    if (typeof description !== 'undefined' || typeof assignmentType !== 'undefined') {
+      let descToFormat = typeof description !== 'undefined' ? description : (existingAssignment?.description || '')
+      if (descToFormat && isRawAssignmentSequence(descToFormat)) {
+        const parsed = parseAndFormatAssignment(descToFormat, { defaultAssignmentType: resolvedAssignmentType })
         if (parsed.isAssignment) {
-          updates.description = parsed.formattedHtml
+          descToFormat = parsed.formattedHtml
           if (typeof dueTime === 'undefined' && parsed.due) {
             updates.due_time = parsed.due
           }
-        } else {
-          updates.description = description
-        }
-      } else {
-        updates.description = description
-        if (typeof dueTime === 'undefined' && description) {
-          const extracted = extractAssignmentFields(description)
-          if (extracted.due) {
-            updates.due_time = extracted.due
+          if (parsed.assignmentType === 'Overnight Assignment' || parsed.assignmentType === 'Sameday Assignment') {
+            resolvedAssignmentType = parsed.assignmentType
           }
         }
+      } else if (descToFormat && typeof dueTime === 'undefined') {
+        const extracted = extractAssignmentFields(descToFormat)
+        if (extracted.due) {
+          updates.due_time = extracted.due
+        }
+        if (extracted.assignmentType === 'Overnight Assignment' || extracted.assignmentType === 'Sameday Assignment') {
+          resolvedAssignmentType = extracted.assignmentType
+        }
       }
+
+      if (resolvedAssignmentType) {
+        descToFormat = ensureAssignmentTypeInDescription(descToFormat || '', resolvedAssignmentType)
+      }
+      updates.description = descToFormat
     }
+
     if (typeof isPriority !== 'undefined') updates.is_priority = Boolean(isPriority)
 
     // Always update description_updated_at timestamp whenever assignment details are edited
-    if (typeof filename !== 'undefined' || typeof description !== 'undefined' || typeof dueTime !== 'undefined') {
+    if (typeof filename !== 'undefined' || typeof description !== 'undefined' || typeof dueTime !== 'undefined' || typeof assignmentType !== 'undefined') {
       updates.description_updated_at = new Date().toISOString()
     }
 
