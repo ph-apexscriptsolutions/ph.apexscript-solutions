@@ -8061,15 +8061,6 @@ export default function DashboardPage() {
                                 Priority
                               </span>
                             )}
-                            {a.description && /overnight\s*assignment/i.test(a.description) ? (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 text-[9px] font-bold whitespace-nowrap">
-                                🌙 Overnight
-                              </span>
-                            ) : a.description && /sameday\s*assignment|same\s*day\s*assignment/i.test(a.description) ? (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-sky-50 border border-sky-200 text-sky-700 text-[9px] font-bold whitespace-nowrap">
-                                ☀️ Sameday
-                              </span>
-                            ) : null}
                             {(() => {
                               const urgencyInfo = a.status !== 'done' && a.status !== 'cancelled' ? getAssignmentUrgency(a) : null
                               if (!urgencyInfo) return null
@@ -8128,15 +8119,6 @@ export default function DashboardPage() {
                                 Priority
                               </span>
                             )}
-                            {a.description && /overnight\s*assignment/i.test(a.description) ? (
-                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 text-[8px] font-bold whitespace-nowrap shrink-0">
-                                🌙 Overnight
-                              </span>
-                            ) : a.description && /sameday\s*assignment|same\s*day\s*assignment/i.test(a.description) ? (
-                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-sky-50 border border-sky-200 text-sky-700 text-[8px] font-bold whitespace-nowrap shrink-0">
-                                ☀️ Sameday
-                              </span>
-                            ) : null}
                             {(() => {
                               const urgencyInfo = a.status !== 'done' && a.status !== 'cancelled' ? getAssignmentUrgency(a) : null
                               if (!urgencyInfo) return null
@@ -9203,15 +9185,6 @@ export default function DashboardPage() {
                   {selectedAssignment.is_priority && (
                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-600 text-white text-[9px] font-black uppercase whitespace-nowrap">RUSH</span>
                   )}
-                  {selectedAssignment.description && /overnight\s*assignment/i.test(selectedAssignment.description) ? (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 text-[9px] font-bold whitespace-nowrap">
-                      🌙 Overnight Assignment
-                    </span>
-                  ) : selectedAssignment.description && /sameday\s*assignment|same\s*day\s*assignment/i.test(selectedAssignment.description) ? (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-sky-50 border border-sky-200 text-sky-700 text-[9px] font-bold whitespace-nowrap">
-                      ☀️ Sameday Assignment
-                    </span>
-                  ) : null}
                   {urgencyInfo && (
                     <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] border whitespace-nowrap ${urgencyInfo.colorClass}`}>
                       <Clock className="w-2.5 h-2.5 shrink-0" />
