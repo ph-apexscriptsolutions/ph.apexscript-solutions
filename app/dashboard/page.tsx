@@ -11,6 +11,8 @@ import PriorityBroadcastModal from '@/components/priority-broadcast-modal'
 import AdminPriorityAnnouncementModal from '@/components/admin-priority-announcement-modal'
 import RevisionRequestModal from '@/components/revision-request-modal'
 import { DashboardCardStyleModal } from '@/components/dashboard-card-style-modal'
+import FormatAssistantModal from '@/components/format-assistant-modal'
+import AIStyleGuidelinesAdminModal from '@/components/ai-style-guidelines-admin-modal'
 import { parseAndFormatAssignment, isRawAssignmentSequence, extractAssignmentFields, ensureAssignmentTypeInDescription } from '@/utils/assignment-formatter'
 
 const getDepartmentIcon = (department: string) => {
@@ -848,6 +850,7 @@ export default function DashboardPage() {
   // Style Guides
   const [isStyleGuidesModalOpen, setIsStyleGuidesModalOpen] = useState(false)
   const [isStyleGuidesAdminModalOpen, setIsStyleGuidesAdminModalOpen] = useState(false)
+  const [isAIStyleGuidelinesAdminModalOpen, setIsAIStyleGuidelinesAdminModalOpen] = useState(false)
   const [styleGuides, setStyleGuides] = useState<any[]>([])
   const [isLoadingStyleGuides, setIsLoadingStyleGuides] = useState(false)
 
@@ -4752,6 +4755,26 @@ export default function DashboardPage() {
                         </div>
                       </button>
 
+                      {/* AI Rules & Guidelines Manager */}
+                      <button
+                        onClick={() => setIsAIStyleGuidelinesAdminModalOpen(true)}
+                        className="group relative flex flex-col items-start gap-1 rounded-md border border-cyan-500/30 bg-cyan-500/10 p-2 text-left backdrop-blur-sm hover:bg-cyan-500/20 hover:border-cyan-400 transition-all duration-200 hover:shadow-xl hover:shadow-cyan-600/30"
+                      >
+                        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br from-cyan-500 to-indigo-600 shadow-lg shadow-cyan-500/30 group-hover:scale-110 transition-transform duration-200">
+                          <Sparkles className="h-3.5 w-3.5 text-white" />
+                        </div>
+                        <div>
+                          <p className="text-[11px] font-semibold text-cyan-200 flex items-center gap-1">
+                            <span>AI Style Rules</span>
+                            <span className="text-[7px] bg-cyan-400/20 text-cyan-200 px-1 py-0.2 rounded font-bold">AI</span>
+                          </p>
+                          <p className="mt-0.5 text-[8px] text-zinc-300">Teach rules directly to Format AI</p>
+                        </div>
+                        <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <svg className="h-2.5 w-2.5 text-cyan-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                        </div>
+                      </button>
+
                       {/* Manage Formatting Rules */}
                       <button
                         onClick={() => { setIsFormattingRulesAdminModalOpen(true); fetchFormattingRules() }}
@@ -7973,9 +7996,14 @@ export default function DashboardPage() {
                         {/* Mobile layout: stacked vertically with clear action buttons */}
                         <div className="sm:hidden space-y-2.5">
                           <div className="flex items-start justify-between gap-2">
-                            <button type="button" onClick={() => { setSelectedAssignment(a); setIsCurrentAssignmentsModalOpen(false); }} className="text-xs font-bold text-slate-900 hover:text-cyan-700 transition-colors text-left break-all flex items-center gap-1.5">
-                              <FileText className="h-3.5 w-3.5 text-cyan-600 shrink-0" />
-                              <span>{getDisplayFileName(a.filename)}</span>
+                            <button
+                              type="button"
+                              onClick={() => { setSelectedAssignment(a); setIsCurrentAssignmentsModalOpen(false); }}
+                              className="text-xs font-bold text-slate-900 hover:text-cyan-700 transition-colors text-left break-words whitespace-normal flex items-start gap-1.5"
+                              title={getDisplayFileName(a.filename)}
+                            >
+                              <FileText className="h-3.5 w-3.5 text-cyan-600 shrink-0 mt-0.5" />
+                              <span className="break-words">{getDisplayFileName(a.filename)}</span>
                             </button>
                             {isAdmin && assignmentViewMode === 'admin' && (
                               <div className="flex items-center justify-end relative shrink-0">
@@ -9512,6 +9540,16 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
+
+      {/* Floating AI Format Assistant */}
+      <FormatAssistantModal department={activeWorker?.department || 'conference'} />
+
+      {/* AI Style Guidelines Admin Modal */}
+      <AIStyleGuidelinesAdminModal
+        isOpen={isAIStyleGuidelinesAdminModalOpen}
+        onClose={() => setIsAIStyleGuidelinesAdminModalOpen(false)}
+        adminUser={user}
+      />
 
     </div>
   )
