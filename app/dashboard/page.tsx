@@ -8100,10 +8100,11 @@ export default function DashboardPage() {
                           style={{ gridTemplateColumns: isAdmin && assignmentViewMode === 'admin' ? '1fr 110px 140px auto' : '1fr 110px 140px' }}
                         >
                           {/* Col 1: Filename + badges */}
-                          <div className="flex items-center gap-2 min-w-0 pr-2">
-                            <button type="button" onClick={() => { setSelectedAssignment(a); setIsCurrentAssignmentsModalOpen(false); }} className="text-xs font-bold text-slate-800 hover:text-cyan-700 underline-offset-4 hover:underline transition-colors text-left truncate">
+                          <div className="flex flex-col gap-1 min-w-0 pr-2">
+                            <button type="button" onClick={() => { setSelectedAssignment(a); setIsCurrentAssignmentsModalOpen(false); }} className="text-xs font-bold text-slate-800 hover:text-cyan-700 underline-offset-4 hover:underline transition-colors text-left break-words whitespace-normal" title={getDisplayFileName(a.filename)}>
                               {getDisplayFileName(a.filename)}
                             </button>
+                            <div className="flex flex-wrap gap-1 items-center">
                             {isUpdated && (
                               <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-teal-50 border border-teal-300 text-teal-700 text-[8px] font-bold tracking-wide uppercase shrink-0">
                                 Updated
@@ -8129,6 +8130,7 @@ export default function DashboardPage() {
                                 </span>
                               )
                             })()}
+                            </div>
                           </div>
 
                           {/* Col 2: Status */}
